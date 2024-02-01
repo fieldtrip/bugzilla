@@ -30,8 +30,11 @@ Some of the bug reports contain file attachments in base64 encoding, which makes
 yml files very large. As I don't want to have large files in my git repository, I
 wrote a bash script (again using yp) to copy the base64-encoded attachments to
 separate yml files, and to remove the attachment data field from each of the bugs.
+The bash script is in the `_code` directory and executed as follows.
 
-This results in files like this
+    for i in {1..3476} ; do strip.sh ~/Desktop/bugzilla/xml/$i.xml ; done
+
+The combination of steps results in files like this
 
     xxx.xml               # for the original bug in xml format
     xxx.yml               # for the original bug in yml format, no attachment data
