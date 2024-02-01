@@ -1,0 +1,102 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1922"
+    creation_ts: 2013-01-09 10:55:00 +0100
+    short_desc: extend and test functionality of ft_timelockgrandaverage
+    delta_ts: 2013-02-23 20:56:48 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: maess
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8893"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-01-09 10:55:13 +0100
+        thetext: |-
+          Extend ft_timelockgrandaverage with functionality suggested by Burkhard: i.e. do a weighted average across input arguments (weighted with the dof). Most of the changes are in place now, the following still needs to be done:
+
+          -consider explicitly checking the equality of the grad/elec-structures across inputs in the cfg.method='within' case. This could be done with the isequalwithequalnans function
+
+          -consider averaging across grad/elec-structures in the cfg.method = 'across' case. This could be done with the function ft_average_sens
+
+          -write a test script. Burkhard could upload the files to this bug, so that I will strip them of the superfluous information (minimize the size), and upload them to our test-data directory. Also we should think of assessing the results without graphics, because the tests need to be ran with as little user interaction as possible. Probably it is worthwile to explore the possibility to compare the output with the output of ft_timelockanalysis; this could also be done with dummy data, e.g:
+
+          data = [];
+          data.trial = {1 1 1 1 2 2 2 3 3};
+          data.time = {1 1 1 1 1 1 1 1 1};
+          data.label = {'chan01'};
+          data.fsample = 1; % just to be safe
+
+          tlck = ft_timelockanalysis([], data);
+
+          cfg = [];
+          cfg.trials = 1:4;
+          tlck1 = ft_timelockanalysis(cfg, data);
+          cfg.trials = 5:7;
+          tlck2 = ft_timelockanalysis(cfg, data);
+          cfg.trials = 8:9;
+          tlck3 = ft_timelockanalysis(cfg, data);
+
+          cfg = [];
+          cfg.method = 'within';
+          tlckall = ft_timelockgrandaverage(cfg, tlck1, tlck2, tlck3);
+
+          var does not look right yet ;-)
+      - +@isprivate: "0"
+        commentid: "8894"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-01-09 10:56:29 +0100
+        thetext: "bash-4.1$ svn diff ft_timelockgrandaverage.m\nIndex: ft_timelockgrandaverage.m\n===================================================================\n--- ft_timelockgrandaverage.m\t(revision 7284)\n+++ ft_timelockgrandaverage.m\t(working copy)\n@@ -135,8 +135,8 @@\n \n % pick the selections\n for i=1:Nsubj\n-  if ~isfield(varargin{i}, cfg.parameter{1})\n-    error('the field %s is not present in data structure %d', cfg.parameter{1}, i);\n+  if ~isfield(varargin{i}, cfg.parameter)\n+    error('the field %s is not present in data structure %d', cfg.parameter, i);\n   end\n   chansel = match_str(varargin{i}.label, cfg.channel);\n   varargin{i}.label = varargin{i}.label(chansel);\n@@ -163,7 +163,7 @@\n \n % determine the size of the data to be averaged\n %dim = cell(1,numel(cfg.parameter));\n-dim{1} = size(varargin{1}.(cfg.parameter{1}));\n+dim{1} = size(varargin{1}.(cfg.parameter));\n \n % give some feedback on the screen\n if strcmp(cfg.keepindividual, 'no')\nbash-4.1$ svn commit -m \"bugfix - removed some remaining cell-indexed cfg.parameter calls\" ft_timelockgrandaverage.m \nSending        ft_timelockgrandaverage.m\nTransmitting file data .\nCommitted revision 7285."
+      - +@isprivate: "0"
+        commentid: "8966"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-01-16 15:38:46 +0100
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - added testing functionality for the new feature in ft_timelockgrandaverage" test_ft_timelockgrandaverage.m
+          Sending        test_ft_timelockgrandaverage.m
+          Transmitting file data .
+          Committed revision 7334.
+          bash-4.1$ cd ../
+          bash-4.1$ svn commit -m "enhancement - added correct variance computation when method = 'within'" ft_timelockgrandaverage.m
+          Sending        ft_timelockgrandaverage.m
+          Transmitting file data .
+          Committed revision 7335.
+
+          @Burkhard: could you check whether everything works as expected, so that I can close this bug? Thanks.

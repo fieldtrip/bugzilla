@@ -1,0 +1,229 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2978"
+    creation_ts: 2015-10-05 18:21:00 +0200
+    short_desc: '"Plot Trial" button on GUI for ft_rejectvisual (summary mode) plots average of all trials instead of the single trial requested'
+    delta_ts: 2019-08-10 12:40:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3012
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3032
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3296
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "3064"
+      - "3128"
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - braingirl
+      - j.schoffelen
+      - r.oostenveld
+      - stefanwiens
+      - weiyong.w.xu
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16170"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-10-05 18:21:17 +0200
+        thetext: "This is another bug that I'm just encountering now that I've recently upgraded to Matlab R2015b.\n\nI run:\n\ncfg                                     = [];\ncfg.layout                              = 'vertical';\ncfg.method                              = 'summary';\n                    \ndata = ft_rejectvisual(cfg,data);\n\nAnd everything looks fine, but once I plot any single trial, only that trial continues to be replotted (with the label of the trial I asked for) regardless of what number I put in.\n\nSince there's no error, I'm not sure where to look in the code to narrow down the problem.  Let me know if you're able to reproduce it."
+      - +@isprivate: "0"
+        commentid: "16401"
+        comment_count: "1"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-11-20 21:09:00 +0100
+        thetext: "Actually, it turns out it's plotting an average of all the trials, and it happens in R2015a as well.  \n\nHere's exactly what I'm doing:\n\n%% load continuous LFP data, all channels\n                                \n    cfg             = [];\n    cfg.dataset     = nexfile{r,p};\n    cfg.channel     = 'AD*';\n    cfg.continuous  = 'yes';\n    cfg.outputfile  = outputfile1;\n                                \n    data = ft_preprocessing(cfg);\n\n%% break data into 100 chunks for visualization \n% during artifact rejection process, will be \n% re-merged before filtering\n                            \n    cfg                         = [];\n    cfg.dataset                 = nexfile{r,p};\n    cfg.trialdef.triallength    = floor(...\n        (data.sampleinfo(2)-data.sampleinfo(1))...\n        /100)/data.fsample;\n    cfg.trialdef.ntrials        = 100;\n                            \n    cfg = ft_definetrial(cfg);\n                                                        \n    data = ft_redefinetrial(cfg, data);\n\nAlong with other details, the Command Window displays, \"the input is raw data with 16 channels and 1 trials,\" which is true of the data going into ft_redefinetrial.\n                                                      \n%% reject bad channels based on extreme kurtosis\n                            \n    cfg                         = [];\n    cfg.layout                  = 'vertical';\n    cfg.method                  = 'summary';\n                            \n    data = ft_rejectvisual(cfg,data);\n\nHere, it says, \"the input is raw data with 16 channels and 100 trials,\" which is correct for the data now going into ft_rejectvisual.  But when I type, say, \"70\" into the \"Plot trial\" box and hit enter, the Command Window now displays:\n\nthe call to \"ft_selectdata\" took 0 seconds\nthe input is timelock data with 16 channels and 51775 timebins\nthe call to \"ft_selectdata\" took 0 seconds\naveraging trials\naveraging trial 100 of 100\n\nWhat appears in another figure is actually an average of all 100 trials, but it is labeled as Trial 70.  Why has it changed to interpreting this as timelock data, and why is it averaging the trials?"
+      - +@isprivate: "0"
+        commentid: "16482"
+        comment_count: "2"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-12-02 19:12:43 +0100
+        thetext: "Now I'm encountering a new version of this bug - now with errors, so at least a place to start!\n\n\nAgain, I run this:\n\n    cfg                         = [];\n    cfg.layout                  = 'vertical';\n    cfg.method                  = 'summary';\n                            \n    data = ft_rejectvisual(cfg,data);\n\n\nThe GUI pops up just fine, and the command window displays this:\n\nthe input is raw data with 12 channels and 200 trials\nWarning: correcting numerical inaccuracy in the time axes \n> In ft_warning (line 181)\n  In ft_datatype_raw>fixtimeaxes (line 310)\n  In ft_datatype_raw (line 262)\n  In ft_checkdata (line 219)\n  In ft_rejectvisual (line 136) \nshowing a summary of the data for all channels and trials\ncomputing metric [---------------------------------------------------------]\n\n\nAll the other functions of the GUI seem to work, but when I put a trial number into the \"plot trial\" box and hit \"enter,\" I get this:\n\nWarning: correcting numerical inaccuracy in the time axes \n> In ft_warning (line 181)\n  In ft_datatype_raw>fixtimeaxes (line 310)\n  In ft_datatype_raw (line 262)\n  In ft_checkdata (line 219)\n  In ft_multiplotER (line 140)\n  In rejectvisual_summary>display_trial (line 610)\n  In uiwait (line 81)\n  In rejectvisual_summary (line 136)\n  In ft_rejectvisual (line 275) \nWarning: correcting numerical inaccuracy in the time axes \n> In ft_warning (line 181)\n  In ft_datatype_raw>fixtimeaxes (line 310)\n  In ft_datatype_raw (line 262)\n  In ft_checkdata (line 219)\n  In ft_checkdata>raw2timelock (line 1296)\n  In ft_checkdata (line 400)\n  In ft_multiplotER (line 140)\n  In rejectvisual_summary>display_trial (line 610)\n  In uiwait (line 81)\n  In rejectvisual_summary (line 136)\n  In ft_rejectvisual (line 275) \nError using nan\nRequested 200x12x5911295 (105.7GB) array exceeds maximum array size preference. Creation of arrays greater than\nthis limit may take a long time and cause MATLAB to become unresponsive. See array size limit or preference\npanel for more information.\n\nError in ft_checkdata>raw2timelock (line 1318)\n  tmptrial = nan(ntrial, nchan, length(time));\n\nError in ft_checkdata (line 400)\n      data = raw2timelock(data);\n\nError in ft_multiplotER (line 140)\n  varargin{i} = ft_checkdata(varargin{i}, 'datatype', {'timelock', 'freq'});\n\nError in rejectvisual_summary>display_trial (line 610)\n  ft_multiplotER(cfg_mp, info.data);\n \n1318   tmptrial = nan(ntrial, nchan, length(time));\n\n\nI think this error occurs because I've set the offset of all my trials to the start of the recording, so it's trying to create a matrix large enough to fit the whole continuous stream of data into each of the 200 trials.  If I change them all to 0 offset, rejectvisual_summary>display_trial runs without errors, but displays an average of the first 2 seconds (my shortest trial length) of all trials, followed by a flat line for the rest of the length of the longest trial (~30.1s).\n\nBut the real problem is that it's trying to convert the data to timelock again.  Why?  What does that mean?  How do I get it to display just the one trial I requested?"
+      - +@isprivate: "0"
+        commentid: "17259"
+        comment_count: "3"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-04-28 14:52:22 +0200
+        thetext: "Hi, \nthis bug still exists. Every time I try to plot one single trial, it  always give the same averaged trials. It may be quite misleading if you didn't notice it is actually an averaged trial because it will look quite good and you will be tempted to keep this trial(which is not plotted)."
+      - +@isprivate: "0"
+        commentid: "17315"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-11 16:48:13 +0200
+        thetext: |-
+          (In reply to Weiyong Xu from comment #3)
+
+          Since you did such a great job in the ft_combineplanar bug, do you feel lucky enough to tackle this one as well? :o)
+      - +@isprivate: "0"
+        commentid: "17333"
+        comment_count: "5"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-05-12 17:42:18 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #4)\n\nHi,\n\nThis bug is originated from ft_multiplotER?\nline 327      [cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\n\nThis lead to cfg.trials='all',because the data structure in varargin{:} which was passed from rejectvisual_summary does not have any trial plot index from the user(by typing in the textbox in GUI).  This overwrite: \n\nline 158      cfg.trials         = ft_getopt(cfg, 'trials', 'all', 1);\n\nwhich recieve the correct trial plot index from the user(by typing in the textbox in GUI).So before plotting ft_timelockanalysis averages all the trials for all the single trial plot.\n\nIt maybe not a good idea to change code in ft_multiplotER, so I would suggest only pass a single trial data to ft_multiplotER when it is called in rejectvisual_summary to plot specific single trial.I made a few line code change in rejectvisual_summary and it seems to work well."
+      - +@isprivate: "0"
+        commentid: "17340"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-13 15:01:17 +0200
+        thetext: "(In reply to Weiyong Xu from comment #5)\n\nWeiyong suggested this\nhttps://github.com/fieldtrip/fieldtrip/pull/156\n\nto which I replied with this\n---\nalthough the problem is visible in ft_rejectvisual, that is not where the problem originates, nor should be solved.\n\nI loaded a dataset (Subject01.ds) and with\n\ncfg = [];\ncfg.layout = 'CTF151.lay';\ncfg.trials = 255; % this has a jump\nft_multiplotER(cfg, data)\n\nI am also getting the average. So ft_multiplotER is not behaving as it should and not consistent with its own documentation.\n---\n\nthe core issue is that ft_multiplotER is not doing data handling correctly. It has many layers of data selection bolted onto each other (over the years) and they are not consistent in all cases. Most important is to switch to using ft_selectdata consistently. \n\nThe use cases that I am aware of are\nraw data, averaged on the fly\ntimelock data with keeptrials, averaged on the fly\ntimelock data with avg, no averaging needed\npower spectrum (no time) with keep trials, averaged on the fly\npower spectrum (no time) already averaged\ncross-spectrum (no time) with keep trials, ref channel selection, no averaging needed\ncross-spectrum (no time), ref channel selection, no averaging needed\n\nThe cross-spectrum will usually be averaged/normalized into a coherence estimate, but in principle can be single trial. It could also have leave-one-out jackknife estimates of coherence.\n\nI will make a test script that goes through these options and reimplement the data selection."
+      - +@isprivate: "0"
+        commentid: "17342"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-13 16:24:48 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          I rewrote considerable parts of the data handling in ft_multiplotER. Could someone check out https://github.com/fieldtrip/fieldtrip/pull/161 and report here whether it works for you?
+
+          thanks
+          Robert
+      - +@isprivate: "0"
+        commentid: "17343"
+        comment_count: "8"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-05-13 18:41:44 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #7)\n\nOn my computer, there are still some error messages, one is in:\n\nline 368   ft_plot_lay(lay, 'box', boxflg, 'label', labelflg, 'outline', outlineflg, 'point', 'no', 'mask', 'no');\n\nthe variable lay is not defined after you changed the code. so I added this line of code back:\n\nlay = ft_prepare_layout(cfg, varargin{1});\n\nthen there is another error \"Index exceeds matrix dimensions.\" in \n\nline 527  data = dat(intersect(seldat1, seldat2), :);\n\nI am not sure where this problem is from. \n\nWeiyong"
+      - +@isprivate: "0"
+        commentid: "17348"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-17 17:00:55 +0200
+        thetext: |-
+          (In reply to Weiyong Xu from comment #8)
+
+          that was due to a small typo in the code, "dimtok" was not what it should be.
+
+          I updated the code, can you once more pull my branch bug2978 and test it?
+      - +@isprivate: "0"
+        commentid: "17349"
+        comment_count: "10"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-05-18 09:55:14 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #9)\nThanks for fixing the bug. I tested branch bug2978 with my own neuromag data. Now the ft_rejectvisual is plotting the single trials that the user has typed in. \n\nAs I looked in the test_bug2978 script, it seemed that the ft_multiplotER handle the data from FT_PREPROCESSING correctly, for example, it plots the averaged trials defined in cfg.trials; \n\nBut ft_multiplotER seemed to ignore the cfg.trials for ERFs produced by FT_TIMELOCKANALYSIS, and always plot the averaged trials even if the ERFs data were from FT_TIMELOCKANALYSIS with cfg.keeptrials = 'yes'.\n\nthe codes are as follows:\n\ncfg = [];\ntimelock1 = ft_timelockanalysis(cfg, test_trials);\n\ncfg.keeptrials = 'yes';\ntimelock2 = ft_timelockanalysis(cfg, test_trials);\n\ncfg=[];\ncfg.layout='neuromag306all.lay';\nfigure;\nft_multiplotER(cfg,timelock2)\n\ncfg=[];\ncfg.layout='neuromag306all.lay';\ncfg.trials=[3];\nfigure;\nft_multiplotER(cfg,timelock2)"
+      - +@isprivate: "0"
+        commentid: "17350"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-18 11:04:42 +0200
+        thetext: |-
+          (In reply to Weiyong Xu from comment #10)
+
+          thanks for testing. You are right, I did not yet sufficiently consider all inputs that the function might receive. I am also not sure about freq and tidmefreq data. I will extend the test script.
+      - +@isprivate: "0"
+        commentid: "18665"
+        comment_count: "12"
+        who:
+          +content: stefanwiens
+          +@name: Stefan Wiens
+        bug_when: 2017-05-14 12:26:05 +0200
+        thetext: |-
+          I found this bug and am wondering if there is a solution now?
+
+          At least, for me it still does not work. I downloaded a new version of ft last week (fieldtrip-20170511) with Matlab 2016B.
+
+          I run these simple commands:
+          cfg = [];
+          cfg.layout = 'biosemi64.lay';
+          cfg.metric = 'range';
+          cfg.latency = [-.1 .6];
+          ft_rejectvisual(cfg, data);
+
+          The plot seems to work, but when I want to plot a specific trial ("Plot trial", to the left of the quit button), ft does not plot the trial number I entered; instead, it plots the LAST trial (or the average?). The matlab output actually states that whereas the figure title states the trial number that I entered.
+      - +@isprivate: "0"
+        commentid: "18680"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-19 14:59:06 +0200
+        thetext: "(In reply to Stefan Wiens from comment #12)\n\nHi Stefan,\n\ntrial selection and on-the-fly averaging needs to be reimplemented in ft_multiplotER and in ft_multiplotTFR. I made an attempt at it about a year ago, but that one did not result in a solution. \n\nI think that a local (non-global) solution just for reject visual would be easy to implement and at least get this out of the way. I will come with a suggestion."
+      - +@isprivate: "0"
+        commentid: "18681"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-22 09:18:01 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #13)
+
+          I made an update of the code, see https://github.com/fieldtrip/fieldtrip/pull/442
+      - +@isprivate: "0"
+        commentid: "18682"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-22 09:20:01 +0200
+        thetext: |-
+          I have merged https://github.com/fieldtrip/fieldtrip/pull/442
+
+          That means that it is fixed for ft_rejectvisual. The problem in ft_multiplotER remains, though. I will make a new bug report for that.
+      - +@isprivate: "0"
+        commentid: "20228"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20427"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:45 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

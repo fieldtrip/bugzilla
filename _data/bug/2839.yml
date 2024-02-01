@@ -1,0 +1,146 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2839"
+    creation_ts: 2015-02-12 09:50:00 +0100
+    short_desc: allow spm12 as full alternative to spm8
+    delta_ts: 2017-11-20 20:14:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    blocked: "2837"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.stolk8
+      - g.flandin
+      - j.schoffelen
+      - jens.klinzing
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15343"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 09:50:13 +0100
+        thetext: "I came across a piece of code like this\n\nif ~ft_hastoolbox('spm')\n  ft_hastoolbox('spm8', 1);\nend\n\nwhich checks any SPM, and if not found adds spm8.\n\nI changed it into \n\nft_hastoolbox('spm8up', 1);\n\nwhich checks for SPM8 or later, and adds spm8 the path if not present\n\nI expect that in many (if not all) cases spm12 will work where we are now requiring spm8. So perhaps all occurrences of hastoolbox(spm8) need to be updated in spm8up."
+      - +@isprivate: "0"
+        commentid: "15377"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-16 13:21:11 +0100
+        thetext: |-
+          we should also deprecate spm2, and remove it from fieldtrip/external/spm2.
+
+          However, we should maintain support for mnc (=minc) files...
+      - +@isprivate: "0"
+        commentid: "17134"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-03-15 04:22:33 +0100
+        thetext: 'The ecog pipeline would benefit from this integration. See: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2837'
+      - +@isprivate: "0"
+        commentid: "18505"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-16 16:04:33 +0100
+        thetext: |-
+          I continued working in this direction, and have updated ft_volumesegment to now also be able to use spm12, both old-style (a la spm8), and new-style (with 6 tissue types).
+
+          It's as of yet in a separate branch of mine:
+
+          github.com/schoffelen/fieldtrip/volumesegment
+      - +@isprivate: "0"
+        commentid: "18517"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-27 09:32:28 +0200
+        thetext: |-
+          I pulled the branch into the master branch with PR 376.
+
+          As far as I can see, spm12 is now a full alternative to spm8, since both ft_volumesegment and ft_volumenormalise are fully functional with spm12 as spmversion, with added new-style segmentation functionality for ft_volumesegment.
+      - +@isprivate: "0"
+        commentid: "18999"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-07 21:29:56 +0100
+        thetext: "Hi Guillaume,\n\nI was wondering whether I could pick your brain for a minute. \n\nBriefly, it's about my attempt to implement the 'new-style' spatial normalisation into FieldTrip. (before, we could only use spm12 in combination with the OldNorm functionality). In short, I wrote some FieldTrip glue around some spm functions, which I put in fieldtrip/external/spm12. So far so good, and it all works fine on Linux and Mac.\n\nThe thing Jens (in CC) runs into, is that on his Windows 7 platform (matlab 2015b) he gets a rather obscure error, but this happens only once. This seems to occur upon the first call to spm (where at some point spm_select('init') is called, which seems to require the presence of a delicate subset of functions from matlabbatch).\n\nIn short, we tracked it down to me not having copied in a necessary subset of files from spm12/matlabbatch, in particular some of the @cfg_xxx class directories. My first thought now was to minimally add the necessary functions, but this proved to be a tedious process, so I thought to just include all these @cfg_xxx class directories in our external/spm12, which on the other hand seems to be quite a bit of an overkill.\n\nDo you see an elegant alternative solution to this?"
+      - +@isprivate: "0"
+        commentid: "19000"
+        comment_count: "6"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2017-11-08 17:11:46 +0100
+        thetext: |-
+          Hello, sorry about this - unfortunately SPM is not as modular as FieldTrip.
+
+          I'm surprised about the error being platform-specific: do you have a more detailed error message? The only difference I can think of is that, on Windows, drive letters are detected but I doubt this is causing any trouble here.
+
+          I cannot think of a simple and elegant way to resolve this. Copying the whole matlabbatch folder is the safe way or it seems that you could only copy folders @cfg_entry, private, @cfg_item, @cfg_branch, @cfg_intree, @cfg_leaf (as well as files cfg_getfile.m and cfg_get_defaults.m).
+
+          That said, I assume the problem is with spm_select('regfilter') which is not necessary if you don't use the batch system and spm_select() calls so maybe we could do something from our side if the whole matlabbatch is not found and make this call a no-op. Could you point out to me your piece of code calling SPM12 functionalities?
+
+          Also, could you add Volkmar Glauche <volkmar.glauche_at_uniklinik-freiburg.de> to this report as he developed matlabbatch and might have further suggestions.
+      - +@isprivate: "0"
+        commentid: "19001"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 09:27:58 +0100
+        thetext: "Thanks for getting back to us about this.\n\nA detailed error stack is pasted below\n\nI think it is Windows specific, because in spm_platform: spm_select('ListDrives') is only called when PLATFORM.filesys = 'win'\n\nThis latter call indeed (recursively, through spm_select('init') ends up in spm_select('regfilter'), which depends on functionality in matlabbatch. \n\nI guess that the general idea is to always ensure that the matlabbatch is 'initialized' upon starting SPM in a regular fashion, and perhaps it is not worth the hassle to come up with a workaround from your end for our exceptional use case. By now I have solved it by adding the necessary matlabbatch related code to fieldtrip/external/spm12, and would be happy to leave it at that. Unless you'd prefer to solve it in a different way.\n\nThanks again for thinking along!\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nERROR STACK\n\nUndefined function or variable 'cfg_intree'.\n\nError in cfg_branch (line 92)\nitem = class(struct([]), myclass, gitem, cfg_intree);\n\nError in cfg_getfile>reg_filter (line 1185)\ndprms = {cfg_branch};\n\nError in cfg_getfile (line 177)\nt = reg_filter(varargin{2:end});\n\nError in spm_select (line 115)\ncfg_getfile('regfilter', 'mesh', {'.gii$'});\n\nError in spm_select (line 110)\nspm_select('regfilter');\n\nError in spm_select (line 97)\nspm_select('init');\n\nError in spm_platform>init_platform (line 233)\ndriveLett = spm_select('ListDrives');\n\nError in spm_platform (line 62)\nif isempty(PLATFORM), PLATFORM = init_platform; end\n\nError in spm_smoothto8bit>smoothto8bit (line 46)\nVO.dt = [spm_type('uint8') spm_platform('bigend')];\n\nError in spm_smoothto8bit (line 16)\nVO = smoothto8bit(V,fwhm);\n\nError in spm_normalise (line 157)\nVF1 = spm_smoothto8bit(VF,flags.smosrc);\n\nError in align_ctf2acpc (line 174)\nparams = spm_normalise(V2,V1,[],[],[],flags);"
+      - +@isprivate: "0"
+        commentid: "19002"
+        comment_count: "8"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2017-11-09 12:40:22 +0100
+        thetext: |-
+          Thanks, it now completely makes sense.
+
+          The 'drives' option in spm_platform() has been deprecated for 5 years (it was returning a warning) so I've now removed it from our development version. This should solve the platform-specific issue in your case and remove the need to copy most of matlabbatch. It might be safer to fix it your way though as it could happen that some of the SPM functions you use call spm_select() internally one day or another.
+      - +@isprivate: "0"
+        commentid: "19003"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 12:46:51 +0100
+        thetext: Thanks Guillaume!

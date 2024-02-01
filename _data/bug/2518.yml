@@ -1,0 +1,204 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2518"
+    creation_ts: 2014-04-02 20:19:00 +0200
+    short_desc: ensure that component data can be used as input in sourceanalysis, dipolefitting and all other functions
+    delta_ts: 2014-08-01 05:00:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2539
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1887
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2559
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "2520"
+      - "2610"
+      - "2664"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - jdien07
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13200"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-02 20:19:11 +0200
+        thetext: "as discussed in relation to the bug reported by Tyler and here http://fieldtrip.fcdonders.nl/development/meeting/20140402 \n\nWe should support for component data in source reconstruction functions:\n- dipolefitting and mne should in principle work already.\n- yet, the functions may become confused because of the mixed representation of the component data (in a freq/tlck structure).\n- identify which functions should support this, but currently don't do it well.\n- ensure that the data is unambiguous, i.e. only keep topo/topolabel and remove anything else.\n\nWe should have three test functions:\na) for comp data in all functions that analyze raw time series (e.g. time and freq analysis)\nb) for comp input to ft_dipolefitting\nc) for comp input to ft_sourceanalysis"
+      - +@isprivate: "0"
+        commentid: "13202"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-02 21:41:39 +0200
+        thetext: "I started with a test script:\n- resampledata keeps the topo, probably because dataout=datain.\n- timelockanalysis and freqanalysis loose the topo.  \n- some others are also loosing the data.\n\nI will work through all functions consistently..."
+      - +@isprivate: "0"
+        commentid: "13205"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-02 22:02:13 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\n(In reply to Robert Oostenveld from comment #1)\n\nI made a test script and improved the handling of component data in multiple functions that should support it. \n\nSending        ft_appenddata.m\nSending        ft_channelnormalise.m\nSending        ft_freqanalysis.m\nSending        ft_megrealign.m\nSending        ft_preprocessing.m\nSending        ft_timelockanalysis.m\nAdding         test/test_bug2518a.m\nTransmitting file data .......\nCommitted revision 9336.\n\nfor these functions I don't really know whether and how they should work\n ft_channelrepair\n ft_combineplanar\n\nfor these functions it could in principle work\n ft_megplanar\n ft_scalpcurrentdensity\n\nthe following functions have not been seriously considered yet\n ft_connectivityanalysis\n ft_megrealign\n ft_mvaranalysis"
+      - +@isprivate: "0"
+        commentid: "13744"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 22:02:59 +0200
+        thetext: |-
+          As already suspected in http://bugzilla.fcdonders.nl/show_bug.cgi?id=1887#c12 there were still a few functions that did not work properly with raw+comp.
+
+          These showed up as regression error in test_bug2518a, and were fixed.
+
+          roboos@mentat001> svn commit
+          Sending        ft_appenddata.m
+          Sending        ft_preprocessing.m
+          Sending        ft_redefinetrial.m
+          Sending        ft_rejectvisual.m
+          Sending        test/test_bug2518a.m
+          Transmitting file data .....
+          Committed revision 9577.
+      - +@isprivate: "0"
+        commentid: "14209"
+        comment_count: "4"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2014-08-01 04:13:23 +0200
+        thetext: |-
+          Hi, it appears that the modifications to support comp input to ft_dipolefitting (fieldtrip-20140731) has resulted in it no longer accepting non-comp input.  From what I can follow, ft_dipolefitting has a call:
+
+          % check if the input data is valid for this function
+          data = ft_checkdata(data, 'datatype', {'comp', 'timelock', 'freq'}, 'feedback', 'yes');
+
+          that checks to see if the data is one of these three valid types.
+
+          however, ft_checkdata is set up to assume that it can successfully convert data to the comp type as it has no fail condition.
+
+              elseif isequal(dtype(iCell), {'comp'}) && israw
+                data = keepfields(data, {'label', 'topo', 'topolabel', 'unmixing', 'elec', 'grad', 'cfg'}); % these are the only relevant fields
+                data = ft_datatype_comp(data);
+                israw = 0;
+                iscomp = 1;
+                okflag = 1;
+
+          As such, when it tries to do so:
+
+              if ~isfield(comp, 'unmixing')
+                % in case the unmixing matrix is not present, construct the best estimate based on the mixing (topo) matrix
+                % this is shared with the 2011 code
+                if size(comp.topo,1)==size(comp.topo,2)
+                  comp.unmixing = inv(comp.topo);
+                else
+                  comp.unmixing = pinv(comp.topo);
+                end
+              end
+
+          it simply crashes:
+
+          Reference to non-existent field 'topo'.
+
+          Error in ft_datatype_comp (line 92)
+                if size(comp.topo,1)==size(comp.topo,2)
+
+          Error in ft_checkdata (line 342)
+                data = ft_datatype_comp(data);
+
+          Error in ft_dipolefitting (line 139)
+          data = ft_checkdata(data, 'datatype', {'comp', 'timelock', 'freq'}, 'feedback', 'yes');
+
+          Error in test_ft_dipolefitting (line 55)
+          [source] = ft_dipolefitting(cfg, data);
+
+          One possible fix is to use a try-catch structure with a continue command so that if the initial conversion fails it will go on to the next acceptable data type ('timelock').
+      - +@isprivate: "0"
+        commentid: "14210"
+        comment_count: "5"
+        attachid: "655"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2014-08-01 04:21:10 +0200
+        thetext: |-
+          Created attachment 655
+          test case for ft_dipolefitting error
+      - +@isprivate: "0"
+        commentid: "14211"
+        comment_count: "6"
+        attachid: "656"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2014-08-01 04:24:07 +0200
+        thetext: |-
+          Created attachment 656
+          test case for ft_dipolefitting error
+      - +@isprivate: "0"
+        commentid: "14212"
+        comment_count: "7"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2014-08-01 05:00:19 +0200
+        thetext: "so the proposed fix would look like:\n\n    elseif isequal(dtype(iCell), {'comp'}) && israw\n      try  \n      data2 = keepfields(data, {'label', 'topo', 'topolabel', 'unmixing', 'elec', 'grad', 'cfg'}); % these are the only relevant fields\n      data2 = ft_datatype_comp(data2);\n      catch\n          continue\n      end\n      data=data2;\n      israw = 0;\n      iscomp = 1;\n      okflag = 1;\n\nI tried it out and it seems to work fine."
+    attachment:
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "655"
+        date: 2014-08-01 04:21:00 +0200
+        delta_ts: 2014-08-01 04:24:07 +0200
+        desc: test case for ft_dipolefitting error
+        filename: testCase.zip
+        type: application/zip
+        size: "42168"
+        attacher:
+          +content: jdien07
+          +@name: Joseph Dien
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "656"
+        date: 2014-08-01 04:24:00 +0200
+        delta_ts: 2014-08-01 04:24:07 +0200
+        desc: test case for ft_dipolefitting error
+        filename: testCase.zip
+        type: application/zip
+        size: "42169"
+        attacher:
+          +content: jdien07
+          +@name: Joseph Dien
+        data: REMOVED

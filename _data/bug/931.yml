@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "931"
+    creation_ts: 2011-09-05 09:15:00 +0200
+    short_desc: ft_appendfreq fails when the data does not exactly overlap
+    delta_ts: 2011-09-14 14:33:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - yoni.levy
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3052"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-05 09:15:23 +0200
+        thetext: |-
+          This was reported by Yoni at http://bugzilla.fcdonders.nl/show_bug.cgi?id=798#c19 and it can be reproduced by the following piece of code (which I'll save to the test directory)
+
+          freq1.label = {'1'};
+          freq1.time = [1 2];
+          freq1.freq = [1 2 3];
+          freq1.dimord = 'chan_freq_time';
+          freq1.powspctrm = randn(1,3,2);
+
+          freq2.label = {'1'};
+          freq2.time = [1 2];
+          freq2.freq = [1 2 3] + 1; % shifted by one
+          freq2.dimord = 'chan_freq_time';
+          freq2.powspctrm = randn(1,3,2);
+
+          cfg = [];
+          cfg.parameter = 'powspctrm';
+          ft_appendfreq(cfg, freq1, freq2);
+
+
+          the input is freq data with 1 channels, 3 frequencybins and 2 timebins
+          the input is freq data with 1 channels, 3 frequencybins and 2 timebins
+          the input is freq data with 1 channels, 3 frequencybins and 2 timebins
+          the input is freq data with 1 channels, 3 frequencybins and 2 timebins
+          ??? Error using ==> ft_appendfreq at 203
+          the input data structures have non-unique frequency bins, concatenation across frequency is not possible
+
+          Error in ==> ft_appendfreq at 130
+              freq = ft_appendfreq(tmpcfg, varargin{:});
+      - +@isprivate: "0"
+        commentid: "3054"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-05 09:19:24 +0200
+        thetext: "manzana> svn commit test_bug931.m \nAdding         test_bug931.m\nTransmitting file data .\nCommitted revision 4098."
+      - +@isprivate: "0"
+        commentid: "3056"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-05 09:29:24 +0200
+        thetext: fixed in ft_appendfreq with cfg.tolerance.
+      - +@isprivate: "0"
+        commentid: "3057"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-05 09:38:10 +0200
+        thetext: |-
+          The error is
+
+          > the input data structures have non-unique frequency bins, concatenation across
+          > frequency is not possible
+
+          which is actually consistent with the data: freq1 has [1 2 3], freq2 has [2 3
+          4] and these cannot be concatenated.
+
+          Since the problem started in ft_freqstatistics, one might rephrase it as
+
+          cfg = [];
+          cfg.parameter = 'powspctrm';
+          cfg.appenddim = 'rpt'; % be explicit
+          ft_appendfreq(cfg, freq1, freq2);
+
+          failing. The question is whether ft_appendfreq should ensure the overlap of the
+          freq axis (i.e. cut of the first sample in freq1 and the last sample in freq2)?
+          The old ft_freqstatistics was able to deal with this input, so as such the bug
+          remains present, but might not be in ft_appendfreq persee.
+      - +@isprivate: "0"
+        commentid: "3058"
+        comment_count: "4"
+        who:
+          +content: yoni.levy
+          +@name: Yoni Levy
+        bug_when: 2011-09-05 09:52:19 +0200
+        thetext: "(In reply to comment #3)\n> The error is\n> \n> > the input data structures have non-unique frequency bins, concatenation across\n> > frequency is not possible\n> \n> which is actually consistent with the data: freq1 has [1 2 3], freq2 has [2 3\n> 4] and these cannot be concatenated.\n> \n\nAs far as I can see the freq1.freq and freq2.freq in my dataset are identical; but perhaps as you wrote it is inherently shifted by 1 by using the function."
+      - +@isprivate: "0"
+        commentid: "3059"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-05 11:17:29 +0200
+        thetext: "I discussed this in detail with Jan-Mathijs. \n\nFor the example script the error-message that is produced by ft_appendfreq is actually correct and desired.\n\nThe problem in the data of Yoni is due to a small numerical difference in the time axis between the (otherwise consistent) two datasets.\n\nThis particular problem does not have to be fixed, but ft_selectdata should use nearest (which it did once upon a time, but which it does not do any more)."
+      - +@isprivate: "0"
+        commentid: "3187"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 14:33:31 +0200
+        thetext: "I closed all the bugs that were in the status RESOLVED. \n\nThis includes the ones that we just discussed in the weekly fieldtrip meeting, but also the bugs that we did not discuss."

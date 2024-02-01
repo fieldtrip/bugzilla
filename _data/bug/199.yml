@@ -1,0 +1,137 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "199"
+    creation_ts: 2010-11-01 15:19:00 +0100
+    short_desc: ft_sourceanalysis with lcmv and precomputed filters and single trial input does not output a pow-field
+    delta_ts: 2011-07-13 14:46:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - johanna.zumer
+      - kaoruamano
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "390"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-01 15:19:23 +0100
+        thetext: this is explicitly removed in line 809. efficient computation is not easy in this context (because it requires single voxel/single trial sandwiching as opposed to leftmultyplying the reshaped tlck.trial) and may be confusing/wrong, because the cov (from which originally the pow was derived) can be defined in a different time-window as the mom.
+      - +@isprivate: "0"
+        commentid: "392"
+        comment_count: "1"
+        attachid: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-02 09:32:22 +0100
+        thetext: |-
+          Created attachment 10
+          matlab script to test recovered functionalitye
+      - +@isprivate: "0"
+        commentid: "393"
+        comment_count: "2"
+        attachid: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-02 09:34:05 +0100
+        thetext: |-
+          Created attachment 11
+          patched version of ft_sourceanalysis
+
+          Kaoru could you please test this version of sourceanalysis? If it works OK for you then I could add it to the release version of FieldTrip.
+
+          It would be useful to compare the results from the old implementation you used before, and this version. Could you let me know your findings?
+
+          Thanks
+      - +@isprivate: "0"
+        commentid: "394"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-02 09:35:03 +0100
+        thetext: The first attachment to this bug just contains a script to test the functionality. You can also use your own data for this. On the other hand, the test data is rather small, so computations are fast.
+      - +@isprivate: "0"
+        commentid: "746"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2010-12-24 13:45:53 +0100
+        thetext: "I was going to create a new bug on this, but then Jan-Mathijs drew my attention to this bug.  I have created 'hack work-arounds' to these questions already in my own copy.  I don't know how/if this might affect code outside of ft_sourceanalysis, ft_timelockanalysis, and beamformer_lcmv. \n\n1) If 'filter' is precomputed and included as grid.filter, should any assumptions be made on data format, cfg options, or desired output?  Currently, the output tmpdip from beamformer_lcmv has a 'pow' subfield (computed from filt*Cy*filt') which is always removed within ft_sourceanalysis if 'filter' included.  (I had hacked this in my own copy by creating a cfg.keeppow to prevent this).\n\nIn response to this bug 199, Jan-Mathijs added that dip.pow is now computed again (outside of beamformer_lcmv) from tmpdip.mom*tmpdip.mom' (with the assumption that tmpdip.mom is from multi-trial data).  However, if data input is not multi-trial, then dip.pow will be based on the 'covariance of the average', not the 'average of the covariances', leading to a very different result for dip.pow (than what is initially computed in beamformer_lcmv).\n  \nThere also is an interaction with cfg.rawtrials.  If cfg.rawtrials=yes, then Nrepetitions=Ntrials and Jan-Mathijs's addition saves computation by not looping over Nreps to compute time-series pow in calling beamformer_lcmv, but rather permutes/reshapes afterwards.   However, if cfg.rawtrials=no then Nrepetitions=1, and at best this is duplicating computation (with multitrials included) and at worst creating a different output (with only avg included).\n\nFor clarity, dip.pow should probably only be computed in one place.  \n\nIt might be useful to allow the option to input (only?) a data.cov that is the average of covariances of single trials, with 'keeptrials=no' from ft_timelockanalysis (partly to save memory), in combination with having the option of cfg.lcmv.keepmom=yes or no.   (Perhaps ft_timelockanalysis could include a cfg.keepavg='no', which then when that data is passed to ft_sourceanalysis, beamformer_lcmv could handle an empty or missing 'dat' input, as long as Cy is input.)\n\n2) Jan-Mathijs wondered more generally: should beamformer_* (and other inverse methods) be used solely for computing the filter, and then the application of this filter to the data occur within ft_sourceanalysis only?\n\n3) Jan-Mathijs asked me specifically: if all I want is dip.pow, why not just use inv(lf*InvCy*lf) outside of calling ft_sourceanalysis?  I'll create a new bug for this, regardling baseline input."
+      - +@isprivate: "0"
+        commentid: "2404"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-21 08:25:20 +0200
+        thetext: I will wait until we settled on the new definition of source structures before fixing any source related bug
+      - +@isprivate: "0"
+        commentid: "2646"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:46:51 +0200
+        thetext: changed the status for a whole bunch of resolved bugs to CLOSED
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "10"
+        date: 2010-11-02 09:32:00 +0100
+        delta_ts: 2010-11-02 09:32:22 +0100
+        desc: matlab script to test recovered functionalitye
+        filename: test_bug199.m
+        type: application/octet-stream
+        size: "1905"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "11"
+        date: 2010-11-02 09:34:00 +0100
+        delta_ts: 2010-11-02 09:34:05 +0100
+        desc: patched version of ft_sourceanalysis
+        filename: ft_sourceanalysis.m
+        type: application/octet-stream
+        size: "47083"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED

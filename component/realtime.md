@@ -1,0 +1,5 @@
+---
+title: realtime
+---
+
+{% include component %}

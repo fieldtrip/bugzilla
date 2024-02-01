@@ -1,0 +1,177 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1959"
+    creation_ts: 2013-01-25 17:37:00 +0100
+    short_desc: ft_senstype doesn't detect the appropriate grad type in comp data
+    delta_ts: 2013-02-19 10:26:17 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1806"
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9233"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-25 17:37:35 +0100
+        thetext: "ft_senstype detects grad types using ft_senslable. In component data for ctf275, the labels are name by \"component001\" resulting in a grad.type='ctf'. Then, after IC rejection the grad type make a crash when ft_megplanar is called:\n\nthe input is raw data with 273 channels and 364 trials\nError using ft_checkdata (line 409)\nThis function requires ctf151, ctf275, bti148, bti248, itab153, yokogawa160 or yokogawa64 data as input, but you are\ngiving ctf data.\n\nError in ft_megplanar (line 107)\ndata = ft_checkdata(data, 'datatype', {'raw' 'freq'}, 'feedback', 'yes', 'hassampleinfo', 'yes', 'ismeg', 'yes',\n'senstype', {'ctf151', 'ctf275', 'bti148', 'bti248', 'itab153', 'yokogawa160', 'yokoga \n\nSimilar to Comment 1 here http://bugzilla.fcdonders.nl/show_bug.cgi?id=1414\n\nPotential solution:\n\nWhen I call ft_prepare_neighbours(cfg3{2,1,1}, meg2); the grad is recognized\nTrying to load sensor neighbours from a template\nEstimating sensor type of data to determine the layout filename\nData is of sensor type 'ctf275'\nSuccessfully loaded neighbour structure from ctf275_neighb.mat\nthere are on average 7.3 neighbours per channel\nthe call to \"ft_prepare_neighbours\" took 1 seconds and required the additional allocation of an estimated 0 MB\n\nI'll find a way to update the grad.type"
+      - +@isprivate: "0"
+        commentid: "9293"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-31 11:55:10 +0100
+        thetext: "(In reply to comment #0)\n\nI know where the problem is but I'm not sure about the expected behavior of ft_rejectcomponent. If I reject certain component using comp and meg as inputs, the grad.type is correctly detected\n\ncfg            = [];\ncfg.component  = component;\nmeg2            = ft_rejectcomponent(cfg,comp,meg);\n\nmeg2.grad\n\nans = \n\n     balance: [1x1 struct]\n     chanori: [301x3 double]\n     chanpos: [301x3 double]\n    chantype: {301x1 cell}\n    chanunit: {301x1 cell}\n     coilori: [594x3 double]\n     coilpos: [594x3 double]\n       label: {301x1 cell}\n         tra: [301x594 double]\n        type: 'ctf275'\n        unit: 'cm'\n\nIf I use the comp alone (as in the tutorial http://fieldtrip.fcdonders.nl/example/use_independent_component_analysis_ica_to_remove_eog_artifacts?s[]=ft&s[]=rejectcomponent), the grad.type is only cft and you've troubles with megplanar later on:\n\ncfg            = [];\ncfg.component  = component;\nmeg2            = ft_rejectcomponent(cfg,comp);\n\n meg2.grad\n\nans = \n\n    balance: [1x1 struct]\n    chanori: [301x3 double]\n    chanpos: [301x3 double]\n    coilori: [594x3 double]\n    coilpos: [594x3 double]\n      label: {301x1 cell}\n        tra: [301x594 double]\n       type: 'ctf'\n       unit: 'cm'\n\nI think that the expected behavior regarding grad.type should be ctf275 given that the meg2.lables are the MEG sensors, not component numbers.\n\n\nQUESTION:\nShould the data output be the same using ft_rejectcomponent is the two ways: ft_rejectcomponent(cfg,comp) VS ft_rejectcomponent(cfg,comp,meg);?\n\nIf yes, I know where to dig"
+      - +@isprivate: "0"
+        commentid: "9316"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-06 14:38:34 +0100
+        thetext: |-
+          The .tra fields might not be the same.  If so, then I think only the .tra from the 3-input way is correct, not the 2-input way.
+
+          Please also see bug 1443.
+      - +@isprivate: "0"
+        commentid: "9318"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-06 14:39:48 +0100
+        thetext: |-
+          (In reply to comment #2)
+          I'll check it and I'll keep you updated
+      - +@isprivate: "0"
+        commentid: "9331"
+        comment_count: "4"
+        attachid: "420"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-06 17:05:55 +0100
+        thetext: |-
+          Created attachment 420
+          toy data
+
+          It seems to me that the tra matrix is almost equal (error of e-14). You can load the toy data I attached
+
+
+          load bugdata.mat
+
+          cfg            = [];
+          cfg.component  = component;
+          meg2            = ft_rejectcomponent(cfg,ica);
+
+
+          cfg            = [];
+          cfg.component  = component;
+          meg3           = ft_rejectcomponent(cfg,ica,meg);
+
+          figure;imagesc(meg2.grad.tra-meg3.grad.tra);
+      - +@isprivate: "0"
+        commentid: "9335"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-06 17:41:56 +0100
+        thetext: |-
+          I'm not sure that's always the case.  I just created test_bug1443 and compare the output .tra fields.  They both have a norm of 1.4e5, but a norm of the diff is 1.4.  Thus, the error is on the order of 1e-5.   Is that acceptable or significant?   The figure plotted in my test function shows that the errors occur on the diagonals.
+
+          Perhaps the initial problem I refered to in bug 1443 was solved, when bug 1249 was solved?  (this was the bug refering to the topograd).
+      - +@isprivate: "0"
+        commentid: "9442"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-15 17:07:07 +0100
+        thetext: "(In reply to comment #5)\nUsing grad.balance structure to detect sens.type in comp data type \nSending        ft_senstype.m\nTransmitting file data .\nCommitted revision 7480.\n\ntest script is coming to test meg and other datatypes (eeg,lfp...)"
+      - +@isprivate: "0"
+        commentid: "9456"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-19 10:15:04 +0100
+        thetext: "it has been decided in one of the recent FT meetings that ft_senstype of comp data should return the original type of sensor array. This is best implemented by using private/undobalancing. \n\nNoite that this affects the test script test_bug1806 for bug # 1806."
+      - +@isprivate: "0"
+        commentid: "9457"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-19 10:20:38 +0100
+        thetext: |-
+          roboos@mentat001> svn commit test/test_bug1806.m
+          Sending        test/test_bug1806.m
+          Transmitting file data .
+          Committed revision 7494.
+
+          updated the test script to the latest insights and decisions, comp ctf151 data should be detected as ctf151, not as comp
+      - +@isprivate: "0"
+        commentid: "9459"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-19 10:26:17 +0100
+        thetext: |-
+          use private/undobalancing as a better mechanism for converting comp data top the original senstor type (e.g. ctf275). Don't give a warning about limited rank when just converting for the senstype or positions.
+
+          roboos@mentat001> svn commit
+          Sending        forward/ft_apply_montage.m
+          Sending        forward/ft_senstype.m
+          Sending        forward/private/undobalancing.m
+          Transmitting file data ...
+          Committed revision 7495.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "420"
+      date: 2013-02-06 17:05:00 +0100
+      delta_ts: 2013-02-06 17:05:55 +0100
+      desc: toy data
+      filename: bugdata.mat
+      type: application/octet-stream
+      size: "11431851"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

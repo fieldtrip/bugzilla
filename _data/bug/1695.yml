@@ -1,0 +1,189 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1695"
+    creation_ts: 2012-09-04 16:17:00 +0200
+    short_desc: events are not shown in ft_databrowser
+    delta_ts: 2013-01-17 10:37:29 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7285"
+        comment_count: "0"
+        attachid: "305"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-09-04 16:17:35 +0200
+        thetext: |-
+          Created attachment 305
+          toy data one trial
+
+          Hi
+
+          I cannot see the events in ft_databrowser when I call cfg.ploteventlabels   = 'type=value';
+
+
+          cfg                   = [];
+          cfg.continuous        = 'no';
+          cfg.ploteventlabels   = 'type=value';
+          cfg.trl               = ft_findcfg(meog.cfg,'trl');
+          cfg.viewmode          = 'vertical';
+          artif                 = ft_databrowser(cfg,meog);
+
+          attached a data toy exmple.
+
+          Diego
+      - +@isprivate: "0"
+        commentid: "7287"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-04 16:20:03 +0200
+        thetext: |-
+          Thanks for reporting with attachement!
+          I'll take this one as well
+      - +@isprivate: "0"
+        commentid: "7308"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-06 11:09:58 +0200
+        thetext: "Hi Diego,\n\nThe reason no events are plotted is that there are no events present in the data-structure anymore. When looking into meog.cfg.previous{1}.event, it says 'empty - this was cleared by checkconfig'. \n\nThis occurs as far as I know when you a field is too big according to ft_checkconfig. Did you change ft_default.checksize to a very low number? Could you read in the data again, making sure ft_default.checksize = inf? (or at least larger to what you have now)."
+      - +@isprivate: "0"
+        commentid: "7310"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-09-06 12:32:51 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+
+          Hi Roemer,
+
+          Now I understand but solution will be problematic given that at the begining of each ft function there's a call on ft_defaults functions which defines some options like:
+
+          if ~isfield(ft_default, 'trackconfig'),  ft_default.trackconfig  = 'off';    end % cleanup, report, off
+          if ~isfield(ft_default, 'checkconfig'),  ft_default.checkconfig  = 'loose';  end % pedantic, loose, silent
+          if ~isfield(ft_default, 'checksize'),    ft_default.checksize    = 1e5;      end % number in bytes, can be inf
+          if ~isfield(ft_default, 'showcallinfo'), ft_default.showcallinfo = 'yes';    end % yes or no, this is used in ft_postamble_callinfo
+
+          Do you know how could I "bypass" the ft_defaults? It's problematic when you exceed this ft_default.checksize    = 1e5;  threshold when your data is too big...
+
+          Thanks a lot!
+
+          Diego
+      - +@isprivate: "0"
+        commentid: "7312"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-06 13:03:15 +0200
+        thetext: "Hi Diego,\n\nHmmm, I assumed you had set you ourself, accidentally to a too low number. Maybe something went wrong with your events and the structure is too large, the default cfg.checksize shouldn't remove stuff like this.\n\nCould you do\nglobal ft_defaults\nft_default.checksize    = inf; \n\n(this is how you set these, I thought you already did, hence me skipping the global ;))"
+      - +@isprivate: "0"
+        commentid: "7317"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-09-06 14:46:38 +0200
+        thetext: |-
+          (In reply to comment #4)
+          Hi Roemer,
+
+          In my last try I missed the "global" call but I did what you told me and doesn't work:
+
+          global ft_defaults;
+          ft_default.checksize    = inf;
+          ft_default.trackconfig  = 'report';
+          ft_default.checkconfig  = 'pedantic';
+          ...
+
+          However, if I save the cfg.event after the ft_definetrial call and I "inlay" in the meog.cfg.event=cfg.event, everything works fine. I've 4204 "events" but I don't know if they're a lot or not.
+
+          Do you know a most "elegant way" to solve the issue?
+
+          Thanks Roemer
+      - +@isprivate: "0"
+        commentid: "7318"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-06 15:18:01 +0200
+        thetext: |-
+          My bad, it should be:
+            global ft_default
+          And not:
+            global ft_defaultS
+
+          Could you try again without the S?
+      - +@isprivate: "0"
+        commentid: "7319"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-09-06 21:55:31 +0200
+        thetext: |-
+          (In reply to comment #6)
+          Yes indeed was the typo: Sorry for that. Now it works perfectly!
+
+          Diego
+      - +@isprivate: "0"
+        commentid: "8997"
+        comment_count: "8"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-17 10:37:29 +0100
+        thetext: bug closing time
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "305"
+      date: 2012-09-04 16:17:00 +0200
+      delta_ts: 2012-09-04 16:17:35 +0200
+      desc: toy data one trial
+      filename: meog.mat
+      type: application/octet-stream
+      size: "8371284"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

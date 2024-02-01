@@ -1,0 +1,134 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2387"
+    creation_ts: 2013-11-22 12:50:00 +0100
+    short_desc: ft_prepare_leadfield does not correctly handle units
+    delta_ts: 2015-03-17 09:10:08 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2853
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marc.lalancette
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12020"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-22 12:50:46 +0100
+        thetext: |-
+          (making a bug out of it anyway to facilitate referencing this discussion from the code).
+
+          My post on FieldTrip-dev mailing list:
+
+          Dear FT dev team,
+
+          As you may have read in my post on the general list, the test script
+          test_tutorial_beamforming_extended no longer returns the expected
+          results (i.e. plots are very different from
+          http://fieldtrip.fcdonders.nl/tutorial/beamformingextended), *unless*
+          one first does
+
+          hdm = ft_convert_units(hdm, 'm');
+          sourcemodel = ft_convert_units(sourcemodel, 'm');
+          freq_cmb.grad = ft_convert_units(freq_cmb.grad, 'm');
+
+          before the call to ft_prepare_leadfield. (Converting all three to 'cm'
+          also works fine, so I guess the problem is in whether the three agree
+          or not.)
+
+          Since the code used to work fine without this explicit conversion, I
+          am considering this a bug. It might be related to bugzilla entries
+          http://bugzilla.fcdonders.nl/show_bug.cgi?id=1794 and
+          http://bugzilla.fcdonders.nl/show_bug.cgi?id=2265, although I have not
+          read those two in detail. I am hesitant to file a new bug as it might
+          be related to those two.
+
+          For now, is it a good idea to add an error to ft_prepare_leadfield if
+          the units for the inputs structures are not in agreement? We can later
+          investigate why it used to work without this condition being met. I
+          can add this error if people (especially JM) agree.
+
+          Best,
+          Eelke
+      - +@isprivate: "0"
+        commentid: "12021"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-22 12:50:58 +0100
+        thetext: |-
+          Robert's reply:
+
+          agreed, it indeed seems a bug due to my recent work on the units.
+
+          Please add the error, and I'll get to work on reproducing it and find a solution around it.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "12022"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-22 12:57:38 +0100
+        thetext: |-
+          added the warning:
+
+          bash-4.1$ svn commit ft_prepare_leadfield.m
+          Sending        ft_prepare_leadfield.m
+          Transmitting file data .
+          Committed revision 8835.
+      - +@isprivate: "0"
+        commentid: "12023"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-22 13:15:28 +0100
+        thetext: 'For reference by users finding this bug: my educated guess is that this bug was introduced on 1 nov 2013 with revision 8695.'
+      - +@isprivate: "0"
+        commentid: "12024"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-22 13:26:52 +0100
+        thetext: "the problem is that ft_compute_leadfield (i.e. the low-level function, which expects the units to be consistent) is getting grad and vol in mm, but a position in cm. So the leadfields are computed for a very small region somewhere in the middle of the brain.\n\nThis is clearly a bug in the handling of the geometrical units. The private/prepare_headmodel used to have\n\nif ~strcmp(vol.unit, sens.unit)\n  % ensure that the geometrical units are the same\n  warning('convering the sensor array units to \"%s\"', vol.unit);\n  sens = ft_convert_units(sens, vol.unit);\nend\n\nto deal with the units of the sens and vol, but it ignores the units of the source model. In the past the units of the sourcemodel were specified in cfg.sourceunits and had a default of cm. That default is now removed, but the sourcemodel specifies its own units instead in grid.unit (like the sens and vol).\n\nI have changed it to the following\n\n% ensure that the geometrical units are the same\nif isfield(cfg, 'grid') && isfield(cfg.grid, 'unit')\n  % convert it to the units of the source model\n  sens = ft_convert_units(sens, cfg.grid.unit);\n  vol  = ft_convert_units(vol,  cfg.grid.unit);\nelse\n  % convert it to the units of the head model\n  sens = ft_convert_units(sens, vol.unit);\nend\n\nHowever, this is only a temporary fix. To ensure that the units of the forward and inverse computation are correct, Vladimir and I have been working on a set of changes. These involve that leadfields are only guaranteed to be correct if SI units are used throughout (i.e. meter, Volt,  Tesla, Ampere, Siemens, and T/m, A*m, S/m etc.). \n\nNow that I think of it, the following is a better solution, it uses the same cfg.siunits option as ft_prepare_headmodel.\n\nif istrue(cfg.siunits)\n  % ensure that the geometrical units are in SI units\n  sens = ft_convert_units(sens, 'm');\n  vol  = ft_convert_units(vol,  'm');\n  if isfield(cfg, 'grid')\n    cfg.grid = ft_convert_units(cfg.grid,  'm');\n  end\nelse\n  % ensure that the geometrical units are the same\n  if isfield(cfg, 'grid') && isfield(cfg.grid, 'unit')\n    % convert it to the units of the source model\n    sens = ft_convert_units(sens, cfg.grid.unit);\n    vol  = ft_convert_units(vol,  cfg.grid.unit);\n  else\n    % convert it to the units of the head model\n    sens = ft_convert_units(sens, vol.unit);\n  end\nend\n\nNot that this solves everything, because ft_convert_units is only able to convert the geometrical aspects of the volume conduction model, not the conductivity and system matrix etc."
+      - +@isprivate: "0"
+        commentid: "12025"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-22 13:28:42 +0100
+        thetext: "I have just also added the feedback=true option, so that the conversions are printed.\n\nThe default case from the tutorial now does\n\n>> sourcemodel_lf  = ft_prepare_leadfield(cfg, freq_cmb);\nusing headmodel specified in the configuration\nYour data and configuration allow for multiple sensor definitions.\nconverting units from 'mm' to 'cm' <=====\ncomputing surface normals\ncreating dipole grid based on user specified dipole positions\nusing headmodel specified in the configuration\nusing gradiometers specified in the configuration\n5798 dipoles inside, 5202 dipoles outside brain\n\n\nand with \n>> cfg.siunits = 'yes'\n>> sourcemodel_lf  = ft_prepare_leadfield(cfg, freq_cmb);\nusing headmodel specified in the configuration\nYour data and configuration allow for multiple sensor definitions.\nconverting units from 'cm' to 'm'  <=====\nconverting units from 'mm' to 'm' <=====\nconverting units from 'cm' to 'm'  <=====\ncomputing surface normals\ncreating dipole grid based on user specified dipole positions\nusing headmodel specified in the configuration\nusing gradiometers specified in the configuration\n5798 dipoles inside, 5202 dipoles outside brain"

@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2028"
+    creation_ts: 2013-03-05 12:30:00 +0100
+    short_desc: ft_channelselection needs to be reconsidered
+    delta_ts: 2016-06-03 20:08:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked:
+      - "2015"
+      - "2027"
+      - "3135"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9647"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-05 12:30:14 +0100
+        thetext: "There are expectations of users that cfg.channel=something works in general, but in some cases the magic fails to do its work and users end up with imperfect selections.\n\nft_channelselection works by using lists of channel names. The developments in ft_chantype, ft_senstype have been implemented much later than ft_channelselection. \n\nIf we were to reimplement cfg.channel, how would we do it?"
+      - +@isprivate: "0"
+        commentid: "9652"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-05 13:48:05 +0100
+        thetext: |-
+          I would tear things apart a bit. At the moment I dislike that channel can be a list of channels but also some higher level,predefined set.
+
+          cfg.channel for low-level string matching and cfg.chantype/cfg.senstype for selecting at a higher level of hierachy. This would require, however, senstype and chantype to be unambigious and revisited (not necessarily revised)
+
+          And also, personally, I'd like use regular expressions, but that's for advanced users (note that currently, only one wildcard works)
+      - +@isprivate: "0"
+        commentid: "9654"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-05 13:52:54 +0100
+        thetext: |-
+          (In reply to comment #1)
+          I actually quite like the mix of exact label matches and more advanced group-matching :)
+
+          cfg.channel = {'MEG', '-MLO31'}
+
+          is pretty neat.
+
+          But I totally agree that wildcard handling should be more generic. As of now, it seems not only simple wildcards sometimes don't work. If I recall correctly, 'M*O*' does not match anything on CTF275.
+      - +@isprivate: "0"
+        commentid: "9667"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-05 16:00:48 +0100
+        thetext: |-
+          yep, only a single * works
+          the discussion about what's neat and what's not should maybe continued in a group meeting :)
+      - +@isprivate: "0"
+        commentid: "15154"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-02-05 16:31:48 +0100
+        thetext: "while working on bug 2753, the wildcard issue got into my way again. There is a simple solution using the 'regexptranslate' function with the 'wildcard' option. E.g., if I want the string '*7??nm?' to be translated into a regular expression, I can type\n>> regexptranslate('wildcard','*7??nm?')\n\nans =\n\n.*7..nm.\n\nCan this safely be implemented in ft_channelselection and replace the if-statements in the channel-loop by\n\n//concatenate '$' to indicate end-of-word\nrexp = sprintf('%s%s', regexptranslate('wildcard',channel{i}), '$');\ndatachannel(~cellfun(@isempty, regexp(datachannel, rexp)))\n\n\n? \nThis at least gives me the list of channels I would like and I am pretty confident that this will work like a charm.\n\ntest_ft_channelselection would need to be extended to test this, but I do not have access from here to the test data"
+      - +@isprivate: "0"
+        commentid: "15156"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-05 17:05:48 +0100
+        thetext: |-
+          Hi Jorn,
+
+          Sounds like a good plan to me!
+
+          If you can give an explicit patch in bugzilla (i.e. description of what needs to be changed in what), then we can apply it next Wednesday in the bug binge. It would be a nice exercise for the two new people in the team.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15169"
+        comment_count: "6"
+        attachid: "699"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-02-06 09:46:05 +0100
+        thetext: "Created attachment 699\npatch for ft_channelselection\n\nokidoki ;)\nI attached the patch, which includes this change. \nDuring my tests I also encountered another bug, which is also fixed with this patch. Namely, if channels to be excluded were not at the end of the desired variable, the function crashed with\n\nMatrix index is out of range for deletion.\n\nError in ft_channelselection (line 342)\nchannel([\n\nThis was because of the deletion of entries in the channel variable when channels are excluded and the subsequent incoherence with labelreg, which was based on the initial channel variable."
+      - +@isprivate: "0"
+        commentid: "15170"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-02-06 09:51:40 +0100
+        thetext: |-
+          btw, my test cases were something like
+          % these should all be the same
+          ft_channelselection({'-*[8*nm]', 'Rx1a-Tx3*', '-Rx2a-Tx1 [762nm]', '*Tx1 [762nm]'}, data.label)
+          ft_channelselection({'-*[8*nm]', '-Rx2a-Tx1 [762nm]', 'Rx1a-Tx3*', '*Tx1 [762nm]'}, data.label)
+          ft_channelselection({'Rx1a-Tx3*', '-*[8*nm]', '*Tx1 [762nm]', '-Rx2a-Tx1 [762nm]'}, data.label)
+          ft_channelselection({'Rx1a-Tx3*', '*Tx1 [762nm]', '-*[8*nm]', '-Rx2a-Tx1 [762nm]'}, data.label)
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "1"
+      +@isprivate: "0"
+      attachid: "699"
+      date: 2015-02-06 09:46:00 +0100
+      delta_ts: 2015-02-06 09:46:05 +0100
+      desc: patch for ft_channelselection
+      filename: ft_channelselection.m.diff
+      type: text/plain
+      size: "1900"
+      attacher:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      data: REMOVED

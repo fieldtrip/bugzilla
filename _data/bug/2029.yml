@@ -1,0 +1,125 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2029"
+    creation_ts: 2013-03-05 13:06:00 +0100
+    short_desc: Speed problems after the latest read_neuralynx_ncs update
+    delta_ts: 2019-08-10 12:03:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: g.dimitriadis
+      +@name: George Dimitriadis
+    assigned_to: fieldtriptoolbox
+    cc:
+      - martinvinck
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9648"
+        comment_count: "0"
+        who:
+          +content: g.dimitriadis
+          +@name: George Dimitriadis
+        bug_when: 2013-03-05 13:06:19 +0100
+        thetext: After the read_neuralynx_ncs was updated in the morning of 04/03/2013 the speed at which I am able to access my neuralynx data dropped by about a factor of 10. Nothing gives an error, it just takes about 10 times more to do anything that requires reading from neuralynx files.
+      - +@isprivate: "0"
+        commentid: "9651"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-03-05 13:28:17 +0100
+        thetext: (related to bug 1998)
+      - +@isprivate: "0"
+        commentid: "9663"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:39:24 +0100
+        thetext: |-
+          taken care of this by reading in much less blocks now, should be fixed.
+
+          see bug 1998
+      - +@isprivate: "0"
+        commentid: "9664"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-05 14:59:47 +0100
+        thetext: George, can you please report on whether the speed is now acceptable again?
+      - +@isprivate: "0"
+        commentid: "9673"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-06 07:17:52 +0100
+        thetext: "I actually don't get why it was a factor 10.\n\nWe read out only the timestamps per block once moving the pointer by 512 every time. \n\nSo relative to reading the data that should only give a small increase in computational load but not a factor 10. \n\nWhat do you think RObert?"
+      - +@isprivate: "0"
+        commentid: "9674"
+        comment_count: "5"
+        who:
+          +content: g.dimitriadis
+          +@name: George Dimitriadis
+        bug_when: 2013-03-06 08:10:55 +0100
+        thetext: |-
+          Hi guys, I just started testing my code with the latest update and it looks as if it is behaving ok (pretty much like before).
+
+          Martin, regarding the slow down. I do preprocessing on two data sets each having 72 channels captured at around 8KHz and I cut them at 400 trials each dataset where each trial is 0.7secs long. That process took with the original code (and it seems with the newest one) around half an hour (roughly, I never actually timed it). With the delay that same process would take more than 5 hours. Even reading the buffer in when it was doing the trialfunction was extremely slow (minute or two instead of just a few seconds).
+      - +@isprivate: "0"
+        commentid: "9675"
+        comment_count: "6"
+        who:
+          +content: g.dimitriadis
+          +@name: George Dimitriadis
+        bug_when: 2013-03-06 08:12:11 +0100
+        thetext: In the last sentence of the previous message I meant header not buffer
+      - +@isprivate: "0"
+        commentid: "9676"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-06 09:14:33 +0100
+        thetext: "> We read out only the timestamps per block once moving the pointer by 512 every\n> time. \n\nReading a few bytes every 512 samples in the file (1044 bytes) means that with a modern filesystem on a large hard disk that every (file system) logical block has to be touched. E.g. see http://support.microsoft.com/kb/140365 for windows. So the head of the hard disk has to pass along every block to get a few bytes out. Fseeking is fast if you skip a significant portion of the file (i.e. the head does not have to move to each block on the hard disk platter), but skipping 1044 bytes is not significant.\n\nGeorge's dataset is 72*8000*4=2304000 bytes per second, or 7.9 GB per hour. Reading every 1044th byte from such a bulk of data takes time. So his observation does not surprise me."
+      - +@isprivate: "0"
+        commentid: "9677"
+        comment_count: "8"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-06 09:16:26 +0100
+        thetext: "I think the key thing is that read_neuralynx_ncs is called for every entry of the cfg.trl \n\nBecause if it would be called only once (it's doing the same thing every time) it would be a lot faster and the load would never change by more than a factor 2 (but probably less)."
+      - +@isprivate: "0"
+        commentid: "19908"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:26 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1761"
+    creation_ts: 2012-10-02 13:10:00 +0200
+    short_desc: nanstd breaks ft_statfun_indepsamplesT because it expects less input arguments (than std)
+    delta_ts: 2012-10-05 08:23:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc:
+      - a.stolk8
+      - t.grent-tjong
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7745"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-10-02 13:10:16 +0200
+        thetext: "Error occured in Tineke's analysis.\n\nError in ==> ft_statfun_indepsamplesT at 79\n    var1 = nanstd(dat(:,sel1), 0, 2).^2;\n\nThis can be reproduced with the following code and attached data:\n\n\ncfg                  = [];\ncfg.channel          = {'MEG'};\ncfg.latency          = [-1.0 1.0];\ncfg.frequency        = [17 27];\ncfg.avgoverfreq      = 'yes';\ncfg.avgovertime      = 'no';\ncfg.method           = 'montecarlo';\ncfg.statistic        = 'indepsamplesT';\ncfg.correctm         = 'cluster';\ncfg.clusteralpha     = 0.05;\ncfg.clusterstatistic = 'maxsum';\ncfg.minnbchan        = 2;\ncfg.tail             = 0;\ncfg.clustertail      = 0;\ncfg.alpha            = 0.05;\ncfg.numrandomization = 500;\n% prepare_neighbours determines what sensors may form clusters\ncfg_neighb.method    = 'distance';\ncfg.neighbours       = ft_prepare_neighbours(cfg_neighb, testdata_a);\n\ndesign = zeros(1,size(testdata_a.powspctrm,1) + size(testdata_b.powspctrm,1));\ndesign(1,1:size(testdata_a.powspctrm,1)) = 1;\ndesign(1,(size(testdata_a.powspctrm,1)+1):(size(testdata_b.powspctrm,1)+size(testdata_a.powspctrm,1))) = 2; \n\ncfg.design           = design;\ncfg.ivar             = 1;\n\n[stat] = ft_freqstatistics(cfg, testdata_a, testdata_b);"
+      - +@isprivate: "0"
+        commentid: "7746"
+        comment_count: "1"
+        attachid: "335"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-10-02 13:13:46 +0200
+        thetext: |-
+          Created attachment 335
+          testdata_a and testdata_b
+      - +@isprivate: "0"
+        commentid: "7747"
+        comment_count: "2"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-10-02 13:14:26 +0200
+        thetext: |-
+          ??? Error using ==> statfun/private/nanstd
+          Too many input arguments.
+
+          Error in ==> ft_statfun_indepsamplesT at 79
+              var1 = nanstd(dat(:,sel1), 0, 2).^2;
+      - +@isprivate: "0"
+        commentid: "7749"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-10-02 13:34:08 +0200
+        thetext: Boris dealt with perhaps similar problems related to other nan functions yesterday. I have therefore forwarded this bug to Boris.
+      - +@isprivate: "0"
+        commentid: "7765"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-03 10:05:30 +0200
+        thetext: I am sorry, that is indeed a use of nanstd that I did not forsee. I am working on a fix.  In the mean time, you can safely delete the nan* mex files. This causes MATLAB to look for the ones in the Statistics Toolbox.
+      - +@isprivate: "0"
+        commentid: "7769"
+        comment_count: "5"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-10-03 10:15:48 +0200
+        thetext: Thanks!
+      - +@isprivate: "0"
+        commentid: "7771"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-03 14:45:25 +0200
+        thetext: "It should be fixed now. What is missing from the new version:\n1) variance on complex-valued arrays (gives a clear error message),\n2) using a weight *vector* as the second argument. \n\nIssue (2) was not supported by JM's version either, and does not seem to be used in the FT code base. \nIssue (1) is probably rare as well, but I am working on a fix."
+      - +@isprivate: "0"
+        commentid: "7778"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-03 20:40:55 +0200
+        thetext: Fixed handling of complex numbers in SVN revision r6653.
+      - +@isprivate: "0"
+        commentid: "7814"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 08:23:47 +0200
+        thetext: Tineke confirmed that the problem is indeed solved. Therefore, I close this bug.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "335"
+      date: 2012-10-02 13:13:00 +0200
+      delta_ts: 2012-10-02 13:13:46 +0200
+      desc: testdata_a and testdata_b
+      filename: testdata.mat
+      type: application/octet-stream
+      size: "25188632"
+      attacher:
+        +content: stephen.whitmarsh
+        +@name: Stephen Whitmarsh
+      data: REMOVED

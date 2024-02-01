@@ -1,0 +1,124 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2462"
+    creation_ts: 2014-01-30 10:33:00 +0100
+    short_desc: ft_preprocessing crashes when reading brainvision dataset
+    delta_ts: 2015-07-15 13:30:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12768"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-30 10:33:12 +0100
+        thetext: "From the mailinglist:\n\n\"Hi guys,\nI'm having trouble loading my files in via ft_preprocessing. I've ensured that the function actually works on my matlab by running it on sample data found here: http://fieldtrip.fcdonders.nl/tutorial/continuous\nand everything works just fine. I do always get the warning that FT misbehaves with matlab version >= 2013a though, so I'm not sure if that might have an impact on my trial. I'm running 2013b on a Red Hat Linux Server. I've attached the data to this email. \n\n-Norman\"\n\nI've reproduced the problem and the issue seems to be that the number of samples cannot be estimated and remains 'Inf', following ft_read_brainvision_eeg crashes.\n\nI've assigned myself to this bug."
+      - +@isprivate: "0"
+        commentid: "12771"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-30 11:33:43 +0100
+        thetext: |-
+          Hi Robert,
+
+          I've added you to the CC-list as I see you've worked on read_brainvision_eeg quite a lot.
+
+          The problem in Norman's case seems to be that read_brainvision_vhdr cannot estimate the number of samples because it has no case for handling this combination of dataformat and orientation (ascii & multiplexed). I saw that the number of samples, in this case, can also be found in the headerfile (DataPoints=...). This might not be limited to this dataformat and orientation so it could be handy to add checking for this line in case the number of samples cannot be determined otherwise. So far so good.
+
+          Another issue occured in reading the data. Even when having the correct number of samples read_brainvision_eeg did not discard the first line of the datafile which contains the channel labels. The headerfile contains a line 'SkipLines' that indicated headerlines. This is not incorporated into read_brainvision_eeg. I would add this to the hdr and have read_brainvision_eeg check for this but I wanted to run it by you first.
+
+          Do you have some advice on the best way to approach this?
+      - +@isprivate: "0"
+        commentid: "12772"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-30 11:49:07 +0100
+        thetext: |-
+          added test_script and test data
+
+          Adding         test_bug2462.m
+          Transmitting file data .
+          Committed revision 9174.
+      - +@isprivate: "0"
+        commentid: "12777"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-02 12:12:47 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #1)
+
+          Hi Jim,
+
+          It might be that BV have extended the (flexible) ascii header a bit to address the challenge of this file format. The fundamental issue is that an ascii formatted file is inefficient in terms of random-access, i.e. you don't know where to jump in the file to get a specific sample.
+
+          Given the new (or perhaps not so new) DataPoints and SkipLines elements in the header, I suggest to update the code to always use these, and only estimate the DataPoints (from the file size) in case DataPoints is not specified. I.e. make the latest version the default, and treat the older versions of the files as exception.
+
+          We might want to check whether we have a sufficiently diverse test set, with both old and new files.
+      - +@isprivate: "0"
+        commentid: "12797"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-02-05 17:10:33 +0100
+        thetext: |-
+          Sending        fileio/private/read_brainvision_eeg.m
+          Sending        fileio/private/read_brainvision_vhdr.m
+          Sending        test/test_bug2462.m
+          Transmitting file data ...
+          Committed revision 9187.
+      - +@isprivate: "0"
+        commentid: "12799"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-02-06 08:32:11 +0100
+        thetext: "I've changed the code to accommodate the ascii information in the header file. If available, SkipLines, SkipColumns, and DataPoints is added to the hdr. \n\nThis information (only if available) will then be used by read_brainvision_eeg.m when reading ascii formatted files. \nAlthough it wasn't explicitly stated, I assumed that SkipLines is only relevant when the orientation is multiplexed and SkipColumns when vectorized. \n\nI've created and added 4 small datasets (ascii-vectorized, ascii-multiplexed, binary-vectorized-32bit, binary-multiplexed-32bit) that will be checked against each other to make sure differently formatted datasets containing the same data produce the same output (within a tolerance due to numerical precision of course)."
+      - +@isprivate: "0"
+        commentid: "13139"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-03-24 12:05:52 +0100
+        thetext: Should work fine now.

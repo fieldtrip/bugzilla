@@ -1,0 +1,182 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1819"
+    creation_ts: 2012-11-07 15:55:00 +0100
+    short_desc: ft_read_headshape should return the label for tetgen files
+    delta_ts: 2013-06-30 15:17:14 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked:
+      - "1822"
+      - "1840"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: JakobLudewig
+      +@name: Jakob Ludewig
+    cc:
+      - carsten.wolters
+      - j.vorwerk
+      - JakobLudewig
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8175"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 15:55:42 +0100
+        thetext: |-
+          right now there is the following
+
+            case 'tetgen'
+              % reads in the tetgen format and rearranges according to FT conventions
+              % tetgen files also return a 'faces' field (not used here)
+              shape = rmfield(shape,'fid');
+              IMPORT = importdata([filename '.1.ele'],' ',1);
+              shape.tet = IMPORT.data(:,2:5);
+              IMPORT = importdata([filename '.1.node'],' ',1);
+              shape.pnt = IMPORT.data(:,2:4);
+
+          In some cases there is also a label. This should be returned in the output, in a format consistent with vista and with FT_DATATYPE_PARCELLATION.
+      - +@isprivate: "0"
+        commentid: "8204"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 12:11:08 +0100
+        thetext: to work on this we need test files
+      - +@isprivate: "0"
+        commentid: "8229"
+        comment_count: "2"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-09 12:02:07 +0100
+        thetext: |-
+          This should be solved by adding two lines:
+
+            case 'tetgen'
+              % reads in the tetgen format and rearranges according to FT conventions
+              % tetgen files also return a 'faces' field (not used here)
+              shape = rmfield(shape,'fid');
+              IMPORT = importdata([filename '.1.ele'],' ',1);
+              shape.tet = IMPORT.data(:,2:5);
+              if size(IMPORT.data,2)==6
+                shape.index = IMPORT.data(:,6);
+              end
+              IMPORT = importdata([filename '.1.node'],' ',1);
+              shape.pnt = IMPORT.data(:,2:4);
+
+          The name of the field where the index data are stored has to be aligned with bug 1818 of course!
+      - +@isprivate: "0"
+        commentid: "8268"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-13 17:35:32 +0100
+        thetext: |-
+          hi Jakob,
+
+          please see bug1818 (also assigned for you) for my comments.
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8326"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-20 11:40:49 +0100
+        thetext: "I have added file format detection for all tetgen formats, please check ft_filetype for what it returns (tetgen_xxx).\n\nmac001> svn commit ft_filetype.m private/filetype_check_extension.m \nSending        ft_filetype.m\nSending        private/filetype_check_extension.m\nTransmitting file data ..\nCommitted revision 6961."
+      - +@isprivate: "0"
+        commentid: "8327"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-20 11:45:10 +0100
+        thetext: "(In reply to comment #4)\n\nI have updated ft_read_headshape accordingly, it now allows the filename of either file to be specified. \n\nmac001> svn commit ft_read_headshape.m \nSending        ft_read_headshape.m\nTransmitting file data .\nCommitted revision 6962.\n\nfor example\n\n>> mesh = ft_read_headshape('tet_4layer_127_127_127.1.node')\nmesh = \n     pnt: [801633x3 double]\n     tet: [4985234x4 double]\n    unit: 'mm'"
+      - +@isprivate: "0"
+        commentid: "8341"
+        comment_count: "6"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-20 15:28:41 +0100
+        thetext: |-
+          (In reply to comment #5)
+          If you change it to
+
+              case 'tetgen_ele'
+                  % reads in the tetgen format and rearranges according to FT conventions
+                  % tetgen files also return a 'faces' field (not used here)
+                  [p, f, x] = fileparts(filename);
+                  shape = rmfield(shape,'fid');
+                  [p, f, x] = fileparts(filename);
+                  filename = fullfile(p, f); % without the extension
+                  IMPORT = importdata([filename '.ele'],' ',1);
+                  shape.tet = IMPORT.data(:,2:5);
+                  if size(IMPORT.data,2)==6
+                      labels = IMPORT.data(:,6);
+                      % representation of data is compatible with ft_datatype_parcellation
+                      shape.tissue = zeros(size(labels));
+                      numlabels = size(unique(labels),1);
+                      shape.tissuelabel = {};
+                      for i = 1:numlabels
+                          ulabel = unique(labels);
+                          shape.tissue(labels == ulabel(i)) = i;
+                          shape.tissuelabel{i} = num2str(ulabel(i));
+                      end
+                  end
+                  IMPORT = importdata([filename '.node'],' ',1);
+                  shape.pnt = IMPORT.data(:,2:4);
+
+          we should have the labels according to bug1818.
+      - +@isprivate: "0"
+        commentid: "8345"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-20 23:06:05 +0100
+        thetext: "(In reply to comment #6)\n\nI have just included the suggestion from Johannes\n\nmbp> svn commit ft_read_headshape.m \nSending        ft_read_headshape.m\nTransmitting file data .\nCommitted revision 6967."
+      - +@isprivate: "0"
+        commentid: "8359"
+        comment_count: "8"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-21 17:05:51 +0100
+        thetext: |-
+          (In reply to comment #7)
+          hi,
+          test/test_bug1818 runs without error which means that this bug has been fixed too, so I am closing it.
+          Lilla

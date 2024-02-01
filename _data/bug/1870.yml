@@ -1,0 +1,112 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1870"
+    creation_ts: 2012-12-05 14:45:00 +0100
+    short_desc: ft_datatype_sens flags planar gradient data as inconsistent
+    delta_ts: 2012-12-31 11:46:24 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8564"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-05 14:45:28 +0100
+        thetext: "Run test script test_ft_megplanar to reproduce. The failure occurs with the following grad (sens) structure:\n\nsens = \n\n     coilpos: [1184x3 double]\n     coilori: [1184x3 double]\n         tra: [296x1184 double]\n       label: {296x1 cell}\n     chanpos: [148x3 double]\n     chanori: [148x3 double]\n        unit: 'cm'\n         cfg: [1x1 struct]\n        type: 'bti148_planar'\n    chantype: {296x1 cell}\n    chanunit: {296x1 cell}\n\nbecause size(sens.chanpos,1) ~= length(sens.label) (ft_datatype_sens, line 159). The correct solution is not immediately apparent to me. One option: check whether grad type is planar, if so, make the check 2*size(sens.chanpos,1) ~= length(sens.label) ?"
+      - +@isprivate: "0"
+        commentid: "8565"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-05 14:48:02 +0100
+        thetext: |-
+          not sure if this will always work, e.g. when reference sensors are present which were not transformed
+          maybe, if planar then do not check this?
+      - +@isprivate: "0"
+        commentid: "8571"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 17:42:10 +0100
+        thetext: ">> test_ft_megplanar\n\nError using ft_datatype_sens (line 164)\ninconsistent number of channels in sensor description\n\nError in ft_compute_leadfield (line 107)\nsens = ft_datatype_sens(sens);\n\nError in ft_megplanar (line 204)\n  lfnew = ft_compute_leadfield(pos, planar.grad, vol);\n\nError in test_ft_megplanar (line 46)\n  data5 = ft_megplanar(cfg, data);\n\nwhere\n\nsens = \n     coilpos: [1184x3 double]\n     coilori: [1184x3 double]\n         tra: [296x1184 double]\n       label: {296x1 cell}\n     chanpos: [148x3 double]\n     chanori: [148x3 double]\n        unit: 'cm'\n         cfg: [1x1 struct]\n        type: 'bti148_planar'\n    chantype: {296x1 cell}\n    chanunit: {296x1 cell}\n\nthis is inconsistent in more than one way.\n\nI have created a separate test script with a small piece of data.\n\nmac001> svn commit test_bug1870.m \nAdding         test_bug1870.m\nTransmitting file data .\nCommitted revision 7108."
+      - +@isprivate: "0"
+        commentid: "8574"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 21:32:34 +0100
+        thetext: "I tracked it down, it had to do with the rarely used sourceproject method for ft_megplanar, which makes use of  the private/constructplanargrad function to craft a planar gradiometer array. This was implementedin 2004,  well before we started considering to process non-ctf data. However, the bug also applies to CTF and had to do with chanpos not representing both planar channels, but only for one axial channel. Idem for ori.\n\nmbp> svn commit private/constructplanargrad.m \nSending        private/constructplanargrad.m\nTransmitting file data .\nCommitted revision 7111."
+      - +@isprivate: "0"
+        commentid: "8575"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 22:06:43 +0100
+        thetext: "I also made some other cleanups\n\n\nmbp> svn commit forward/ft_apply_montage.m\nSending        forward/ft_apply_montage.m\nTransmitting file data .\nCommitted revision 7112.\n\nmbp> svn commit forward/ test/ ft_*m      \nSending        ft_combineplanar.m\nSending        ft_megplanar.m\nSending        test/test_bug1870.m\nTransmitting file data ...\nCommitted revision 7114.\n\nthe specific test script now runs fine."
+      - +@isprivate: "0"
+        commentid: "8576"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 22:16:35 +0100
+        thetext: |-
+          removed the requirement for neighbours in the sourceproject method
+
+          mbp> svn commit ft_megplanar.m
+          Sending        ft_megplanar.m
+          Transmitting file data .
+          Committed revision 7115.
+      - +@isprivate: "0"
+        commentid: "8577"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 22:24:05 +0100
+        thetext: "test_ft_megplanar runs through until line 151, where a plot is made. \n\nft_topoplotER does not seem to like the single-valued input. This is due to avgFIC.mat containing a single-value timelock structure. To me this seems a matter for another bug... closing this one!"
+      - +@isprivate: "0"
+        commentid: "8843"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:24 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

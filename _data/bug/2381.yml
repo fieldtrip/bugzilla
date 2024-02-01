@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2381"
+    creation_ts: 2013-11-19 23:02:00 +0100
+    short_desc: error in ft_sourcestatistics?
+    delta_ts: 2015-05-07 13:30:57 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: vitoria.piai
+      +@name: Vitoria Piai
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11990"
+        comment_count: "0"
+        who:
+          +content: vitoria.piai
+          +@name: Vitoria Piai
+        bug_when: 2013-11-19 23:02:38 +0100
+        thetext: "% I'm not sure whether this is a bug but following Jan-Mathijs' request, here's % some sample data for which I'm getting the error with example code, including % the error I'm getting.\n% The data can be found at common/temporary/4Bugzilla/AVG.mat\n% The code + error: \n\nnsubj                  = 15;\ncfgSt.method = 'montecarlo';\ncfgSt.statistic = 'depsamplesT';\ncfgSt.parameter = 'avg.pow';\ncfgSt.correctm = 'cluster';\ncfgSt.numrandomization = 500;\ncfgSt.alpha = 0.0500;\ncfgSt.clusteralpha = 0.0500;\ncfgSt.dim              = AverageSource1.dim;\ncfgSt.design(1,:)      = [1:nsubj 1:nsubj];\ncfgSt.design(2,:)      = [ones(1,nsubj) ones(1,nsubj)*2];\ncfgSt.uvar             = 1;              \ncfgSt.ivar             = 2;              \ncfgSt.correcttail      = 'prob';\nstat                   = ft_sourcestatistics(cfgSt, AverageSource1, AverageSource2);\n% Reference to non-existent field 'avg'.\n% \n% Error in getfield (line 37)\n%     f = s.(deblank(strField)); % deblank field name\n% \n% Error in getsubfield (line 44)\n%   s = getfield(s, t);\n% \n% Error in statistics_wrapper>get_source_trial (line 544)\n%     tmp = getsubfield(varargin{i}.trial(j), cfg.parameter);\n% \n% Error in statistics_wrapper (line 204)\n%     [dat, cfg] = get_source_trial(cfg, varargin{:});\n% \n% Error in ft_sourcestatistics (line 107)\n%     [stat, cfg] = statistics_wrapper(cfg, varargin{:});"
+      - +@isprivate: "0"
+        commentid: "11991"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-20 09:04:31 +0100
+        thetext: |-
+          It runs through just fine if you change cfg.parameter into 'pow'.
+          (although the resulting t-maps look funny: check this and verify that this is or is not what you would expect; if it isn't I suspect an issue related to the geometrical units, which Robert has been fooling around with of late).
+      - +@isprivate: "0"
+        commentid: "15325"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-11 16:56:51 +0100
+        thetext: The test script started failing, it has to do with getdimsiz() (and hence ft_datatype_source) not properly understanding the specific input data for this bug. I'm working on it.
+      - +@isprivate: "0"
+        commentid: "15696"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:25:27 +0200
+        thetext: |-
+          I was going through the list of failing test functions as per the dashboard, didn't notice that this one was already on someone's radar.
+          It seems that ft_datatype_source is choking on converting the data in the file on disk into the newest source structure
+      - +@isprivate: "0"
+        commentid: "15697"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:30:57 +0200
+        thetext: |-
+          the data on disk both seems to contain an 'avg' and a 'trial' field.
+
+          If I do rmfield(source1, {'avg' 'var'}) and likewise for source2 (these are the variables in the file), the function stops failing.
+
+          I suspect that the input data was obtained with a outdated version of ft_sourcegrandaverage that doesn't fit our current definition of data structures anymore. I would vote for cleaning up the test data for this bug, so that the regression function becomes functional again, rather than trying to make this backward compatible.

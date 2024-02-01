@@ -1,0 +1,194 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2111"
+    creation_ts: 2013-04-11 17:57:00 +0200
+    short_desc: Problem with ft_prepare_layout
+    delta_ts: 2014-03-12 12:21:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10064"
+        comment_count: "0"
+        attachid: "448"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-04-11 17:57:31 +0200
+        thetext: |-
+          Created attachment 448
+          cfg
+
+          Hi,
+
+          I'm getting a weird results projecting a CTF grad to 2D. It looks like there is a mismatch between locations and labels (as the reference sensors are also there and they shouldn't be) and also some kind of misalignment. I attach the cfg.
+
+          Thanks,
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "10065"
+        comment_count: "1"
+        attachid: "449"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-04-11 17:58:29 +0200
+        thetext: |-
+          Created attachment 449
+          Here is what it looks like for me
+      - +@isprivate: "0"
+        commentid: "10260"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-23 12:48:04 +0200
+        thetext: "Hi Vladimir,\n\nusing a 3D plot I am pretty sure that there is no misalignment between labels and channel position. The reference sensors are just there because they are present in the grad and you do not specify a subset of channels (e.g. if you specify cfg.channel = 'MEG' then they are gone). \n\nHowever, the channel positions are indeed rotated... this strange rotation seems to be already there in the grad though. Plotting the x- and y-positions of the 3D coordinates results in a plot with frontal channels at around 5 o'clock. ft_prepare_layout applies an additional 90 degree rotation for the CTF system before projecting to a 2D plane, but in your case it seems more like a 135 deg shift. I'm gonna consult Robert with this, because I'm out of ideas (the same cfg with another CTF275.grad results in a plot that looks all fine). Just to make sure, would there be any reason you can think of why the .grad information could be wrong?"
+      - +@isprivate: "0"
+        commentid: "10261"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-04-23 12:52:23 +0200
+        thetext: |-
+          (In reply to comment #2)
+          Hi Jorn,
+
+          Yes, after posting the bug I saw myself that the locations are rotated in the grad. I couldn't figure out why it happened and I also couldn't reproduce it reliably in the processing pipeline. It might have something to do with ft_average_sens. If your reach the conclusion that the layout is OK for this defective grad then I should wait and try to see if it happens again and look for the error elsewhere.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "10262"
+        comment_count: "4"
+        attachid: "460"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-23 13:37:19 +0200
+        thetext: |-
+          Created attachment 460
+          fiducial swapp illustration
+
+          Hi Vladimir,
+
+          Robert and me thought about what might have gone wrong. The explanation that makes most sense is that two fiducials were swapped. When calling ft_determine_coordsys(cfg.grad), you can see that the Z-axis still points somewhat to the top of the head, so left and right fiducial are not swapped with each other. However, the sensors are not aligned well with the X- and Y-axes. A swap between the nasion fiducial and one of the aurical fiducials would explain this. I attached a drawing of this. Does that make sense to you?
+      - +@isprivate: "0"
+        commentid: "10270"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-04-23 17:02:23 +0200
+        thetext: |-
+          (In reply to comment #4)
+           There is now another problem with fr_preparelayout. The message is:
+
+          ??? Reference to non-existent field 'width'.
+
+          Error in ==> ft_prepare_layout at 663
+          layout.width  = layout.width(chansel);
+
+
+          You can run the spm test script to reproduce it. Please fix ASAP.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "10272"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-23 17:16:12 +0200
+        thetext: Robert, I added you because Vladimir's latest message seems be related more to SPM and bug 1320 (for the record, I can confirm this error for cfg.style = '3d')
+      - +@isprivate: "0"
+        commentid: "10275"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 17:31:04 +0200
+        thetext: "(In reply to comment #6)\n\n\nthat was easy, I changed \n\nlayout.pos    = layout.pos(chansel,:);\nlayout.label  = layout.label(chansel);\n  layout.width  = layout.width(chansel);\n  layout.height = layout.height(chansel);\n\ninto\n\nlayout.pos    = layout.pos(chansel,:);\nlayout.label  = layout.label(chansel);\nif ~strcmp(cfg.style, '3d')\n  % these don't exist for the 3D layout\n  layout.width  = layout.width(chansel);\n  layout.height = layout.height(chansel);\nend\n\n\nmac001> svn commit ft_prepare_layout.m \nSending        ft_prepare_layout.m\nTransmitting file data .\nCommitted revision 8065."
+      - +@isprivate: "0"
+        commentid: "10878"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-03 10:42:52 +0200
+        thetext: no complaints, so I consider it fixed successfully :)
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "448"
+        date: 2013-04-11 17:57:00 +0200
+        delta_ts: 2013-04-11 17:57:31 +0200
+        desc: cfg
+        filename: bug.mat
+        type: application/octet-stream
+        size: "128269"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "449"
+        date: 2013-04-11 17:58:00 +0200
+        delta_ts: 2013-04-11 17:58:29 +0200
+        desc: Here is what it looks like for me
+        filename: bug.png
+        type: image/png
+        size: "26527"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "460"
+        date: 2013-04-23 13:37:00 +0200
+        delta_ts: 2013-04-23 13:37:19 +0200
+        desc: fiducial swapp illustration
+        filename: 2013-04-23_13-33-39_613.jpg
+        type: image/jpeg
+        size: "839345"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED

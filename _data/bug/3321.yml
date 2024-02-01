@@ -1,0 +1,68 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3321"
+    creation_ts: 2017-07-06 23:36:00 +0200
+    short_desc: ft_timelockstatistics functionning different from what is said on the wiki and in the help
+    delta_ts: 2019-08-10 12:41:56 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: arnaudpoublan
+      +@name: Arnaud
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18794"
+        comment_count: "0"
+        who:
+          +content: arnaudpoublan
+          +@name: Arnaud
+        bug_when: 2017-07-06 23:36:32 +0200
+        thetext: "Hi,\n\nI just started using fieldtrip, and while practicing with the tutorial http://www.fieldtriptoolbox.org/development/cluster_permutation_timelock\nusing your template data, I found an error when using ft_timelockstatistics as you say on the tutorial in the Within subjects part, with the same code as in the tutorial:\n\"\ncfg = [];\ncfg_neighb        = [];\ncfg_neighb.method = 'distance';         \nneighbours        = ft_prepare_neighbours(cfg_neighb, allsubjFIC{1,1});\ncfg.neighbours    = neighbours;  \ncfg.channel = {'MEG'};\ncfg.latency = [0 1];\ncfg.method = 'montecarlo';\ncfg.statistic = 'depsamplesT';\ncfg.correctm = 'cluster';\ncfg.clusteralpha = 0.05;\ncfg.clusterstatistic = 'maxsum';\ncfg.minnbchan = 2;\ncfg.neighbours = neighbours;  % same as defined for the between-trials experiment\ncfg.tail = 0;\ncfg.clustertail = 0;\ncfg.alpha = 0.025;\ncfg.numrandomization = 500;\n\nsubj = 10;\ndesign = zeros(2,2*subj);\nfor i = 1:subj\n  design(1,i) = i;\nend\nfor i = 1:subj\n  design(1,subj+i) = i;\nend\ndesign(2,1:subj)        = 1;\ndesign(2,subj+1:2*subj) = 2;\n\ncfg.design = design;\ncfg.uvar  = 1;\ncfg.ivar  = 2;\n\n[stat] = ft_timelockstatistics(cfg, allsubjFIC, allsubjFC) \n\"\n\nThe final command line brings an error:\n\nError using ft_notification (line 314)\nThis function requires timelock data as input.\n\nError in ft_error (line 39)\n  ft_notification(varargin{:});\n\nError in ft_checkdata (line 495)\n    ft_error('This function requires %s data as input.', str);\n\nError in ft_timelockstatistics (line 85)\n  varargin{i} = ft_checkdata(varargin{i}, 'datatype', 'timelock', 'feedback', 'no');\n \n\nSo I tried to solve it and it seems that varargin take the input datasets allsubjFIC, allsubjFC  and create a cell array of only 2 elements. So then when it's send to checkdata it doesn't correspond to the individual files structures and so it's not recognize as a timelock data.\n\nI overpassed that using :\n[stat] = ft_timelockstatistics(cfg, allsubjFIC{:}, allsubjFC{:})\n\nso varargin takes the different individual structures as input and it works.\n\nI encounter another issue due to the function using first spm2 or 8 before 12, and so as I am on Matlab 2017 this version of spm are not compatible anymore, I will create another bug report for that.\n\nI'm using an OS X Yosemite 10.10.5 and Matlab 2017a.\n\nThank you,\n\nBest Regards,\n\nArnaud"
+      - +@isprivate: "0"
+        commentid: "18822"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-14 15:16:07 +0200
+        thetext: "Thanks\n\nComparing this\n[stat] = ft_timelockstatistics(cfg, allsubjFIC, allsubjFC) \n\nto this\n[stat] = ft_timelockstatistics(cfg, allsubjFIC{:}, allsubjFC{:})\\\n\nwhere the latter works, suggests that the allsubjFIC and allsubjFC data structures are cell arrays, containing a single structure for each subject. \n\nThe first call (that fails) assumes that they are structures, resulting from ft_timelockgrandaverage with keep individual=yes. This is how we used to organize the data, but that was changed some time ago. The specific call to ft_timelockstatistics with the {:} syntax was apparently forgotten. \n\nI fixed it. Please let me know if you see other issues with the tutorial."
+      - +@isprivate: "0"
+        commentid: "20309"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20509"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:56 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

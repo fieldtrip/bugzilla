@@ -1,0 +1,194 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2623"
+    creation_ts: 2014-06-25 15:01:00 +0200
+    short_desc: Create function to 'reverse parcellate' data, to allow for visualisation at source-level
+    delta_ts: 2018-03-10 21:36:01 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: n.lam
+    assigned_to: n.lam
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13944"
+        comment_count: "0"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-06-25 15:01:50 +0200
+        thetext: "Currently parcellated datasets are treated as channel level data. So statistics and visualisation are done with sensor-level functions. The plan is to 'unwrap' the parcels to allow visualisation of the data at the source level using e.g., ft_sourceplot.\n\nAssumes that user has volumetric data which has been parcellated using a template (whereby each voxel is assigned to a parcel). Now, we want each voxel (source) belonging to a parcel to be given the same values as that parcel such that all voxels at the source level are filled. This data can then be subsequently used at the source-level.\n\nThings to consider:\n1. make the function flexible to the type of parcellation \n   this would probably require the user to specify as an inarg the type of parcellation used, together with labels.\n   \n2. is it worth pre-specifying a certain parcellations?  There are many ways of parcellating...\n\n\nI have some code that does the reverse parcellation but am not sure how to develop it into being more general i.e. suitable for different datasets."
+      - +@isprivate: "0"
+        commentid: "14440"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-24 13:48:39 +0200
+        thetext: Robert just has committed something to ft_checkdata which is essentially doing this (for ft_sourceplot).
+      - +@isprivate: "0"
+        commentid: "14441"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-24 13:49:23 +0200
+        thetext: da code that undoes the parcellation is in fieldtrip/utilities/private/unparcellate.m
+      - +@isprivate: "0"
+        commentid: "14442"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-24 13:56:18 +0200
+        thetext: "thing to be done: make a test function\n\n+ \n\ndig up a MOUS source-TFR (parcellated) and ask help from Robert to see whether it also works for this type of data.\n\nIf it doesn't: fix it."
+      - +@isprivate: "0"
+        commentid: "14475"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 17:29:08 +0200
+        thetext: |-
+          the following demonstrates how it works
+
+          parcellation = ft_read_atlas(dccnpath('/home/common/matlab/fieldtrip/template/atlas/aal/ROI_MNI_V4.nii'));
+          source = ft_checkdata(parcellation, 'datatype', 'source');
+          source = removefields(source, {'tissue', 'tissuelabel'});
+          source.pow = randn(prod(parcellation.dim), 1);
+          source.pow(parcellation.tissue==0) = nan;
+          source.dimord = 'pos';
+
+          cfg = [];
+          cfg.funparameter = 'pow';
+          ft_sourceplot(cfg, source);
+
+          cfg = [];
+          cfg.parameter = 'pow';
+          sourcep = ft_sourceparcellate(cfg, source, parcellation);
+
+          cfg = [];
+          cfg.funparameter = 'pow';
+          ft_sourceplot(cfg, sourcep);
+      - +@isprivate: "0"
+        commentid: "14949"
+        comment_count: "5"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-12-15 15:40:41 +0100
+        thetext: "As discussed in today's FT meeting:\n\n1. Use ft_sourceparcellate to do the parcellation. Check that is similar (but probably more generic) to what I've written myself.  \nHere the brain ordinates are specified which contains information on the geometry e.g. 'pos' field.\n\n2. ft_sourceplot calls ft_checkdata which requires 'volume' or 'source' data. Have ft_checkdata deal with the freq input as 'source' data."
+      - +@isprivate: "0"
+        commentid: "14950"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-15 16:06:50 +0100
+        thetext: "(In reply to n.lam from comment #5)\n\nmac011> svn commit utilities/ft_checkdata.m\nSending        utilities/ft_checkdata.m\nTransmitting file data .\nCommitted revision 10049.\n\nHave a look at https://code.google.com/p/fieldtrip/source/diff?spec=svn10049&r=10049&format=side&path=/trunk/utilities/ft_checkdata.m \n\nand then try the following with the latest FT version\n\n------\nparcellation = [];\nparcellation.pos = randn(10,3);\nparcellation.tri = [1 2 3]; % one triangle\nparcellation.tissue = [1 1 1 1 1 2 2 2 3 3];\nparcellation.tissuelabel = {'1', '2', '3'};\n\nsource = [];\nsource.pos = parcellation.pos;\nsource.pow = randn(10,20);\nsource.time = 1:20;\nsource.dimord = 'pos_time';\n\ncfg = [];\ncfg.parameter = 'pow';\nsourcep1 = ft_sourceparcellate(cfg, source, parcellation);\n\nsourcep2 = ft_checkdata(sourcep1, 'datatype', 'timelock');\n\nsourcep3 = ft_checkdata(sourcep2, 'datatype', 'source');\n------"
+      - +@isprivate: "0"
+        commentid: "15318"
+        comment_count: "7"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-11 16:19:06 +0100
+        thetext: "Using a dataset from the MOUS project to test whether or not we can visualise parcellated data. The reason for this is because we have a parcellated atlas for this dataset (but as far as I know, not in FT'S ftp repository).\n\nThe MOUS dataset was adapted to have the generic fields and format as if the dataset had been computed from ft_sourceanalysis. \n\nDataset was parcellated - OK\n\nDataset was unparcellated - OK; required a change in line ft_checkdata on line 1729 to also deal with \"chan_freq_time\" data.\n\nDataset visualisation - still working on it."
+      - +@isprivate: "0"
+        commentid: "15321"
+        comment_count: "8"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-11 16:38:03 +0100
+        thetext: "unparcellated data using ft_checkdata contains all the correct fields. However the field 'pos' does not contain the correct values.  \n\nunparcellated.pos = 'pos_freq_time'; % this is incorrect\nunparcellated.pos = [11000 x 3];     % should have source positions\n\nwill make this happen."
+      - +@isprivate: "0"
+        commentid: "15323"
+        comment_count: "9"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-11 16:43:04 +0100
+        thetext: ignore comment 8, I made a mistake
+      - +@isprivate: "0"
+        commentid: "15328"
+        comment_count: "10"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-11 17:18:32 +0100
+        thetext: unparcellated data using ft_checkdata leads to missing 'time' and 'freq' field which are needed in order to visualise the data (using ft_sourceplot)
+      - +@isprivate: "0"
+        commentid: "15452"
+        comment_count: "11"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-24 16:02:10 +0100
+        thetext: |-
+          modifications were made to parcellated2source, a subfunction in ft_checdata
+
+          1. 'chan_freq_time' was added as one of the possible dimords for the input data
+          2. time and/or freq field is copied over when applicable
+      - +@isprivate: "0"
+        commentid: "15453"
+        comment_count: "12"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-24 16:04:02 +0100
+        thetext: closing bug
+      - +@isprivate: "0"
+        commentid: "15459"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-24 17:08:18 +0100
+        thetext: |-
+          (In reply to n.lam from comment #11)
+
+          The changes were the ones ones (from "svn log"). Next time just copy and paste the svn output here, so that we can keep track of the revision in which the changes were made.
+
+
+
+          ------------------------------------------------------------------------
+          r10257 | nielam | 2015-02-24 16:00:31 +0100 (Tue, 24 Feb 2015) | 1 line
+          added chan_freq_time as possible dimord for data; copy over time and/or freq fields
+
+
+          ------------------------------------------------------------------------
+          r10256 | nielam | 2015-02-24 15:35:06 +0100 (Tue, 24 Feb 2015) | 1 line
+          tests plotting of parcellated data
+      - +@isprivate: "0"
+        commentid: "15461"
+        comment_count: "14"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-02-24 17:31:33 +0100
+        thetext: Okay, noted! thank you.

@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1731"
+    creation_ts: 2012-09-20 23:26:00 +0200
+    short_desc: implement tighter provenance using md5 hashes on input and output
+    delta_ts: 2012-12-31 11:46:22 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1565
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - eelke.spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7516"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 23:26:45 +0200
+        thetext: "for example do\n\n% do the general setup of the function\nft_defaults\nft_preamble help\nft_preamble callinfo\nft_preamble trackconfig\nft_preamble loadvar data\nft_preamble inputhash data\n\nand then \n\n--------\n% FT_PREAMBLE_INPUTHASH is a helper script\n\n% the name of the variable is passed in the preamble field\nglobal ft_default\n\ninputhash = cell(size(ft_default.preamble));\nfor i=1:numel(ft_default.preamble)\n  inputhash{i} = CalcMD5(mxSerialize(eval(ft_default.preamble{i})));\nend\n--------\n\nand compare the inputhas to the one specified in the actual data. In case they are different, the data has been tampered with.\n\nSimilar for the output, but only store the hash in the output.\n\nFT_ANALYSISPROTOCOL should be able to compare them as well and indicate steps where something happened with the data in between the FT functions."
+      - +@isprivate: "0"
+        commentid: "7866"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-09 22:38:40 +0200
+        thetext: "On http://rrcns.readthedocs.org/en/latest/provenance_tracking.html\nI read the following interesting list. We can use it as checklist. \nFT already implements quite a few of them.\n\n\nthe code that was run:\nthe version of Matlab, Python, NEURON, NEST, etc.;\nthe compilation options;\na copy of the simulation script(s) (or the version number and repository URL, if using version control)\ncopies (or URLs + version numbers) of any external modules/packages/toolboxes that are imported/included\nhow it was run:\nparameters;\ninput data (filename plus cryptographic identifier to be sure the data hasn’t been changed, later);\ncommand-line options;\nthe platform on which it was run:\noperating system;\nprocessor architecture;\nnetwork distribution, if using parallelization;\noutput data produced (again, filename plus cryptographic identifier)\nincluding log files, warnings, etc."
+      - +@isprivate: "0"
+        commentid: "7897"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-13 10:12:01 +0200
+        thetext: I suggest to store the input and output information in cfg.datainfo, just like cfg.callinfo.
+      - +@isprivate: "0"
+        commentid: "7898"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-13 10:49:27 +0200
+        thetext: "I have been thinking about inputcfg and outputcfg. How about configinfo or paraminfo? Right now we only output the \"used\" configuration setting, not the desired \"input\" configuration settings. \n\nConceptually, the output from a computation depend son the data, the environment (e.g. the matlab and fieldtrip version) and the parameters for the algorithm.\n\ndata.cfg.callinfo contains the environment information\ndata.cfg.datainfo contains the information about the input data\ndata.cfg.paraminfo contains the input parameter information\n\nThis leaves data.cfg for the actual parameters as used by the algorithm."
+      - +@isprivate: "0"
+        commentid: "7900"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-13 17:13:54 +0200
+        thetext: "I have implemented this in   \n   dataout.cfg.datainfo.input = {} \n   dataout.cfg.datainfo.output = {} \n\nFurthermore I have added three ft_default fields: trackcallinfo, trackdatainfo and trackparaminfo; the defaults are yes, no, no. So the default behaviour (sofar) has not changed.\n\nI have added ft_version to callinfo (fieldtrip version). It made more sense to move ft_version to utilities, and CalcMD5 along with it. The MD5 calculation is now also used by datainfo.\n\nI will demonstrate this in one of the next FT meetings.\n\nCommitted revision 6750.\n\nSee http://code.google.com/p/fieldtrip/source/detail?r=6750 for all details."
+      - +@isprivate: "0"
+        commentid: "7901"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-13 17:16:36 +0200
+        thetext: |-
+          It would be useful to have a provenance tutorial.
+          Slightly related to this: the distributed computing tutorial should be revised.
+      - +@isprivate: "0"
+        commentid: "8808"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-24 09:29:15 +0100
+        thetext: "(In reply to comment #4)\n\nit is not\n   dataout.cfg.datainfo.input = {} \n   dataout.cfg.datainfo.output = {} \n\nbut\n   dataout.cfg.datainfo.inputhash = {} \n   dataout.cfg.datainfo.outputhash = {} \n\nThe desired functionality is in place, so this feature request is resolved."
+      - +@isprivate: "0"
+        commentid: "8833"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:22 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

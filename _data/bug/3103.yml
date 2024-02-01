@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3103"
+    creation_ts: 2016-04-02 22:28:00 +0200
+    short_desc: ft_sourceanalysis asks for .avg and .trial on same object
+    delta_ts: 2016-05-06 09:18:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: richards-john
+      +@name: John Richards
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17198"
+        comment_count: "0"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2016-04-02 22:28:16 +0200
+        thetext: "I have been using ft_sourceanalysis with ft .avg objects on the data structure.  I have just tried \"rawtrials\", which have a .trial object but not a .avg object.  In some of the code it assumes there is a data.avg object, but i can't find it being set and it causes an error.\n\ne.g.\n  Nsamples = size(data.avg,2);\n  Nchans   = length(data.label);\n  if isfield(data, 'cov') && length(size(data.cov))==3\n    Ntrials = size(data.cov,1);\n  elseif isfield(data, 'trial') && length(size(data.trial))==3\n    Ntrials = size(data.trial,1);\n  else\n    Ntrials = 1;\n  end\n\nThe first Nsamples fails for the rawtrial structure without the .avg. I changed mine to \n\n  %JER modificiation, if no \"avg\" but \"trial\" then get Nsamples from the trial\n  if isfield(data,'avg');\n    Nsamples = size(data.avg,2);\n  elseif isfield(data,'trial');\n    Nsamples = size(data.trial,3);\n  end;\n  %Nsamples = size(data.avg,2);\n\nsimilarly,\n      data.avg   = data.avg(datchanindx,:);\n      data.cov   = data.cov(:,datchanindx,datchanindx);\n      data.trial = data.trial(:,datchanindx,:);\nto\n      %JER modifications, if get here probably in the raw trials, but may not have data.avg.\n      if isfield(data,'avg');\n       data.avg   = data.avg(datchanindx,:);\n      end\n      data.cov   = data.cov(:,datchanindx,datchanindx);\n      if isfield(data,'trial');\n       data.trial = data.trial(:,datchanindx,:);\n      end;"
+      - +@isprivate: "0"
+        commentid: "17212"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-04-12 17:25:00 +0200
+        thetext: |-
+          Hi John,
+
+          The trial handling in ft_sourceanalysis dates back >10 years and is regretfully flawed by design. We have been trying to move forward with the code, but at the same trying to keep backward compatible with existing users' matlab scripts.
+
+          What is it exactly that you are trying to do (from a conceptual point of view)?
+      - +@isprivate: "0"
+        commentid: "17213"
+        comment_count: "2"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2016-04-12 21:06:46 +0200
+        thetext: |-
+          Conceptually, i have two kinds of FT data.  One kind is the "avg" and consists of a single average trial, with n-slices, and n-electrodes.  In the FT object representing data this is put in the .avg object of the data structure.  The second kind is "trial" data, and consists of several trials, with n-trials, n-slices, and n-electrodes.  This is put into the .trial object of the data structure.  From what I understand, the data objects in FT either have a avg object or a trial object, but not both.
+
+          In the code below one place assumes there is a "avg" object in the structure, and the second place assumes there are both "avg" object and "trial" object in the structure.  So no matter how one arrives at this particular location on the ft_sourceanalysis procedure, with just one of these objects, the code will fail.  My modifications below test of the avg or trial object in the data structure, and acts accordingly.
+
+          John
+      - +@isprivate: "0"
+        commentid: "17214"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-04-13 12:08:15 +0200
+        thetext: "(In reply to John Richards from comment #2)\n\nBoth are contained within one FieldTrip data structure that is \"time-locked\" to the event onset at t=0. The data structure is the result of ft_timelockanalysis with cfg.keeptrials=yes. \n\nYou should not consider the \"avg\" and the \"trial\" subfield separate from the remainder of the data structure. See http://www.fieldtriptoolbox.org/reference/ft_datatype_timelock\n\nCompared to raw data (see http://www.fieldtriptoolbox.org/reference/ft_datatype_raw) the important difference in the trial field is that it is a 3D array, rather than a cell array of 2D matrices.\n\nThe \"time-locked\" data structure will most likely also have single trial or an average channel covariance matrix.\n\nDo you want to source reconstruct the average (1), or do you want to source reconstruct individual trials (2)? In the latter case, you can construct the inverse operator either on the average (2a), or also on the individual trials (2b).\n\nWith case 2b you should be aware that if the inverse operator is data dependent (like with a beamformer), the covariance will be used. The single trial covariance is a poor estimator of the signal and noise structure and hence the single trial estimates using single trial inverse operator are usually very poor. \n\nCase 2a is relevant if you want to do within-subject statistics, comparing different types of trials under the H0 that the cortical activity is the same in the two types of trials. Under that H0, all trials can (and should) have the same inverse operator, which is therefore based on the averaged covariance over all trials (regardless the condition).\n\nYou can also contrast the average between two conditions (i.e. 1b), following the approach outlined on http://www.fieldtriptoolbox.org/tutorial/beamformer#source_analysiscontrast_activity_to_another_interval\n\nIf the problem persists, please send me the input cfg and data that you pass to the ft_sourceanalysis function (see http://www.fieldtriptoolbox.org/faq/how_should_i_send_example_data_to_the_developers)."
+      - +@isprivate: "0"
+        commentid: "17215"
+        comment_count: "4"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2016-04-13 16:19:21 +0200
+        thetext: "http://www.fieldtriptoolbox.org/reference/ft_datatype_timelock\nhttp://www.fieldtriptoolbox.org/reference/ft_datatype_raw\n\nthe \"timelock\" structure carries the data in \".avg\", n-chanels x n-slice\nThe \"raw\" structure carries the data in \".trial', n-channels x n-slice x n-trials.\n\nThe code in ft_sourceanalysis, apparently, expects that BOTH the \".avg\" and the \".trial\" will exist in the structure.\n\n  % determine the size of the data\n  Nsamples = size(data.avg,2);\n  Nchans   = length(data.label);\n  if isfield(data, 'cov') && length(size(data.cov))==3\n    Ntrials = size(data.cov,1);\n  elseif isfield(data, 'trial') && length(size(data.trial))==3\n    Ntrials = size(data.trial,1);\n  else\n    Ntrials = 1;\n  end\n\nThis also\n   else\n      data.avg   = data.avg(datchanindx,:);\n      data.cov   = data.cov(:,datchanindx,datchanindx);\n      data.trial = data.trial(:,datchanindx,:);\n    end\n\nSo no matter how I am arriving there, my understanding of the exclusive nature of the .avg and .trial is either wrong (there CAN be .avg and .trial objects in a data structure), or this code is wrong.  I arrived to this section of the code with a cfg.rawtrial = 'yes' and the data structure listed below.\n\nThe ft_sourceanalysis that has \"jackknife\" \"permutation\" \"bootstrap\" cfg.rawtrial, uses the .trial rather than the .avg.  So the code above the assumes the existence of both .avg and .trial on the data object would fail.  \n\nI understand the pitfalls of doing single trial source analysis.\n\nThe work i was doing with this was experimental programming, and now I am not trying to do it, so I don't have the full cfg.  I was using cfg.rawtrial = 'yes', and the data listed below, which got me into the section of ft_sourceanalysis where it assumed both the .avg and .trial was set.\n\nI was trying to analyze raw trials, with cfg.rawtrials set, the data are\n         label: {1x126 cell}\n       fsample: 250\n          elec: [1x1 struct]\n         trial: {1x65 cell}\n          time: {1x65 cell}\n           cfg: [1x1 struct]\n        dimord: 'rpt_chan_time'\n     trialinfo: [65x1 double]\n           cov: [65x126x126 double]\n    sampleinfo: [65x2 double]"
+      - +@isprivate: "0"
+        commentid: "17216"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-04-13 18:12:51 +0200
+        thetext: "(In reply to John Richards from comment #4)\n\nYou wrote\n\n> The \"timelock\" structure carries the data in \".avg\", n-chanels x n-slice\n> The \"raw\" structure carries the data in \".trial', n-channels x n-slice x n-trials.\n\nStatement 2 is incorrect. In the raw structure the data in \".trial\" is a cell array, and trial is 1*Ntrials. Each trial in turn is Nchan*Ntime matrix, where Ntime can differ over trials. Furthermore, the trials (better would be to call them \"data segments\") don't even have to overlap in time. Although usually they are expressed relative to the stimulus and will overlap.\n\nIn the time-locked data representation the average is indeed locked to the event (at t=0). The individual trials can also be represented, but only if they are aligned to each other. The .avg field is nchan*ntime, the .trial field (if present) is trial*nchan*ntime.\n\nft_sourceanalysis does not accept raw data as input, only time locked (or frequency decomposed) data. Some of the algorithms in ft_sourceanalysis also require that the time locked structure contains the covariance.\n\n\nOn another note: Although for you it does not matter how you ended up with an error, for me it does, as it helps me in trying to figure how you get you out of the problematic situation. \n\nThe data structure you describe is not a FieldTrip data structure and violates the requirements of ft_sourceanalysis (and other FT functions). It appears to be a hybrid raw/timelock structure. Please structure it according to ft_datatype_timelock."
+      - +@isprivate: "0"
+        commentid: "17217"
+        comment_count: "6"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2016-04-13 18:34:16 +0200
+        thetext: Thanks for the information, that was very helpful.  The data structure was indeed a hybrid structure constructed from EEGLab/ERPLab data and did not conform to the type of data needed for the ft_sourceanalysis.
+      - +@isprivate: "0"
+        commentid: "17275"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-05 09:48:07 +0200
+        thetext: It looks as if this has been resolved (up until the point that it can be resolved). Can we close this? John, if this is the case, please do so.
+      - +@isprivate: "0"
+        commentid: "17288"
+        comment_count: "8"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2016-05-05 21:52:45 +0200
+        thetext: This is resolved

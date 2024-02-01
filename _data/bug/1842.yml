@@ -1,0 +1,251 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1842"
+    creation_ts: 2012-11-21 14:51:00 +0100
+    short_desc: use nan(x,y,z) when appropriate?
+    delta_ts: 2014-03-12 12:21:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8354"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-21 14:51:36 +0100
+        thetext: |-
+          *really* minor thing, but I just wondered:
+            singtrial = zeros(ntrial, nchan, maxwin); singtrial(:) = nan;
+          can be replaced by
+            singtrial = nan(ntrial, nchan, maxwin);
+
+          or am I missing something (like compatibility issues)?
+          (this is e.g. done in ft_timelockanalysis, line 251)
+      - +@isprivate: "0"
+        commentid: "8355"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-21 15:30:23 +0100
+        thetext: |-
+          I believe that the nan could not be used for allocating  matrices in older MATLAB versions. Idem for inf.
+
+          See http://fieldtrip.fcdonders.nl/code_guidelines#ensure_that_it_runs_on_older_matlab_versions
+
+          If you can test it, please add a comment under the table there.
+      - +@isprivate: "0"
+        commentid: "8648"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:21:02 +0100
+        thetext: "added: \n * nan with multiple input arguments to create a nan-matrix does not work for MATLAB verions < R14\n\nthis is a quite old version, should change it and search for other occasions where this is done?"
+      - +@isprivate: "0"
+        commentid: "8651"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 10:31:04 +0100
+        thetext: |-
+          Yes, it makes the allocation faster and more memory efficient.
+
+          Other styles might be zeros(m,n)+nan, or zeros(m.n)*nan
+
+          mac001> find . -name \*.m -exec grep -i -H zeros.*nan {} \;
+          mac001> find . -name \*.m -exec grep -i -H nan.*zeros {} \;
+
+          will probably find most. Note that you should not fix the ones in external.
+      - +@isprivate: "0"
+        commentid: "8661"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:52:53 +0100
+        thetext: |-
+          list of enemies:
+
+          ./ft_sourceanalysis.m:  if isempty(Cr), Cr = nan*zeros(Ntrials, Nchans, 1); end
+          ./ft_sourceanalysis.m:  if isempty(Pr), Pr = nan*zeros(Ntrials, 1, 1); end
+          ./ft_sourceanalysis.m:    if isempty(bCr), bCr = nan*zeros(Nbaseline, Nchans, 1); end
+          ./ft_sourceanalysis.m:    if isempty(bPr), bPr = nan*zeros(Nbaseline, 1, 1); end
+
+          ./plotting/private/ft_apply_montage.m:        sens.chanpos = nan + zeros(numel(montage.labelnew),3);
+          ./plotting/private/ft_apply_montage.m:        sens.chanori = nan + zeros(numel(montage.labelnew),3);
+
+          ./ft_freqanalysis.m:        if powflg, powspctrm     = nan+zeros(ntrials,nchan,nfoi,ntoi,cfg.precision);                                                                 end
+          ./ft_freqanalysis.m:        if csdflg, crsspctrm     = complex(nan+zeros(ntrials,nchancmb,nfoi,ntoi,cfg.precision),nan+zeros(ntrials,nchancmb,nfoi,ntoi,cfg.precision)); end
+          ./ft_freqanalysis.m:        if fftflg, fourierspctrm = complex(nan+zeros(ntrials,nchan,nfoi,ntoi,cfg.precision),nan+zeros(ntrials,nchan,nfoi,ntoi,cfg.precision));       end
+
+          ./utilities/ft_source2full.m:      tmp = nan*zeros(Nfull,Nfull);
+
+          ./ft_stratify.m:                m      = nan+zeros(1,100);
+
+          ./private/statistics_wrapper.m:  tmp = nan*zeros(Ninside, Ntime);
+
+          ./private/interp_ungridded.m:      val = nan+zeros(maxnpnt, 1);
+          ./private/interp_ungridded.m:      indx1 = nan+zeros(maxnpnt, 1);
+          ./private/interp_ungridded.m:      indx2 = nan+zeros(maxnpnt, 1);
+
+          ./private/prepare_freq_matrices.m:    Cf = complex(nan*zeros(Nchans,Nchans));
+          ./private/prepare_freq_matrices.m:    Cf  = complex(nan*zeros(Ntrials,Nchans,Nchans));
+          ./private/prepare_freq_matrices.m:    tmp = complex(nan*zeros(Nchans,Nchans));
+
+          ./private/rejectvisual_summary.m:% dum = nan*zeros(info.nchan, info.ntrl);
+
+          ./private/freq2cumtapcnt.m:  cumtapcnt = nan + zeros(Ntrl, Nfrq, Ntim);
+
+          ./fileio/private/readbdf.m:S=NaN*zeros(RecLen,EDF.NS);
+
+          ./fileio/private/ft_apply_montage.m:        sens.chanpos = nan + zeros(numel(montage.labelnew),3);
+          ./fileio/private/ft_apply_montage.m:        sens.chanori = nan + zeros(numel(montage.labelnew),3);
+
+          ./ft_sourcedescriptives.m:    source.avg.pow           = nan*zeros(Ndipole, 1);
+          ./ft_sourcedescriptives.m:    if ~isempty(refdipsel),  source.avg.refdippow     = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:    if ~isempty(refchansel), source.avg.refchanpow    = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:    if ~isempty(supdipsel),  source.avg.supdippow     = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:    if ~isempty(supchansel), source.avg.supchanpow    = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:      source.avg.noise         = nan*zeros(Ndipole, 1);
+          ./ft_sourcedescriptives.m:      if ~isempty(refdipsel),  source.avg.refdipnoise     = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:      if ~isempty(refchansel), source.avg.refchannoise    = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:      if ~isempty(supdipsel),  source.avg.supdipnoise     = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:      if ~isempty(supchansel), source.avg.supchannoise    = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:    if ~isempty(refsel),       source.avg.coh           = nan*zeros(Ndipole, 1); end
+          ./ft_sourcedescriptives.m:      source.avg.eta           = nan*zeros(Ndipole, 1);
+          ./ft_sourcedescriptives.m:      source.avg.etacsd = nan*zeros(Ndipole, 1);
+          ./ft_sourcedescriptives.m:      source.avg.fa = nan*zeros(Ndipole, 1);
+          ./ft_sourcedescriptives.m:      source.avg.noise = nan+zeros(size(source.pos,1),1);
+          ./ft_sourcedescriptives.m:    source.avg.k2 = nan*zeros(size(source.pos,1),1);
+          ./ft_sourcedescriptives.m:    source.avg.pow = nan*zeros(size(source.pos,1),1);
+          ./ft_sourcedescriptives.m:    source.avg.k2 = nan*zeros(size(source.pos,1),1);
+          ./ft_sourcedescriptives.m:      source.trial(trllop).k2 = nan*zeros(size(source.pos,1),1);
+          ./ft_sourcedescriptives.m:      sumdip.mom{i} = nan*zeros(size(dip(1).mom{i}));
+          ./ft_sourcedescriptives.m:      sqrdip.mom{i} = nan*zeros(size(dip(1).mom{i}));
+          ./ft_sourcedescriptives.m:      sumdip.csd{i} = nan*zeros(size(dip(1).csd{i}));
+          ./ft_sourcedescriptives.m:      sqrdip.csd{i} = nan*zeros(size(dip(1).csd{i}));
+          ./ft_sourcedescriptives.m:  source.resolution = nan*zeros(Ndipole, Ndipole);
+
+          ./contrib/spike/ft_spiketriggeredaverage.m:    singletrial{i} = nan*zeros(length(spikesmp), nchansel, numsmp);
+          ./contrib/spike/ft_spiketriggeredspectrum_fft.m:      segment = nan*zeros(nchansel, numsmp);
+          ./contrib/spike/ft_spiketriggeredspectrum_fft.m:      segment = nan*zeros(nchansel, numsmp);
+
+          ./forward/ft_apply_montage.m:        sens.chanpos = nan + zeros(numel(montage.labelnew),3);
+          ./forward/ft_apply_montage.m:        sens.chanori = nan + zeros(numel(montage.labelnew),3);
+
+          ./ft_sourceanalysis.m:      dip(i).pow     = zeros(size(tmpdip.pos,1),1)*nan;
+
+          ./ft_combineplanar.m:        fourier= zeros(Nrpt,Nsgn,Nfrq,Ntim)+nan;
+
+          ./test/test_datatype_source.m:source3.ori = zeros(npos,3) + nan; %FIXME or should this be 3xnpos?
+          ./test/test_datatype_source.m:source6.ori = zeros(npos,3) + nan; %FIXME or should this be 3xnpos?
+
+          ./ft_timelockanalysis.m:  covsig = zeros(ntrial, nchan, nchan); covsig(:) = nan;
+          ./ft_timelockanalysis.m:  singtrial = zeros(ntrial, nchan, maxwin); singtrial(:) = nan;
+
+          ./specest/ft_specest_mtmconvol.m:        % if a wavelet is longer than ndatsample, it doesn't fit and it is kept at zeros, which is translated to NaN's in the output
+
+          ./ft_freqanalysis.m:        if csdflg, crsspctrm     = complex(nan+zeros(ntrials,nchancmb,nfoi,ntoi,cfg.precision),nan+zeros(ntrials,nchancmb,nfoi,ntoi,cfg.precision)); end
+          ./ft_freqanalysis.m:        if fftflg, fourierspctrm = complex(nan+zeros(ntrials,nchan,nfoi,ntoi,cfg.precision),nan+zeros(ntrials,nchan,nfoi,ntoi,cfg.precision));       end
+
+          ./ft_sourcestatistics.m:          tmp2 = zeros(prod(varargin{1}.dim),nfreq,ntime)+nan;
+          ./ft_sourcestatistics.m:          tmp2 = zeros(prod(varargin{1}.dim),nfreq,ntime)+nan;
+
+          ./utilities/ft_source2full.m:      tmp         = zeros(1,Nfull) + nan;
+          ./utilities/ft_source2full.m:          tmp         = zeros(1,Nfull) + nan;
+          ./utilities/ft_source2full.m:          tmp         = zeros(1,Nfull) + nan;
+          ./utilities/ft_source2full.m:          tmp         = zeros(1,Nfull) + nan;
+          ./utilities/ft_source2full.m:          tmp    = zeros([Nfull tmpsiz(2:end)]) + nan;
+          ./utilities/ft_source2full.m:          tmp    = zeros([tmpsiz(1) Nfull tmpsiz(3:end)]) + nan;
+          ./utilities/ft_source2full.m:          tmp    = zeros([Nfull Nfull tmpsiz(3:end)]) + nan;
+
+          ./utilities/ft_checkdata.m:    ori = zeros(3,npos) + nan;
+          ./utilities/ft_checkdata.m:  tmptrial = zeros(ntrial, nchan, length(time)) + nan;
+
+          ./ft_stratify.m:          tmpmatmin    = zeros(ncond,nummax(binlop))+nan;
+          ./ft_stratify.m:          tmpmatmax    = zeros(ncond,nummax(binlop))+nan;
+          ./ft_stratify.m:          tmpmatminind = zeros(ncond,nummax(binlop))+nan;
+          ./ft_stratify.m:          tmpmatmaxind = zeros(ncond,nummax(binlop))+nan;
+
+          ./ft_mvaranalysis.m:datamatrix = zeros(nchan, nsmp*nrpt + nnans*(nrpt-1)) + nan;
+
+          ./fileio/private/ft_checkdata.m:    ori = zeros(3,npos) + nan;
+          ./fileio/private/ft_checkdata.m:  tmptrial = zeros(ntrial, nchan, length(time)) + nan;
+
+
+          ./private/arrow.m:    ends = NaN*ones(m,1);
+          ./private/arrow.m:        start = [start NaN*ones(m,1)];
+          ./private/arrow.m:        stop = [stop NaN*ones(m,1)];
+          ./private/arrow.m:        crossdir = [crossdir NaN*ones(m,3-n)];
+          ./private/arrow.m:    z(1:m,1:n) = NaN*ones(m,n);
+
+          ./private/find_triangle_neighbours.m:nb = nan * ones(size(dhk));
+
+          ./fileio/ft_read_spike.m:        spike.unit{chan}      = nan*ones(1,nspike);
+          ./fileio/ft_read_spike.m:        spike.unit{chan}      = nan*ones(1,nspike);
+      - +@isprivate: "0"
+        commentid: "9129"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-23 15:34:22 +0100
+        thetext: |-
+          let's hope I didn't make any typos...
+
+           svn ci fileio/ft_read_spike.m private/find_triangle_neighbours.m private/arrow.m ft_mvaranalysis.m ft_stratify.m utilities/ft_checkdatreqanalysis.m ft_timelockanalysis.m ft_combineplanar.m ft_sourceanalysis.m contrib/spike/ft_spike*.m ft_sourcedescriptives.m fileio/private/ummary.m private/prepare_freq_matrices.m private/interp_ungridded.m private/statistics_wrapper.m ft_stratify.m utilities/ft_source2full.m ftnhancement #1842 - memory efficient use of nan() rather than nan*zeros and the like"
+          Sending        contrib/spike/ft_spiketriggeredaverage.m
+          Sending        contrib/spike/ft_spiketriggeredspectrum_fft.m
+          Sending        fileio/ft_read_spike.m
+          Sending        fileio/private/readbdf.m
+          Sending        ft_combineplanar.m
+          Sending        ft_freqanalysis.m
+          Sending        ft_mvaranalysis.m
+          Sending        ft_sourceanalysis.m
+          Sending        ft_sourcedescriptives.m
+          Sending        ft_sourcestatistics.m
+          Sending        ft_stratify.m
+          Sending        plotting/private/ft_apply_montage.m
+          Sending        private/arrow.m
+          Sending        private/find_triangle_neighbours.m
+          Sending        private/freq2cumtapcnt.m
+          Sending        private/interp_ungridded.m
+          Sending        private/prepare_freq_matrices.m
+          Sending        private/rejectvisual_summary.m
+          Sending        private/statistics_wrapper.m
+          Sending        utilities/ft_checkdata.m
+          Sending        utilities/ft_source2full.m
+          Transmitting file data .....................
+          Committed revision 7393.

@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2982"
+    creation_ts: 2015-10-09 09:33:00 +0200
+    short_desc: cfg.debug=saveonerror should be supported by all main FT functions
+    delta_ts: 2016-01-04 11:56:16 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16188"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-09 09:33:19 +0200
+        thetext: "I noticed that cfg.debug (or ft_default.debug) was not working in all functions.\n\nWith \nmac011> grep -L preamble.*debug *.m\nI made a list, which I'll reorder below\n\n** for these it should be supported **\nft_artifact_clip.m\nft_artifact_ecg.m\nft_artifact_eog.m\nft_artifact_jump.m\nft_artifact_muscle.m\nft_artifact_threshold.m\nft_artifact_tms.m\nft_artifact_zvalue.m\nft_definetrial.m\nft_movieplotER.m\nft_prepare_headmodel.m\nft_prepare_layout.m\nft_recodeevent.m\nft_stratify.m\nft_wizard.m\n\n** these are not called directly **\nft_statistics_analytic.m\nft_statistics_crossvalidate.m\nft_statistics_montecarlo.m\nft_statistics_stats.m\n\n** not needed for these **\nft_defaults.m\nContents.m\nbesa2fieldtrip.m\nedf2fieldtrip.m\nfieldtrip2besa.m\nfieldtrip2ctf.m\nfieldtrip2fiff.m\nfieldtrip2spss.m\nloreta2fieldtrip.m\nspass2fieldtrip.m\nspm2fieldtrip.m"
+      - +@isprivate: "0"
+        commentid: "16189"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-09 10:01:30 +0200
+        thetext: "Looking at my favourite example, ft_timelockanalysis, I see the order\n\n% do the general setup of the function\nft_defaults\nft_preamble init\nft_preamble loadvar    data\nft_preamble provenance data\nft_preamble trackconfig\nft_preamble debug\n\nbut in ft_freqanalysis and ft_sourceanalysis I see \n\n% do the general setup of the function\nft_defaults\nft_preamble init\nft_preamble provenance\nft_preamble trackconfig\nft_preamble debug\nft_preamble loadvar data\n\ni.e. another order. I also notice that the provenance does not consistently get the input data passed (for md5 hash computation). So the preamble order also needs to be checked."
+      - +@isprivate: "0"
+        commentid: "16190"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-09 20:11:45 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          mac011> svn commit
+          Sending ...
+          Committed revision 10765.
+
+          this includes 103 files in which the pre and/or post amble have been reordered for consistency.
+      - +@isprivate: "0"
+        commentid: "16554"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-01 15:09:11 +0100
+        thetext: "Hi Robert,\n\nHappy new year!\n\nI'm experiencing an error which I think is related to the svn commit 10765 in this bug.  I'm calling ft_preprocessing to initially load data, with just \n  raw_hpf=ft_preprocessing(cfg);\n\n(not with 'data' also as input).\n\nBut then it crashes with this error:\n\nError using ft_preamble_provenance (line 61)\nNot enough input arguments.\n\nError in ft_preamble (line 56)\n    evalin('caller', ['ft_preamble_' cmd]);\n\nError in ft_preprocessing (line 175)\nft_preamble provenance data\n\n\nI traced it to that if 'data' does not exist, then it will give the above error to line 61 of ft_preamble_provenance, which is effectively calling this:\neval('data')\n\nIf I simply change ft_preprocessing line 175 (back) to \nft_preamble provenance\n\n(how it was before the change)\nthen there is no error and it loads the data fine.\n\nThus, perhaps if the provenance of data must be checked in the preamble, this should only be done 'if hasdata'?   An easy fix, but I wanted to check with you if this is the intended usage.  \n\nBest,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "16556"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-03 11:14:23 +0100
+        thetext: "(In reply to Johanna from comment #3)\n\nhappy New Year!\n\nI am surprised that it fails for you, since this has not been touched in some time and I heard no other problems with the code. The check that you propose is already there.\n\nWhen I try a simple\n\ncfg = [];\ncfg.dataset = something \nft_preprocessing(cfg)\n\nthen I see that in line 61 of ft_preamble_provenance, the isvar is returned as a 1x1 vector with a single false, i.e. the ft_default.preamble cell array (which contains {'data'}) is not a variable. Subsequently in line 62 nothing gets copied (using eval) into tmpargin, which means that tmpargin at line 64 becomes {[]}.\n\nYou getting an error on line 61 suggests that ft_default.preamble is not initialized properly.\n\n\nIf I emulate line 61 on the command line, I see\nisvar = cellfun(@(x) exist(x, 'var')==1, {'data'})\nreturns [0]\n\nisvar = cellfun(@(x) exist(x, 'var')==1, {'a', 'b', 'c'})\nreturns [0 0 0]\n\nisvar = cellfun(@(x) exist(x, 'var')==1, {})\nreturns []\n\nisvar = cellfun(@(x) exist(x, 'var')==1, [])\nreturns \"Error using cell fun, Input #2 expected to be a cell array, was double instead\"\n\nCould you set a debugger on that line and see what happens? \n\nbest\nRobert"
+      - +@isprivate: "0"
+        commentid: "16558"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-04 11:33:01 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+          Hi Robert,
+
+          Thank you for your quick and thorough reply!  Just to note, I had done an 'svn update' just prior to my previous bug report, so I was sure I was using the most up-to-date FT last Friday.   I just did another 'svn update' today.  I'm not sure if that fixed it, or whether there was a path issue (sometimes an spm/external/fieldtrip gets in the way), but in any case it's all fixed now.  And I tested the output at the line 61 you mentioned and it all agrees with what you wrote.
+
+          I'm sorry to have raised a false alarm, probably some old code was creeping in even though 'which' showed the correct path (for the functions I checked last week).
+
+          Best,
+          Johanna
+      - +@isprivate: "0"
+        commentid: "16559"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-04 11:56:16 +0100
+        thetext: |-
+          (In reply to Johanna from comment #5)
+
+          thanks for double checking, glad that it is resolved.

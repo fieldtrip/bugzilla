@@ -1,0 +1,169 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1900"
+    creation_ts: 2012-12-17 22:59:00 +0100
+    short_desc: ft_freqstatistics crashes on maci64, due to mex?
+    delta_ts: 2014-02-24 10:56:25 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8740"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2012-12-17 22:59:02 +0100
+        thetext: |-
+          First off, I apologize if this report doesn't have all the details you might need, but I don't know how to debug mex problems very well. I'm happy to provide more info and data as needed.
+
+          I'm using Matlab R2012b on a quad-core xeon Mac Pro tower (same computer I've been using FieldTrip on for years). My problem also occurs on R2012a.
+
+          I have a version of fieldtrip from August (20120802) where ft_freqstatistics works fine. Some time around October I downloaded a new version and ft_freqstatistics started crashing when running a mex file, but I didn't have time to look into it until now so I went back to the August version. However, it seems that the same thing is still happening with fieldtrip-20121216.
+
+          I can see in the crash log that the offending mex file is fieldtrip/utilities/private/nanmean.maci64. I don't know why it's crashing, I can only tell you that it is. Here are a few potential clues:
+          - I see that fieldtrip/src/nanmean.c has changed significantly between these working (august) and non-working (december) versions of FT.
+          - I tried running ft_compile_mex(true) for the december version and copied fieldtrip/src/nanmean.maci64 to fieldtrip/utilities/private but it still crashes.
+          - The non-working (december) version has fieldtrip/src/nanmean.m (with no actual code inside) while the working (august) one does not.
+
+          Let me know if there's some way I can help fix this or continue to debug it. I can provide the crash dump if that would be helpful. (Also, I'm surprised that no one else on the email list seems to be having this issue...)
+
+          Matt
+      - +@isprivate: "0"
+        commentid: "8743"
+        comment_count: "1"
+        attachid: "394"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 09:52:52 +0100
+        thetext: |-
+          Created attachment 394
+          test script for nanstat
+
+          Thanks for the details sofar. The nan source code has been improved quite a bit recently, but it might be that the changed version was not compiled for all platforms. The reason for the changes to the source code were that we realized that there are fringe cases where it is also supposed to behave correctly, i.e. on int8 data, logicals or with infs in the input.
+
+          Can you please try and run the attached test script? For me this works on OS X 10.6.8 and MATLAB 2011b.
+      - +@isprivate: "0"
+        commentid: "8811"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2012-12-24 23:56:30 +0100
+        thetext: |-
+          I'm having trouble running this script with the old FT from August.
+
+          First I had to go download xUnit <http://www.mathworks.com/matlabcentral/fileexchange/22846-matlab-xunit-test-framework>.
+          Then I had to comment out the ft_hastoolbox('xunit', 1); check because it wasn't finding xUnit even though I added it to my path.
+          And then when i=1, it tries to sum a logical vector and errors:
+
+          Error using nansum
+          Input argument 1 should be numeric
+          Error in test_nanstat (line 37)
+            assertEqual(nansum(x), sum(x));
+
+          If I change those to [1, 1, 0] instead, it errors when i=2 because it also wants numeric input.
+
+          With the new FT from December it successfully runs the entire script, including the ft_hastoolbox check. This is on my laptop, OS X 10.8.2 and Matlab 2012b. (I'm away from campus right now and I'm having VPN issues so I can't get on the computer I was using before.)
+
+          I don't know how to interpret this result, but I hope that helps.
+      - +@isprivate: "0"
+        commentid: "8923"
+        comment_count: "3"
+        attachid: "399"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-01-14 23:55:14 +0100
+        thetext: |-
+          Created attachment 399
+          Matlab crashdump from nanmean mex, run during ft_freqanalysis
+      - +@isprivate: "0"
+        commentid: "8924"
+        comment_count: "4"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-01-14 23:58:48 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          Hi Robert,
+
+          I can confirm that the test_nanstat script runs through on the Mac Pro tower (OS X 10.6.8, Matlab 2012b, fieldtrip-20130114), just like it did on my laptop, but Matlab still crashes when I try to run ft_freqstatistics. I've attached the crashdump, but it's clear that it is crashing because of nanmean. Going to stick with the fieldtrip from August (20120802) because I need to get some analyses done (hope I'm not missing out on any improvements!). Let me know if I can provide any more info or do any more testing.
+
+          Matt
+      - +@isprivate: "0"
+        commentid: "12253"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 10:13:43 +0100
+        thetext: "Hi Matt,\n\nSorry for this report remaining open for so long. In the mean time the nanstat mex files have received attention due to other issues and various updates have been done. \n\nI hope that the problem has been resolved by one of those updates. If your problem persists, please reopen this bug and we will look at it in more detail.\n\nbest regards\nRobert"
+      - +@isprivate: "0"
+        commentid: "12912"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:25 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "394"
+        date: 2012-12-18 09:52:00 +0100
+        delta_ts: 2012-12-18 09:52:52 +0100
+        desc: test script for nanstat
+        filename: test_nanstat.m
+        type: application/octet-stream
+        size: "4772"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "399"
+        date: 2013-01-14 23:55:00 +0100
+        delta_ts: 2013-01-14 23:55:14 +0100
+        desc: Matlab crashdump from nanmean mex, run during ft_freqanalysis
+        filename: matlab_crash_dump.8728-1
+        type: text/plain
+        size: "20305"
+        attacher:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        data: REMOVED

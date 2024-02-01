@@ -1,0 +1,330 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2828"
+    creation_ts: 2015-02-05 15:35:00 +0100
+    short_desc: improve support for running FieldTrip with GNU Octave
+    delta_ts: 2015-06-22 18:57:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: octave
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.n.oosterhof
+      +@name: nno
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - g.flandin
+      - jorn
+      - n.n.oosterhof
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15152"
+        comment_count: "0"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-02-05 15:35:34 +0100
+        thetext: |-
+          I sent a PR [1] on github; the description is provided here:
+
+          This is an attempt to improve Fieldtrip compatibitliy [1] with GNU Octave. This PR is far from complete (many things still do not work in Octave, such as several GUI/plotting routines), but is a start to make some basic functionality working (such as ft_defaults). This PR adds:
+
+          - a function ft_isoctave that returns true if the platform is GNU Octave.
+          - updates to several ft_* functions that relied on matlab-specific constructions in the language.
+
+          [1] https://github.com/fieldtrip/fieldtrip/pull/54
+      - +@isprivate: "0"
+        commentid: "15641"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-04 09:26:31 +0200
+        thetext: |-
+          rather than making a separate ft_octaveversion, it should be merged in the existing version checking
+
+          mac011> grep -l matlabversion *.m */*.m
+          ft_analysispipeline.m
+          ft_compile_mex.m
+          ft_databrowser.m
+          ft_defaults.m
+          engine/enginecellfun.m
+          fileio/ft_read_event.m
+          peer/peercellfun.m
+          peer/peerslave.m
+          plotting/ft_select_range.m
+          private/matlabversion.m
+          private/mxSerialize.m
+          qsub/qsubcellfun.m
+          qsub/qsubfeval.m
+          src/mxSerialize.m
+      - +@isprivate: "0"
+        commentid: "15642"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-04 09:33:43 +0200
+        thetext: |-
+          should the handling of functions that are not compatible between matlab and octave be scattered throughout the code, or should we have wrapper functions that switch behaviour depending on where they run?
+
+          E.g. https://github.com/nno/fieldtrip/commit/8f47a1bc0286174e9bd3b15ac821cd58ee3f0266 is one occurrence of such an incompatibility, which takes 4 lines. The same (similar) lines are needed for all other occurrences. Although for this specific example the same might not happen.
+
+          I know that in biosig there are (were) a set of functions that replicate MATLAB functions, to allow octave to use the same code. It subsequently turned out that the ones from biosig were not 100% compatible with the MATLAB counterparts, causing incompatibility errors. I solved this by including fieldtrip/external/biosig and having the biosig replacements of standard MATLAB functions in fieldtrip/external/biosig/private.
+      - +@isprivate: "0"
+        commentid: "15643"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-04 09:35:08 +0200
+        thetext: The change https://github.com/nno/fieldtrip/commit/3780f3d797937102394ef31ed14e73b1bb66cfeb should also apply to the other drop-in-replacement toolboxes, e.g.fieldtrip/external/signal
+      - +@isprivate: "0"
+        commentid: "15644"
+        comment_count: "4"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-05-04 11:34:55 +0200
+        thetext: "Re [1] \"rather than making a separate ft_octaveversion, it should be merged in the existing version checking\":\n\nWhat would be the best way to do this?\n\n1) changing private/matlabversion.m to support the Octave platform seems not appropriate, because on Octave there is no matlab. Alternatively the function can be renamed.\n\n2) the functions that call matlabversion use it in quite different ways. \n  * ft_defaults: see if functions not present in older versions have to be provided through compat/matlablt2012a\n  * engine/enginecellfun and peer/peercellfun: use onCleanup if available\n  * fileio/ft_read_event: some bit operations depending on the Matlab version\n  * plotting/ft_select_range: use figure handles differently\n  * private/mxSerialize and src/mxSerialize: use either c or c++ implementation for serialisation\n  * qsub/qsubfeval: finds matlab executable depending on version\n\nI don't see how this can easily be merged with existing version checking. Different Octave versions also have different capabilities.\n\nOne solution may be a separate function that indicates whether the current platform provides a certain capability. For example, ft_platform_provides(...), where the argument could be 'onCleanup', 'ui.Figure', 'serialise_cpp', etc. This would be easily extendible if other capability checks would be required.\n\nPlease let me know if you think this would work, or if you have another solution in mind.\n\n[1] http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2828#c1"
+      - +@isprivate: "0"
+        commentid: "15645"
+        comment_count: "5"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-05-04 13:33:20 +0200
+        thetext: "Re [1] \"The change [to add the stats toolbox only when on Matlab] should also apply to the other drop-in-replacement toolboxes, e.g.fieldtrip/external/signal\":\n\nActually the stats and signal toolbox are provided in Octave as external packages. \n\nOn Matlab, it is my understanding that FieldTrip's ft_defaults overrides the path so that always the functions in external/stats and external/signal are used, even if the statistics toolbox is present. Is that correct? If so, then it may be desirable to have the same behaviour for Octave.\n\nOn the other hand, if it is desired to add the external/stats and external/signal directories to the path *only* when the functions are not available (e.g. Matlab without external toolboxes), then we may need a function (such as \"ft_platform_provides\" [2]) to see if the present platform supports stats / signal processing functions.\n\nSo my question is, what is desirable behaviour for FieldTrip with respect to present or absent Matlab / Octave toolboxes? Always use FT's functions, or only use those when they are not present elsewhere?\n\n[1] http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2828#c3\n[2] http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2828#c4"
+      - +@isprivate: "0"
+        commentid: "15646"
+        comment_count: "6"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-05-04 13:38:47 +0200
+        thetext: |-
+          Re [1] "should the handling of functions that are not compatible between matlab and octave be scattered throughout the code, or should we have wrapper functions that switch behaviour depending on where they run?"
+
+          Generally, I would think it is preferable to have wrapper functions that show the *same* behaviour irrespective on where they run.
+
+          (The particular example could actually be simplified and does not seem to require the check for Octave; I updated the PR on github [2])
+
+          [1] http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2828#c2
+          [2] https://github.com/fieldtrip/fieldtrip/pull/54
+      - +@isprivate: "0"
+        commentid: "15785"
+        comment_count: "7"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-17 15:21:42 +0200
+        thetext: |-
+          I sent a PR [1] on github that aims to address Roberts' comment "rather than making a separate ft_octaveversion, it should be merged in the existing version checking"
+
+          https://github.com/fieldtrip/fieldtrip/pull/59
+      - +@isprivate: "0"
+        commentid: "15786"
+        comment_count: "8"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-17 16:12:56 +0200
+        thetext: |-
+          To make the proposed changes more modular, I've split them up in several PRs:
+
+          https://github.com/fieldtrip/fieldtrip/pull/59
+          https://github.com/fieldtrip/fieldtrip/pull/60
+          https://github.com/fieldtrip/fieldtrip/pull/61
+          https://github.com/fieldtrip/fieldtrip/pull/62
+
+          Note that #62 is dependent on #59, so it may be better to consider the latter first.
+      - +@isprivate: "0"
+        commentid: "15787"
+        comment_count: "9"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-18 11:15:38 +0200
+        thetext: |-
+          I've also added a PR to read channel layouts:
+
+          https://github.com/fieldtrip/fieldtrip/pull/63
+      - +@isprivate: "0"
+        commentid: "15789"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-18 21:59:06 +0200
+        thetext: |-
+          I have integrated the change from matlabversion to ft_platform_supports in SVN. This is discussed in more detail on https://github.com/fieldtrip/fieldtrip/pull/59
+
+          Sending        engine/enginecellfun.m
+          Sending        engine/private/fexec.m
+          Adding         engine/private/ft_platform_supports.m
+          Deleting       engine/private/matlabversion.m
+          Sending        fileio/ft_read_event.m
+          Adding         fileio/private/ft_platform_supports.m
+          Deleting       fileio/private/matlabversion.m
+          Sending        fileio/private/mxSerialize.m
+          Sending        ft_databrowser.m
+          Sending        ft_defaults.m
+          Sending        peer/peercellfun.m
+          Sending        peer/peerslave.m
+          Sending        peer/private/fexec.m
+          Adding         peer/private/ft_platform_supports.m
+          Deleting       peer/private/matlabversion.m
+          Sending        plotting/ft_select_range.m
+          Adding         plotting/private/ft_platform_supports.m
+          Deleting       plotting/private/matlabversion.m
+          Adding         private/ft_platform_supports.m
+          Deleting       private/matlabversion.m
+          Sending        private/mxSerialize.m
+          Sending        qsub/private/fexec.m
+          Adding         qsub/private/ft_platform_supports.m
+          Deleting       qsub/private/matlabversion.m
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubfeval.m
+          Sending        src/mxSerialize.m
+          Adding         test/private/ft_platform_supports.m
+          Deleting       test/private/matlabversion.m
+          Sending        test/private/randomseed.m
+          Sending        utilities/ft_compile_mex.m
+          Sending        utilities/ft_preamble.m
+          Sending        utilities/ft_trackusage.m
+          Sending        utilities/ft_version.m
+          Adding         utilities/private/ft_platform_supports.m
+          Deleting       utilities/private/matlabversion.m
+          Sending        utilities/private/mxSerialize.m
+          Sending        utilities/private/randomseed.m
+          Transmitting file data ..............................
+          Committed revision 10458.
+
+          I also did
+          roboos@mentat001> svn propset autosync true `find . -name ft_platform_supports.m`
+          and
+
+          Sending        engine/private/ft_platform_supports.m
+          Sending        fileio/private/ft_platform_supports.m
+          Sending        peer/private/ft_platform_supports.m
+          Sending        plotting/private/ft_platform_supports.m
+          Sending        private/ft_platform_supports.m
+          Sending        qsub/private/ft_platform_supports.m
+          Sending        test/private/ft_platform_supports.m
+          Sending        utilities/private/ft_platform_supports.m
+          Committed revision 10459.
+      - +@isprivate: "0"
+        commentid: "15790"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-18 22:06:12 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #10)\n\nnote that the svn hook takes care of\n https://twitter.com/fieldtriptoolbx\n https://code.google.com/p/fieldtrip/source/list\n https://github.com/fieldtrip/fieldtrip\nand kicks off the regression test batch that will appear in an hour or so on \n http://www.fieldtriptoolbox.org/development/dashboard"
+      - +@isprivate: "0"
+        commentid: "15792"
+        comment_count: "12"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-19 10:52:37 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          Thanks for making these changes, however there seems to be a problem now.
+
+          After pulling cd92b73909f103b6595eb32dcdd1a01d9fbc3ef2 from github.com/fieldtrip/fieldtrip:master, ft_platform_supports crashes because "matlabversion" is undefined. For example, the following expression gives an error:
+
+              ft_platform_supports('onCleanup')
+
+          This fails because ft_platform_supports uses the functionality in "matlabversion", but this file was deleted in 0939bf90f456ece35b4a96b1f09bdb049382f3ad.
+
+          To fix this, I see the following options:
+          - matlabversion.m is be added back.
+          - matlabversion is added as a sub function in ft_platform_supports.
+      - +@isprivate: "0"
+        commentid: "15794"
+        comment_count: "13"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-19 11:03:01 +0200
+        thetext: |-
+          (In reply to nno from comment #12)
+
+          Bug report regarding missing "matlabversion" function here: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2911
+      - +@isprivate: "0"
+        commentid: "15798"
+        comment_count: "14"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-19 15:56:12 +0200
+        thetext: |-
+          (In reply to nno from comment #13)
+
+          The missing matlabversion issue seems fixed in 75f84b74bbe3dc9fe66a295c4326add7ba5a714a.
+      - +@isprivate: "0"
+        commentid: "15799"
+        comment_count: "15"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2015-06-19 15:57:33 +0200
+        thetext: |-
+          The following PRs have been updated to reflect the use of ft_platform_supports:
+
+          https://github.com/fieldtrip/fieldtrip/pull/60
+          https://github.com/fieldtrip/fieldtrip/pull/61
+          https://github.com/fieldtrip/fieldtrip/pull/62
+          https://github.com/fieldtrip/fieldtrip/pull/63
+          https://github.com/fieldtrip/fieldtrip/pull/64
+      - +@isprivate: "0"
+        commentid: "15807"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-22 18:41:32 +0200
+        thetext: |-
+          the handling of setDefaultStream and setGlobalStream was swapped due to
+          commit 10458
+
+          mac011> svn commit qsub/
+          Sending        qsub/private/fexec.m
+          Sending        qsub/private/ft_platform_supports.m
+          Transmitting file data ..
+          Committed revision 10465.
+
+          See also https://code.google.com/p/fieldtrip/source/detail?r=10465
+      - +@isprivate: "0"
+        commentid: "15808"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-22 18:57:12 +0200
+        thetext: "mac011> svn commit \nAdding         private\nAdding         private/size_equal.m\nDeleting       size_equal.m\nTransmitting file data .\nCommitted revision 10468.\n\nenhancement - allow more than two input arguments, hide size_equal from general users by putting it in private. It is only used here as subfunction, it does not replace a Mathworks stats function.\n\n\nthis resolves https://github.com/fieldtrip/fieldtrip/pull/60"

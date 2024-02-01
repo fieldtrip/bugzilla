@@ -1,0 +1,59 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3425"
+    creation_ts: 2018-05-03 12:40:00 +0200
+    short_desc: Plotting issue with cluster based permutation test
+    delta_ts: 2019-08-10 12:37:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: s.nara
+      +@name: Sanjeev Nara
+    assigned_to: fieldtriptoolbox
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19341"
+        comment_count: "0"
+        who:
+          +content: s.nara
+          +@name: Sanjeev Nara
+        bug_when: 2018-05-03 12:40:48 +0200
+        thetext: "Hi Fieldtrip Experts, \n\nI have data of 21 participants recoded during 2 different conditions via Elekta Neuromag. I have computed time frequency response (TFR) for both the conditions and i grandaveraged (ft_freqgrandaverage) them by keeping trials (cfg.keepindividual = 'yes') . Now my input data for cluster test is a 4D matrix representing (21 subjects * 102 channels * 70 frequency bins * 191 time points.)  I am using a specific latency (-350 msec ) and different frequency ranges (Delta, Theta . . .) in the code. \n\n\n            cfg=[];\n            cfg_neighb=[];\n            cfg_neighb.method        = 'template';\n            cfg_neighb.template      = 'neuromag306cmb_neighb.mat';\n            neighbours               = ft_prepare_neighbours (cfg_neighb)\n\n        \n         \n            design=zeros(2,42);\n            design(2,1:21)=1;\n            design(2,22:42)=2;\n            design(1,1:21)=[1:1:21];\n            %design(1,21:42)=[22:1:42];\n            design(1,22:42)=[1:1:21];\n            \n            \n            cfg = [];\n            cfg.method           = 'montecarlo';\n            cfg.statistic        = 'depsamplesT';\n            cfg.neighbours       = neighbours;\n            cfg.design           = design;\n            cfg.ivar             = 2;\n            cfg.uvar             = 1;\n\n            cfg.correctm         = 'cluster';\n            cfg.clusteralpha     = 0.05;\n            cfg.clustertail      = 0;\n            cfg.clusterstatistic = 'maxsum';\n            cfg.minnbchan        = 2;\n\n            cfg.alpha            = 0.05;\n            cfg.tail             = 0;\n\n            cfg.numrandomization = 100;\n            cfg.avgoverfreq      = 'no';\n            cfg.avgovertime      = 'no';\n            cfg.latency          = [-0.35 0];\n            cfg.fre\n\n           a = ft_freqstatistics(cfg, cond_2, cond_1) \n\nThen i save each statistical analysis as per naming format which describes about the comparison like cond_2_vs_1_Higher_Beta.mat which means i compare cond 2 and 1 in range Higher beta frequency (20 - 30 Hz). \n\nI want to plot cluster in time like in what range the cluster is significant in a particular frequency band. Since my bands have a higher range sometimes like 30 - 50 so i have not used average over frequency. \n\nfor plotting the cluster i am using following codes: \n\nstat= cond_2_vs_1_Higher_Beta;\n\n                                                                                [chan freq time] \n        =ind2sub(size(stat.posclusterslabelmat),find(stat.posclusterslabelmat==1));\n\n                          % calculate the min and max\n                            f_min=min(freq);\n                            f1=stat.freq(1,f_min);\n                            f_max=max(freq);\n                            f2=stat.freq(1,f_max);\n\n                            t_min=min(time);\n\n\n\n                            t1=stat.time(1,t_min);\n                            t_max=max(time);\n                            t2=stat.time(1,t_max);\n                            freqspec_diff=cond_2;\n                       freqspec_diff.powspctrm=(cond_2.powspctrm-cond_1.powspctrm);\n                            cfg=[];\n                            cfg.foilim  = [f1 f2];\n                            cfg.toilim  = [t1 t2];\n                            Diff         = ft_freqdescriptives (cfg, freqspec_diff);\n\n\n                            cl = stat.posclusterslabelmat == 1;\t% or == 2, or 3                          \n                            \n                            cfg = [];\n                            cfg.style     = 'straight';\n                            cfg.xlim      = [t1 t2];\n                            %cfg.zlim      = [-0.05 0.05];\n                            clu_int       = any(cl(:,:,:), 3);\n                            clu_int2       = any(cl(:,:), 2);\n                            cfg.layout    = 'neuromag306cmb.lay';\n\n                            cfg.highlight = 'on';\n                            cfg.gridscale = 300;\n                            cfg.neighbours       = neighbours;\n\n                            cfg.highlightchannel = find(clu_int2);\n                            figure; \n                            ft_topoplotTFR(cfg, Diff)   \n\nI repeat the same stuff for computing a negative cluster. \n\nThe problem here is i am getting clusters which has a mismatch between * marks and the activations colours. Sometimes it matches and sometimes its random. I have tried everything but it does not resolve. I shall be thankful if you could please help me resolving the bug. \n\n\nLink for the data and cluster plots: \nhttps://drive.google.com/drive/folders/1Da7QtVRBJ_x8qZ7jr1pHqpCKx49tX8wO?usp=sharing"
+      - +@isprivate: "0"
+        commentid: "19346"
+        comment_count: "1"
+        who:
+          +content: s.nara
+          +@name: Sanjeev Nara
+        bug_when: 2018-05-11 17:07:10 +0200
+        thetext: "Hi experts, \n\ni am able to resolve the issue, \n\nThanks :)"
+      - +@isprivate: "0"
+        commentid: "20368"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:37:12 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

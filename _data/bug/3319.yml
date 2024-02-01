@@ -1,0 +1,75 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3319"
+    creation_ts: 2017-06-27 13:51:00 +0200
+    short_desc: Mesh tissues were ordered according to input, now alphabetical
+    delta_ts: 2018-03-02 15:04:54 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18771"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-06-27 13:51:08 +0200
+        thetext: "One of the recent changes (I wasn't able to quite figure out which one) changed the order of tissue types in mesh.tissuelabel. \n\nThe order used to follow the order in which the tissues were specified for segmentation (cfg.output and the order of fields in the resulting structure), now its alphabetical.\n\nThis silently breaks the FEM headmodel tutorial (it seems now wrong conductivities are assigned to the tissues when calling ft_prepare_headmodel): http://www.fieldtriptoolbox.org/tutorial/headmodel_eeg_fem#mesh\n\n---\n\nmri = ft_read_mri('Subject01.mri');\n\ncfg     = [];\ncfg.dim = mri.dim;\nmri     = ft_volumereslice(cfg,mri);\n\ncfg           = [];\ncfg.output    = {'gray','white','csf','skull','scalp'}; \nsegmentedmri  = ft_volumesegment(cfg, mri);\n\ncfg        = [];\ncfg.shift  = 0.3;\ncfg.method = 'hexahedral';\nmesh       = ft_prepare_mesh(cfg,segmentedmri);\n\nmesh.tissuelabel % this is now in alphabetical order\n\n---\n\nI think we should either change the order or the tutorial. This here would be robust against any order changes in the mesh (but I'm sure there is a more elegant way to do this):\n\nconductivities{1}\t= {'gray'; 'white'; 'csf'; 'skull'; 'scalp'};\nconductivities{2}\t= {0.33; 0.14; 1.79; 0.01; 0.43};\nfor t = 1:numel(mesh.tissuelabel)\nidx(t) = find(cellfun(@(x) strcmp(mesh.tissuelabel{t}, x), conductivities{1}));\nend\n\n% Create the actual head model\ncfg = [];\ncfg.method = 'simbio';\ncfg.conductivity = [conductivities{2}{idx}]; % order follows mesh.tissuelabel\nvol = ft_prepare_headmodel(cfg, mesh);"
+      - +@isprivate: "0"
+        commentid: "18776"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-27 15:19:01 +0200
+        thetext: |-
+          I consider it a bug that the labels are automatically alphabetical (imagine that happening on channel labels: everyone would complain).
+
+          The user should be able to rely on the order he specifies things in his script, and the user is expected (and required) to be consistent in his own script.
+      - +@isprivate: "0"
+        commentid: "19270"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-15 11:19:37 +0100
+        thetext: alphabetical order was caused by ft_datatype_segmentation, where with a setdiff operation the inside field was removed from the list of fieldnames of the segmentedmri. An alternative way of getting rid of the inside preserves the order and has now been implemented and pushed to the git-repo.
+      - +@isprivate: "0"
+        commentid: "19286"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-02 15:04:54 +0100
+        thetext: .

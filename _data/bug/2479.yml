@@ -1,0 +1,126 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2479"
+    creation_ts: 2014-02-23 00:51:00 +0100
+    short_desc: timelockstatistics lead to error when averaging across channels
+    delta_ts: 2019-08-10 12:29:01 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: todorovic.ana
+      +@name: Ana Todorovic
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - h.okland
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12884"
+        comment_count: "0"
+        who:
+          +content: todorovic.ana
+          +@name: Ana Todorovic
+        bug_when: 2014-02-23 00:51:29 +0100
+        thetext: "I have found a possible bug in ft_timelockstatistics. I found a way around the issue, but I thought that you might want to know about it.\n\nI am getting the following error if I average over channels when running ft_timelockstatistics, but only if the cfg.correctm is set to 'cluster':\n\nError using findcluster (line 56)\ninvalid dimension of spatdimneighbstructmat\n\nIt doesn't help to specify an empty neighhbourhood structure (I tried [] and {}).\n\nThe error does not show up if cfg.correctm is set to 'max' or 'bonferoni'. I didn't check the remaining false alarm correction methods. \n\nThe error also does not appear if I don't average over channels but keep cfg.correctm = 'cluster'. I am also doing ft_freqstatistics currently and the problem is not present there. \n\nI tried to follow the fieldtrip tutorial wiki on ft_timelockstatistics, and I get the same error if I set avgoverchan to 'yes' but keep all other configuration options unchanged."
+      - +@isprivate: "0"
+        commentid: "13005"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-06 15:44:28 +0100
+        thetext: |-
+          Hi Ana,
+
+          could you upload some data and a snippet of code for us to reproduce this?
+          Thanks.
+          How's Berkeley?
+          JM
+      - +@isprivate: "0"
+        commentid: "13103"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-18 20:53:07 +0100
+        thetext: This is a gentle reminder to post some data, in order to move forward...
+      - +@isprivate: "0"
+        commentid: "13104"
+        comment_count: "3"
+        who:
+          +content: todorovic.ana
+          +@name: Ana Todorovic
+        bug_when: 2014-03-18 21:24:37 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #2)\n\nHey, sorry, for some reason I didn't get an e-mail notification of your first reply! I totally forgot about this (too much sun and wine :)\n\n(I'm lying, I'm mostly behind my computer...)\n\n\nI'll use the wiki tutorial as an example: http://fieldtrip.fcdonders.nl/tutorial/cluster_permutation_timelock\n\nYou need the data from Subject1 to run it: ftp://ftp.fcdonders.nl/pub/fieldtrip/tutorial/Subject01.zip\n\nHere is some code, all from the tutorial, with my changes at the end: \n\nclear all\n\n% preprocess and timelock condition 1\ncfg = [];                                           \ncfg.dataset                 = 'Subject01.ds';       \ncfg.trialdef.eventtype      = 'backpanel trigger';\ncfg.trialdef.prestim        = 1;\ncfg.trialdef.poststim       = 2;\ncfg.trialdef.eventvalue     = 3;                    \ncfg = ft_definetrial(cfg);            \ncfg.trl([15, 36, 39, 42, 43, 49, 50, 81, 82, 84],:) = []; \ncfg.channel    = {'MEG', '-MLP31', '-MLO12'};        \ncfg.demean     = 'yes';\ncfg.baselinewindow  = [-0.2 0];\ncfg.lpfilter   = 'yes';                              \ncfg.lpfreq     = 35;                                 \ndataFIC_LP = ft_preprocessing(cfg);         \n\ncfg = [];\ncfg.keeptrials = 'yes';\ntimelockFIC = ft_timelockanalysis(cfg, dataFIC_LP);\n\n%%\n% preprocess and timelock condition 2\ncfg = [];                                           \ncfg.dataset                 = 'Subject01.ds';         \ncfg.trialdef.eventtype      = 'backpanel trigger';\ncfg.trialdef.prestim        = 1;\ncfg.trialdef.poststim       = 2;\ncfg.trialdef.eventvalue     = 9;                    \ncfg = ft_definetrial(cfg);            \ncfg.trl([2, 3, 4, 30, 39, 40, 41, 45, 46, 47, 51, 53, 59, 77, 85],:) = []; \ncfg.channel    = {'MEG', '-MLP31', '-MLO12'};       \ncfg.demean     = 'yes';\ncfg.baselinewindow  = [-0.2 0];\ncfg.lpfilter   = 'yes';                              \ncfg.lpfreq     = 35;                                 \ndataFC_LP = ft_preprocessing(cfg);                      \n\ncfg = [];\ncfg.keeptrials = 'yes';\ntimelockFC  = ft_timelockanalysis(cfg, dataFC_LP);\n%%\n\n% prepare neighbours\ncfg_neighb        = [];\ncfg_neighb.method = 'distance';         \nneighbours        = ft_prepare_neighbours(cfg_neighb, dataFC_LP);\n                                \n%% stats\n                                 \ncfg = [];\ncfg.neighbours    = neighbours;   \ncfg.channel       = {'MEG'};     \ncfg.latency       = [0 1];       \ncfg.method = 'montecarlo';       \ncfg.statistic = 'indepsamplesT'; \ncfg.correctm = 'cluster';\ncfg.clusteralpha = 0.05;         \ncfg.clusterstatistic = 'maxsum'; \n% cfg.minnbchan = 2;  % I switched this off to be sure that it isn't \n                      % causing the problem\ncfg.tail = 0;                    \ncfg.clustertail = 0;\ncfg.alpha = 0.025;               \ncfg.numrandomization = 100;     \n\ndesign = zeros(1,size(timelockFIC.trial,1) + size(timelockFC.trial,1));\ndesign(1,1:size(timelockFIC.trial,1)) = 1;\ndesign(1,(size(timelockFIC.trial,1)+1):(size(timelockFIC.trial,1) + size(timelockFC.trial,1)))= 2;\n\ncfg.design = design;             \ncfg.ivar  = 1;                                                   \n\n%%\n\n% this works\n[stat] = ft_timelockstatistics(cfg, timelockFIC, timelockFC);\n\n% but this doesn't\ncfg.avgoverchan = 'yes';\n[stat] = ft_timelockstatistics(cfg, timelockFIC, timelockFC);\n\n% this doesn't help\ncfg.neighbours = [];\n[stat] = ft_timelockstatistics(cfg, timelockFIC, timelockFC);\n\n% but this does\ncfg.correctm = 'bonferoni';\n[stat] = ft_timelockstatistics(cfg, timelockFIC, timelockFC);\n\n\nMy own script had the design adapted to a dependent-samples t-test, and it behaved in the same way. I got around the issue by collapsing data over channels of interest and then feeding it in to FieldTrip as a single-channel dataset."
+      - +@isprivate: "0"
+        commentid: "13819"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-10 15:50:50 +0200
+        thetext: '*** Bug 2606 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13820"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-10 15:54:21 +0200
+        thetext: |-
+          In ft_statistics_montecarlo (lines 163-190), there is some if/elseing in which a proper cfg.connectivity is created based on the cfg-structure. I added the special case where avgoverchan=yes, such that connectivity is set to true(1), fixing the error.
+
+          Also, I removed the requirement to specify neighbours from statistics_wrapper (lines 259-263) in case avgoverchan=yes (since we don't need neighbours if we're not clustering across channels).
+
+          bash-4.1$ svn commit ft_statistics_montecarlo.m private/statistics_wrapper.m
+          Sending        ft_statistics_montecarlo.m
+          Sending        private/statistics_wrapper.m
+          Transmitting file data ..
+          Committed revision 9613.
+      - +@isprivate: "0"
+        commentid: "13821"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-10 16:02:57 +0200
+        thetext: |-
+          forgot to also add this one
+
+          bash-4.1$ svn commit test/test_bug2606.m
+          Adding         test/test_bug2606.m
+          Transmitting file data .
+          Committed revision 9614.
+      - +@isprivate: "0"
+        commentid: "20006"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:01 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

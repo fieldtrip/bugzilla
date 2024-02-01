@@ -1,0 +1,182 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3055"
+    creation_ts: 2016-01-29 17:10:00 +0100
+    short_desc: ft_prepare_headmodel 'dipoli' output does not contain the vol.mat field
+    delta_ts: 2016-02-01 13:32:03 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16715"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-01-29 17:10:09 +0100
+        thetext: "I'm preparing a pipeline for Coimbra workshop to show how to use a standard electrodes/MRIs to do EEG-source reconstruction. I noticed that the 'dipoli' method produce a volume conduction model without the 'vol.mat' field that later produces an error on ft_prepare_leadfield:\n\ngrid = ft_prepare_leadfield(cfg)\nusing gradiometers specified in the configuration\nconverting units from 'mm' to 'cm'\nconverting units from 'mm' to 'cm'\ncreating dipole grid based on automatic 3D grid with specified resolution\nusing gradiometers specified in the configuration\ncreating dipole grid with 1 cm resolution\n1907 dipoles inside, 5199 dipoles outside brain\nmaking tight grid\n1907 dipoles inside, 1873 dipoles outside brain\nthe call to \"ft_prepare_sourcemodel\" took 1 seconds and required the additional allocation of an estimated 0 MB\ncomputing leadfield\nError using eeg_leadfieldb (line 53)\nthere is no BEM system matrix present\n\nError in ft_compute_leadfield (line 431)\n      lf = eeg_leadfieldb(dippos, sens.elecpos, headmodel);\n\nError in ft_prepare_leadfield (line 219)\n    grid.leadfield{thisindx} = ft_compute_leadfield(grid.pos(thisindx,:), sens, headmodel, 'reducerank',\n    cfg.reducerank, 'normalize', cfg.normalize, 'normalizeparam', cfg.normalizeparam, 'backproject \n\n\nThe issue is that the template dipoli volume model has the 'vol.mat'(fieldtrip/template/headmodel/standard_bem.mat') and no error is produced.\n\nThere's a strange error computing the dipoli method that does not produce a matlab error:\n\n Fatal error in dipoli: during computation of B-matrix;\n vertex 916 of /tmp/tp0436fb35_ca6c_4b05_b160_a94786e27dc4_1.tri touches triangle 2962 of /tmp/tp0436fb35_ca6c_4b05_b160_a94786e27dc4_2.tri\n\nWarning: an error ocurred while running dipoli \n> In ft_headmodel_dipoli at 211\n  In ft_prepare_headmodel at 278 \nError using fread\nInvalid file identifier.  Use fopen to generate a valid file identifier.\nWarning: File '/tmp/tp5316e4d2_d1a3_4402_b1f9_bbd9a98a8249.ama' not found. \n> In ft_headmodel_dipoli at 219\n  In ft_prepare_headmodel at 278 \nthe call to \"ft_prepare_headmodel\" took 3 seconds and required the additional allocation of an estimated 0 MB\n\n\n\nPlease find below the whole pipeline to reproduce the error:\n\nftdir = fileparts(which('ft_defaults'));\nmri = ft_read_mri(fullfile(ftdir,'template','headmodel','standard_mri.mat'));\n\n% used later to plot dipoles\ncfg = [];\ncfg.resolution = 1;\ncfg.xrange = [-100 100];\ncfg.yrange = [-140 140];\ncfg.zrange = [-80 120];\nmris = ft_volumereslice(cfg, mri);\nmris = ft_convert_units(mris, 'cm');\n\n% segmentation\ncfg = [];\ncfg.output = {'brain','skull','scalp'};\nseg = ft_volumesegment(cfg,mri);\n\n% triangulation\ncfg = [];\ncfg.tissue = {'brain','skull','scalp'};\ncfg.numvertices = [3000 2000 1000];\ncfg.sourceunits = seg.unit;\nbnd = ft_prepare_mesh(cfg,seg);\n\n% headmodel\ncfg = [];\ncfg.method = 'dipoli';\nvol = ft_prepare_headmodel(cfg,bnd);\n\nvol.cond = [1 1/20 1].*0.33; % brain, skull, scalp\n\n% visualization\nfigure;\nft_plot_mesh(vol.bnd(1),'facecolor','none');\nft_plot_mesh(vol.bnd(2),'facecolor','none');\nft_plot_mesh(vol.bnd(3),'facecolor','none');\n\n% get 64 electrodes (biosemi64 customized layout)\nlabel={'Fp1','AF7','AF3','F1','TP9','F5h','F7','FT7','FC5h','PO9','FC1','C1','C3','C5','T7','TP7','CP5','CP3','CP1','P1','I1','P5h','P7','P9','PO7','PO3','O1','Iz','Oz','POz','Pz','CPz','Fpz','Fp2','AF8','AF4','AFz','Fz','F2','TP10','F6h','F8','FT8','FC6h','PO10','FC2','FCz','Cz','C2','C4','C6','T8','TP8','CP6','CP4','CP2','P2','I2','P6h','P8','P10','PO8','PO4','O2'}\n\nelec = ft_read_sens(fullfile(ftdir,'template','electrode','standard_1005.elc'));\n[sel1,sel2] = match_str(elec.label,label);\n\nelec.chanpos = elec.chanpos(sel1,:);\nelec.elecpos = elec.elecpos(sel1,:);\nelec.label = label;\nelec.label\n\n% check alignment\nfigure;\nft_plot_sens(elec,'style','sk');\nhold on;\nft_plot_mesh(vol.bnd(1),'facealpha', 0.85, 'edgecolor', 'none', 'facecolor', [0.65 0.65 0.65]); %scalp\nfigure;\nft_plot_sens(elec,'style','sk');\nhold on;\nft_plot_mesh(vol.bnd(2),'facealpha', 0.85, 'edgecolor', 'none', 'facecolor', [0.65 0.65 0.65]); %skull\nfigure;\nft_plot_sens(elec,'style','sk');\nhold on;\nft_plot_mesh(vol.bnd(3),'facealpha', 0.85, 'edgecolor', 'none', 'facecolor', [0.65 0.65 0.65]); %brain\n\n\ncfg                 = [];\ncfg.grad            = elec;\ncfg.headmodel       = vol;\ncfg.reducerank      = 2;\ncfg.channel         = 'all';\ncfg.grid.resolution = 1;   % use a 3-D grid with a 1 cm resolution\ncfg.grid.unit       = 'cm';\ngrid = ft_prepare_leadfield(cfg);\n\nvol2 = ft_read_vol(fullfile(ftdir,'template','headmodel','standard_bem.mat'));\ncfg.headmodel       = vol2;\ngrid = ft_prepare_leadfield(cfg);"
+      - +@isprivate: "0"
+        commentid: "16716"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 09:54:05 +0100
+        thetext: |-
+          I am working through your code, replicating the problem. Let me comment along the way:
+
+          you should not use cfg.sourceunits in ft_prepare_mesh. I rather suggest that you do
+          >> seg = ft_convert_units(seg, 'cm');
+
+          It is actually weird that your MRI is (explicit) in cm, but that the output of ft_volumesegment is in mm. That is due to the SPM template (which is internally used) being in mm, but better would be to retain the output in the units of the input.
+      - +@isprivate: "0"
+        commentid: "16717"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 10:07:20 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\nI looked it up, and there is indeed no explicit unit handling at the end of the function. I have updated the code, so that the output has the same units as the input.  \n\nmac011> svn commit ft_volumesegment.m\nSending        ft_volumesegment.m\nTransmitting file data .\nCommitted revision 11154."
+      - +@isprivate: "0"
+        commentid: "16718"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 10:20:05 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          I was wrong, the output was already consistent with the input. I removed the unnecessary line of code.
+
+          mac011> svn commit ft_volumesegment.m
+          Sending        ft_volumesegment.m
+          Transmitting file data .
+          Committed revision 11155.
+      - +@isprivate: "0"
+        commentid: "16719"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 10:35:03 +0100
+        thetext: "I can confirm the problem. \n\nI changed the code such that it is not a warning but an error. That makes much more sense.\n\n ...\n Bmat countdown: 5110 (pass 2)\n Bmat countdown: 5100 (pass 2)\n Bmat countdown: 5090 (pass 2)\n\n\n Fatal error in dipoli: during computation of B-matrix;\n vertex 916 of /private/tmp/tp1073ac04_28a4_447d_a830_a28fbae00a99_1.tri touches triangle 811 of /private/tmp/tp1073ac04_28a4_447d_a830_a28fbae00a99_2.tri\n\nError using ft_headmodel_dipoli (line 211)\nan error ocurred while running the dipoli executable - please look at the screen output\n\nError in ft_prepare_headmodel (line 278)\n      headmodel = ft_headmodel_dipoli(geometry, 'conductivity', cfg.conductivity, 'isolatedsource', cfg.isolatedsource);\n \n\n-------\n\nmac011> svn commit forward/ft_headmodel_dipoli.m\nSending        forward/ft_headmodel_dipoli.m\nTransmitting file data .\nCommitted revision 11156."
+      - +@isprivate: "0"
+        commentid: "16720"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 10:55:08 +0100
+        thetext: |-
+          The actual error (mesh not being BEM compatible) can be visualized with
+
+          % ft_plot_mesh(vol.bnd(1),'facecolor','none'); % skin
+          ft_plot_mesh(vol.bnd(2),'facecolor','none'); % skull
+          ft_plot_mesh(vol.bnd(3),'facecolor','white','edgecolor','none'); % brain
+
+          hold on
+          ft_plot_mesh(bnd(3).pnt(916,:), 'vertexmarker', '*', 'vertexcolor', 'r');
+          tmp = vol.bnd(2);
+          tmp.tri = tmp.tri(811,:);
+          ft_plot_mesh(tmp,'facecolor','g'); % skull
+
+          The problem is at the base of the skull, where it touches the brain.
+      - +@isprivate: "0"
+        commentid: "16721"
+        comment_count: "6"
+        attachid: "769"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-30 11:02:58 +0100
+        thetext: |-
+          Created attachment 769
+          screen shot showing hole (in axial slice)
+
+          If you do
+
+          seg.anatomy = mri.anatomy
+
+          cfg = []
+          cfg.funparameter = 'skull'
+
+          ft_sourceplot(cfg, seg)
+
+          you can see at the bottom that the skull is not closed.
+      - +@isprivate: "0"
+        commentid: "16722"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-01-30 18:10:51 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #6)\nHi Robert,\nThanks a lot for your prompt reply! Good catch: I see the skull problem. I've been playing around with the segmentation cfgs (brainsmooth, scalpsmooth, brainthreshold, scalpthreshold) but I was unable to solve the issue. However, I checked the stardard segementation file and it's fine although there's no cfg info to know how to reproduce it. In addition, the format it's a bit peculiar:\nseg = ft_read_mri(fullfile(ftdir,'template','headmodel','standard_seg.mat'));\n\nseg = \n\n          dim: [181 217 181]\n      anatomy: [181x217x181 uint8]\n    transform: [4x4 double]\n          hdr: [1x1 struct]\n         unit: 'mm'\n     coordsys: 'spm'\n          seg: [181x217x181 double]\n\nThis seg representation produces an error in ft_prepare_mesh. To solve it, I did the following and it seems I got proper meshes: \n\nbrain = zeros(size(seg.seg));\nbri = find(seg.seg==3);\nbrain(bri)=1;\nskull = zeros(size(seg.seg));\nski = find(seg.seg==2);\nskull(ski)=1;\nscalp = zeros(size(seg.seg));\nsci = find(seg.seg==1);\nscalp(sci)=1;\n\nseg.brain = brain;\nseg.scalp = scalp;\nseg.skull = skull;\nseg = rmfield(seg,'seg');\n\ncfg = [];\ncfg.tissue = {'brain','skull','scalp'};\ncfg.numvertices = [3000 2000 1000];\ncfg.sourceunits = seg.unit;\nbnd = ft_prepare_mesh(cfg,seg);\n\nfigure;\nft_plot_mesh(bnd(1),'facecolor','none');\nft_plot_mesh(bnd(2),'facecolor','none');\nft_plot_mesh(bnd(3),'facecolor','none');\n\nUnfortunately, I don't know if dipoli method works after that because I'm testing in windows and there's no dipoli mex file compiled (my remote connection to my windows machine doesn't work). On  monday I'll test this further.\n\nIf you know the parameters to get a proper segmentation with the standard 'colin.mri', let me know. I've planned to do an example script (wiki) to show a basic dipole fitting and beamforming on EEG data using template MRI/electrodes. Lots of people are using these approach but I cannot get all the details from some papers that used fieldtrip."
+      - +@isprivate: "0"
+        commentid: "16731"
+        comment_count: "8"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-02-01 13:32:03 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #7)
+          Now the vol.mat matrix is properly created. The only thing user has to do is to change the segmentation data representation as I did above.
+
+          To improve the documentation I propose the following:
+          - I'll create an example script wiki page to show how to do a simple dipole fitting with EEG simulated data (ft_dipolesimulation) using template T1/electrode arrays. Then I can show how to fit a dipole and beamform the simulated data. It's simple but didactic (especially for the workshop).
+
+          - I can show how to rearrange the data representation of the template segmentation file to avoid problem
+
+          To figure out:
+          - The template mri was edited on r7414 (details here: http://www.fieldtriptoolbox.org/template/headmodel). Probably the segmented was also modified somehow (I'd appreciate if somebody tells me how to do it). I propose to:
+                    1. Explain in the example script how to tune the segmentation process (cfg *smooth,*threshold; currently not known)
+                    2. Update the segmentation representation and save it in template/headmodel
+
+          - If colin27.mri is segmentation-problematic. Is there an alternative? We could use the SMP T1.nii but it's too blurry.
+
+          Looking forward your proposals
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "769"
+      date: 2016-01-30 11:02:00 +0100
+      delta_ts: 2016-01-30 11:02:58 +0100
+      desc: screen shot showing hole (in axial slice)
+      filename: Screen Shot 2016-01-30 at 12.02.30.png
+      type: image/png
+      size: "287116"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

@@ -1,0 +1,208 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2811"
+    creation_ts: 2015-01-22 14:14:00 +0100
+    short_desc: Problem with reading sfp file with headshape points
+    delta_ts: 2016-05-06 08:04:43 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - g.flandin
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15075"
+        comment_count: "0"
+        attachid: "693"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-01-22 14:14:24 +0100
+        thetext: |-
+          Created attachment 693
+          Example sfp file
+
+          In SPM we use sfp files where 'headshape' label indicates a headshape point. So there can be many points with identical label in the same file (as long as this label is 'headshape'). This worked fine before but now I got an example of a file in which there are over 2000 headshape points and when trying to read it ft_read_headshape gets stuck and I need to crash Matlab. This comes down to line 329 of ft_datatype_sens and line 322 of channelposition. Basically what happens there is that innocent order comparison is done with match_str but as a result each label gets replicated hundreds of thousands of times and then the code gets stuck when trying to go over those labels. Perhaps the fix should be as deep as match_str to make it handle the case of non-unique labels more gracefully as this can also affect other peaces of code. I attach the example file.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16894"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-21 18:09:53 +0100
+        thetext: "Hi Vladimir, \nI am doing a (non-exhaustive) sweep across all open bugs, to see which ones have become so stale that they can be closed. What's the status of this? Do you have a workaround? Do we need to look into this or can it be closed?\nCheers, JM"
+      - +@isprivate: "0"
+        commentid: "16895"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2016-02-21 19:02:53 +0100
+        thetext: |-
+          I don't think this was ever fixed. Try doing ft_read_sens on the example file.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16896"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-21 19:14:58 +0100
+        thetext: I did. and indeed it's horrible. It sounds as if a fix is still appreciated, so I'll leave this one open for now...
+      - +@isprivate: "0"
+        commentid: "16897"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-21 19:30:29 +0100
+        thetext: As an alternative to Vladimir's suggestion, to go deep into match_str and see whether there's a generic way to solve sheer endless loops when there are many occurrences of the same string, one could think of explicitly handling besa_sfp files as a case in ft_read_headshape.
+      - +@isprivate: "0"
+        commentid: "16898"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-21 20:29:32 +0100
+        thetext: |-
+          I pushed a branch 'bug2811' to my fieldtrip repo on github: github.com/schoffelen/fieldtrip
+
+          I added a new (dumb) function read_besa_sfp that optionally outputs only the labels that occur only once (useful for reading electrodes, and thus used in ft_read_sens), or optionally outputs all labels (also the multiple occurring 'head shape' labels. Furthermore, I added a case in ft_read_headshape directly dealing with besa_sfp files.
+
+          Go and check it out! (literally :o)).
+      - +@isprivate: "0"
+        commentid: "16934"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2016-02-22 16:10:35 +0100
+        thetext: |-
+          So how does it work now, everyone has their own branch of FT with different fixes? I'd just prefer that this fix propagates to SPM the old way and then I can test it and update our code.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16936"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 16:39:11 +0100
+        thetext: "(In reply to Vladimir Litvak from comment #6)\n\nHi Vladimir, let me answer and also CC Guillaume on this Q/A.\n\nWe have a master branch (shared between the many copies of fieldtrip on github). Most development happens in branches, which (after review and testing) then get merged in the master.\n\nThe branches are not in the fieldtrip/fieldtrip copy, but for example in the robertoostenveld/fieldtrip or schoffelen/fieldtrip copy. We can look along (or pull) to new code in each other branches, without going through master. Once everyone involved is happy, we merge the branch into fieldtrip/fieldtrip/master.  \n\nIf a change is really trivial, I also do small commits directly to the master at fieldtrip/fieldtrip, but I prefer to use branches as soon as discussion and/or testing is needed. My hope is that master becomes more stable. \n\nSPM would continue to use master if it is up to me. I can also imagine (although now it is not concretely planned yet) that we will tag specific points along the fieldtrip master with a version number and that those would become official releases to be included in SPM. \n\nSo right now master at fieldtrip/fieldtrip serves the same purpose as HEAD used to do in SVN, except that we take a bit more time to think before making changes in it."
+      - +@isprivate: "0"
+        commentid: "16937"
+        comment_count: "8"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2016-02-22 16:46:09 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #7)\nHi Robert,\n\nWhat about if I want to commit a fix to FT? Should I have my own branch as well and commit there and you will decide yourself when to pull it into the main branch? I'd prefer to use SVN interface to github as I do for my DAiSS toolbox. \n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "16938"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 16:57:06 +0100
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #8)
+
+          you would make a "fork" of https://github.com/fieldtrip/fieldtrip to https://github.com/vlitvak/fieldtrip. In that fork there would only be a master branch. You could work on your master branch using svn and therefore also make a pull request for your master.
+
+          To keep your fork up to date with the ongoing changes on the master branch on fieldtrip/fieldtrip, you could use this http://www.hpique.com/2013/09/updating-a-fork-directly-from-github.
+      - +@isprivate: "0"
+        commentid: "16987"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-24 09:46:05 +0100
+        thetext: I merged the bug2811 branch into head, since the changes will not affect the grand scheme of things.
+      - +@isprivate: "0"
+        commentid: "16989"
+        comment_count: "11"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2016-02-24 11:26:38 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #10)
+          Thanks, I'll test. Wouldn't it make sense to grant people who had write access to SVN before (or at least some of them) the permission to update the main branch? If I find a bug now that I can easily fix, what is the sequence of steps to get the fix to propagate to SPM via FT? Should we have a separate branch just for SPM where we'll check in our fixes? I don't mind it if you want to approve everything now but you might be turning yourselves into a bottleneck unnecessarily. I personally only check in things I'm quite confident about. Otherwise I send them to you anyway. Now it could be more convenient to do it as a pull request, but the option to bypass that stage would also be useful. I don't have much experience with git but my concern is that this system motivates forking the code but doesn't really motivate merging it back.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16990"
+        comment_count: "12"
+        attachid: "777"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2016-02-24 16:50:41 +0100
+        thetext: |-
+          Created attachment 777
+          fixed version
+
+          I tested the code and it now doesn't put the labeled fiducials in the output, just the headshape points. This is not good for SPM as we also need fiducials. I made the attached fix and checked it into SPM for now. Please feel free to update FT as it might take me some time to figure out how to do it properly.
+
+          Vladimir
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "693"
+        date: 2015-01-22 14:14:00 +0100
+        delta_ts: 2015-01-22 14:14:24 +0100
+        desc: Example sfp file
+        filename: locations.sfp
+        type: text/plain
+        size: "141415"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "777"
+        date: 2016-02-24 16:50:00 +0100
+        delta_ts: 2016-02-24 16:50:41 +0100
+        desc: fixed version
+        filename: ft_read_headshape.m
+        type: text/plain
+        size: "34880"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED

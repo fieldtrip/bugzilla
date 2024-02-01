@@ -1,0 +1,144 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2740"
+    creation_ts: 2014-10-17 03:43:00 +0200
+    short_desc: QuikCap 32 10-20 layout
+    delta_ts: 2019-08-10 12:28:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ojoe4ki
+      +@name: Yanina
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - ojoe4ki
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14651"
+        comment_count: "0"
+        attachid: "667"
+        who:
+          +content: ojoe4ki
+          +@name: Yanina
+        bug_when: 2014-10-17 03:43:18 +0200
+        thetext: "Created attachment 667\nLayout Image\n\nHello!\n\nSo I have data collected with Neuroscan 32 channels quickcap (1020 standard) and I am trying to create a layout for this type of cap. \n\nI have exported .asc file from Neuroscan, modified it according to the instructions from http://fieldtrip.fcdonders.nl/faq/what_is_the_format_of_the_layout_file_which_is_used_for_plotting and created a .lay file.\n\nPlotted it with \n\ndirlist  = dir('template/layout/*');\nfilename = {dirlist(~[dirlist.isdir]).name}'\nfor i=1:length(filename)\n  cfg = [];\n  cfg.layout = filename{i};\n  layout = ft_prepare_layout(cfg);\n\n  figure\n  ft_plot_lay(layout);\n  title(filename{i});\nend\n\nand received a layout with electrodes shifted a bit to the right and with weird huge rectangles around them (both the .lay file and the .png are attached). \n\nI am collecting EEG data from a SynAmps RT 128 channels. I am using a QuikCap NSL, which although has 128 electrodes, does not follow standard 10-20 localisation."
+      - +@isprivate: "0"
+        commentid: "14652"
+        comment_count: "1"
+        attachid: "668"
+        who:
+          +content: ojoe4ki
+          +@name: Yanina
+        bug_when: 2014-10-17 03:43:41 +0200
+        thetext: |-
+          Created attachment 668
+          Channel Locations
+      - +@isprivate: "0"
+        commentid: "14653"
+        comment_count: "2"
+        who:
+          +content: ojoe4ki
+          +@name: Yanina
+        bug_when: 2014-10-17 03:53:45 +0200
+        thetext: And I am sorry, in the first comment the last two lines are just the citation from a similar bug (but for a different cap) reported by Andre (bug 679).
+      - +@isprivate: "0"
+        commentid: "14654"
+        comment_count: "3"
+        attachid: "669"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-17 08:57:00 +0200
+        thetext: "Created attachment 669\nthe updated layout\n\nHi Yanina,\n\nNice that you got so far already. The box size is easy to solve, just change the 4th and 5th column into smaller numbers.\n\nI downloaded your txt file, renamed it into quickcap32.lay and did the following multiple times, changing the asci file (with *.lay extension) in a text editor.\n\ncfg = [];\ncfg.layout = 'quickcap32.lay'\nft_layoutplot(cfg)\n\nWith a width of 0.120 and a height of 0.100 it looks quite ok.\n\nThen I noticed the following issue:\n\nThe electrodes are offset to the right, this is due to there being an M1 at the left ear but not an M2 at the right ear. The circle depicting the head is centred at the middle of all electrodes, and with an asymmetric layout towards M1 the electrodes don't align the way you would want. There is an M2, but it is not at the appropriate location. The CZ is at x=0.511, the M1 is at x=0.093, hence I moved M2 from (x=0.032 y=0.032) towards (x=0.929, y=0.579)\n\nit is still not symmetric w.r.t. the circle, because \n30       0.065    0.031  0.120000  0.100000  HEO\n31       0.925    0.028  0.120000  0.100000  VEO\nare now sticking out most. With Cz at x=0.511, these are not symmetric.\n\nSo, using\n>> 0.511-0.065\nans =\n    0.4460\n\n>> 0.511+ans\nans =\n    0.9570\n\nI determine where VEO should be at the same distance towards CZ.\n\nThen onto the next issue: HEO and VEO overlap with the COMNT and SCALE (which are automatically added in the lower left and right corner if not explicitly present. So I add these, to be able to control them precisely\n\ngiven\n30       0.065    0.031  0.120000  0.100000  HEO\n31       0.925    0.028  0.120000  0.100000  VEO\n\nI can add them as\n33       0.065    1.000  0.120000  0.100000  COMNT\n34       0.925    1.000  0.120000  0.100000  SCALE\n\nThen the final issue: the electrodes are upside down. Left right is correct, but Ox is closest to the nose and FPx to the back of the head. I fixed that by adding a \"-\" in front of the 3rd column with y values.\n\nThat gives me the following (see attachment). If you plot it with ft_layoutplot, you will see that it is still not perfect. I'll discuss the final refinements in the next comment..."
+      - +@isprivate: "0"
+        commentid: "14655"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-17 09:07:35 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #3)\n\n\nI moved HEO and VEO a bit towards the midline, which makes M1 and M2 closer to the ears. But still not ideal... The issue is that HEO and VEO are considered in the scaling of the circle. So if you move them up, FPx is going to move down. And if you move Mx outwards, all other electrodes will move inwards. So you can only place them relative to the sphere, not absolute.\n\nYou have more control by representing it in a mat file:\n\n>> layout = ft_prepare_layout(cfg)\nreading layout from file quickcap32.lay\nthe call to \"ft_prepare_layout\" took 0 seconds and required the additional allocation of an estimated 0 MB\n\nlayout = \n        pos: [34x2 double]\n      width: [34x1 double]\n     height: [34x1 double]\n      label: {34x1 cell}\n    outline: {[101x2 double]  [3x2 double]  [10x2 double]  [10x2 double]}\n       mask: {[101x2 double]}\n        cfg: [1x1 struct]\n\n\nThe outline (head with ears and nose) and mask (same circle as head, to restrict interpolation) are now fixed and will not change any more. So you can move the positions by updating layout.pos as you wish, and finalize by saving it to mat file:\n\nsave easycap32.mat layout \n\nThe issue with the automatic scaling also explains why we have moved from the lay files to mat files for quite a few templates. The mat files also allow for more detailled outlines and masks, such as needed for ECoG data as shown on http://fieldtrip.fcdonders.nl/tutorial/layout.\n\nHope this resolves it,\nRobert"
+      - +@isprivate: "0"
+        commentid: "14678"
+        comment_count: "5"
+        who:
+          +content: ojoe4ki
+          +@name: Yanina
+        bug_when: 2014-10-20 18:52:44 +0200
+        thetext: "Dear Robert,\n\nmany thanks! I will go through your logic once again with Matlab and my txt file being open. \n\nYour two comments are superhelpful!"
+      - +@isprivate: "0"
+        commentid: "19964"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:23 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "667"
+        date: 2014-10-17 03:43:00 +0200
+        delta_ts: 2014-10-17 03:43:18 +0200
+        desc: Layout Image
+        filename: quickcap_32.png
+        type: image/png
+        size: "15483"
+        attacher:
+          +content: ojoe4ki
+          +@name: Yanina
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "668"
+        date: 2014-10-17 03:43:00 +0200
+        delta_ts: 2014-10-17 03:43:41 +0200
+        desc: Channel Locations
+        filename: quickcap_32.lay
+        type: text/plain
+        size: "1602"
+        attacher:
+          +content: ojoe4ki
+          +@name: Yanina
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "669"
+        date: 2014-10-17 08:57:00 +0200
+        delta_ts: 2014-10-17 08:57:00 +0200
+        desc: the updated layout
+        filename: quickcap32.lay
+        type: text/plain
+        size: "1653"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

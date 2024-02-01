@@ -1,0 +1,215 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3443"
+    creation_ts: 2018-08-25 12:59:00 +0200
+    short_desc: coherence
+    delta_ts: 2018-10-09 12:36:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ashwinioswal
+      +@name: Ash
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19415"
+        comment_count: "0"
+        attachid: "869"
+        who:
+          +content: ashwinioswal
+          +@name: Ash
+        bug_when: 2018-08-25 12:59:21 +0200
+        thetext: "Created attachment 869\nplease see demo for partial coherence\n\nWhen computing coherence of A and B with B as a partial channel the solution should be 0/0 - NaN according the paper where the formula is described. \n\nThis however does not seem to be the case with the field trip version. Please see the attached simulation of partial coherence. I have also attached a modified version of the function spm_eeg_ft_multitaper_coherence_mod which does get to the right solution - 0\n\nYou may want to investigate this. Hope it helps Ash"
+      - +@isprivate: "0"
+        commentid: "19416"
+        comment_count: "1"
+        attachid: "870"
+        who:
+          +content: ashwinioswal
+          +@name: Ash
+        bug_when: 2018-08-25 13:00:36 +0200
+        thetext: |-
+          Created attachment 870
+          partial coherence function
+      - +@isprivate: "0"
+        commentid: "19417"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-08-28 15:43:17 +0200
+        thetext: The example is comparing apples with oranges. I haven't looked at the SPM-based section of code (partly because I don't have the file that is used), but the FT-implementation is using 'mtmfft', i.e. time-non resolved spectral estimation on only 2 trials, whereas the SPM implementation likely uses some kind of TFR
+      - +@isprivate: "0"
+        commentid: "19418"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-08-29 17:58:18 +0200
+        thetext: "Ash replied:\n\nThanks for looking at the partial coherence script I sent. Actually the issue wasn’t about time resolution. The issue was about the fact that if I simulate 2 time series A and B and compute partial coherence of A and B with B (or A) as a partial channel, I get a timeseries with field trip whereas EQ 38 of the Halliday paper (reference for partial coherence) suggests that the value in his instance should be 0/0 or NaN. \n\nThe code I sent to bugzilla should have this example, but unfortunately maybe I didn’t have space to make it clear. \n\nI can send you a more detailed email later with code if you wish to explore further. The amp implementation is my own version for partial coherence which does give Nan output in the described instance"
+      - +@isprivate: "0"
+        commentid: "19419"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-08-29 18:01:03 +0200
+        thetext: "Thanks for the feedback, and apologies for being a bit rash with my response.\n\nIf you are using the Halliday method, I can imagine that this by definition yields NaN, but I should look at the mathematics to be sure. For 'traditional' partial coherence, though, I think it will rarely really go to a 0/0 scenario, due to noise etc. \nI was a bit confused by your example code, but looking at it a bit better, I think I now understand it better. I will try to get back to this once time permits."
+      - +@isprivate: "0"
+        commentid: "19420"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-08-29 18:18:00 +0200
+        thetext: |-
+          Hi, could you check out the following chunk of code, and let me know what you think?
+
+          ntrials = 100;
+          nsample = 1000;
+          fband   = [15 20];
+          for k = 1:ntrials
+              tmp = ft_preproc_bandpassfilter(randn(3,nsample+20),1000,fband,[],'firws','onepass');
+              trial{k} = tmp(:,1:1000) + [tmp(1,1:1000);tmp(1,11:1010);tmp(1,21:1020)];
+              trial{k} = trial{k}+randn(size(trial{k}))./5;
+              time{k}  = (0:nsample-1)./1000;
+          end
+          data.trial = trial;
+          data.time  = time;
+          data.label = {'chan01';'chan02';'chan03'};
+
+          cfg = [];
+          cfg.method = 'mtmfft';
+          cfg.taper  = 'hanning';
+          cfg.output = 'fourier';
+          cfg.foilim = [0 60];
+          freq = ft_freqanalysis(cfg, data);
+
+          cfg = [];
+          cfg.method = 'coh';
+          coh1 = ft_connectivityanalysis(cfg, freq);
+          cfg.partchannel = {'chan01'};
+          coh2 = ft_connectivityanalysis(cfg, freq);
+          coh2.label = freq.label(2:3); % needed for plotting
+
+          cfg = [];
+          cfg.parameter = 'cohspctrm';
+          cfg.channel = freq.label(2:3);
+          ft_connectivityplot(cfg,coh1,coh2);
+      - +@isprivate: "0"
+        commentid: "19423"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-01 15:59:31 +0200
+        thetext: |-
+          Hi Ash,
+
+          For completeness, could you refer me to the specific paper by David that you mention (for the notorious equation '38')?
+
+          For the fieldtrip implementation I used Rosenberg et al. 98 (j neurosci meth). If I recall well, I think that David was an author on that paper, too?
+      - +@isprivate: "0"
+        commentid: "19424"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-01 16:04:36 +0200
+        thetext: Also, would it be possible to communicate about this through the bugzilla website, instead of directly e-mailing back and forth? Thanks in advance.
+      - +@isprivate: "0"
+        commentid: "19425"
+        comment_count: "8"
+        who:
+          +content: ashwinioswal
+          +@name: Ash
+        bug_when: 2018-09-01 22:47:06 +0200
+        thetext: |-
+          Hi Jan-mathijis
+
+          Yes you're right about the paper, it's the one from rosenberg
+
+          https://ac.els-cdn.com/S0165027098000612/1-s2.0-S0165027098000612-main.pdf?_tid=7ef0a3e1-bf51-4d2b-aae3-face6a79608a&acdnat=1535834597_6da8a09e51711ef11057e21274929ce9
+
+          Eq 38 defines what the partial coherence matrix looks like, but also of note are EQs 40 and 41 from which we should see that F(12/1 or F12/2) should be 0/0 or NaN in Matlab terms
+      - +@isprivate: "0"
+        commentid: "19426"
+        comment_count: "9"
+        who:
+          +content: ashwinioswal
+          +@name: Ash
+        bug_when: 2018-09-01 22:47:54 +0200
+        thetext: |-
+          Regards
+
+          Ash
+      - +@isprivate: "0"
+        commentid: "19465"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-24 21:04:46 +0200
+        thetext: Hi Ash, sorry this slipped off my radar to follow up. I think that it doesn't generally follow from the equations that the partial coherence goes to nan, only once one of the channels is an exact (possibly time-shifted) copy of the other one, this might be the case.
+      - +@isprivate: "0"
+        commentid: "19493"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-09 12:35:53 +0200
+        thetext: .
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "869"
+        date: 2018-08-25 12:59:00 +0200
+        delta_ts: 2018-08-25 12:59:21 +0200
+        desc: please see demo for partial coherence
+        filename: partial_coherence.m
+        type: text/x-matlab
+        size: "3963"
+        attacher:
+          +content: ashwinioswal
+          +@name: Ash
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "870"
+        date: 2018-08-25 13:00:00 +0200
+        delta_ts: 2018-08-25 13:00:36 +0200
+        desc: partial coherence function
+        filename: spm_eeg_ft_multitaper_coherence_mod.m
+        type: text/x-matlab
+        size: "21652"
+        attacher:
+          +content: ashwinioswal
+          +@name: Ash
+        data: REMOVED

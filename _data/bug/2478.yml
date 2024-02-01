@@ -1,0 +1,278 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2478"
+    creation_ts: 2014-02-19 13:26:00 +0100
+    short_desc: Adapt ft_preamble to detect prior existence of cfg.outputfile and subsequently skip the caller function
+    delta_ts: 2014-05-14 23:25:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2580
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.backus
+      +@name: Alexander Backus
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12867"
+        comment_count: "0"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-19 13:26:10 +0100
+        thetext: "Suggestion to adapt ft_preamble such that it detects whether cfg.outputfile already exists and if so, exits the caller function. \n\nThis way, one could easily skip over (distributively computed) steps of the analysis that have already been completed, without having to adapt the master script.\n\nThis behavior could then also be overwritten by indicating:\n\ncfg.inputfile       = 'inputfile.mat';\ncfg.outputfile      = 'outputfile.mat';\ncfg.overwriteoutput = 'yes';\n\nProblem: when calling the \"return\" function in ft_preamble, the caller is not aborted - may have to do with the nested structure of ft_preamble..."
+      - +@isprivate: "0"
+        commentid: "12868"
+        comment_count: "1"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-20 10:27:36 +0100
+        thetext: "(In reply to Alexander Backus from comment #0)\n\nHi Robert,\n\nWould a solution in the master user script be a more favored approach to incorporate this feature?\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\nenableOverwrite = false;\n\nfor iSubject = 1:nSubjects\n   \n   cfg            = [];\n   cfg.inputfile  = sprintf('inputfile_%u.mat',iSubject);\n   cfg.outputfile = sprintf('outputfile_%u.mat',iSubject);\n\n   if ~exist(cfg.outputfile,'file') || enableOverwrite\n      jobid{iSubject} = qsubfeval(@ft_function,cfg,'memreq'..ect..);\n   end\n\nend\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\nIn this, case it is up to the individual user to built his or her own loop to establish function skipping if analysis step has already been done. In this case, the job is also NOT submitted. In addition, this way, users can easily make own ft (meta) modules that combine separate ft functions, which in some cases could be desired to keep the user script organized.\n\n...or was there a good argument in favor of submitting the jobs but then letting them abort automatically via ft_preamble_init?"
+      - +@isprivate: "0"
+        commentid: "12883"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-22 15:15:04 +0100
+        thetext: "(In reply to Alexander Backus from comment #1)\n\nA good reason for doing it in the ft_preable_xxx is that it allows you to abort a qsub batch and later start it again, not having to change your code in any way.\n\nI see it like this: \n\ncfg.outputpresent = keep/overwrite/error \n\nwhich allows doing \nft_default.outputpresent = 'keep'\nin the global ft_default and restart whatever script or collection of scripts you were running. Or delete all mat files from one subject and then restart the \"master\" script that runs all other scripts."
+      - +@isprivate: "0"
+        commentid: "13592"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 09:32:02 +0200
+        thetext: |-
+          I tried evaluating the return or something similar in the preamble, but as you wrote: it does not work. Hence the return statement must come in the main function. I made the following function in fieldtrip/private
+
+          ----------------------------------------
+
+          function abort = outputfilepresent(cfg, numargout)
+
+          % the following section would not have to be in this preamble, but could also be somewhere else
+          if isfield(cfg, 'outputfile') && ~isempty(cfg.outputfile) && isfield(cfg, 'outputfilepresent') && ~isempty(cfg.outputfilepresent)
+            % check whether the output file already exists
+            if exist(cfg.outputfile, 'file')
+              switch cfg.outputfilepresent
+                case 'keep'
+                  if numargout>0
+                    % continue executing the parent function
+                    warning('output file %s is already present, but you also requested an output argument: continuing function execution', cfg.outputfile);
+                    abort = false;
+                  else
+                    % stop executing the parent function
+                    warning('output file %s is already present: aborting function execution', cfg.outputfile);
+                    abort = true;
+                  end
+                case 'error'
+                  error('output file %s is already present', cfg.outputfile);
+                case 'overwrite'
+                  warning('output file %s is already present: it will be overwritten', cfg.outputfile);
+                  abort = false;
+                otherwise
+                  error('invalid option for cfg.outputfilepresent');
+              end % case
+            end
+          end
+
+          ----------------------------------------
+
+          which in the main code (e.g. ft_timelockanalysis) is called immediately following the ft_preamble section like this
+
+          if outputfilepresent(cfg, nargout)
+            return
+          end
+
+
+          This would realise the desired functionality, right?
+      - +@isprivate: "0"
+        commentid: "13593"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 09:39:30 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          it can even be made cleaner, but including the code section that assigns abort=true/false into ft_preable_init and by doing in ft_timelockanalysis
+
+          % the abort variable is set to true or false in ft_preamble_init
+          if abort
+            % abort if the outputfile is present and the user indicated to keep it
+            return
+          end
+      - +@isprivate: "0"
+        commentid: "13594"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 09:41:19 +0200
+        thetext: |-
+          this can be built into 109 functions:
+
+          mac011> grep -l "^ft_preamble init" *.m | wc -l
+               109
+      - +@isprivate: "0"
+        commentid: "13596"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 11:46:23 +0200
+        thetext: |-
+          I added it to the code
+
+          mac011> svn commit
+          Sending        ft_analysispipeline.m
+          Sending        ft_analysisprotocol.m
+          Sending        ft_annotate.m
+          Sending        ft_anonimizedata.m
+          Sending        ft_appenddata.m
+          Sending        ft_appendfreq.m
+          Sending        ft_appendsource.m
+          Sending        ft_appendspike.m
+          Sending        ft_appendtimelock.m
+          Sending        ft_artifact_clip.m
+          Sending        ft_artifact_ecg.m
+          Sending        ft_artifact_eog.m
+          Sending        ft_artifact_jump.m
+          Sending        ft_artifact_muscle.m
+          Sending        ft_artifact_threshold.m
+          Sending        ft_artifact_zvalue.m
+          Sending        ft_channelnormalise.m
+          Sending        ft_channelrepair.m
+          Sending        ft_clusterplot.m
+          Sending        ft_combineplanar.m
+          Sending        ft_componentanalysis.m
+          Sending        ft_conjunctionanalysis.m
+          Sending        ft_connectivityanalysis.m
+          Sending        ft_connectivityplot.m
+          Sending        ft_connectivitysimulation.m
+          Sending        ft_databrowser.m
+          Sending        ft_definetrial.m
+          Sending        ft_denoise_pca.m
+          Sending        ft_denoise_synthetic.m
+          Sending        ft_dipolefitting.m
+          Sending        ft_dipolesimulation.m
+          Sending        ft_electroderealign.m
+          Sending        ft_examplefunction.m
+          Sending        ft_freqanalysis.m
+          Sending        ft_freqanalysis_mvar.m
+          Sending        ft_freqbaseline.m
+          Sending        ft_freqcomparison.m
+          Sending        ft_freqdescriptives.m
+          Sending        ft_freqgrandaverage.m
+          Sending        ft_freqinterpolate.m
+          Sending        ft_freqsimulation.m
+          Sending        ft_freqstatistics.m
+          Sending        ft_headmovement.m
+          Sending        ft_interactiverealign.m
+          Sending        ft_interpolatenan.m
+          Sending        ft_lateralizedpotential.m
+          Sending        ft_layoutplot.m
+          Sending        ft_math.m
+          Sending        ft_megplanar.m
+          Sending        ft_megrealign.m
+          Sending        ft_movieplotER.m
+          Sending        ft_movieplotTFR.m
+          Sending        ft_multiplotCC.m
+          Sending        ft_multiplotER.m
+          Sending        ft_multiplotTFR.m
+          Sending        ft_mvaranalysis.m
+          Sending        ft_neighbourplot.m
+          Sending        ft_networkanalysis.m
+          Sending        ft_prepare_bemmodel.m
+          Sending        ft_prepare_concentricspheres.m
+          Sending        ft_prepare_headmodel.m
+          Sending        ft_prepare_layout.m
+          Sending        ft_prepare_leadfield.m
+          Sending        ft_prepare_localspheres.m
+          Sending        ft_prepare_mesh.m
+          Sending        ft_prepare_neighbours.m
+          Sending        ft_prepare_singleshell.m
+          Sending        ft_prepare_sourcemodel.m
+          Sending        ft_preprocessing.m
+          Sending        ft_qualitycheck.m
+          Sending        ft_recodeevent.m
+          Sending        ft_redefinetrial.m
+          Sending        ft_regressconfound.m
+          Sending        ft_rejectartifact.m
+          Sending        ft_rejectcomponent.m
+          Sending        ft_rejectvisual.m
+          Sending        ft_removetmsartifact.m
+          Sending        ft_resampledata.m
+          Sending        ft_scalpcurrentdensity.m
+          Sending        ft_sensorrealign.m
+          Sending        ft_singleplotER.m
+          Sending        ft_singleplotTFR.m
+          Sending        ft_sliceinterp.m
+          Sending        ft_sourceanalysis.m
+          Sending        ft_sourcedescriptives.m
+          Sending        ft_sourcegrandaverage.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourcemovie.m
+          Sending        ft_sourceparcellate.m
+          Sending        ft_sourceplot.m
+          Sending        ft_sourcestatistics.m
+          Sending        ft_sourcewrite.m
+          Sending        ft_statistics_montecarlo.m
+          Sending        ft_stratify.m
+          Sending        ft_timelockanalysis.m
+          Sending        ft_timelockbaseline.m
+          Sending        ft_timelockgrandaverage.m
+          Sending        ft_timelockstatistics.m
+          Sending        ft_topoplotCC.m
+          Sending        ft_topoplotER.m
+          Sending        ft_topoplotIC.m
+          Sending        ft_topoplotTFR.m
+          Sending        ft_volumedownsample.m
+          Sending        ft_volumelookup.m
+          Sending        ft_volumenormalise.m
+          Sending        ft_volumerealign.m
+          Sending        ft_volumereslice.m
+          Sending        ft_volumesegment.m
+          Sending        ft_volumewrite.m
+          Sending        utilities/ft_preamble.m
+          Sending        utilities/private/ft_postamble_savevar.m
+          Sending        utilities/private/ft_preamble_init.m
+          Sending        utilities/private/ft_preamble_loadvar.m
+          Transmitting file data .................................................................................................................
+          Committed revision 9520.
+
+          There are some plans to implement automatic distributed computing, which would also benefit from having this abort functionality.
+      - +@isprivate: "0"
+        commentid: "13633"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:53 +0200
+        thetext: closed several of my bugs that have been resolved

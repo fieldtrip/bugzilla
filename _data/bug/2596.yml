@@ -1,0 +1,223 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2596"
+    creation_ts: 2014-05-29 15:26:00 +0200
+    short_desc: ft_sourcegrandaverage with cfg.inputfile leads to error by ft_selectdata / ft_preamble
+    delta_ts: 2014-07-03 17:26:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: REOPENED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2054
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2625
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13788"
+        comment_count: "0"
+        attachid: "629"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-05-29 15:26:40 +0200
+        thetext: "Created attachment 629\nScreenshot of the error. Used script is given above.\n\nIf I call ft_sourcegrandaverage and define the input via cfg.inputfile this leads to an error by ft_selectdata / ft_preamble / ft_preamble_var\n\n\"cfg.inputfile should not be used in conjunction with giving input data to this function\".\n\nHowever, I don't give input data to ft_sourcegrandaverage. I guess ft_sourcegrandaverage calls subfunctions the wrong way. In the screenshot, the result of the following script is shown:\n\n--\n\n% First, I give the data as input arguments. The actual input data shouldn't matter I guess.\n\ns01 = load('sourceDiff_s01.mat', 'sourceDiff'); \ns02 = load('sourceDiff_s02.mat', 'sourceDiff');\n\ns01 = s01.sourceDiff; s02 = s02.sourceDiff;\n\ncfg             = [];\ncfg.parameter   = 'avg.pow';\n            \nGA              = ft_sourcegrandaverage(cfg, s01, s02);\n\n% This works perfectly well. Then I give the same data as cfg.inputfile.\n\ncfg.inputfile   = {fullfile(pwd, 'sourceDiff_s01.mat'), fullfile(pwd, 'sourceDiff_s02.mat')};\n\nGA              = ft_sourcegrandaverage(cfg);\n\n--\n\nThanks and keep up the good work,\nJens"
+      - +@isprivate: "0"
+        commentid: "13822"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-10 16:19:58 +0200
+        thetext: |-
+          (In reply to jens.klinzing from comment #0)
+          This happens because ft_selectdata specifies ft_preamble loadvar, while ft_sourcegrandaverage already calls ft_preamble loadvar before the call to ft_selectdata.
+
+          My proposal is to remove loadvar from ft_selectdata, as I don't see very good use cases for that (i.e. ft_selectdata is not a true 'analysis step' in a pipeline). Alternatively, we could let all the loadvar'ing be taken care of by ft_selectdata, but that would be very messy.
+
+          Robert, would you agree to remove loadvar from ft_selectdata?
+      - +@isprivate: "0"
+        commentid: "13824"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-11 13:16:11 +0200
+        thetext: |-
+          Although loadvar'ing is probably not something that ft_selectdata should be doing, the in general best approach would be to work with a tempcfg when an ft_function is called within a ft_function. rollback provenance should then be applied so that the details of the tempcfg will be represented in the main cfg.
+          This does not only affect ft_selectdata (being called from within an ft_function) but is a general issue.
+      - +@isprivate: "0"
+        commentid: "13915"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-20 15:02:15 +0200
+        thetext: |-
+          Fixed. Since we decided the programming pattern of the tmpcfg is a general one and to be adopted, I facilitated this with a simple private function. The following is now in place in ft_sourcegrandaverage in place of the previous ft_selectdata call:
+
+          % ensure a consistent selection of the data over all inputs
+          tmpcfg = maketmpcfg(cfg,...
+            {'parameter', 'trials', 'latency', 'frequency', 'foilim'});
+          [varargin{:}] = ft_selectdata(tmpcfg, varargin{:});
+          [cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});
+
+          --
+
+          bash-4.1$ svn commit ft_sourcegrandaverage.m private/maketmpcfg.m
+          Sending        ft_sourcegrandaverage.m
+          Adding         private/maketmpcfg.m
+          Transmitting file data ..
+          Committed revision 9645.
+      - +@isprivate: "0"
+        commentid: "13916"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-20 15:04:52 +0200
+        thetext: Great. I guess, this needs to be built in at other places as well...
+      - +@isprivate: "0"
+        commentid: "13918"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 15:56:28 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #3)
+
+          The maketmpcfg reminds me of some sub functions that I implemented in ft_selectdata and ft_checkdata, but with a more general function name. See below. I believe that they would work just fine for the tmpcfg.
+
+          We could make these two functions stand-alone, and have them in fieldtrip/private and fieldtrip/utilities/private. Or I guess that they are useful enough to have them on the command line, just like getsubfield.
+
+
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          function [data] = keepfields(data, fn)
+          fn = setdiff(fieldnames(data), fn);
+          for i=1:numel(fn)
+            data = rmfield(data, fn{i});
+          end
+
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          function [data] = removefields(data, fn)
+          fn = intersect(fieldnames(data), fn);
+          for i=1:numel(fn)
+            data = rmfield(data, fn{i});
+          end
+      - +@isprivate: "0"
+        commentid: "13919"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 15:58:39 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          mac011> svn commit .
+          Sending        ft_checkdata.m
+          Sending        ft_selectdata.m
+          Sending        ft_selectdata_new.m
+          Adding         keepfields.m
+          Adding         removefields.m
+          Transmitting file data .....
+          Committed revision 9649.
+      - +@isprivate: "0"
+        commentid: "13920"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 16:07:06 +0200
+        thetext: "mac011> svn commit private/maketmpcfg.m utilities/ ft_sourcegrandaverage.m \nSending        ft_sourcegrandaverage.m\nDeleting       private/maketmpcfg.m\nSending        utilities/keepfields.m\nSending        utilities/removefields.m\nTransmitting file data ...\nCommitted revision 9651."
+      - +@isprivate: "0"
+        commentid: "13921"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 16:13:34 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #4)\n\nThe tmpcfg construct happens a lot, and in some functions it is quite elaborate. It would indeed be a nice code cleanup to use this throughout: \n\ntmpcfg = keepfields(cfg, {...})\n\nHence I reopen the bug. \n\n\nmac011> grep -l tmpcfg'\\.'.*=.*cfg'\\.'\\.* *.m\nft_artifact_eog.m\nft_artifact_jump.m\nft_artifact_muscle.m\nft_artifact_tms.m\nft_componentanalysis.m\nft_connectivityplot.m\nft_databrowser.m\nft_denoise_pca.m\nft_dipolefitting.m\nft_freqanalysis.m\nft_freqstatistics.m\nft_headmovement.m\nft_math.m\nft_megrealign.m\nft_multiplotER.m\nft_multiplotTFR.m\nft_mvaranalysis.m\nft_prepare_headmodel.m\nft_prepare_leadfield.m\nft_prepare_mesh.m\nft_prepare_sourcemodel.m\nft_rejectartifact.m\nft_removetemplateartifact.m\nft_singleplotER.m\nft_singleplotTFR.m\nft_sourceanalysis.m\nft_sourceinterpolate.m\nft_sourceplot.m\nft_sourcestatistics.m\nft_statistics_montecarlo.m\nft_timelockanalysis.m\nft_volumenormalise.m\nft_volumerealign.m\nft_volumereslice.m\nft_volumesegment.m\nft_volumewrite.m"
+      - +@isprivate: "0"
+        commentid: "13922"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 16:14:06 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #8)
+
+          and some more here
+
+          mac011> grep -l tmpcfg'\.'.*=.*cfg'\.'\.* private/*.m
+          private/rollback_provenance.m
+          private/statistics_wrapper.m
+          private/topoplot_common.m
+      - +@isprivate: "0"
+        commentid: "13924"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-21 09:25:17 +0200
+        thetext: |-
+          I have done a few that call ft_volumedownsample: use tmpcfg=keepfields and rollback_provenance.
+
+          mac011> svn commit ft_prepare_mesh.m ft_sourceinterpolate.m ft_sourceplot.m *volume*m
+          Sending        ft_prepare_mesh.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourceplot.m
+          Sending        ft_volumedownsample.m
+          Sending        ft_volumenormalise.m
+          Sending        ft_volumerealign.m
+          Sending        ft_volumereslice.m
+          Sending        ft_volumesegment.m
+          Sending        ft_volumewrite.m
+          Transmitting file data .........
+          Committed revision 9654.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "629"
+      date: 2014-05-29 15:26:00 +0200
+      delta_ts: 2014-05-29 15:26:40 +0200
+      desc: Screenshot of the error. Used script is given above.
+      filename: error.PNG
+      type: image/png
+      size: "38119"
+      attacher:
+        +content: jens.klinzing
+        +@name: Jens Klinzing
+      data: REMOVED

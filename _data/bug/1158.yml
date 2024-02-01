@@ -1,0 +1,221 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1158"
+    creation_ts: 2011-11-16 08:12:00 +0100
+    short_desc: Wrong channeighbstructmat in newer ft versions
+    delta_ts: 2013-03-20 12:17:50 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: gregor.volberg
+      +@name: Gregor Volberg
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4018"
+        comment_count: "0"
+        who:
+          +content: gregor.volberg
+          +@name: Gregor Volberg
+        bug_when: 2011-11-16 08:12:04 +0100
+        thetext: "This potential bug occurred during the call of ft_freqstatistics with cfg.correctm = 'cluster'. Although the same neighbourhood-structure and the same overall cfg was used, older versions of ft (fieldtrip-20100810, fieldtrip-20101010) revealed a different clustering of significant electrodes than newer versions (fieldtrip-20111012, fieldtrip-20111028). In the newer versions, electrodes that were actually not neighbours were grouped into one cluster.\n\nA deeper look revealed that older and newer fieldtrip versions constructed different channeighbstructmat matrices from the same neighbours, possibly due to an irregular call of the spm function 'spm_bwlabel.m' in the newer version. During the call of ft_freqstatistics, a warning is issued by fieldtrip-20111012 saying that the spm8 toolbox is added to the path. (after computing the montecarlo statistics and before entering the cluster randomization; 'Warning: adding /loctmp/m-lib/fieldtrip-20111012/external/spm8 toolbox to your Matlab path'). Accordingly, removing the spm8 toobox from the fieldtrip-20111012 installation  issues the following error: \n??? Undefined function or method 'spm_bwlabel' for input arguments of type 'double'.\n\nError in ==> findcluster at 95\n  [labelmat(spatdimlev, :, :), num] = spm_bwlabel(double(reshape(onoff(spatdimlev, :, :), nfreq, ntime)), 6);\n  % the previous code contained a '4' for input\n\nError in ==> clusterstat at 197\n            posclusobs = findcluster(reshape(postailobs, [cfg.dim,1]),channeighbstructmat,cfg.minnbchan);\n\nError in ==> statistics_montecarlo at 319\n  [stat, cfg] = clusterstat(cfg, statrand, statobs,'issource',issource);\n\nError in ==> ft_freqstatistics at 279\n  [stat, cfg] = statmethod(cfg, dat, cfg.design);\n \n\nAn example output is provided below. fieldtrip-20101010 and fieldtrip-20111012 both identify two positive clusters and identify the same electrodes as candidates for clustering. However, fieldtrip-20111012 combines electrodes into clusters that are not actually neighbours.\n\n\n\n\n**** Example code\n\ncfg=[];\ncfg.neighbours    = neighbours;\ncfg.frequency = [5 8]; \ncfg.latency       = [0 0.7]; \ncfg.avgovertime   = 'yes';\ncfg.avgoverfreq = 'yes';\ncfg.method        = 'montecarlo';\ncfg.correctm       = 'cluster';\ncfg.statistic     = 'depsamplesT';\ncfg.tail          = 0;\ncfg.correcttail = 'prob'\ncfg.alpha         = 0.05;\ncfg.clusteralpha = 0.05;\ncfg.numrandomization = 1000;\ncfg.design = [[1:17 1:17]; [zeros(1,17)+1 zeros(1,17)+2]];\ncfg.uvar          = 1;\ncfg.ivar          = 2;\ncfg.layout        = '29channel.lay';\nstat = ft_freqstatistics(cfg, ga_con, ga_incon);\n\nwith \nga_con = \n\n        label: {29x1 cell}\n         freq: [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21]\n         time: [1x401 double]\n       dimord: 'subj_chan_freq_time'\n    powspctrm: [4-D double]\n          cfg: [1x1 struct]\nga_incon = \n\n        label: {29x1 cell}\n         freq: [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21]\n         time: [1x401 double]\n       dimord: 'subj_chan_freq_time'\n    powspctrm: [4-D double]\n          cfg: [1x1 struct]\n\n\n* Results with fieldtrip-20101010. The electrodes within each cluster are real neighbours within a 29 channel net.\n\n>> stat.label(stat.posclusterslabelmat ==1)\n\nans = \n\n    'P3'\n    'P4'\n    'O2'\n    'T8'\n    'P8'\n    'Pz'\n    'CP1'\n    'FC6'\n    'CP5'\n    'CP6'\n\n>> stat.label(stat.posclusterslabelmat ==2)\n\nans = \n\n    'Fp2'\n    'F3'\n    'Fz'\n    'FC1'\n\n\n\n* Results with fieldtrip-20111012. Fp2 and F3 are actually not neighbours of the othe relectrodes in cluster 1, and Fz is not a neighbour of the other electrodes in cluster 2.\n>> stat.label(stat.posclusterslabelmat ==1)\n\nans = \n\n    'Fp2'\n    'F3'\n    'P3'\n    'Pz'\n    'FC1'\n    'CP1'\n    'FC6'\n    'CP6'\n\n>> stat.label(stat.posclusterslabelmat ==2)\n\nans = \n\n    'P4'\n    'O2'\n    'T8'\n    'P8'\n    'Fz'\n    'CP5'"
+      - +@isprivate: "0"
+        commentid: "4079"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:51 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4085"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 11:35:47 +0100
+        thetext: |-
+          Dear Gregor Volberg,
+
+          Thank you for this elaborate bug report. The warning that spm8 is added to the path was mainly meant to inform users that that path was changed by FieldTrip. This is done since it masks common MATLAB functions with spm8 variants, if I am not mistaken.
+
+          Could you provide a file with data you used (ga_con and ga_incon), or alternatively, artificial data that displays the same problem?
+
+          Best regards,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4133"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-18 14:23:50 +0100
+        thetext: Sent FTP instructions through email.
+      - +@isprivate: "0"
+        commentid: "4145"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-18 21:17:34 +0100
+        thetext: I received the files needed for reproduction through FTP.
+      - +@isprivate: "0"
+        commentid: "4155"
+        comment_count: "5"
+        attachid: "190"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-21 13:12:28 +0100
+        thetext: |-
+          Created attachment 190
+          Script to reproduce bug. Data is stored on mentat shared drive.
+      - +@isprivate: "0"
+        commentid: "4156"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-21 13:14:14 +0100
+        thetext: I have confirmed that the results indeed changed between the two MATLAB versions.
+      - +@isprivate: "0"
+        commentid: "4202"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-23 11:23:57 +0100
+        thetext: |-
+          (In reply to comment #6)
+          Correction: Confirmed difference between SVN revision 1896 and the latest revision, not MATLAB versions.
+      - +@isprivate: "0"
+        commentid: "4248"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-24 08:59:08 +0100
+        thetext: |-
+          Update from the mailinglist:
+
+          Hi Gregor and Jörn,
+
+          I find a simliar problem in my data (bti148).
+          2 sets of channels that share no connections across the sets are included in one cluster.
+
+          I am not sure, whether spm_bwlabel is the actual problem. However, I do not really understand why calling that function would be necessary.
+          FT calls the function spm_bwlabel during findcluster.m, line 95. (findcluster.m is called by clusterstat.m).
+          As far as I understand, spm_bwlabel is similar to bwlabel.m which searches for connected bins in a matrix.
+          The input to spm_label is the vector 'onoff' (in may case :148x1 logical), which already contains information about neighboring channels.
+          Searching for connected bins in this vector does seem odd to me.
+
+          However, I supsect something else to be the reason for the wrong clustering, at least in my data.
+          In line 166, ft_freqstatistics.m changes the order of the channel labels:
+
+          chan = intersect(chan, varargin{i}.label);
+
+          Original order: {'A68'; 'A58'; 'A148';...}
+          Re-arranged in 'chan': {'A1';'A10';'A100'; 'A101'; 'A102';...}
+
+          in line 193, ft_freqstatistics calls:
+          cfg.channel = ft_channelselection(cfg.channel, chan);
+
+          now cfg.channel contains the re-aranged order.
+          On the basis of cfg.channel, the 'channeighbstructmat' is computed by makechanneighbstructmat(cfg) in clusterstat.m.
+          The statistics on the data is computed without re-arranging the channels in statfun_depsamplesT.m ('statobs').
+          In findcluster.m, line 84 (called during clusterstat.m, l. 197), the matrices 'onoff' and 'selectmat' are multiplied.
+          To my understanding, 'onoff' is based on the statistics that is computed with the originial channel order.
+          'selectmat' is based on the re-arranged order.
+          If true, the multiplication of these matrices is wrong.
+
+          Hope this helps, although I might have missed something obvious and might be totally wrong then.
+
+          best,
+          tobias
+      - +@isprivate: "0"
+        commentid: "4249"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-24 09:00:13 +0100
+        thetext: I thought I'd add the two of you to the discussion, because this is pretty relevant to everyone who had used clusterstatistics the last months(or longer?)
+      - +@isprivate: "0"
+        commentid: "4318"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-28 17:22:31 +0100
+        thetext: It's been the messed up channel order Tobias was talking about. I just still want to find out when this bug was introduced, in order to track back when results got wrong
+      - +@isprivate: "0"
+        commentid: "4347"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-30 10:46:19 +0100
+        thetext: The bug was introduced in revision 3499, that's from May 2011 on
+      - +@isprivate: "0"
+        commentid: "7220"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:13 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "9920"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-20 12:17:50 +0100
+        thetext: This should be discussed in the FT meeting in 45 minutes. It seems the line of code related to chan when i ~= 1 introduced another bug, related to bug 2069.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "190"
+      date: 2011-11-21 13:12:00 +0100
+      delta_ts: 2011-11-21 13:12:28 +0100
+      desc: Script to reproduce bug. Data is stored on mentat shared drive.
+      filename: bug1158.m
+      type: text/x-objcsrc
+      size: "1100"
+      attacher:
+        +content: b.reuderink
+        +@name: Boris Reuderink
+      data: REMOVED

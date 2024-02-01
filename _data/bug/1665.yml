@@ -1,0 +1,157 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1665"
+    creation_ts: 2012-08-21 19:36:00 +0200
+    short_desc: align_ctf2spm.m fails on regular donders MRI data
+    delta_ts: 2012-08-23 10:47:18 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: isheftel
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7052"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-21 19:36:20 +0200
+        thetext: "On 21 Aug 2012, at 17:25, Irina Simanova wrote:\n\nHi Robert,\n \nI came back from a long weekend , and now I have problems with fieldtrip/utilities/privat/align_ctf2spm.m\nAll operations with anatomical scans that require this function fail with an SPM error: “There is not enough overlap in the images  to obtain a solution”.\n \nI am pretty sure I didn’t see this error last week with the very same scripts. I see that align_ctf2spm.m was modified last Friday (aug 17).\nIs it a bug? Or should I now align individual structural image with the template in order it to work?\n \nBest,\nIrina\n \nHere is the full text of the error:\n \n \n    * - SPM8: spm_affreg  ----------------------------------------------\n \n        There is not enough overlap in the images\n        to obtain a solution.\n        \n        Please check that your header information is OK.\n        The Check Reg utility will show you the initial\n        alignment between the images, which must be\n        within about 4cm and about 15 degrees in order\n        for SPM to find the optimal solution.\n \n        -----------------------------------------  17:11:17 - 21/08/2012\n \n??? Error using ==> spm_affreg>error_message at 474\ninsufficient image overlap\n \nError in ==> spm_affreg at 177\n        if length(msk)<32, error_message; end;\n \nError in ==> align_ctf2spm at 61\n[M, scale]    = spm_affreg(V1,V2,flags);\n \nError in ==> ft_convert_coordsys at 63\n          obj = align_ctf2spm(obj);\n \nError in ==> ft_volumesegment at 263\n  mri = ft_convert_coordsys(mri, 'spm');\n \nError in ==> MEG_process_structural at 66\n    struct_segment = ft_volumesegment(cfg, struct_reslice);"
+      - +@isprivate: "0"
+        commentid: "7053"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-21 19:37:31 +0200
+        thetext: |-
+          @Irina
+
+          could you attach (or better send through home/common because of privacy) the input MRI and cfg on which it fails? That will help in debugging and ensuring that the problem (when fixed) does not re-surface in the future.
+      - +@isprivate: "0"
+        commentid: "7055"
+        comment_count: "2"
+        who:
+          +content: isheftel
+          +@name: Irina
+        bug_when: 2012-08-22 08:50:29 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          I put a mat-file with an MRI image in Fieldtrip format into common/temporary/4Bugzilla
+
+          Here is the code:
+
+          load segmentedS2 struct_reslice
+
+          cfg = [];
+          cfg.coordsys  = 'ctf';
+          struct_segment = ft_volumesegment(cfg, struct_reslice);
+      - +@isprivate: "0"
+        commentid: "7056"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 09:01:18 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+
+          thanks. I have copied the test data to
+
+          roboos@mentat001> pwd
+          /home/common/matlab/fieldtrip/data/test/bug1665
+
+          roboos@mentat001> ls
+          segmentedS2.mat
+      - +@isprivate: "0"
+        commentid: "7057"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-08-22 09:27:54 +0200
+        thetext: |-
+          error reproduced. it could be caused by the fact that the bounding box around the anatomical does not fully encapsulate the whole head. If I take a resliced MRI, in which this is the case, i.e. the head is more centered in the image, the affine registration works just fine.
+          It could have another cause though, but this would be my first guess.
+      - +@isprivate: "0"
+        commentid: "7058"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-08-22 09:38:59 +0200
+        thetext: |-
+          Hi Irinia,
+
+          Could you also upload the original MRI so that I can see why the reslicing does not work appropriately?
+      - +@isprivate: "0"
+        commentid: "7061"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-08-22 10:01:58 +0200
+        thetext: |-
+          Found it. After reslicing the anatomical volume contains NaNs. This is something SPM cannot handle.
+          I suggest to fix this in ft_volumereslice, and to build in a check in align_ctf2spm to convert the NaNs to 0.
+          Also, I will build a try catch around the spm based coregistration, so that the function will not crash, but just provides the initial (and sometimes inaccurate) coregistration matrix.
+
+          @Robert: agreed?
+      - +@isprivate: "0"
+        commentid: "7064"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 10:23:26 +0200
+        thetext: "(In reply to comment #6)\n\nI agree with the 0s instead of NaNs (at both locations, i.e. when creating and\nalso when using it). Is it an idea to implement this through ft_checkdata (and\ncode+documentation it in ft_datatype_volume), i.e. there we can state that the\nanatomy is not allowed to contain NaNs? \n\nI am not sure what the value is of getting the initial coregistration matrix in\ncase SPM fails. If that is of little value, then it is better to throw the SPM\nerror."
+      - +@isprivate: "0"
+        commentid: "7066"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-08-22 10:51:37 +0200
+        thetext: |-
+          well, the initial coregistration matrix is the one which was outputted prior to my changes last week. these have been of good enough value to the DCCN anatomicals so far. I am not sure whether I could imagine scenarios where the approximate coregistration (if not accurate enough to begin with) is sufficient.
+
+          I would be happy to then stick to the SPM error.
+
+          Do we have an accord?
+      - +@isprivate: "0"
+        commentid: "7068"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-08-22 11:13:58 +0200
+        thetext: "svn commit ../ft_volumereslice.m private/align_itab2spm.m private/align_ctf2spm.m ft_datatype_volume.m\nSending        ft_volumereslice.m\nSending        utilities/ft_datatype_volume.m\nSending        utilities/private/align_ctf2spm.m\nSending        utilities/private/align_itab2spm.m\nTransmitting file data ....\nCommitted revision 6393.\n\n\nand \n\n\nsvn commit test_bug1665.m\nSending        test_bug1665.m\nTransmitting file data .\nCommitted revision 6394."

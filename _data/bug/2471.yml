@@ -1,0 +1,116 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2471"
+    creation_ts: 2014-02-11 17:31:00 +0100
+    short_desc: ft_timelockgrandaverage does not handle differences in trial length under 'within'
+    delta_ts: 2014-03-13 10:25:11 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: alik.widge
+      +@name: Alik Widge
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12815"
+        comment_count: "0"
+        who:
+          +content: alik.widge
+          +@name: Alik Widge
+        bug_when: 2014-02-11 17:31:04 +0100
+        thetext: "I have encountered a behavior with ft_timelockgrandaverage that seems to me to be a bug. I'm using the attached .mat, and you can replicate the behavior with:\n\n        cfg = [];\n        cfg.channel = 'all';  \n        cfg.keepindividual = 'no';\n        cfg.method = 'within';\n\nout_data = ft_timelockgrandaverage(cfg,Dstruct.on.MSITOnset.global.x{:});\n\n\nThis will crash due to an array dimension mismatch. It does so because my different subjects/blocks in x{:} have different numbers of samples. Up around line 147, the ft_ function goes through varargin{:} and cuts down the averaged variable (in my case, 'avg') so that it has the same number of samples in each of the varargin{:} data structures.\nThe thing that I feel is a bug: it cuts the data, (expressed as  varargin{i}.(cfg.parameter) ), but it does NOT similarly cut the variance ( varargin{i}.var ) or the per-timepoint DOF ( varargin{i}.dof ). As a result, when it gets to line 193 and tries to do\n\n      avgmat(s, :, :) = varargin{s}.(cfg.parameter).*varargin{s}.dof;\n\nthe (cfg.parameter) and dof matrices are now of different sizes, and we crash.\n\n----\n\nI have fixed it in my local copy by adding, around line 150:\n    case 'chan_time'\n      varargin{i}.(cfg.parameter) = varargin{i}.(cfg.parameter)(chansel,timesel);\n      \n      % ALIK CODE HACK %\n      if strcmp(cfg.method,'within')\n          for fld = {'var','dof'}\n             fld = fld{1};\n             if isfield(varargin{i},fld)\n                varargin{i}.(fld)= varargin{i}.(fld)(chansel,timesel);                \n             end\n          end\n      end\n      % END ALIK CODE HACK %\n\n\nI am not sure whether this would also apply to some of the other 'dimord' cases, as I have not carefully thought about them and don't have test data."
+      - +@isprivate: "0"
+        commentid: "12816"
+        comment_count: "1"
+        who:
+          +content: alik.widge
+          +@name: Alik Widge
+        bug_when: 2014-02-11 17:34:26 +0100
+        thetext: |-
+          https://www.dropbox.com/s/kczrroxel4tza80/reproduce_maybe_bug.mat
+
+          as it is a >10MB file.
+      - +@isprivate: "0"
+        commentid: "12842"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-02-14 17:26:28 +0100
+        thetext: "(In reply to Alik Widge from comment #1)\n\nBug fixed by updating the 'dof' field size accordingly when different data lengths need to be averaged.\nSending        ft_timelockgrandaverage.m\nTransmitting file data .\nCommitted revision 9204.\n\nand its test function\n\nAdding         test_bug2471.m\nTransmitting file data .\nCommitted revision 9205.\n\n\nHowever, I think we need to improve the data checking to avoid these matrix crashes. ft_timelockgrandmean (and ft_freqgrandmean) don't use ft_selectdata to ensure chan, time, freq... dimensions among varargin inputs are equal. \n\nI see potential solutions but not sure what to choose:\n\na) ft_selectdata: after usual cfg checks, call ft_selectdata to ensure channel, time, frequency (for ft_freqgrandmean). Caveat: if something is wrong with ft_selectdata (old to new transition), we'll crash\n\nb) use private functions checkchan/time/freq to ensure proper matrix dimension.\n\nNot sure if grad/elec should be checked because in line 249 revision 9204 (ft_timelockgrandaverage) the varargin{1}.grad/elec is taken as output.\n\nI think field var should be deleted explicitly with 'within' method"
+      - +@isprivate: "0"
+        commentid: "12843"
+        comment_count: "3"
+        who:
+          +content: alik.widge
+          +@name: Alik Widge
+        bug_when: 2014-02-14 20:19:59 +0100
+        thetext: |-
+          I am not actually sure that I would want you to do that consistency check. In fact, I've actively modified local copies of the FT functions to NOT do it, or at least to behave well when consistency is violated. Here's the situation I routinely encounter, and it seems to me that this *should* be common for others based on my limited experience:
+
+          I run N subjects. Of them, perhaps N/2 have one of many EEG channels missing, but usually a different one per subject (and there's a limit to how much I trust ft_channelrepair). Then, a semi-overlapping N/2 have trials where I just couldn't get rid of all the artifact, and I had to NaN out small chunks of data. Often, there's enough otherwise-good data in those trials and N is small enough that I do not wish to just throw out everything but the purest/cleanest of trials and channels.
+
+          The behavior *I* consider reasonable is for the functions to gracefully use all the data available at any given chan x time or chan x freq x time point, keeping track of DOF appropriately, but basically behaving analogous to matlab's builtin nanmean(). It requires a bit of bookkeeping about which 2D or 3D points exist for each of the varargin{}, but in the relative scheme of things, that's not a big amount of memory.
+      - +@isprivate: "0"
+        commentid: "12844"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-02-16 13:50:17 +0100
+        thetext: |-
+          (In reply to Alik Widge from comment #3)
+          Dear Alik,
+          Thank you for your comments and suggestions: we'll take into account. Lasts comments I made were to inform the fieldtrip development team to help me out the best way to proceed. Regarding how to take into account different missing channels and what to do with them, it might be a different problem but I'll consider it too
+          Diego
+      - +@isprivate: "0"
+        commentid: "12978"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-26 14:31:50 +0100
+        thetext: "Discussed in FT-meeting 26 Feb. It sparked a lengthy fundamental discussion about the representation of the data, potential ambiguities and consistency across the code base. \n\nBottom line: we will revamp the ft_timelockgrandaverage function to behave consistently with respect to other XXXgrandaverage functions, or more in general, to functions that take multiple data arguments in the input. In other words, use ft_selectdata.\n\nWe need a test-script with well-defined data designed to fail on situations where we want it to fail (with an explicit error generated in FT-code) and to succeed in situations where it should work.\n\nWith respect to the missing channel issue. This is a different issue an can be followed up on bug 2221"
+      - +@isprivate: "0"
+        commentid: "13077"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-13 10:16:51 +0100
+        thetext: "the commit from Diego that is here\nhttp://code.google.com/p/fieldtrip/source/diff?spec=svn9285&r=9285&format=side&path=/trunk/ft_timelockgrandaverage.m\ncauses the test_bug1162 script to fail.\n\nThat test script calls ft_timelockgrandaverage for an unrelated reason (provenance of two input args), but uses a timelock representation that probably should be considered incorrect:\n\ntimelock1 = [];\ntimelock1.label = {'1' '2'};\ntimelock1.time  = 1:5;\ntimelock1.dimord = 'rpt_chan_time';\ntimelock1.avg = randn(2,5);\ntimelock1.cfg = 'this is number 1';\n\nAs you see timelock1.avg has size [5 2], whereas based on the dimord it is expected to be [1 5 2].\n\nI consider this to be an error in the test data, which I will fix by changing it into \n\n\ntimelock1 = [];\ntimelock1.label = {'1' '2'};\ntimelock1.time  = 1:5;\ntimelock1.dimord = 'rpt_chan_time';\ntimelock1.avg = randn(1,2,5);\ntimelock1.cfg = 'this is number 1';\n\nHowever, this only causes ft_timelockgrandaverage to fail further down."
+      - +@isprivate: "0"
+        commentid: "13078"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-13 10:25:11 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #6)\n\nI have been able to resolve it by allowing averaging over more than 2 dimensions, i.e. the grand average of the two is now\n\ngrandavg = \n       avg: [1x2x5 double]\n       var: [1x2x5 double]\n       dof: [1x2x5 double]\n      time: [1 2 3 4 5]\n     label: {2x1 cell}\n    dimord: 'rpt_chan_time'\n       cfg: [1x1 struct]\n\n\nmac001> svn commit ft_timelockgrandaverage.m test/test_bug1162.m\nSending        ft_timelockgrandaverage.m\nSending        test/test_bug1162.m\nTransmitting file data ..\nCommitted revision 9292."

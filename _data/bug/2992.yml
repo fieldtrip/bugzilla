@@ -1,0 +1,509 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2992"
+    creation_ts: 2015-10-22 00:49:00 +0200
+    short_desc: ft_statfun_correlationT is prone to cross-condition bias when creating the permutation distribution
+    delta_ts: 2019-08-10 12:31:35 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - e.hartstra
+      - e.maris
+      - r.oostenveld
+      - stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16235"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-22 00:49:39 +0200
+        thetext: "It seems that permuting labels of conditions for calculating a permutation distribution leads to biased estimates in case there is an offset across conditions. This may be best depicted as follows:\n\nnormal:\n~1000 ~1000 ~1000 ~1000\n~1       ~1       ~1       ~1\ncorr =  ~0\n\npost shuffling:\n~1000 ~1       ~1000 ~1000\n~1       ~1000 ~1       ~1\ncorr = anti-correlation\n\nThis systematic bias will lead to statistically significant correlations, despite the correlations themselves (i.e. without permuting) are perfectly fine. \n\n% simulate simple single-subject timelock structures\ndata_brain = [];\ndata_brain.trial = rand(10,1); % increasing \ndata_brain.dimord = 'rpt_chan_time';\ndata_brain.time = 1;\ndata_brain.label = {'1'};\n \ndata_behav = data_brain;\ndata_behav.trial = rand(10,1)+1000; % add scaling difference\n \n% compute statistics with correlationT\ncfg = [];\ncfg.method           = 'montecarlo';\ncfg.statistic        = 'ft_statfun_correlationT';\ncfg.numrandomization = 100;\n \nn1 = 10;    % n1 is the number of trials\ndesign              = zeros(2, n1 * 2);\ndesign(1,1:n1)      = 1;\ndesign(1,(n1 + 1):(n1 * 2)) = 2;\ndesign(2, :)        = [1:n1 1:n1];\ncfg.design           = design;\n \ncfg.ivar             = 1;\ncfg.uvar             = 2;\nstat = ft_timelockstatistics(cfg, data_brain, data_behav);\n\n\nstat = \n\n       prob: 0.0099\n    cirange: 0.0193\n       mask: 1\n       stat: -0.8405\n        ref: -3.2827\n        rho: -0.2848\n     dimord: 'chan_time'\n      label: {'1'}\n       time: 1\n        cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "16236"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-22 00:54:43 +0200
+        thetext: |-
+          As a (pre-liminary?) prevention, I have added the following check to ft_statfun_correlationT.m (line 77):
+
+          if strcmp(cfg.resampling, 'permutation')
+             error('shuffling the design matrix may bias the permutation distribution, see bug #2992 for details');
+          end
+      - +@isprivate: "0"
+        commentid: "16237"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-22 00:57:51 +0200
+        thetext: "(In reply to Arjen Stolk from comment #1)\n\nsvn commit ft_statfun_correlationT.m -m 'added prevention: check whether ft_statfun_correlationT is not used to create a permutation distribution, where it may be prone to biases between conditions'\narjsto@svn.fcdonders.nl's password: \nSending        ft_statfun_correlationT.m\nTransmitting file data .\nCommitted revision 10810."
+      - +@isprivate: "0"
+        commentid: "16238"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-22 01:29:26 +0200
+        thetext: "One solution would be to normalize the sample populations, separately per condition, prior to giving to ft_xxxstatistics. This way any systematic bias between conditions is taken care of, as much as possible. See example below (note that P > 0.05). However, this normalization procedure cannot be done within ft_statfun_correlationT itself since it receives already shuffled data (during permuting), meaning the bias is already incorporated (too late for normalizing).\n\n\n% simulate simple single-subject timelock structures with random data\ndata_brain = [];\ndata_brain.trial = rand(10,1); % increasing \ndata_brain.dimord = 'rpt_chan_time';\ndata_brain.time = 1;\ndata_brain.label = {'1'};\n \ndata_behav = data_brain;\ndata_behav.trial = rand(10,1)+1000; % add scaling difference\n\n% normalize\ndata_brain.trial = (data_brain.trial - nanmean(data_brain.trial)) ./ nanstd(data_brain.trial);\ndata_behav.trial = (data_behav.trial - nanmean(data_behav.trial)) ./ nanstd(data_behav.trial);\n\n% compute statistics with correlationT\ncfg = [];\ncfg.method           = 'montecarlo';\ncfg.statistic        = 'ft_statfun_correlationT';\ncfg.numrandomization = 100;\n\nn1 = 10;    % n1 is the number of trials\ndesign              = zeros(2, n1 * 2);\ndesign(1,1:n1)      = 1;\ndesign(1,(n1 + 1):(n1 * 2)) = 2;\ndesign(2, :)        = [1:n1 1:n1];\ncfg.design           = design;\n\ncfg.ivar             = 1;\ncfg.uvar             = 2;\nstat = ft_timelockstatistics(cfg, data_brain, data_behav);\n\nstat = \n\n       prob: 0.1188\n    cirange: 0.0631\n       mask: 0\n       stat: 0.9193\n        ref: 2.1213\n        rho: 0.3091\n     dimord: 'chan_time'\n      label: {'1'}\n       time: 1\n        cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "16239"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-22 05:44:35 +0200
+        thetext: "Moving forward a bit more, I have adjusted the documentation of ft_statfun_correlationT into:\n\n% When using this function to calculate a randomization distribution, for\n% statistical inference purposes, it is recommended to use the bootstrapping \n% approach (cfg.resampling = 'bootstrap') when calling any of the\n% high-level statistics functions above. The default (cfg.resampling = 'permutation')\n% may be prone to systematic across-condition bias, see bugreport #2992: \n% http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2992\n\nAnd since the permutation option should in theory be fine when there is no systematic across-condition bias (either resolved by normalization, or simply not present in the first place), I've changed the error throwing into a warning linking to this bug report and suggesting the bootstrapping method:\n\nif strcmp(cfg.resampling, 'permutation')\n  warning('permutation may be prone to systematic across-condition bias, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2992, consider using the bootstrap resampling method instead (cfg.resampling = ''bootstrap'')');\nend\n\nUsing cfg.resampling = 'bootstrap':\n\n% simulate simple single-subject timelock structures\ndata_brain = [];\ndata_brain.trial = rand(10,1); % increasing\ndata_brain.dimord = 'rpt_chan_time';\ndata_brain.time = 1;\ndata_brain.label = {'1'};\n\ndata_behav = data_brain;\ndata_behav.trial = rand(10,1)+1000; % add offset (which should be not allowed to bias the results)\n\n% compute statistics with correlationT\ncfg = [];\ncfg.statistic        = 'ft_statfun_correlationT';\ncfg.method           = 'montecarlo';\ncfg.resampling       = 'bootstrap'; % this parameter is crucial, the default (permutation) is prone to systematic across-condition bias\ncfg.numrandomization = 1000;\n\nn1 = 10;    % n1 is the number of trials\ndesign              = zeros(2, n1 * 2);\ndesign(1,1:n1)      = 1;\ndesign(1,(n1 + 1):(n1 * 2)) = 2;\ndesign(2, :)        = [1:n1 1:n1];\ncfg.design           = design;\n\ncfg.ivar             = 1;\ncfg.uvar             = 2;\nstat = ft_timelockstatistics(cfg, data_brain, data_behav);\n\nstat = \n\n       prob: 0.4535\n    cirange: 0.0308\n       mask: 0\n       stat: 1.7552\n        ref: 3.9421\n        rho: 0.5273\n     dimord: 'chan_time'\n      label: {'1'}\n       time: 1\n        cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "16241"
+        comment_count: "5"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-10-22 09:20:26 +0200
+        thetext: |-
+          Hoi Arjen,
+
+          Ik stel voor dat we even wachten met aanpassingen van de documentatie. Ik heb een grote voorkeur voor principe-gebaseerde oplossingen ipv patches, maar op dit moment weet ik nog niet wat deze statfun precies doet. We moeten ook de vergelijking maken met statfun_depsamplesRegrT en statfun_indepsamplesRegrT, die een zeer vergelijkbare functionaliteit hebben (als de data normaal verdeeld zijn, zijn de correlatie en de regressiecoeffient toets equivalent in het Neyman-Pearson framework). Ik dat sommige FT-gebruikers beiden gebruikt hebben, en wij moeten daarom aan kunnen geven wanneer er verschillen te verwachten.
+
+          Ik heb sowieso een probleem met het adviseren van de Bootstrap als alternatief voor de permutatietoets: er is geen algemeen-bruikbare statistische theorie van de Bootstrap, dit in tegenstelling tot de permutatietoets.
+
+          groet,
+          Eric
+      - +@isprivate: "0"
+        commentid: "16245"
+        comment_count: "6"
+        who:
+          +content: e.hartstra
+          +@name: Egbert Hartstra
+        bug_when: 2015-10-23 17:35:44 +0200
+        thetext: "Hi Arjen and Eric,\n\nI have followed the discussion on the mailing list and on the bug report and I was wondering if the following approach could be a solution? When shuffling the data during the permutation steps one could shuffle only the first part of the uvar variable such that in each permutation the brain data gets randomly linked with the behavioral data. In an example of a data set with 10 subjects:\n\nbefore permutation:\nivar: 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2\nuvar: 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10\n\nafter permutation:\nivar: 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2\nuvar: 2 5 10 3 1 6 7 4 8 9 1 2 3 4 5 6 7 8 9 10\n\nHowever I am not sure if:\n\n1. This type of shuffling is allowed during the permutation tests?\n\n2. What would happen in cases in which during permutation there are multiple instances in which for example the brain data from the same subject becomes linked with the behavioral data of that same subject? Would this not increase the likelihood of false negatives? \n\n3. Other consequences?\n\nI am curious what you think.\n\nBest,\nEgbert"
+      - +@isprivate: "0"
+        commentid: "16246"
+        comment_count: "7"
+        attachid: "746"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-23 19:12:17 +0200
+        thetext: |-
+          Created attachment 746
+          permutation simulation
+      - +@isprivate: "0"
+        commentid: "16247"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-23 19:17:45 +0200
+        thetext: "Thanks for joining the discussion, Egbert. To better illustrate the behavior of the permutation under statfun_correlationT, see attached plot constituting iterative simulations of brain-behavior correlations involving 20 subjects. The brain and behavior values are random (between 0 and 1). What is different across iterations, is an offset (a shift in amplitude across conditions, the number in the figure's legend).\n\nAs can be observed, permuting with any offset (1, 10, or 100) will bias the randomization distribution towards the negative. Without bias, the distribution seems to lie around the real correlationT (1.68, see below).\n\n\nSIMULATION:\n\n% fake data\nnsubj = 20;\ndata1 = rand(nsubj,1);\ndata2 = rand(nsubj,1);\n\ncorr(data1, data2,'type','Spearman') = 0.3684\nwith nunits = nsubj, that is\ntstat = rho*(sqrt(max(nunits)-2))/sqrt((1-rho^2)) = 1.6812\n\n\n\n% from here onwards re-run iteratively (to keep rand numbers identical across sims)\ntempdata = data2+100;\n\n% simulate simple multiple subjects timelock structures\ndata_brain = [];\ndata_behav = [];\nfor j = 1:nsubj\n  data_brain{j}.avg = data1(j);\n  data_brain{j}.dimord = 'chan_time';\n  data_brain{j}.time = 1;\n  data_brain{j}.label = {'1'};\n  \n  data_behav{j} = data_brain{j};\n  data_behav{j}.avg = tempdata(j); \nend\n\n% compute statistics with correlationT\ncfg = [];\ncfg.statistic        = 'ft_statfun_correlationT';\ncfg.method           = 'montecarlo';\ncfg.resampling       = 'bootstrap'; % this parameter is crucial, the default (permutation) is prone to systematic across-condition bias\ncfg.numrandomization = 10000;\n\nn1 = nsubj;    % n1 is the number of subjects\ndesign              = zeros(2, n1 * 2);\ndesign(1,1:n1)      = 1;\ndesign(1,(n1 + 1):(n1 * 2)) = 2;\ndesign(2, :)        = [1:n1 1:n1];\ncfg.design           = design;\n\ncfg.ivar             = 1;\ncfg.uvar             = 2;\nstat = ft_timelockstatistics(cfg, data_brain{:}, data_behav{:});\n\n% debug in ft_statistics_montecarlo @ ft_progress('close') - line 352, and\n% uncomment stat.statkeep(:,i) = statrand; then save:\nsave('permutation_XXXoffset.mat','stat')\n\n\n\noffsets = {'0','1','10','100'};\nfigure;\nfor i = 1:numel(offsets)\n  load(['permutation_' offsets{i} 'offset.mat']);\n  hold on;\n  histogram(stat.statkeep)\nend\nload(['bootstrap_' offsets{4} 'offset.mat']);\nhold on;\nhistogram(stat.statkeep)\nlegend(offsets,'100 (bootstrap)')\nxlabel('t vals')\nylabel('counts')\nprint('permutationsim_differentoffsets', '-dpdf'); close"
+      - +@isprivate: "0"
+        commentid: "16248"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-23 19:30:30 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #8)
+
+          Note that the above code was for the 100 offset bootstrapping condition,
+          hence 1):
+
+          tempdata = data2+100;
+
+          and 2) this was uncommented:
+
+          cfg.resampling       = 'bootstrap'; % this parameter is crucial, the default (permutation) is prone to systematic across-condition bias
+
+          Note that the bootstrapping randomization distribution lies around the same value as the zero offset permutation randomization distribution, but with larger side lobes.
+      - +@isprivate: "0"
+        commentid: "16249"
+        comment_count: "10"
+        attachid: "747"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-23 19:35:05 +0200
+        thetext: |-
+          Created attachment 747
+          permutation_0offset.mat
+      - +@isprivate: "0"
+        commentid: "16250"
+        comment_count: "11"
+        attachid: "748"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-23 19:35:55 +0200
+        thetext: |-
+          Created attachment 748
+          permutation distributions
+      - +@isprivate: "0"
+        commentid: "16252"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-24 00:46:29 +0200
+        thetext: "Given that the EU side of this seemingly growing project will wake up later, here's a summary of the status quo:\n\n1) Shuffling units across conditions ('permutation') is sensitive to across-condition bias if there's any (see pdf above). To grasp this point consider this example:\n\nA = [1 0 -1 3 2]\nB = A+100;\ncorr(A',B','type','spearman') = 1;\n\nnow shuffle one digit/observation unit:\nA = [1 100 -1 3 2]\nB = [101 0 99 103 102]\ncorr(A',B','type','spearman') = 0;\n\n.. or more units (e.g. 2):\nA = [1 100 99 3 2]\nB = [101 0 -1 103 102]\ncorr(A',B','type','spearman') = -0.5\n\nIn sum, the bias drives the correlation towards the negative.\n\n\n2) Egbert proposed a solution, in terms of shuffling strategy. This solution seems closely related to the bootstrap approach, cf example shuffles:\n\nexisting randomization strategies:\nBOOTSTRAP (separately per condition, but with identical order within each condition):\n 1     2     2     2     4     5     5     6     7     9    11    12    12    12    14    15    15    16    17    19\n\nPERMUTATION (across conditions, e.g. 1 and 11 swapped between condition 1 and 2):\n11    12    13     4    15     6    17    18    19    10     1     2     3    14     5    16     7     8     9    20\n\nPROPOSED (equivalent to bootstrapping one condition only?):\n11    12    13     4    15     6    17    18    19    10     1     2     3    4     5    6     7     8     9    10\n\nBriefly trying this approach*, it seems that it produces similar results as the bootstrap method (attaching another pdf for illustration). Yet, I recall Eric saying that there might be downsides of the bootstrapping approach. I don't remember what they were, and whether they also hold for shuffling one condition only.\n\n\n* in ft_statistics_montecarlo.m, insert \nresample = [resample(:,1:size(cfg.design,2)/2) repmat(1:size(cfg.design,2)/2,size(resample,1),1)];\nafter \nline 223: resample = resampledesign(cfg, design); \nto overwrite the second half of the randomization distribution (ensure cfg.resampling = 'bootstrap' when calling ft_xxxstatistics, to achieve the proposed shuffling strategy)."
+      - +@isprivate: "0"
+        commentid: "16253"
+        comment_count: "13"
+        attachid: "749"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-24 00:50:58 +0200
+        thetext: |-
+          Created attachment 749
+          randomization using bootstrapping
+
+          The actual correlation between the random vectors is 0.1053, which translates to a 0.45 tval. Half = randomization of the first condition only, see comment 12.
+      - +@isprivate: "0"
+        commentid: "16254"
+        comment_count: "14"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-10-25 00:09:29 +0200
+        thetext: |-
+          Hoi Arjen,
+
+          1. In de help van de functie schrijf je "In case of calculating brain-behavior correlations, ensure the brain data is matched in terms of size and dimensions to the behavioral data, or vice versa.” Dat snap ik niet. De brein-data zijn in de regel hoogdimensioneel (kanalen-bij-frekwenties-bij-tijdspunten) en de gedragsdata bestaan in de regel uit 1 getal per trial of persoon (afhankelijk van of je een een correlatie over trials of over personen berekent).
+
+          2. In cfg.design wordt geen gedragsvariabele gespecificeerd. Waar dan wel?
+
+          3. In cfg.design moeten wel condities gespecificeerd worden. Ben je dan geïnteresseerd in de correlatie tussen de conditie-indicator en de brein-data? Zo ja, indien je voor de Pearson correlatie kiest, dan is de T-statistiek die je berekent identiek aan de independent-samples T-statistiek die door een andere statfun (ft_statfun_indepsamplesT) berekend wordt. Voor andere correlatie types (e.g., Spearman) is de formule die jij gebruikt om een T-statistiek en bijbehorende p-waarde te berekenen niet valide.
+
+          4. Is het zo dat jij statfun_correlationT bedoeld is voor (1) correlaties over trials binnen 1 proefpersoon, en (2) correlaties over proefpersonen (en dus voor het identificeren van individuele verschillen in gedrag die door een neurobiologische variabele verklaard kunnen worden)?
+
+          groet,
+          Eric
+      - +@isprivate: "0"
+        commentid: "16255"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-25 02:12:57 +0100
+        thetext: |-
+          (In reply to Eric Maris from comment #14)
+
+          Dear Eric,
+
+          Thanks for pointing out the need for these clarifications. I'll try to provide my answers to each point as concise as possible:
+
+          "1. In de help van de functie schrijf je "In case of calculating brain-behavior correlations, ensure the brain data is matched in terms of size and dimensions to the behavioral data, or vice versa.” Dat snap ik niet. De brein-data zijn in de regel hoogdimensioneel (kanalen-bij-frekwenties-bij-tijdspunten) en de gedragsdata bestaan in de regel uit 1 getal per trial of persoon (afhankelijk van of je een een correlatie over trials of over personen berekent)."
+
+          >> At some point in the code, a correlation is calculated between two vectors or matrices: rho = corr(dat1, dat2, 'type', cfg.type); This requires dat1 and dat2 to be identically sized. It's true that this is not always the case, as you sketch above. The user therefore is required to ensure that they are, for the sake of calculating correlations, for instance by repmat'ing the behavioral data:
+
+          1000 1100 800 900 (ms)
+          becomes:
+          1000 1100 800 900
+          1000 1100 800 900
+          1000 1100 800 900
+          ... as long as is needed to match the matrix size (e.g. in the chan or freq dimension) of the brain data. Alternatively, the user would have to calculate correlations iteratively per chan/freq.
+
+
+          "2. In cfg.design wordt geen gedragsvariabele gespecificeerd. Waar dan wel?"
+
+          >> The behavioral variable is dat1 or dat2. A different approach - but not how it's currently implemented - would be indeed to have the behavioral variable encoded in the design matrix.
+
+
+          "3. In cfg.design moeten wel condities gespecificeerd worden. Ben je dan geïnteresseerd in de correlatie tussen de conditie-indicator en de brein-data? Zo ja, indien je voor de Pearson correlatie kiest, dan is de T-statistiek die je berekent identiek aan de independent-samples T-statistiek die door een andere statfun (ft_statfun_indepsamplesT) berekend wordt. Voor andere correlatie types (e.g., Spearman) is de formule die jij gebruikt om een T-statistiek en bijbehorende p-waarde te berekenen niet valide."
+
+          >> The conditions are still specified in the design matrix, as one would also do when calling the depsamples statfun. No correlation is calculated between the condition indicators/labels and the data. The condition labels in the design matrix are merely used to determine which observation units belong to which variable, and thus how and on which units the correlation is calculated.
+
+
+          "4. Is het zo dat jij statfun_correlationT bedoeld is voor (1) correlaties over trials binnen 1 proefpersoon, en (2) correlaties over proefpersonen (en dus voor het identificeren van individuele verschillen in gedrag die door een neurobiologische variabele verklaard kunnen worden)?"
+
+          >> statfun_correlationT is meant to support both 1 and 2.
+
+
+          Hope this helps painting a picture of the functionality of ft_statfun_correlationT. The challenge now is to define a procedure for optimally calculating a randomization distribution (see my one but last comment above).
+
+          Yours sincerely,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "16256"
+        comment_count: "16"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-25 02:14:49 +0100
+        thetext: 'p.s. comment #12 summarizes and gives an overview of the current issue, Eric. You could safely ignore the other comments.'
+      - +@isprivate: "0"
+        commentid: "16257"
+        comment_count: "17"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-10-25 08:34:40 +0100
+        thetext: "Hi Arjen,\n\n>> At some point in the code, a correlation is calculated between two vectors or matrices: rho = corr(dat1, dat2, 'type', cfg.type); This requires dat1 and dat2 to be identically sized. It's true that this is not always the case, as you sketch above. The user therefore is required to ensure that they are, for the sake of calculating correlations, for instance by repmat'ing the behavioral data:\n\n1000 1100 800 900 (ms)\nbecomes:\n1000 1100 800 900\n1000 1100 800 900\n1000 1100 800 900\n... as long as is needed to match the matrix size (e.g. in the chan or freq\ndimension) of the brain data. Alternatively, the user would have to calculate\ncorrelations iteratively per chan/freq.\n\n\nThe same functionality is provided by ft_statfun_indepsamplesRegrT. However, the user has to provide the behavioural variable as a row of the design matrix, who's number has to be specified in cfg.ivar. Thus, the behavioural variable is the independent variable, and it plays the same role as the condition-membership-variable (taking values 1 or 2) in ft_statfun_indepsamplesT. The brain data is the dependent variable.\n\nIt seems that in statfun_correlationT, 3 instead of 2 variables are specified: brain data (dependent variable), behavioural data (e.g., response time or accuracy), and condition-membership (typically, a binary variable). Unless one has an interest in interaction effects, the researcher has an interest in the relation between the dependent variable and one of the two independent variables (behavioural or condition-membership). If the interest is in a binary variable (which can be behavioural, as with single trial accuracy, or condition-membership), one can use ft_statfun_indepsamplesT; if the interest is in a continuous variable (response time or proportion correct), one can use ft_statfun_indepsamplesRegrT.\n\nIt also seems that, in statfun_correlationT, the condition-membership variable in cfg.design (row indicated by cfg.ivar) is used to identify which parts of the data must be correlated with each other. So, it seems you use the term \"condition\" to distinguish between your brain and your behavioural data. This conflicts with standard terminology, in which \"condition\" is used to denote one of the levels of a categorical independent variable.  \n\n(Unrelated note to the side, in the help of ft_indepsamplesRegrT, rows and columns are erroneously interchanged: the design must be Nvar X Nreplications instead of Replication X Nvar, as is assumed by the code.) \n\n\n>> The behavioral variable is dat1 or dat2. A different approach - but not how it's currently implemented - would be indeed to have the behavioral variable encoded in the design matrix.\n\nThat would be more parsimonious.\n\n\n\"3. In cfg.design moeten wel condities gespecificeerd worden. Ben je dan\ngeïnteresseerd in de correlatie tussen de conditie-indicator en de brein-data?\nZo ja, indien je voor de Pearson correlatie kiest, dan is de T-statistiek die\nje berekent identiek aan de independent-samples T-statistiek die door een\nandere statfun (ft_statfun_indepsamplesT) berekend wordt. Voor andere\ncorrelatie types (e.g., Spearman) is de formule die jij gebruikt om een\nT-statistiek en bijbehorende p-waarde te berekenen niet valide.\"\n\n>> The conditions are still specified in the design matrix, as one would also do when calling the depsamples statfun. No correlation is calculated between the condition indicators/labels and the data. The condition labels in the design matrix are merely used to determine which observation units belong to which variable, and thus how and on which units the correlation is calculated.\n\n\nI think I now see where the problems come from. Random permutation involves ramdom re-assignment of replications to conditions (which are specified in the cfg.ivar-th row of cfg.design). However, you consider the conditions to correspond to your 2 data types (brain data and behavioural data) and so you are effectively mixing brain and behavioural data as a part of the random permutation scheme that generates your reference distribution. I can think of no sensible null hypothesis that can be tested with this approach. For testing whether some behavioural variable is correlated with brain data, one should break the association between these 2 variables, and this is achieved by randomly permuting the indices of the behavioural variable (which might also be a condition-membership indicator; note, with the term \"condition\" used in its standard meaning, not the meaning you use).\n\nThese problems can be solved by being clear about your independent variable, which is a behavioural one in your case. That variable goes in cfg.design, and therefore you do need this row with 1s and 2s (which you call \"conditions\") to determine what is brain and what is behavioural data.  \n\nThis would be my advice:\n\n1. For a between-UO (UO=unit-of-observation) design (one subject with multiple trials for which also behavioural responses were collected, or multiple subjects characterised by trial-averaged brain data and a behavioural measure such as trial-averaged accuracy or RT) : use ft_statfun_indepsamplesT (for a dichotomous behavioural variable) of ft_statfun_indepsamplesregrT (for a continuous behavioural variable)\n\n2. For a within-UO design (multiple subjects characterised by trial-averaged brain data in multiple conditions for which you also have a behavioural measure such as trial-averaged accuracy or RT) : use ft_statfun_depsamplesregrT. Note that the latter statfun requires cfg.uvar to be specified, with which the subjects are identified, allowing for a restricted permutation in which the brain and behavioural data are randomly re-assigned WITHIN each of the subjects (which are the UOs here). The FT randomisation/permutation code takes care of that.\n\n3. Improve the documentation, starting with the help of the different functions. We could also collaborate on a tutorial.\n\nbest,\nEric"
+      - +@isprivate: "0"
+        commentid: "16258"
+        comment_count: "18"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-25 20:25:58 +0100
+        thetext: |-
+          Thanks, Eric.
+
+          "Random permutation involves ramdom re-assignment of replications to conditions (which are specified in the cfg.ivar-th row of cfg.design). However, you consider the conditions to correspond to your 2 data types (brain data and behavioural data) and so you are effectively mixing brain and behavioural data as a part of the random permutation scheme that generates your reference distribution."
+
+          > This is indeed what is going on here.
+
+          "I can think of no sensible null hypothesis that can be tested with this approach. For testing whether some behavioural variable is correlated with brain data, one should break the association between these 2 variables, and this is achieved by randomly permuting the indices of the behavioural variable."
+
+          > Could you elaborate a bit, for my own understanding, on why breaking the association between two variables is crucial. Essentially, one does exactly this - mixing two different data distributions - with an independent t-test, assessing 'whether replications under two conditions are interchangeable or not'.
+
+          In sum, my take of your proposal is to have the behavioral variable encoded in cfg.design, similarly to the approached used for the regr statfun family. I see this works when one wants to indeed perform correlations between a behavioral variable and different aspects of neural observations (e.g with dimord rpt_chan, or subj_chan). But what would you recommend for situations where one wants to correlate neural data with other neural data, e.g. rpt_chan with rpt_chan, without having to do this iteratively - admittedly I haven't encountered these types of situations myself yet?
+
+          To briefly address another point: the regr statfun family does not support calculating spearman, or other non-Pearson correlation types, justifying the existence of ft_statfun_correlationT? It would be great to have all your above considerations, and hopefully more to come, documented on a dedicated page of the wiki (e.g, a FAQ, or more).
+
+          Yours,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "16259"
+        comment_count: "19"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-10-25 21:19:16 +0100
+        thetext: "Hi Arjen,\n\n\n> Could you elaborate a bit, for my own understanding, on why breaking the association between two variables is crucial. Essentially, one does exactly this - mixing two different data distributions - with an independent t-test, assessing 'whether replications under two conditions are interchangeable or not'.\n\n>>It's not the t-test that test for \"interchangeable\" (the proper term is \"exchangeable\") observation/replication, it's the permutation test that does this, and it does so using every test statistic.\n\n\nIn sum, my take of your proposal is to have the behavioral variable encoded in cfg.design, similarly to the approached used for the regr statfun family. I see this works when one wants to indeed perform correlations between a behavioral variable and different aspects of neural observations (e.g with dimord rpt_chan, or subj_chan). But what would you recommend for situations where one wants to correlate neural data with other neural data, e.g. rpt_chan with rpt_chan, without having to do this iteratively - admittedly I haven't encountered these types of situations myself yet?\n\n>>In my experience, behavioural data come in the form of one scalar per trial (rpt) in single-subject studies, and one scalar (proportion correct, average RT) per subject in multiple-subject studies. I find it hard to conceive situation where the behavioural data have a spatal, spectral or temporal dimension, as in brain data. \n\n\nTo briefly address another point: the regr statfun family does not support calculating spearman, or other non-Pearson correlation types, justifying the existence of ft_statfun_correlationT? It would be great to have all your above considerations, and hopefully more to come, documented on a dedicated page of the wiki (e.g, a FAQ, or more).\n\n>>It's no problem to add rank correlations to the existing statfuns, the problem is how to calculate their p-values and critical values. For the Pearson correlation, we have an exact solution (it's use in station_correlationT), but this solution is not valid for the non-Pearson correlations. \n\n>>I think we should also write a contribution to the FT discussion list, clarifying the issues that were reported by some FT users.\n\n>>Maybe you also want to contribute to wiki page?\n\nbest,\nEric"
+      - +@isprivate: "0"
+        commentid: "16260"
+        comment_count: "20"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-26 00:32:43 +0100
+        thetext: "Dear all,\n\nHere's s point-wise update:\n\n1) Implementation\n\n1.1 - Following the discussion above, ft_statfun_correlation.m now requires the predictor variable to be encoded in the design matrix, similarly to the approach in the reg statfun family. Consequently, using cfg.resampling = 'permutation' (the default) produces a randomization distribution based on shuffling replications of the predictor variable and that is no longer prone to systematic bias (see point 2).\n1.2 - Also following the above, the default correlation is now set to 'Pearson'. Consequently, the default functionality is identical to ft_statfun_indepsamplesregrT. I have actually tested this: ft_statfun_correlationT with cfg.correlation = 'Pearson' produces the same T value as ft_statfun_indepsamplesregrT. It remains to be documented/investigated how the other correlation types may affect the randomization distribution (see point 3).\n1.3 - According to the above changes, I have adjusted the test function of ft_statfun_correlationT.\n1.4 - Updated a sentence in ft_statfun_indepsamplesregrtT's function help: \"design contains the independent variable,  Nvar X Nreplications\".\n1.5 - Fixed a matlab '&' statement in the same function.\n\nsvn commit ft_statfun_correlationT.m -m 'enhancement: overhaul of ft_statfun_correlationT according to bug report 2992'\nSending        ft_statfun_correlationT.m\n\nsvn commit test_ft_statfun_correlationT.m -m 'test function adjustment according to bug report 2992'\nSending        test_ft_statfun_correlationT.m\n \nsvn commit ft_statfun_indepsamplesregrT.m -m 'documentation change of ft_statfun_indepsamplesregrT according to bug report 2992' \nSending        ft_statfun_indepsamplesregrT.m\n\n2) Validation\n\nSee pdf and code in the up-following comment: shuffling replications of the predictor variable produces a randomization distribution that is no longer prone to systematic bias. This is expected behavior following the above comments in this bug report.\n\n3) Documentation\n\nI've opened a wiki page where we can collect the considerations made here:\nhttp://www.fieldtriptoolbox.org/faq/what_statfun_should_i_use_for_my_design\n\nHopefully this page should be able to guide the user to which statfun to select under which circumstances, with some example high-level ft code. It would be nice if this page would address the following issues:\n3.1 - Which statfun should I choose?\n3.2 - How to perform regression statistics with fieldtrip?\n3.3 - Why is it important to break the association between two variables when creating a randomization distribution?\n3.4 - Why is it problematic to calculate p values for rank-band correlations?\n\nUpon completion, we could send out an update to the mail list, stating the ft version containing the updated versions of the statfuns (incl. corrT and regrT).\n\nYours,\nArjen"
+      - +@isprivate: "0"
+        commentid: "16261"
+        comment_count: "21"
+        attachid: "750"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-26 00:34:06 +0100
+        thetext: "Created attachment 750\nrandomization distributions\n\n%% simulate multiple single-subject rand timelock structures\nn1 = 20;    % n1 is the number of subject\ndata1 = rand(n1,1);\ndata2 = rand(n1,1);\n\n% offsets\noffsets = [0, 1, 10];\nfor o=1:numel(offsets)\n  offset = offsets(o);\n  \n  data_brain = [];\n  for j=1:n1\n    data_brain{j}.avg = data1(j);\n    data_brain{j}.dimord = 'chan_time';\n    data_brain{j}.label = {'1'};\n    data_brain{j}.time = [1];\n  end\n  \n  data_behav = data2+offset; % inserted in the cfg.ivar-th row of cfg.design\n  \n  % compute statistics with correlationT\n  cfg = [];\n  cfg.statistic        = 'ft_statfun_correlationT'; % ft_statfun_correlationT vs. ft_statfun_indepsamplesregrT (produce same t value)\n  cfg.method           = 'montecarlo';\n  cfg.numrandomization = 1000;\n  \n  design(1,1:n1)       = data_behav;\n  \n  cfg.design           = design;\n  cfg.ivar             = 1;\n  stat(o) = ft_timelockstatistics(cfg, data_brain{:});\n  \n  % ensure line 338 'stat.statkeep(:,i) = statrand;' is uncommented in ft_statistics_montecarlo\nend\n\nfigure;\nfor o = 1:numel(offsets)\n  hold on;\n  histogram(stat(o).statkeep)\nend\nlegend(num2str(offsets(:)))\nxlabel('t vals')\nylabel('counts')"
+      - +@isprivate: "0"
+        commentid: "16274"
+        comment_count: "22"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-11-02 07:49:59 +0100
+        thetext: |-
+          I changed the title of the FAQ page because I found the previous title too general. I would like to focus on how to deal with quantitative stimulus and behavioural variables. Stuff like the use of cfg.var should go in a different FAQ.
+
+          After changing the title the link with the associated page was broken. I don't know how to fix it. Arjen?
+
+          best,
+          Eric
+      - +@isprivate: "0"
+        commentid: "16275"
+        comment_count: "23"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-02 08:06:04 +0100
+        thetext: |-
+          (In reply to Eric Maris from comment #22)
+          No problem, we can simply copy the content from that previous page onto the page you created:
+          http://www.fieldtriptoolbox.org/faq/how_can_i_test_for_correlations_between_neuronal_data_and_quantitative_stimulus_and_behavioural_variables
+      - +@isprivate: "0"
+        commentid: "16276"
+        comment_count: "24"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-11-02 20:44:02 +0100
+        thetext: |-
+          I don't see the button that is needed to create the new page of which I have specified the title.
+
+          Why?
+      - +@isprivate: "0"
+        commentid: "16277"
+        comment_count: "25"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-02 20:46:47 +0100
+        thetext: |-
+          (In reply to Eric Maris from comment #24)
+          Yeah, it's hard to find. Top left screen:
+          Page tools > create this page
+      - +@isprivate: "0"
+        commentid: "16279"
+        comment_count: "26"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-11-03 13:04:41 +0100
+        thetext: |-
+          I have contributed four sections to the FAQ on statistical testing of relation between neurobiological signal and quantitative independent variables. These section mainly focus on conceptual aspects.
+
+          I propose that someone else completes this FAQ by contributing concrete advise on what to do in a number of typical cases.
+
+          best,
+          Eric
+      - +@isprivate: "0"
+        commentid: "16308"
+        comment_count: "27"
+        who:
+          +content: e.hartstra
+          +@name: Egbert Hartstra
+        bug_when: 2015-11-07 21:18:55 +0100
+        thetext: |-
+          Dear Eric,
+
+          Thank you for creating the FAQ. Arjen and I have worked out some concrete examples including example code of using different statfuns in these cases. I have added them to the FAQ page under the section Examples. Eric would you mind to look at them to double check if everything is correct?
+
+          Best,
+          Egbert
+      - +@isprivate: "0"
+        commentid: "16309"
+        comment_count: "28"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2015-11-07 22:21:13 +0100
+        thetext: |-
+          Hi Egbert & Arjen,
+
+          For me, the FAQ looks good.
+
+          Does one of you want to write a contribution for the Fieldtrip discussion list, referring to the earlier discussions, and referring to the new FAQ?
+
+          best,
+          Eric
+      - +@isprivate: "0"
+        commentid: "16310"
+        comment_count: "29"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-08 03:17:38 +0100
+        thetext: "Hi both,\n\nThis has become a great wiki page. I think the combination of the overview plus the examples make it very strong, and certainly a page worth forwarding the user to for statistics with fieldtrip.\n\nIt's true that we still need to update the users on the mailinglist on how we have identified and dealt with the issue of correlationT, and more generally on how we have improved the documentation accordingly. \n\nI'll make a draft.\nArjen"
+      - +@isprivate: "0"
+        commentid: "16311"
+        comment_count: "30"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-08 05:23:50 +0100
+        thetext: "A copy of the email:\n\nDear participants in the discussion on behavioural-power correlation, and interested folks,\n\nFollowing recent discussion on this mailing list (thanks to Xiaoming Du and Martin Krebber), we have updated ft_statfun_correlationT, a function that can be used for correlating neural and behavioral variables. \n\nFollowing the update, the correlation values calculated on genuine data have not changed. However, the permutation procedure for calculating the randomization distribution has. Namely, prior to the update the permutation procedure would randomly permute across both the independent (e.g., behavior) and dependent variables (e.g., neural data). This procedure is prone to systematic bias across the data belonging to these variables. And conceptually, as outlined in a new wiki page (see below), the independent and dependent variables should be statistically independent, meaning that any association between these variables should be broken by randomly permuting the values of the independent variable.\n\nhttp://www.fieldtriptoolbox.org/faq/how_can_i_test_for_correlations_between_neuronal_data_and_quantitative_stimulus_and_behavioural_variables?\n\nThose that have been using ft_statfun_correlationT for calculating a randomization distribution using the permutation procedure are advised to update to the latest fieldtrip version and re-calculate those distributions. We are sorry for any inconvenience this may cause. \n\nOn a related note, the functionality of ft_statfun_correlationT (under Pearson) is highly similar to that of ft_statfun_indepsamplesregrT. To make the latter function, and others in the statfun suite, more accessible, we would like to forward those interested to the above wiki page where an overview is provided of the different approaches to correlating neural and behavioral variables, with some example fieldtrip code.\n\nYours, Arjen\non behalf of Eric Maris and Egbert Hartstra"
+      - +@isprivate: "0"
+        commentid: "20119"
+        comment_count: "31"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "746"
+        date: 2015-10-23 19:12:00 +0200
+        delta_ts: 2015-10-23 19:12:17 +0200
+        desc: permutation simulation
+        filename: permutationsim_differentoffsets_edited.pdf
+        type: application/pdf
+        size: "167820"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "747"
+        date: 2015-10-23 19:35:00 +0200
+        delta_ts: 2015-10-23 19:35:05 +0200
+        desc: permutation_0offset.mat
+        filename: permutation_0offset.mat
+        type: application/x-matlab-workspace
+        size: "27456"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "748"
+        date: 2015-10-23 19:35:00 +0200
+        delta_ts: 2015-10-23 19:35:55 +0200
+        desc: permutation distributions
+        filename: permutation.zip
+        type: application/zip
+        size: "192042"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "749"
+        date: 2015-10-24 00:50:00 +0200
+        delta_ts: 2015-10-24 00:50:58 +0200
+        desc: randomization using bootstrapping
+        filename: bootstrapsim_differentshuffles.pdf
+        type: application/pdf
+        size: "14694"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "750"
+        date: 2015-10-26 00:34:00 +0100
+        delta_ts: 2015-10-26 00:34:06 +0100
+        desc: randomization distributions
+        filename: permutationsim_differentoffsets.pdf
+        type: application/pdf
+        size: "11027"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED

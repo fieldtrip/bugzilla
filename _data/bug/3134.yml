@@ -1,0 +1,121 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3134"
+    creation_ts: 2016-05-30 18:23:00 +0200
+    short_desc: ft_singleplotTFR 'ismatrix' function is missing
+    delta_ts: 2016-05-31 16:22:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17376"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-05-30 18:23:40 +0200
+        thetext: |-
+          I'm testing the time frequency tutorial and I got the following error due to the missing function "ismatrix.m"
+
+          cfg = [];
+          cfg.baseline     = [-0.5 -0.1];
+          cfg.baselinetype = 'absolute';
+          cfg.maskstyle    = 'saturation';
+          cfg.zlim         = [-3e-27 3e-27];
+          cfg.channel      = 'MRC15';
+          figure
+          ft_singleplotTFR(cfg, TFRhann);
+
+
+          ??? Undefined function or method 'ismatrix' for input arguments of type 'double'.
+
+          Error in ==> rgb2hsv at 12
+          elseif ismatrix(m) && size(m,2)==3
+
+          Error in ==> ft_plot_matrix at 239
+                hsvcdat = rgb2hsv(rgbcdat);
+
+          Error in ==> ft_singleplotTFR at 466
+            ft_plot_matrix(xvector, yvector, datamatrix,
+            'clim',[zmin,zmax],'tag','cip','highlightstyle',cfg.maskstyle,'highlight', mask)
+
+          I was using a relatively old matlab (7.9.0.529 (R2009b)). Adding the ismatrix function from fileexchange would solve the issue:
+          http://fr.mathworks.com/matlabcentral/fileexchange/26784-property-sheet/content/ismatrix.m
+      - +@isprivate: "0"
+        commentid: "17379"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-31 09:15:56 +0200
+        thetext: |-
+          RELATIVELY OLD????!!! Ancient, you mean :o).
+
+          Note, that issues of this kind are typically solved through the compat/matlabltX directories.
+
+          I see that matlablt2010b (which would apply to your case) already has the isrow and iscolumn functions. Perhaps you could add the ismatrix there?
+      - +@isprivate: "0"
+        commentid: "17380"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-31 09:18:50 +0200
+        thetext: "I indeed recall that functions like these have some historical issue. I think they were first in a (extra) toolbox and only later were moved to standard matlab. If you don't have that toolbox, then it fails.\n\n>> which isvector\nbuilt-in (/opt/matlab/R2009a/toolbox/matlab/elmat/isvector)\n\n>> which ismatrix          \n'ismatrix' not found.\n\n>> which isrealmat\n/opt/matlab/R2009a/toolbox/ident/idutils/isrealmat.m\n\nident = system identification toolbox, http://se.mathworks.com/help/ident/index.html\n\nI can check relatively easily on mentat whether these functions exist on all matlab versions. Will do. Then they should be added to the respective combat directories."
+      - +@isprivate: "0"
+        commentid: "17381"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-05-31 10:17:52 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+          No worries Robert. Given I've a prehistoric matlab version doesn't make any sense to support it . I'll be aware and it's easy to solve. I close this bug but feel free to open it if you disagree
+      - +@isprivate: "0"
+        commentid: "17382"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-31 12:13:17 +0200
+        thetext: "Since we now have a better way of dealing with old matlab version, I think it would be good to organize these functions in a better way.\n\nSee also http://mailman.science.ru.nl/pipermail/fieldtrip/2012-May/005115.html which is slightly related.\n\nThis is what we have at DCCN (up to 2015b) on the cluster:\n\nroboos@dccn-c023> ls /opt/matlab/*/toolbox/ident/idutils/isreal*\n\n/opt/matlab/R2007a/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2007a/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2007a/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2007b/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2007b/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2007b/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2008a/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2008a/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2008a/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2008b/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2008b/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2008b/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2009a/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2009a/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2009a/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2009b/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2009b/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2009b/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2010a/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2010a/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2010a/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2010b/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2010b/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2010b/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2011a/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2011a/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2011a/toolbox/ident/idutils/isrealvec.m\n/opt/matlab/R2011b/toolbox/ident/idutils/isrealmat.m\n/opt/matlab/R2011b/toolbox/ident/idutils/isrealrowvec.m\n/opt/matlab/R2011b/toolbox/ident/idutils/isrealvec.m\n\nSince these disappeared after 2011b, they should not be in external/ident. \n\nI will add is matrix to combat/matlablt2010b, which already contains some of these type of functions.\n\nroboos@mentat001> git commit\n[master 4dc111c] ENH - improved support for matlab2009b, see bug 3134\n 2 files changed, 35 insertions(+)\n create mode 100644 compat/matlablt2010b/ismatrix.m\n create mode 100644 test/test_bug3134.m"
+      - +@isprivate: "0"
+        commentid: "17384"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-05-31 16:22:24 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          Cool! thanks Robert

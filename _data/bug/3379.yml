@@ -1,0 +1,162 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3379"
+    creation_ts: 2017-12-04 10:07:00 +0100
+    short_desc: ft_redefinetrial fails on overlapping trials
+    delta_ts: 2018-03-02 15:05:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3267
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=79
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=128
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1013
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - dmatthes
+      - giorgos.michalareas
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19115"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-12-04 10:07:43 +0100
+        thetext: "test_bug3267 us currently broken as a consequence of https://github.com/fieldtrip/fieldtrip/pull/551, which \n\nSee #3267.\n \nSee also the related #79, #128 and #1013."
+      - +@isprivate: "0"
+        commentid: "19189"
+        comment_count: "1"
+        attachid: "854"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2018-01-12 21:38:41 +0100
+        thetext: |-
+          Created attachment 854
+          Issue with overlapping data and ft_fetch_data and ft_redefinetrial
+      - +@isprivate: "0"
+        commentid: "19190"
+        comment_count: "2"
+        attachid: "854"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2018-01-12 21:41:59 +0100
+        thetext: |-
+          Comment on attachment 854
+          Issue with overlapping data and ft_fetch_data and ft_redefinetrial
+
+          there seems to be a problem with ft_redefinetrial and ft_fetch_data when one puts data with overlapping trials.
+
+          I have attached the file testdatafile containing variables testdata and a tmpcfg with a new trial definition.
+
+          check the trial definition of the first trial in testdata and in tmpcfg. It is the same.
+          But when u put in ft_redefinetrial the data comes out messed up with a discontinuity!
+
+
+          %=================================
+          load testdatafile testdata tmpcfg
+          testdata2 = ft_redefinetrial(tmpcfg, testdata);
+
+          iTrl=1;
+          figure; hold on;
+          plot(testdata.time{iTrl},testdata.trial{iTrl}(1,:));
+          plot(testdata2.time{iTrl},testdata2.trial{iTrl}(1,:),'r');
+          %==================================
+      - +@isprivate: "0"
+        commentid: "19193"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-16 13:29:45 +0100
+        thetext: |-
+          I looked into this, and have two observations:
+
+          1) the data is inconsistent in its overlap (probably due to filtering or detrending or so)
+          2) ft_fetch_data should have thrown an error, because there's some specific code in place to test for this issue.
+
+          I created a test function, and updated ft_fetch_data, so that now an error is correctly thrown when the test data supplied by Giorgos are used.
+
+          PS: @ Giorgos, why do you not use ft_selectdata in this case, with the option cfg.trials, since you only seem to throw away a few trials completely.
+
+          I am not yet sure whether the issue reported by Giorgos is related to the original reason why this current bug has been filed.
+
+          I have created a branch for this bug in my fork of the repo. I will only pull once I have an idea what's going on here in relation to the original report.
+
+          If you want to use the fixed version of ft_fetch_data, for now you can pull it from https:/github.com/schoffelen/fieldtrip.git (branch bug3379)
+      - +@isprivate: "0"
+        commentid: "19194"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-16 13:35:37 +0100
+        thetext: |-
+          The original reason for this bug report is the fact that test_bug3267 explicitly throws an error in the presence of a sampleinfo field in a timelock structure.
+
+          This has nothing to do with Giorgos' report.
+
+          Rather, it was introduced by me addressing bug 3354
+      - +@isprivate: "0"
+        commentid: "19220"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-26 09:49:09 +0100
+        thetext: |-
+          This one can be closed, because it turned out to be a user error that went undetected because a flaw in the code that was supposed to check for this.
+          This has now been addressed, and merged into the FT repo with PR 646
+      - +@isprivate: "0"
+        commentid: "19288"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-02 15:05:31 +0100
+        thetext: .
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "854"
+      date: 2018-01-12 21:38:00 +0100
+      delta_ts: 2018-01-12 21:41:59 +0100
+      desc: Issue with overlapping data and ft_fetch_data and ft_redefinetrial
+      filename: testdatafile.mat
+      type: text/plain
+      size: "746079"
+      attacher:
+        +content: giorgos.michalareas
+        +@name: Giorgos Michalareas
+      data: REMOVED

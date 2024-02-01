@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2862"
+    creation_ts: 2015-03-05 16:37:00 +0100
+    short_desc: jobid and pbsid conversion for qsub and qsubfeval
+    delta_ts: 2015-07-15 13:31:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.backus
+      +@name: Alexander Backus
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15498"
+        comment_count: "0"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2015-03-05 16:37:38 +0100
+        thetext: "qsub works with pbsids to handle dependencies and qdel delete jobs.\nHowever, MATLAB qsubfeval primarily operates on job names. \nWhenever one mixes submission types interfacing is cumbersome. \n\nFor instance when one has a MATLAB master script (run interactively) that calls unix('qsub ...') to run bash scripts (that preprocess fMRI data using FSL functions) and subsequently qsubfeval(@fname,...) for MATLAB functions (that have to wait for the bash script to finish and run more custom analyses on the data) it is problematic to covert between jobids and pbsids as the crucial persistent variables are absent.\n\nTo illustrate, the following MATLAB code will NOT work:\n\n%%%%\n\n[~,pbsid1] = unix('echo \"sh preproc.sh\" | qsub [options]');\n\njobid1 = qsublist('getjobid',[],pbsid1); % gives error because persistent list variable absent\n\njobid2 = qsubfeval(@customanalysis,inputargs,[options],'waitfor',pbsid1); % will not work with pbsid: makes this problematic as we dont have jobid1\n\n%%%%\n\nI hope I was able to illustrate the point.\n\nTo make everything more uniform, I would suggest making qsubfeval always work with pbsids (and also output this). They are always unique (while jobnames can be reused) as far as i know.\n\nMaybe for some reason this is not a good idea - then this thread can be closed ;-)\n\nBest,\nAlexander"
+      - +@isprivate: "0"
+        commentid: "15500"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-05 17:32:06 +0100
+        thetext: "the input data for a MATLAB job has to be written to a file prior to the job being submitted to torque. The job itself (i.e. the bash command that is to be executed on the compute node) contains the filename that contains the input data.\n\nThe pbsjobid is only known after the job was submitted successfully. Hence I cannot use the pbsjobid throughout. I cannot rename the file any more (since the submitted bash job will expect it to be present). \n\nAlso the output file name to which the results are to be written is determined prior to the job being submitted. At job completion, the output file name (which is almost the same as the input file name) is needed to read the results of the function evaluation (\"argout\", which can be empty) and determine whether the job ran without errors (\"optout\", never empty). So the pre-submission name needs to be kept until the end anyway.\n\nThe only reasons to care about the pbsjobid in MATLAB is to be able to poll the status of jobs and to kill jobs if you Ctrl-C qcubcellfun.\n\nSo I don't see how your suggestion would work. But perhaps you can clarify why you would want this in the first place> Why mix (and try to match) your own manual submissions and the ones from fieldtrip/qsub?"
+      - +@isprivate: "0"
+        commentid: "15520"
+        comment_count: "2"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2015-03-11 14:15:00 +0100
+        thetext: |-
+          OK, your argument clearly outlines the need for an additional "jobid" that is created before successful submission - I agree.
+
+          However, one might still care about the pbsids apart from using them to kill jobs with CTRL-C qsubcellfun, for instance to control and interface with non-MATLAB jobs. I have my reasons for not performing all analyses in MATLAB, the main being that not every software package (read FSL) necessarily benefits from MATLAB wrapping. In a bash script the code for a bunch of serially executed FSL binaries are much clearer to read as opposed to the unix(sprintf('%s blabla %s)) routine in MATLAB (+ it would basically waste a license).
+
+          I like to view qsubfeval (and qsubcellfun) as handy qsub wrapper tools to submit MATLAB jobs executing functions with specific input args and path info. This is very cumbersome to script manually :) However, not all possible jobs necessary need to be submitted via the toolbox, as outlined above. Therefore it would still be handy to facilitate interfacing between different types of submissions.
+
+          One easy solution is to edit qsubfeval in the following way:
+          1) next to the jobid, the pbsid is also an argout
+          2) the waitfor option will treat the input jobid(s) as pbsid(s) in case the jobid does not exist in the persistent list
+
+          Would that be an idea?
+      - +@isprivate: "0"
+        commentid: "15530"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-12 21:59:04 +0100
+        thetext: "(In reply to Alexander Backus from comment #2)\n\nI think it makes more sense that you start using qsublist to also manage the other jobs. Or use qsublist to get the pbsid given the jobid. This is possible, but not documented.\n\nmbp> svn commit\nSending        qsublist.m\nTransmitting file data .\nCommitted revision 10274.\n\nPlease see the getpbsid and getjobid options (and other improved help). They give you access to all information. \n\nYou can use it to manage your non-qsubfeval jobs by adding them to the internal persistent list like this\n   qsublist add yourjobid pbsid\nwhere it would also be fine to do\n   qsublist add pbsid pbsid\nusing the same name inside and outside matlab (the only requirement is that it is a unique string, which it will be).\n\nand then use the pbsid (=jobid) as input to waitfor."
+      - +@isprivate: "0"
+        commentid: "15531"
+        comment_count: "4"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2015-03-13 11:23:58 +0100
+        thetext: |-
+          Sounds like a proper course of action! Thanks Robert!
+          Cheers
+      - +@isprivate: "0"
+        commentid: "15532"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-13 11:29:01 +0100
+        thetext: thanks
+      - +@isprivate: "0"
+        commentid: "15896"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:08 +0200
+        thetext: closed several bugs at once that were recently fixed

@@ -1,0 +1,460 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1254"
+    creation_ts: 2012-01-12 14:10:00 +0100
+    short_desc: Error when running compiled qsub job
+    delta_ts: 2012-04-11 16:48:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.a.kloosterman
+      +@name: Niels Kloosterman
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4778"
+        comment_count: "0"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-12 14:10:22 +0100
+        thetext: "Dear Robert,\n\nGreat that you started mcc compiler support!\n\nWhen compiling and running the job I get the following error from the qsub system. I looked it up at the Matlab site, where they have an entry that says it was a bug in a previous version of (2006b), which in the current version should be fixed (http://www.mathworks.nl/support/solutions/en/data/1-1TOBND/index.html?product=CO). Looks like the bug is still there... Can it be solved?\n\nstarted compiling niels_login4_p31939_b1\nfinished compiling\nsubmitting job niels_login4_p31939_b1_j001... qstat job id 5873120.batch1.irc.sara.nl\n\nError in ==> qsubexec at 38\n\n\n??? Output argument \"argout\" (and maybe others) not assigned during call to\n\"/home/niels/.mcrCache7.15/niels_3/home/niels/matlab/fieldtrip/qsub/qsubexec.m>qsubexec\". \nMATLAB:unassignedOutputs\n\n\nBest,\n\nNiels"
+      - +@isprivate: "0"
+        commentid: "4781"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-12 16:27:19 +0100
+        thetext: "Hi Niels,\n\nNice you noticed this recent and still rather experimental addition to the code. I must admit that I only tested it with \"rand\" and only with backend=local, so not even yet on our torque cluster.\n\nDoes the problem only occur if you use compile=yes (versus compile=no)?\n\nThe error is caught at line 38, which is the \"try\" in qsubfeval. It suggests that \n  [argout, optout] = fexec(argin, optin);\nis causing the error, i.e. the error happens inside qsub/private/fexec. However, that function has \n  argout = {};\n  optout = {};\nbefore it starts with its large try-catch loop. So the output args of fexec should exist, even if it errors in the try-catch loop.\n\nI suggest that you disable line 45 in qsubexec with delete(inputfile). Then rerun qsubcellfun (with compile=yes) and then you should be able to run the command line executable and/or qsubexec multiple times for more detailed debugging, as the input.mat file will remain. Please try whether the command line as constructed in qsubexec works on the local command line and when you echo it to qsub."
+      - +@isprivate: "0"
+        commentid: "4782"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-12 20:28:44 +0100
+        thetext: I just tried it on our torque cluster, and can confirm the problem you reported.
+      - +@isprivate: "0"
+        commentid: "4785"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-13 09:04:33 +0100
+        thetext: 'I have identified the problem: there is a superfluous \n in the sprintf statements for the linux command (in qsubfeval).'
+      - +@isprivate: "0"
+        commentid: "4787"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-13 10:44:00 +0100
+        thetext: |-
+          there was another problem with the present working directory and not being able to find the input.mat file when not working in the homedir.
+
+          I have fixed the known problems and made some additional improvements. The most significant is that I implemented a separate qsubcompile function (as per Marcel's  suggestion) that allows more control over the compilation and re-use of the compiled function.
+
+          roboos@mentat001> svn commit
+          Sending        qsub/private/fexec.m
+          Adding         qsub/private/getbatch.m
+          Sending        qsub/qsubcellfun.m
+          Adding         qsub/qsubcompile.m
+          Sending        qsub/qsubexec.m
+          Sending        qsub/qsubfeval.m
+          Transmitting file data ......
+          Committed revision 5136.
+
+
+          At the moment the only known issue is that stacking and compilation are not yet compatible with each other. See bug 1255
+
+          @Niels, please let me know if it works for you.
+      - +@isprivate: "0"
+        commentid: "4793"
+        comment_count: "5"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-13 12:25:26 +0100
+        thetext: "(In reply to comment #4)\nHey Robert,\n\nI have tried it both with compiling the job on the fly in qsubcellfun, and using qsubcompile. Both do not work, it seems not to be able to find a compiled m-file in the CTF archive. But the file seems to be present in the archive when I look for it with the terminal. I did include the ~isdeployed if end statement in my startup. I use stack = 1. \n\nCheers,\nNiels\nPs also note the qsubget error. This also occurs sometimes when I don't compile. Not sure what this is about.\n\n\nK>> compiledfun = qsubcompile(@MIBexp_preproc);\ncompiling MIBexp_preproc into niels_login3_p32586_b1\nfinished compiling\nK>> qsubcellfun(compiledfun, cfg1, cfg2, cfg3, outputfile, 'memreq', 1024^3, 'timreq', timreq*60, 'stack', stack, 'StopOnError', true);\nsubmitting job niels_login3_p32586_b2_j001... qstat job id 5874725.batch1.irc.sara.nl\n\nThe file\n   '/home/niels/matlab/MEG_analysis/preprocessing/MIBexp_preproc.m'\n   is not in the application's expanded CTF archive at\n    '/home/niels/.mcrCache7.15/niels_7'.\nThis is typically caused by calls to ADDPATH in your startup.m or matlabrc.m files. Please see the compiler documentation and use the ISDEPLOYED function to ensure ADDPATH commands are not executed by deployed applications.\n\nWarning: cleaning up all scheduled and running jobs, don't worry if you see warnings from \"qdel\" \n> In qsublist at 107\n  In qsubcellfun>cleanupfun at 421\n  In onCleanup>onCleanup.delete at 61\n  In MIBexp_preproc_peersetup at 93\n  In runMIBmeg_analysis at 59\nqdel: Unknown Job Id 5874725.batch1.irc.sara.nl\nqdel 5874725.batch1.irc.sara.nl: Signal 25\n??? Error using ==> qsubget at 75\nthe batch queue system returned an error for job niels_login3_p32586_b2_j001, now aborting\n\nError in ==> qsubcellfun at 313\n    [argout, options] = qsubget(jobid{collect}, 'output', 'cell', 'diary', diary, 'StopOnError',\n    StopOnError);"
+      - +@isprivate: "0"
+        commentid: "4796"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-13 16:28:04 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          Could you try with a really simple function, like "rand"?
+
+          The message
+          > This is typically caused by calls to ADDPATH in your startup.m or matlabrc.m
+          > files. Please see the compiler documentation and use the ISDEPLOYED function to
+          > ensure ADDPATH commands are not executed by deployed applications
+
+          seems to be relevant to me. That suggests it is a compilation problem, not a qsub problem. Did you look at the relevant documentation (see also the help in qsubcompile)?
+
+          A good test would be to do
+          !mv ~/matlab/startup.m  ~/matlab/startup.bak   % or whatever which startup returns
+          restroredefaultpath
+          ccompiledfun = qsubcompile('rand');
+          qsubcellfun(compiledfun, {1, 2, 3}, ...)
+      - +@isprivate: "0"
+        commentid: "4797"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-13 16:30:21 +0100
+        thetext: "(In reply to comment #5)\n\nnote that you might also want to check the compilation in general, e.g. make a function\n\nfunction test_mcc\nfprintf('----------------------\\n')\ndisp(rand(1));\ndisp(rand(2));\ndisp(rand(3));\nfprintf('----------------------\\n')\n\n\nand then do\n  mcc test_mcc \nand subsequently from the linux command line\n  run_test_mcc.sh <MATLABROOT>"
+      - +@isprivate: "0"
+        commentid: "4840"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-18 12:42:15 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          @Niels: can you give me an update?
+      - +@isprivate: "0"
+        commentid: "4841"
+        comment_count: "9"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-18 13:08:27 +0100
+        thetext: |-
+          (In reply to comment #8)
+          Hey Robert,
+
+          Your check from comment 7 works, so the compiler is configured properly on the cluster.
+
+          But the other check:
+
+          !mv ~/matlab/startup.m  ~/matlab/startup.bak   % or whatever which startup returns
+          restoredefaultpath
+          compiledfun = qsubcompile('rand');
+          qsubcellfun(compiledfun, {1, 2, 3}, 'memreq', 1024^3, 'timreq', 60)
+
+          ... does not work. Compiling does work, but submitting the job goes wrong:
+
+          >> qsubcellfun(compiledfun, {1, 2, 3}, 'memreq', 1024^3, 'timreq', 60)
+          compiling rand into niels_login4_p30183_b1
+          finished compiling
+          stacking 3 matlab jobs in each qsub job
+          ??? Error using ==> nargout
+          Argument must be either a string or a function handle.
+
+          Error in ==> qsubcellfun at 169
+              numargout = nargout(varargin{1}{1});
+
+          Error in ==> qsubcellfun at 237
+            [stackargout{:}] = qsubcellfun(@cellfun, stackargin{:}, optarg{:});
+
+
+          Let me know if you need me to run other checks.
+
+          Cheers
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "4878"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 09:49:51 +0100
+        thetext: "(In reply to comment #9)\n\nIt is probably due to the (automatic) stacking. See bug 1255\n\nCan you try with stack=1? \n \nI will change the core around line 140 in qsubcellfun into\n\n\n% determine the number of MATLAB jobs to \"stack\" together into seperate qsub jobs\nif isequal(stack, 'auto')\n  if strcmp(compile, 'yes') || strcmp(compile, 'auto') || ~isempty(fcomp)\n    % compilation and stacking are incompatible with each other\n    % see http://bugzilla.fcdonders.nl/show_bug.cgi?id=1255\n    stack = 1;\n  elseif ~isempty(timreq)\n    stack = floor(180/timreq);\n  else\n    stack = 1;\n  end\nend\n\nto deal with the default stack=auto."
+      - +@isprivate: "0"
+        commentid: "4885"
+        comment_count: "11"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-20 11:03:45 +0100
+        thetext: "(In reply to comment #10)\n\nIt works now, see below for output. Note that I did not update ft yet. Note the warning about DBSTOP though, even though I didn't set any breakpoints.\n\nI guess the problem is in compiling more complicated, nested scripts?\n\n compiledfun = qsubcompile('rand');\nqsubcellfun(compiledfun, {1, 2, 3}, 'memreq', 1024^3, 'timreq', 60, 'stack', 1)\ncompiling rand into niels_login3_p24487_b1\nWarning: Duplicate directory name:\n/scratch/../home/niels/matlab/fieldtrip/qsub. \nfinished compiling\nsubmitting job niels_login3_p24487_b2_j001... qstat job id ------------------------------------------\nSetting up environment variables\n---\nLD_LIBRARY_PATH is .:/sara/sw/matlab/64/2011a/runtime/glnxa64:/sara/sw/matlab/64/2011a/bin/glnxa64:/sara/sw/matlab/64/2011a/sys/os/glnxa64:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/native_threads:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/server:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/client:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64\nexecuting job took 0.313287 seconds and 1056768 bytes\nsubmitting job niels_login3_p24487_b2_j002... qstat job id ------------------------------------------\nSetting up environment variables\n---\nLD_LIBRARY_PATH is .:/sara/sw/matlab/64/2011a/runtime/glnxa64:/sara/sw/matlab/64/2011a/bin/glnxa64:/sara/sw/matlab/64/2011a/sys/os/glnxa64:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/native_threads:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/server:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/client:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64\nexecuting job took 0.046488 seconds and 1052672 bytes\nsubmitting job niels_login3_p24487_b2_j003... qstat job id ------------------------------------------\nSetting up environment variables\n---\nLD_LIBRARY_PATH is .:/sara/sw/matlab/64/2011a/runtime/glnxa64:/sara/sw/matlab/64/2011a/bin/glnxa64:/sara/sw/matlab/64/2011a/sys/os/glnxa64:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/native_threads:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/server:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64/client:/sara/sw/matlab/64/2011a/sys/java/jre/glnxa64/jre/lib/amd64\nexecuting job took 0.042464 seconds and 1052672 bytes\njob niels_login3_p24487_b2_j001 returned, it required 0 seconds and 1.0 MB\nWarning: The DBSTOP function cannot be used in compiled applications. \n> In qsubget at 151\n  In qsubcellfun at 313\njob niels_login3_p24487_b2_j002 returned, it required 0 seconds and 1.0 MB\nWarning: The DBSTOP function cannot be used in compiled applications. \n> In qsubget at 151\n  In qsubcellfun at 313\njob niels_login3_p24487_b2_j003 returned, it required 0 seconds and 1.0 MB\nWarning: The DBSTOP function cannot be used in compiled applications. \n> In qsubget at 151\n  In qsubcellfun at 313\ncomputational time = 0.4 sec, elapsed = 69.3 sec, speedup 0.0 x\nWarning: copying the jobs over the network took more time than their execution \n> In qsubcellfun at 359\n\nans = \n\n    [0.3797]    [2x2 double]    [3x3 double]\n\n>>"
+      - +@isprivate: "0"
+        commentid: "4887"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 11:46:51 +0100
+        thetext: "(In reply to comment #11)\n\nThe update about stack with compile has just now been committed\n\nmanzana> svn commit \nSending        qsub/qsubcellfun.m\nTransmitting file data .\nCommitted revision 5156."
+      - +@isprivate: "0"
+        commentid: "4888"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 11:53:12 +0100
+        thetext: "(In reply to comment #11)\n\n> It works now, see below for output. Note that I did not update ft yet. Note the\n> warning about DBSTOP though, even though I didn't set any breakpoints.\n>\n> I guess the problem is in compiling more complicated, nested scripts?\n\nI have no idea where the dbstop comes from, although don't think it is a problem. It is not in my version of qsub. Might it be that you have a local change in your copy. Please keep an eye on it and see whether it is still there after an update to the latest release version. \n\nCompiling more elaborate functions (note that scripts should not be used here) is indeed more challenging, although also with those I now have some positive experience. But my impression is that the first hurdle in compiling a simple MATLAB function is actually the largest and that subsequently it is more manageable (although in the more elaborate nested functions there are more chances of using syntax that is incompatible with  compiling).\n\nIn case of using feval with sprintf you should use the following \"pragma\" statement\n%#function whatever\nto ensure that the \"whatever\" function also gets compiled into the exe.\n\nI suspect that we'll have to open a FAQ on this..."
+      - +@isprivate: "0"
+        commentid: "4889"
+        comment_count: "14"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-20 14:06:15 +0100
+        thetext: |-
+          (In reply to comment #13)
+
+          I suspect that we'll have to open a FAQ on this...
+
+          -Yes, it would be great to have a list of do's and don'ts when you want to compile your functions. From my side it is worth investing some effort in this feature, since I only have a limited amount of matlab licenses available, and lots of data ;) This probably goes for other users.
+
+          I will continue to play around and let you know if I run into issues. Let me know if you make changes or you require beta testing.
+
+          Cheers,
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "4890"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 14:40:48 +0100
+        thetext: |-
+          (In reply to comment #14)
+
+          I have made a first version of the FAQ, see http://fieldtrip.fcdonders.nl/faq/how_to_compile_matlab_code_into_stand-alone_executables
+
+          Please add all information to it that you consider to be potentially relevant and that you discover while using the compiled qsub distribution.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "4955"
+        comment_count: "16"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-26 10:55:48 +0100
+        thetext: |-
+          (In reply to comment #15)
+
+          Hey Robert,
+
+          So we know the compiler and qsubcompile routines work. But I am still having trouble executing a compiled program, because the compiled program can't find the expanded CTF archive. After successfully compiling and submitting the program I get this error:
+
+          >> runMIBmeg_analysis
+          compiling MIBexp_preproc into niels_login3_p13349_b1
+          finished compiling
+          submitting job niels_login3_p13349_b2_j001... qstat job id 5900513.batch1.irc.sara.nl
+
+          The file
+             '/home/niels/matlab/MEG_analysis/preprocessing/MIBexp_preproc.m'
+             is not in the application's expanded CTF archive at
+              '/home/niels/.mcrCache7.15/niels_17'.
+          This is typically caused by calls to ADDPATH in your startup.m or matlabrc.m files. Please see the compiler documentation and use the ISDEPLOYED function to ensure ADDPATH commands are not executed by deployed applications.
+
+
+
+          MIBexp_preproc is a simple function that calls the ft functions I use for preprocessing. I use the isdeployed function in startup, so that's not it. It seems like extraction of this CTF archive goes wrong, since the compiled MIBexp_preproc.m indeed is present in the path specified by this error message.
+
+          In the mcc compiler online help it says CTF data is "extracted automatically to user_name\AppData\Local\Temp\userid\mcrCachen.nn by default". I can't find this file.
+
+          Do you have any idea what's going on?
+
+          Best,
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "4956"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-26 11:27:06 +0100
+        thetext: |-
+          (In reply to comment #16)
+
+          I suggest we follow up on this discussion outside bugzilla and keep the bug closed. It is not sure whether it is a bug in the FT qsub code, a general user configuration error (e.g. path being set incorrectly), or a problem with the particular piece of code that you try to distribute.
+
+          Item 1 would be appropriate to address here, item 2 would require documentation improvements, item 3 is not neccessary a FT problem (depends on whether the particular piece of code is from FT or not).
+      - +@isprivate: "0"
+        commentid: "4957"
+        comment_count: "18"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-26 11:50:30 +0100
+        thetext: |-
+          (In reply to comment #17)
+
+          Right. I tried now with a simple ft function
+
+          cfg=[];
+          cfg.dataset = 'datafile.fif';
+          compiledfun = qsubcompile('ft_preprocessing');
+          qsubcellfun(compiledfun, {cfg}, 'memreq', 1024^3, 'timreq', 1)
+
+          and I get the same error message, so it's not item 3. Please let me know how and where to continue this discussion.
+
+          -N
+      - +@isprivate: "0"
+        commentid: "4961"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-26 23:31:25 +0100
+        thetext: "(In reply to comment #18)\n\nI can reproduce the error with ft_preprocessing, but also with ft_channelselection.m\n\nThe file\n   '/Users/robert/matlab/fieldtrip-trunk/ft_channelselection.m'\n   is not in the application's expanded CTF archive at\n    '/Users/robert/.mcrCache7.16/robert5'.\nThis is typically caused by calls to ADDPATH in your startup.m or matlabrc.m files\n\nand even with fieldtrip/utilities/istrue, which is a really simple function that only does a few sting comparisons and does not depend on other FT stuff.\n\nLooking in the CTF archive, every time I do see that the indicated function is present, including the other functions on which it seems to depend. So the error is confusing. \n\nI tried disabling the addpath in ft_defaults, but that did not solve it\n\nI tried disabling the path adjustment in qsubexec->feval->setcustompath, and that does seem to make a difference.\n\nCan you please try changing it into the following and try whether it also solves the problem on your side?\n\n\nAfter the change below, I was able to do \n\ncompiledfun = qsubcompile('istrue');\nvalue = qsubcellfun(compiledfun, {'yes'}, 'memreq', 1024^3, 'timreq', 300);\n\n-----\n\nfunction setcustompath(option_path)\n\n% SUBFUNCTION that changes the path\n\n% these are for remembering the path on subsequent calls with the same input arguments\npersistent previous_argin previous_path\n\n% the following pertains to path settings, which does not apply in case\n% this code is included in a compiled MATLAB application\nif ~isdeployed\n  \n  if isequal(previous_argin, option_path) && isequal(previous_path, path)\n    % no reason to change the path again\n    return\n  end\n  \n  if ~isempty(option_path)\n    f = mfilename('fullpath'); % this is .../peer/private/getcustompath.m\n    f = fileparts(f);          % this is .../peer/private\n    f = fileparts(f);          % this is .../peer\n    [p, d] = getcustompath;\n    % ensure that the default path is maintained\n    path(d);\n    % add the custom path\n    path(option_path, path);\n    % ensure that the peer functions are maintained on the path\n    path(f, path);\n  end\n  \n  % remember the current settings for the next call\n  previous_argin = option_path;\n  previous_path  = path;\n  \nend\n\n\n-----\n\nP.S.  Not causing this particular problem, but nevertheless a bug is that with backend=local and when starting the compilation from a directory different from the homedir, it cannot find the correct xxx_input.mat file. For torque and sge the pwd path is passed along on the linux command line, but for local execution not (yet).  \n\nFor the time being, please try to get it working for a job in your home directory, and not while being in another directory."
+      - +@isprivate: "0"
+        commentid: "4991"
+        comment_count: "20"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-27 11:33:47 +0100
+        thetext: "(In reply to comment #19)\n\nI found setcustompath in qsubexec->fexec, not feval. I guess that was what you mean. I made the changes and was able to run the simple ft_preprocessing command:\n\n>>cfg=[]; % simple test\n>>cfg.dataset='/home/niels/MIBeeg/DummyData/DummyRecording_01.vhdr';\n>>compiledfun = qsubcompile('ft_preprocessing');\n>>data = qsubcellfun(compiledfun, {cfg}, 'memreq', 1024^3, 'timreq', 3, 'backend', 'torque');\n\ncompiling ft_preprocessing into niels_login3_p13349_b1\nfinished compiling\nsubmitting job niels_login3_p13349_b2_j001... qstat job id 5903504.batch1.irc.sara.nl\njob niels_login3_p13349_b2_j001 returned, it required 6 seconds and 49.6 MB\ncomputational time = 5.7 sec, elapsed = 116.5 sec, speedup 0.0 x\n\n\nIt worked both with backend local and torque (output shown here for torque). I ran it from my home directory. I couldn't find an output log after running it (with local it prints a whole lot of execution messages and the ft output, all successful), that would be useful to have at some point to check if ft did the right thing. \n\nI will try now with my own scripts and real data on torque, and let you know if that too works.\n\n-N\n\nps the data output comes out as a cell array. I have to use cell2mat to convert to struct. is this normal when using output variables? I always save output files within my functions so I never use output variables."
+      - +@isprivate: "0"
+        commentid: "4992"
+        comment_count: "21"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-27 12:00:42 +0100
+        thetext: |-
+          (In reply to comment #20)
+
+          There is one issue with the trialfun when using compiled preprocessing. The trialfun is not compiled, presumably because it only gets evaluated at runtime.
+
+
+          Error using ==> ft_definetrial at 147
+          cannot locate the specified trialfun (sortTrials_MIBexperiment)
+      - +@isprivate: "0"
+        commentid: "4993"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-27 12:14:59 +0100
+        thetext: |-
+          Good that the problem is now pinned down.
+
+          (In reply to comment #20)
+
+          regarding the cell-array output. The handling of the outputs and whether outputs should be handed back or not (e.g. not in case you use cfg.outputfile) should indeed be improved. At the moment the number of output arguments is determined by looking at the function to be executed, not by looking at the number thaht is requested by the user from qsubcellfun. I will file this as separate bug.
+
+          (In reply to comment #21)
+
+          regarding the trialfun: at compile time MATLAB does not know the name of the function, because it fevals a  string that will be in the cfg at a later time. This raises the issue that it should be made possible to explicitely include m-files that MATLAB might not be able to find.
+      - +@isprivate: "0"
+        commentid: "5154"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-04 10:23:26 +0100
+        thetext: "(In reply to comment #22)\n\nqsubcompile now allows dependencies to be passed, e.g. \n\nfcomp = qsubcompile({@ft_definetrial, @trialfun_custom})\n\nmbp> svn commit\nSending        qsub/qsubcellfun.m\nSending        qsub/qsubcompile.m\nTransmitting file data ..\nCommitted revision 5236.\n\nThe cell-array aspect in comment #22 has not yet been addressed."
+      - +@isprivate: "0"
+        commentid: "5170"
+        comment_count: "24"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-02-06 12:58:29 +0100
+        thetext: "(In reply to comment #23)\n\nHey Robert,\n\nI tested this new feature with backend= 'local' and my trialfun is indeed succesfully included in the compiled program. But the next problem is the signal processing toolbox that MATLAB cannot find. It gives a large number of warnings like this:\n\nWarning: cannot change path settings for\n/home/niels/.mcrCache7.15/niels_4/home/niels/matlab/fieldtrip/template/layout\nin a compiled application \n> In ft_hastoolbox>myaddpath at 371\n  In ft_hastoolbox at 305\n  In ft_defaults at 79\n  In ft_artifact_zvalue at 99\n  In MIBexp_artefact_muscle at 30\n  In MIBexp_preproc at 33\n  In qsub/private/fexec at 137\n  In qsubexec at 50\n\nFinally it produces this:\n\nsearching for artifacts in 204 channels\nsearching trials.Reading 74280 ... 79030  =     59.424 ...    63.224 secs... [done]\nUndefined function or method 'hilbert' for input arguments of type 'double'.\n\nError in ==> ft_preproc_hilbert at 52\n\nError in ==> preproc at 367\n\nError in ==> ft_artifact_zvalue at 199\n\nError in ==> MIBexp_artefact_muscle at 30\n\nError in ==> MIBexp_preproc at 33\n\nError in ==> fexec at 137\n\nError in ==> qsubexec at 50\n\nSo it seems hilbert (part of the signal processing toolbox, right?) is not included in the compiled program... Should it also be specifically included at compilation?\n\nBest,\n\n-N"
+      - +@isprivate: "0"
+        commentid: "5205"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-08 11:46:08 +0100
+        thetext: |-
+          (In reply to comment #24)
+
+          I am at the FIL in London, discussing stuff with the SPM guys. Guillaume mentioned that his experience with the MATLAB compiler is that it not very robust in detecting dependencies and that sometimes it forgets to put a function in the executable package. That is consistent with your problem, i.e. MATLAB forgot to include hilbert.
+
+          Possible solution: use depfun to figure out all dependencies before passing it onto qsubcompile. If that works, it can also be done inside qsubcompile.
+
+
+          Could you  try
+            depfun('yourfunction')
+          and then do something with the output to change it into a cell-array and then pass it along with your own function to qsubcompile?
+      - +@isprivate: "0"
+        commentid: "5217"
+        comment_count: "26"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-02-08 14:20:57 +0100
+        thetext: "(In reply to comment #25)\n\n\nI have found it out already with the mcc help. When calling mcc in qsubcellfun you have to use the '-p' with the toolbox dir to specifically include it after clearing the path with '-N'. So I changed it to:\n\n\nmcc('-N', '-p', '/sara/sw/matlab/64/2011a/toolbox/signal', '-p', '/sara/sw/matlab/64/2011a/toolbox/stats', '-R', '-nodisplay', '-o', batchid, '-m', 'qsubexec', 'cellfun', fname, fdeps{:});\n\n\nWhen I did depfun('MIBexp_preproc') I noticed the stats toolbox was also required in my own preprocessing function (probably for z-transforming during artifact rejection) so I also included this too. It works now. \n\nSo qsubcellfun needs to figure out which toolboxes are required by the the to be compiled function and pass them on to the mcc command.\n\nWill now try it out with my freqanalysis and let you know if it works."
+      - +@isprivate: "0"
+        commentid: "5223"
+        comment_count: "27"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-02-08 15:40:34 +0100
+        thetext: |-
+          (In reply to comment #26)
+
+          With my freqanalysis function it also works. Great!
+      - +@isprivate: "0"
+        commentid: "5257"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-10 16:21:54 +0100
+        thetext: "(In reply to comment #27)\n\nGood. \n\nThis relates to bug 1114 and bug 1104, which pertain to the dependencies. Finding all dependencies with depfun takes ages. Nevertheless, we have to improve the detection. \n\nThere is a test_bug1014 script that detects compats. Along that line we can make a script that determined which toolboxes are used where."
+      - +@isprivate: "0"
+        commentid: "5508"
+        comment_count: "29"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 11:12:16 +0100
+        thetext: "Another solution instead of using depfun to find the dependencies is to have the user specify the toolboxes. It is not as user-friendly for the novice, but much faster for the expert.\n\nI have added some code and the following documentation\n\n%   toolbox        = string or cell-array with strings, non-standard \n%                    Mathworks toolboxes to include (see below).\n...\n% If you need to include Mathworks toolboxes that are not automatically\n% detected as dependencies by the MATLAB compiler, you can specify them\n% likt this\n%   compiledfun = qsubcompile(fname, 'toolbox', {'signal', 'image', 'stats'})\n\nThe toolbox path is detected by looking for signal/Contents.m, i.e. the contents file that Mathworks nicely places in each toolbox directory.\n\nIn case the toolbox is not found, an error is given."
+      - +@isprivate: "0"
+        commentid: "5509"
+        comment_count: "30"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 11:33:17 +0100
+        thetext: "committed three improvements to qsub in one go:\n\nenhancement - this addresses bug #1254, bug #1331 and bug #1361. \nAllow the user to specify toolbox names when compiling. Allow the user to\nspecify a custom batchid instead of user_host_pid_bM. Implemented\nbackend=local using a call to qqubexec inside qsubfeval (i.e. really\nlocal execution), renamed the existing implementation to backend-system.\n\nmbp> svn commit\nSending        qsub/private/generatejobid.m\nSending        qsub/qsubcellfun.m\nSending        qsub/qsubcompile.m\nSending        qsub/qsubfeval.m\nTransmitting file data ....\nCommitted revision 5435."
+      - +@isprivate: "0"
+        commentid: "5851"
+        comment_count: "31"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:34 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

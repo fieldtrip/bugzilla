@@ -1,0 +1,69 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1510"
+    creation_ts: 2012-06-08 10:49:00 +0200
+    short_desc: BEM meshes seem to be intersecting in MEG forward model with openmeeg
+    delta_ts: 2015-07-20 10:19:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ith
+      +@name: Imali Thanuja Hettiarachchi
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - alexandre.gramfort
+      - ith
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6316"
+        comment_count: "0"
+        who:
+          +content: ith
+          +@name: Imali Thanuja Hettiarachchi
+        bug_when: 2012-06-08 10:49:03 +0200
+        thetext: "On 8 Jun 2012, at 3:05, IMALI THANUJA HETTIARACHCHI wrote:\n\nDear All,\n \nI started with fieldTrip recently and I am trying to create a BEM headmodel using the mri data (standard_mri.mat) available on the website. I use the following code\n \nload standard_mri.mat\nmri_orig=mri;\n \n% Realign the data to the CTF system\n \ncfg = [];\ncfg.method = 'interactive';\n% use n,l,r fudicials\nmri_realign = ft_volumerealign(cfg, mri_orig);\n \ncfg = [];\ncfg.resolution = 1; % mm\ncfg.dim = mri_orig.dim;\nmri_reslice = ft_volumereslice(cfg, mri_realign);\n \n%% Segmenting the data\n \ncfg = [];\ncfg.output= {'scalp','skull','brain'};\ncfg.coordinates    = 'ctf';\ncfg.keepintermediate = 'no';\n[mri_segment] = ft_volumesegment(cfg, mri_reslice);\nmri_combine = mri_reslice;\nmri_combine.seg  = mri_segment.scalp + 3*mri_segment.skull + 6*mri_segment.brain;\nmri_combine.mask = (mri_combine.seg)>0;\n \n%%  Plot data\n \ncfg = [];\ncfg.interactive   = 'no';\ncfg.method='slice';\ncfg.funparameter  = 'seg';\ncfg.funcolormap   = 'jet';\ncfg.funcolorlim = [0 7];\ncfg.opacitylim    = [0 1.5];\ncfg.maskparameter = 'mask';\nfigure , ft_sourceplot(cfg,mri_combine);\n \n%% Generating the mesh\n \n    cfg=[];\n    cfg.tissue=[1 2 3];\n    cfg.numvertices=[5000 3000 800];\n    cfg.sourceunits=mri_segment.unit;\n    scalp=(mri_segment.scalp)&~(mri_segment.skull | mri_segment.brain);\n    skull=2*(mri_segment.skull);\n    brain=3*(mri_segment.brain);\n \n    mri_segment.seg= scalp+skull+brain;\n    bnd = ft_prepare_mesh(cfg, mri_segment);\n \n%% View meshes a transparent plot\n \nfigure (2)\ntr1=TriRep(bnd(1).tri,bnd(1).pnt(:,1),bnd(1).pnt(:,2),bnd(1).pnt(:,3));\ntr2=TriRep(bnd(2).tri,bnd(2).pnt(:,1),bnd(2).pnt(:,2),bnd(2).pnt(:,3));\ntr3=TriRep(bnd(3).tri,bnd(3).pnt(:,1),bnd(3).pnt(:,2),bnd(3).pnt(:,3));\n       trisurf(tr1,'facealpha',0.1); hold on\n       trisurf(tr2,'facealpha',0.2); hold on\n       trisurf(tr3)\n   \n     \n%% BEM Computation-calculating the related electromagnetic model\n \nCskin_surface= 0.33; %scalp\nCouter_skull_surface=0.0042; %skull\nCinner_skull_surface=0.33; %brain\nvol=[];\nfor i=1:3\nvol.bnd(i).tri=bnd(i).tri;\nvol.bnd(i).pnt=bnd(i).pnt;\nend\nvol.cond=[Cskin_surface Couter_skull_surface Cinner_skull_surface];\ncfg=[];\ncfg.method         = 'openmeeg';\nvol = ft_prepare_headmodel(cfg, vol);\n \nWhen I run the code at the stage of generating the headmodel with ft_prepare_headmodel, I get an error  as;\n??? Error using ==> surface_nesting at 24\nthe compartment nesting cannot be determined\n \nError in ==> ft_headmodel_bem_openmeeg at 96\norder = surface_nesting(vol.bnd, 'insidefirst');\n \nWith the limited experience with fieldTrip and headmodels I assume that this is because the meshes are overlapping."
+      - +@isprivate: "0"
+        commentid: "13571"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-13 11:50:20 +0200
+        thetext: |-
+          Addressing some old open bugs...
+
+          The reported error indeed could very well be caused by intersection of the meshes. Note that the segmentation tools that come packaged with FieldTrip may not be state-of-the-art. In combination with the quality of the MR-data some time may need to be spent on getting the meshes right. At the moment this would be the user's responsibility.
+      - +@isprivate: "0"
+        commentid: "15957"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-20 10:19:28 +0200
+        thetext: Closed several bugs at once.

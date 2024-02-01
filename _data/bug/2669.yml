@@ -1,0 +1,70 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2669"
+    creation_ts: 2014-08-06 11:34:00 +0200
+    short_desc: use of 'avg' field with ft_sourceinterpolate
+    delta_ts: 2019-08-10 12:28:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - chrysa.lithari
+      - eelke.spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14228"
+        comment_count: "0"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-08-06 11:34:30 +0200
+        thetext: "Dear ft developers,\nwe just encountered a problem (see example below) when trying to interpolate multiple field with ft_sourceinterpolate and an 'avg' field is present in the data set.\nThe problem emerges (irregardless of whether the field 'avg' is to be interpolated or not) because the function parameterselection (line 46 in my version) assumes that, given an 'avg' field in the data it must be a structure. \nThe problem can be fixed by adding a check for a struct to that same if-case. \n(i.e.:\nif isfield(data, 'avg') && isstruct(data.avg)\n    tmp = fieldnames(data.avg);\n    for i=1:length(tmp)\n      tmp{i} = ['avg.' tmp{i}];\n    end\n    allparam = cat(1, allparam, tmp);\nend\n)\n\nbest\nphilipp\n\n\n%% Example\n%% \nclear all\nload standard_sourcemodel3d10mm\n\n\n% create a fake source data set\ndata = [];\ndata = sourcemodel;\n\n% with data in an avg field\ndata.avg = nan([sourcemodel.dim]);\ndata.avg = data.avg(:); % make it one column\ndata.avg(sourcemodel.inside) = 1; \n\n\n%% now try to interpolate\nmri = ft_read_mri('single_subj_T1.nii');\n\ncfg = [];\ncfg.parameter = 'avg';\ninterp= ft_sourceinterpolate(cfg, data, mri);\n\n% --> error\n\n%% check again with different field name ('classic ft way')\n\ndata = [];\ndata = sourcemodel;\n\n% with data in an avg.pow field\ndata.avg.pow = nan([sourcemodel.dim]);\ndata.avg.pow = data.avg.pow(:); % make it one column\ndata.avg.pow(data.inside) = 1; \n\n\nmri = ft_read_mri('single_subj_T1.nii');\n\n\ncfg = [];\ncfg.parameter = 'avg.pow';\ninterp = ft_sourceinterpolate(cfg, data, mri);\n\n% --> works\n% one can also just rename 'avg' to 'avg1' and it works"
+      - +@isprivate: "0"
+        commentid: "14229"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-08-06 11:52:09 +0200
+        thetext: |-
+          Thanks for the report, I just added the isstruct() test.
+
+          bash-4.1$ svn commit private/parameterselection.m
+          Sending        private/parameterselection.m
+          Transmitting file data .
+          Committed revision 9766.
+      - +@isprivate: "0"
+        commentid: "19994"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:50 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

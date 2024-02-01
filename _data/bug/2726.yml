@@ -1,0 +1,177 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2726"
+    creation_ts: 2014-10-06 16:50:00 +0200
+    short_desc: ft_math takes very long to compute operations
+    delta_ts: 2019-08-10 12:28:56 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14557"
+        comment_count: "0"
+        attachid: "663"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-10-06 16:50:32 +0200
+        thetext: |-
+          Created attachment 663
+          profiler output
+
+          Recently, ft_math is going very slow when one does simple operations. Here an example:
+
+          % create some test data
+          cfg=[];
+          cfg.layout='CTF275.lay';
+          lay = ft_prepare_layout(cfg);
+          lab = ft_channelselection('MEG',lay.label);
+
+          freq1.label  = lab;
+          freq1.freq   = 5:1:90;
+          freq1.time   = 1:52;
+          freq1.dimord = 'chan_freq_time';
+          freq1.powspctrm = ones(length(freq1.label),length(freq1.freq),length(freq1.time));
+          freq1.cfg    = struct([]);
+
+          freq2 = freq1;
+          freq2.powspctrm = ones(length(freq1.label),length(freq1.freq),length(freq1.time)).*2;
+
+          %% this one takes ~16 seconds
+          tic;
+          cfg=[];
+          cfg.parameter = 'powspctrm';
+          cfg.operation = '(x1-x2)./(x1+x2)';
+          out = ft_math(cfg,freq1,freq2);
+          toc;
+
+          %% this one takes 0.00 seconds
+          tic;
+          out=freq1;
+          out.powspctrm = (freq1.powspctrm-freq2.powspctrm)./(freq1.powspctrm+freq2.powspctrm);
+          toc;
+
+
+          I use matlab profiler to check where's the bottleneck and line 384 (y = arrayfun(operation, arginval{:}); ) is called more than a million times (see attachment):
+
+          profile on -history
+
+          cfg=[];
+          cfg.parameter = 'powspctrm';
+          cfg.operation = '(x1-x2)./(x1+x2)';
+          out = ft_math(cfg,freq1,freq2);
+
+          p = profile('info');
+          profview(0,p)
+
+          Any ideas?
+      - +@isprivate: "0"
+        commentid: "14558"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-06 17:20:29 +0200
+        thetext: |-
+          I also noticed this while working on the natmeg stats tutorial.
+
+          In my case it was cfg.operation='log10' which was fast, but 'log10(x1)' which was slow, also in arrayfun.
+
+          Do you know whether this is a recent change in speed?
+      - +@isprivate: "0"
+        commentid: "14559"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-10-06 22:13:14 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          Hi Robert,
+          I had the feeling this was recent to me but I downloaded a fieldtrip from sept 1st and the problem is still there... No clue when it started
+      - +@isprivate: "0"
+        commentid: "14560"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 10:08:32 +0200
+        thetext: "I checked the following code\n\n-----\n\nnrpt = 10;\nnchan = 10;\nnfreq = 100;\nntime = 100;\n\ndata = [];\ndata.dimord = 'rpt_chan_freq_time';\ndata.label = arrayfun(@num2str, 1:nchan, 'uniformoutput', false);\ndata.freq = 1:nfreq;\ndata.time = 1:ntime;\ndata.powspctrm = rand(nrpt, nchan, nfreq, ntime);\n\ncfg = [];\ncfg.parameter = 'powspctrm';\ncfg.operation = 'log10';\n\nstopwatch = tic;\ndata1 = ft_math(cfg, data);\ntime1 = toc(stopwatch);\n\ncfg = [];\ncfg.parameter = 'powspctrm';\ncfg.operation = 'log10(x1)';\n\nstopwatch = tic;\ndata2 = ft_math(cfg, data);\ntime2 = toc(stopwatch);\n\ndisp(time1);\ndisp(time2);\n\n-----\n\nThe problem is partially in arrayfun, and partially in the use of an anonymous function. See here for a demonstration:\n\n>> operation = @(x) log10(x)\n>> tic; arrayfun(operation, data.powspctrm); toc\nElapsed time is 3.501949 seconds.\n\n>> tic; arrayfun(@log10, data.powspctrm); toc\nElapsed time is 1.048518 seconds.\n\n>> tic; log10(data.powspctrm); toc\nElapsed time is 0.017312 seconds.\n\nThe reason for using arrayfun is that the output and input dimensions should be identical, i.e. x1/x2 should be implemented as x1./x2 and not as a matrix division. \n\nI don't see how we can speed it up, given these constraints. Knowing that cfg.operation='log10' is much faster than cfg.operation='log10(x1)'\n\nDo you agree with this verdict? If so, I suggest to mark it as \"RESOLVED->WONTFIX\"."
+      - +@isprivate: "0"
+        commentid: "14578"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-10-07 14:57:43 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+           Hi Robert,
+
+          Fully agree with your verdict. Still I cannot explain why it was faster in the past (might be it was only in my fantasy ;) ). Still I'll try to think about how to improve speed because now I won't use a function that takes 17secs to compute a simple operation (x1-x2)./(x1+x2) (my case 75 meg datasets...)
+      - +@isprivate: "0"
+        commentid: "14622"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-10-11 11:54:36 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+          If the main reason for using arrayfun is that the operation needs to be elementwise (i.e. ./ rather than /), then we should be able to come up with an alternative. There is e.g. the builtin function vectorize(), which inserts a . before any ^, / or *.
+
+          If that won't do it (I don't know ft_math's architecture that well), I also have some code lying around that does a more sophisticated parsing of arbitrary arithmetical expressions, which takes care of the elementwise thing, automatically identifies constants, functions, and variables in the expression, and that sort of stuff.
+
+          I think it's quite important that we don't "wontfix" this, because these huge performance differences will cause people to stick with plain matlab, rather than use ft_math.
+      - +@isprivate: "0"
+        commentid: "20000"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:56 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "663"
+      date: 2014-10-06 16:50:00 +0200
+      delta_ts: 2014-10-06 16:50:32 +0200
+      desc: profiler output
+      filename: profiler.png
+      type: image/png
+      size: "199913"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

@@ -1,0 +1,165 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2059"
+    creation_ts: 2013-03-15 22:43:00 +0100
+    short_desc: cfg.channel in ft_topoplotER
+    delta_ts: 2013-03-18 13:30:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1977
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: annevanhoogmoed
+      +@name: Anne van Hoogmoed
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - ingrid.nieuwenhuis
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9840"
+        comment_count: "0"
+        attachid: "437"
+        who:
+          +content: annevanhoogmoed
+          +@name: Anne van Hoogmoed
+        bug_when: 2013-03-15 22:43:30 +0100
+        thetext: |-
+          Created attachment 437
+          GA_loc_diff&lay_baby
+
+          I've previously used cfg.channel to define which channels I wanted to have included in ft_topoplotER. This doesn't seem to work anymore, it just uses all channels in the layout.
+          The script looks like this:
+
+          cfg = [];
+          cfg.channel = {'4','5','6','8','9','10','11','13','14','15','19','20','21','24','25','26'};
+          cfg.layout = lay_baby;
+          cfg.xlim = [0.7 1.2];
+          cfg.zlim = [-6 6];
+          ft_topoplotER(cfg, GA_loc_diff);
+
+          I've attachted the files.
+
+          Thanks,
+          Anne
+      - +@isprivate: "0"
+        commentid: "9841"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 08:07:22 +0100
+        thetext: |-
+          thanks for the detailed bug report. I have confirmed the problem, with
+
+          cfg = [];
+          cfg.channel = {'4','5','6','8','9','10','11','13','14','15','19','20','21','24','25','26'};
+          cfg.layout = lay_baby;
+          cfg.xlim = [0.7 1.2];
+          cfg.zlim = [-6 6];
+
+          cfg.channel = 'all';
+          figure
+          ft_topoplotER(cfg, GA_loc_diff);
+
+          cfg.channel = {'4','11','16','19','20','21'};
+          figure
+          ft_topoplotER(cfg, GA_loc_diff);
+
+          you would expect two different figures, but both are the same.
+      - +@isprivate: "0"
+        commentid: "9842"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 08:12:11 +0100
+        thetext: |-
+          I identified the problem, but don't know yet how to solve it. For an unclear reason, the channelselection works differently in interactive and non-interactive mode. Probably this has been the case for a longer time. But recently we switched the interactive mode on by default, which explains that the figures now look different.
+
+          @Anna, a workaround for the moment is to do
+
+          cfg.interactive = 'no'
+      - +@isprivate: "0"
+        commentid: "9843"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 09:10:43 +0100
+        thetext: "after some struggles with git and svn, I have updated the code\n\nThe code change that solves this specific instance is in ft_prepare_layout. In the case of an input cfg.layout structure (as here), it would not make the selection of the channels. With other layout specifications (such as cfg.layout='CTF151.lay') it would.\n\n@Anne: The workaround is not needed any more. \n\nI have also added a test script that compares the figures. With cfg.interactive=yes/no the figure is now the same, with different channel selections the figure is now different. Please see\nhttp://code.google.com/p/fieldtrip/source/detail?r=7672\nfor low-level details. Due to the git struggles, the detailed commit log messages have disappeared.\n\nStill to do is to discuss in the FT meeting why there is some behavior in the topoplot_common function that depends on interactive=yes/no. That seems an explicit design choice, but I don't get it."
+      - +@isprivate: "0"
+        commentid: "9875"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 12:41:43 +0100
+        thetext: similar issue for ft_multiplotTFR. Not sure how topoplot is calling ft_prepare_layout, but the fix does work with ft_multiplotTFR, see bug 2066. I mark this bug as blocking, because imho the same fix as used here should be applicable to multiplot
+      - +@isprivate: "0"
+        commentid: "9876"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 12:42:40 +0100
+        thetext: |-
+          (In reply to comment #4)
+          Not sure how topoplot is calling ft_prepare_layout, but the fix does *not yet* work with ft_multiplotTFR
+
+          And I need an edit function ;)
+      - +@isprivate: "0"
+        commentid: "9882"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 13:29:52 +0100
+        thetext: '*** Bug 2066 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "9883"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 13:30:40 +0100
+        thetext: "duplicate bug, duplicate comment ;)\n\nI see the change you made to ft_prepare_layout and was wondering why it did not\nwork for me. It turns out, your change is specific to when providing a layout\nbut not when loading a layout from disk, so e.g. for \ncfg = []...;\ncfg.layout = 'EEG1010.lay', \nft_xxxplot(cfg, data);\n\nstill all channels would be plotted.\n\nI changed it such that the channelselection takes place at the end of\nft_prepare_layout after the layout has been initialized for all cases. Also, I\nmarked this as a duplicate of bug 2059, because it was caused by the same\nissue. Finally, I updated the test script of bug 2059 - and fixed a bug in that\ntestcript ;)\n\nsvn ci ft_prepare_layout.m test/test_bug2059.m -m \"bugfix #2059 #2066 -\nsubselection of channels when plotting works again for all cases, testscript\nextended\"\nSending        ft_prepare_layout.m\nSending        test/test_bug2059.m\nTransmitting file data ..\nCommitted revision 7690."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "437"
+      date: 2013-03-15 22:43:00 +0100
+      delta_ts: 2013-03-15 22:43:30 +0100
+      desc: GA_loc_diff&lay_baby
+      filename: bug_ft_topoplotER.mat
+      type: application/octet-stream
+      size: "1652337"
+      attacher:
+        +content: annevanhoogmoed
+        +@name: Anne van Hoogmoed
+      data: REMOVED

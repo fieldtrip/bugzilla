@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2758"
+    creation_ts: 2014-11-11 19:20:00 +0100
+    short_desc: ft_prepare_headmodel(cfg) fails with single argument
+    delta_ts: 2015-01-12 09:19:03 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marc.lalancette
+      +@name: Marc Lalancette
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - marc.lalancette
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14784"
+        comment_count: "0"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-11 19:20:22 +0100
+        thetext: "ft_prepare_headmodel fails when the second argument 'data' is missing. This is allowed according to the function help and makes sense e.g. when providing cfg.hdmfile. \n\nThe error is due to data being assigned an empty matrix:\n192  data = [];\nand then when checking:\n220  input_seg = ft_datatype(data, 'segmentation');\n\nft_datatype doesn't know how to deal with empty input and eventually we get: \n  Undefined function 'fieldnames' for input arguments of type 'double'.\n  Error in ft_datatype>check_chan (line 159)\n    fn = fieldnames(data);\n  Error in ft_datatype (line 50)\n  ischan         = check_chan(data);\n  ...\n\nPossible fix: either modify ft_datatype to deal with empty input, or modify ft_prepare_headmodel 218-221 to:\n\n% boolean variables to manages the different geometrical input data objects\nif isempty(data)\n  input_mesh = false;\n  input_seg = false;\n  input_elec = false;\nelse\n  input_mesh  = isfield(data, 'pnt') && ~isfield(data, 'label');\n  input_seg   = ft_datatype(data, 'segmentation');\n  input_elec  = ft_datatype(data, 'sens');\nend"
+      - +@isprivate: "0"
+        commentid: "14785"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 13:12:50 +0100
+        thetext: Thanks Marc, we'll look into it.
+      - +@isprivate: "0"
+        commentid: "14802"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 15:52:57 +0100
+        thetext: |-
+          If I do:
+
+          x = [];
+          y = ft_datatype(x, 'segmentation');
+
+          I don't get an error.
+
+          Are you using a clean and up-to-date version of FieldTrip?
+      - +@isprivate: "0"
+        commentid: "14822"
+        comment_count: "3"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-12 17:41:02 +0100
+        thetext: "I did an SVN update again just now:\nCompleted: At revision: 9958  \nThe only local edit I have is in lcmv.\n\nAnd I still get: \n>> ft_datatype([], 'segmentation')\nUndefined function 'fieldnames' for input arguments of type 'double'.\n\nError in ft_datatype>check_chan (line 159)\n  fn = fieldnames(data);\n\nError in ft_datatype (line 50)\nischan         = check_chan(data);\n\n\nPossibly a Matlab version issue?  I'm on 2011b on Windows.  It doesn't like fieldnames on empty (double)."
+      - +@isprivate: "0"
+        commentid: "14827"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 20:14:08 +0100
+        thetext: Sorry Marc, my bad. My private version of FieldTrip had a fix in place which I have never committed to SVN ;-). Apparently I have come across this one before.
+      - +@isprivate: "0"
+        commentid: "14828"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 20:15:04 +0100
+        thetext: "bash-4.1$ svn diff ft_datatype.m\nIndex: ft_datatype.m\n===================================================================\n--- ft_datatype.m\t(revision 9959)\n+++ ft_datatype.m\t(working copy)\n@@ -150,7 +150,7 @@\n %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n function [res] = check_chan(data)\n \n-if any(isfield(data, {'time', 'freq', 'pos', 'dim', 'transform'}))\n+if ~isstruct(data) || any(isfield(data, {'time', 'freq', 'pos', 'dim', 'transform'}))\n   res = false;\n elseif isfield(data, 'dimord') && any(strcmp(data.dimord, {'chan', 'chan_chan'}))\n   res = true;\nbash-4.1$ svn commit -m \"enhancement - make subfunction check_chan robust against an empty data argument\" ft_datatype.m\nSending        ft_datatype.m\nTransmitting file data .\nCommitted revision 9960."

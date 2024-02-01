@@ -1,0 +1,179 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2187"
+    creation_ts: 2013-06-04 16:27:00 +0200
+    short_desc: ft_appendfreq does not give a freq in output
+    delta_ts: 2019-08-10 12:40:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2285
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2186
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1984
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "1984"
+      - "3287"
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - dlozanosoldevilla
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10600"
+        comment_count: "0"
+        attachid: "481"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-04 16:27:40 +0200
+        thetext: |-
+          Created attachment 481
+          data to reproduce bug
+
+          Which crashes stuff like freqstatistics etc.
+
+          To reproduce, load data in attachment and:
+
+          x = ft_appendfreq([], s, s)
+
+          Diego, could this be due to one of your changes?
+      - +@isprivate: "0"
+        commentid: "10601"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-06-04 16:40:58 +0200
+        thetext: "If I run as you propose, it crashes because cfg.parameter is required\n\n>> load('testdata.mat')\n>> x = ft_appendfreq([], s, s)\nWarning: -clear \n> In utilities/private/warning_once at 116\n  In utilities/private/ft_preamble_init at 26\n  In ft_preamble at 54\n  In ft_appendfreq at 58 \nError using ft_checkconfig (line 150)\nThe field cfg.parameter is required\n\n\nError in ft_appendfreq (line 70)\ncfg = ft_checkconfig(cfg, 'required', 'parameter');\n\n\nIf one append the powspctrm, yes the freq is not appended. To avoid a crash before freqstatistics I suggest you to use ft_freqgrandaverage:\n\ncfg=[];\ncfg.keepindividual='yes';\ngavg = ft_freqgrandaverage(cfg,s,s,s...)\n\nThen the output dimord is used in ft_appendfreq to work properly.\n\nI'll have a look to do it as you suggest"
+      - +@isprivate: "0"
+        commentid: "10602"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-04 16:44:45 +0200
+        thetext: |-
+          (In reply to comment #1)
+          Yes, sorry, the cfg.parameter should have been there of course.
+
+          I simply reverted ft_appendfreq to an earlier revision, so I don't have any trouble. (But that solution of course won't work for people working with the /home/common/-release)
+
+          Of course it should remain possible for people to do
+            ft_freqstatistics(cfg, dataset{:});
+          instead of having to call freqgrandaverage first.
+      - +@isprivate: "0"
+        commentid: "10603"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-06-04 17:08:43 +0200
+        thetext: |-
+          (In reply to comment #2)
+          Fine with me
+          I went back to the before-fix ft_appendfreq version but I cannot commit it
+
+          svn up -r 8144 ft_appendfreq.m
+
+          Do you know a way to updated commit the 8144 revision to have it at the home/common folder? I can copy-paste but I'd like to know if there's a more elegant workaround
+      - +@isprivate: "0"
+        commentid: "10632"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-06-05 15:27:14 +0200
+        thetext: |-
+          (In reply to comment #3)
+           Hi Eelke,
+
+          I made a minor change in ft_appendfreq and I created test fucntion +data and updated the test_ft_appendfreq and no errors so far:
+
+
+          Sending        ft_appendfreq.m
+          Transmitting file data .
+          Committed revision 8187.
+
+
+          Adding         test_bug1984_2187.m
+          Adding  (bin)  test_bug1984_2187.mat
+          Sending        test_ft_appendfreq.m
+          Transmitting file data ...
+          Committed revision 8188.
+
+          Could you please try to test the code with your data? then I can continue adding the grad, chamcmb and other fields
+      - +@isprivate: "0"
+        commentid: "18569"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-21 10:21:20 +0200
+        thetext: "Arjen implemented ft_append_sens and made changes to ft_append_data. This made the inconsistency between appending data/timelock/freq very obvious. \n\nPlease note that there is also an ft_appendsource, but I won't be looking at that one now."
+      - +@isprivate: "0"
+        commentid: "18593"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-25 14:45:54 +0200
+        thetext: test_bug1984_2187 (still) runs without problems, so I assume that this is solved
+      - +@isprivate: "0"
+        commentid: "20232"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:39 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20431"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "481"
+      date: 2013-06-04 16:27:00 +0200
+      delta_ts: 2013-06-04 16:27:40 +0200
+      desc: data to reproduce bug
+      filename: testdata.mat
+      type: application/octet-stream
+      size: "28126"
+      attacher:
+        +content: eelke.spaak
+        +@name: Eelke Spaak
+      data: REMOVED

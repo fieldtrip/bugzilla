@@ -1,0 +1,269 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1228"
+    creation_ts: 2011-12-12 18:12:00 +0100
+    short_desc: improve the fsample computation
+    delta_ts: 2012-02-01 16:53:22 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - craig.richter
+      - e.maris
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4515"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-12 18:12:55 +0100
+        thetext: "As reported by Craig (CC), at this time FT does 1./(time(2)-time(1) to compute the sampling rate. This is sensitive to numerical errors, and 1./mean(diff(time)) would be a better convention.\n\nThis needs to be fixed in the following functions, where the specest functions are the most important ones\n\n\nmanzana> grep 'time(2).*time(1)' *.m */*.m */*/*.m \n\nbesa2fieldtrip.m:    data.fsample = 1/(time(2)-time(1));  % time is already in seconds\nbesa2fieldtrip.m:    data.fsample = 1/(data.time(2)-data.time(1));\nft_spike_plot_jpsth.m:cfg.winlen      = ft_getopt(cfg,'winlen', 5*(jpsth.time(2)-jpsth.time(1)));\nft_spike_plot_jpsth.m:sampleTime    = jpsth.time(2) - jpsth.time(1); % get the binwidth\nprivate/avw_hdr_make.m:    hist.exp_date(1:10)     = sprintf('%02d-%02d-%04d',datime(3),datime(2),datime(1));\nprivate/specest_nanfft.m:fsample = 1/(time(2)-time(1));\nspecest/ft_specest_hilbert.m:fsample = 1/(time(2)-time(1));\nspecest/ft_specest_mtmconvol.m:fsample = 1/(time(2)-time(1));\nspecest/ft_specest_mtmfft.m:fsample = 1/(time(2)-time(1));\nspecest/ft_specest_tfr.m:fsample = 1/(time(2)-time(1));\nspecest/ft_specest_wavelet.m:fsample = 1/(time(2)-time(1));"
+      - +@isprivate: "0"
+        commentid: "4517"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-12 18:18:23 +0100
+        thetext: |-
+          So, thus this mean that we will not un-deprecate fsample? Using 1/mean(diff(time)) will of course be more accurate, but it is still not as an accurate or consistent representation as the true fsample (given by the recording system).
+
+          (I will go ahead and implement the changes)
+      - +@isprivate: "0"
+        commentid: "4518"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-12 18:30:27 +0100
+        thetext: (changes committed)
+      - +@isprivate: "0"
+        commentid: "4521"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-12-13 08:43:01 +0100
+        thetext: '*** Bug 976 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "4547"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-14 17:36:57 +0100
+        thetext: |-
+          On 14 Dec 2011, at 14:38, Richter, Craig wrote:
+
+          The mean diff approach to the fsample determination has fixed my issue.  My spectra are silky smooth now.  Thanks!!
+      - +@isprivate: "0"
+        commentid: "4557"
+        comment_count: "5"
+        attachid: "202"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-19 13:47:30 +0100
+        thetext: |-
+          Created attachment 202
+          No Baseline corrected spectrum
+      - +@isprivate: "0"
+        commentid: "4558"
+        comment_count: "6"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-19 13:55:49 +0100
+        thetext: "Hey Guys,\n\nSorry about the out of order attachment.  I'm having trouble with the fsample fix again.  In the attachment you can see a tfr generated using mtmfft.  I am using mtmfft rather than mtmconvol for the tfr since mtmconvol was suspected to be creating problems with Granger causality analysis due to its handling of DC, i.e. DC is not zero for each window.  I can ensure this with mtmfft, but this required slicing the data manually.  I do this with ft_redefinetrial.  This is what led to the problems with numerical accuracy, since time(2) - time(1) had a variable result based on the specific part of the original data that the window was defined using ft_redefinetrial.  So my tfrs were not smooth.  The current fix reduces the size of the errors so they are not perceptible, as can be seen from the tfr, except that these errors do indeed become perceptible when a percent change baseline is used and there is little power in a given band.  Here differences in the baseline value, which is an average over the mtmfft spectra that make up the baseline time interval, and the poststimulus window, that are due to numerical error are very apparent.  See the second attached tfr.  You can see the problem in the DC bin.  Since there was no power in the DC bin due to mean subtraction before freqanalysis, the percent change represents only the change in the numerical error, so the effect is greatly amplified.  \n\nWhat do you guys suggest for getting around this?  I still like using a singular defined fsample.  I highly doubt that this will be the last place we see this sort of phenomenon.\n\nBest,\n\nCraig"
+      - +@isprivate: "0"
+        commentid: "4559"
+        comment_count: "7"
+        attachid: "203"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-19 13:56:13 +0100
+        thetext: |-
+          Created attachment 203
+          TFR with DC numerical error problem
+      - +@isprivate: "0"
+        commentid: "4561"
+        comment_count: "8"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-19 14:24:48 +0100
+        thetext: "Hi Craig,\n\nI do not entirely understand. What is it specifically in the second attachment that would be due to numerical issues? Is it the background fluctuations you can see in all frequencies? If so, wouldn't those look less smooth in time and frequency if solely due to numerical issues (or at the least with a single gradient on the frequency axis)? \nThe 0 Hz bin looks very noisy indeed. However, it's non-zero-ness could also partly be due to spectra leakage from the bin above it. Also, what taper did you use? Demeaning is done on the raw data, and tapering (in case of mtmfft) is done on the data after demeaning (mtmconvol tapers the wavelets). This also leads to non-zero dc I would say (although the remaining DC would be small)."
+      - +@isprivate: "0"
+        commentid: "4562"
+        comment_count: "9"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-19 15:10:35 +0100
+        thetext: It is just the 0 Hz bin.  I actually apply a hanning taper and then demean to tackle the issue with the slightly non-zero mean after tapering.  I've been doing this on Pascal's advice do deal with some other issues caused by my very short window analysis.  In the previous implementation of mtmfft I had the same 'bumpiness' problem across all bins.  This occurred at the same time point for all bins based on the calculation of fsample.  There was no issue particular to the zero Hz bin.  Now you can see this choppy pattern at nearly all time points.  This is because the numerical error is present at all time bins due to the calculation of fsample from all the data.time values, which differ in the pattern of accuracy for each data window used for my tfr.  If I look at the DC bin without applying a baseline, then it is very smooth, as in the fist image, but after the baseline the choppiness is present.  If you look at any of the bins close up, you can see a bumpiness caused by the lack of accuracy in the fsample calculation, but this is such a small percentage of the actual signal that it is not noticeable.  In the DC bin, this error is the only component of the signal, so when compared with the baseline, which may also have a slight difference from zero, this will give rise to zero, when the error matches, and positive and negative signals depending on the ratio of the error.  This is why you can see that the colors in the baseline occupy the full +/- 1 range.
+      - +@isprivate: "0"
+        commentid: "4563"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-12-19 15:17:47 +0100
+        thetext: "Hi Craig,\n\nWouldn't the problem go away if you fool ft_freqanalysis within the for-loop \nwhen doing data.time = repmat({[0:nsmp]/fsample},[1 ntrl]) after ft_redefinetrial, but before ft_freqanalysis?\n\nAre you sure that the problem is the fsample numerical issue issue?\n\nIf your windows are becoming very short with respect to the lowest true frequency content in your data I would expect leakage problems in the lowest frequency bin, particularly if you are using cfg.pad > datalength (are you?)."
+      - +@isprivate: "0"
+        commentid: "4566"
+        comment_count: "11"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-20 11:47:57 +0100
+        thetext: "I've tested further and the fsample fix is good.  My issue is with tapering before demeaning.  I was trying to address an issue in the low end of the spectrum by reversing the order.  \n\nIt appears to have worked in that now the DC is so flat that I'm seeing some sort of noise after baselining, but this noise is 10e-34 in magnitude.  It is equally present in mtmfft and my test fft, based on matlab commands.  \n\nSo the code appears to be operating properly.  Sorry for the false alarm!!"
+      - +@isprivate: "0"
+        commentid: "4593"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 09:24:36 +0100
+        thetext: "I noticed in the help/description of ft_datatype_raw that\n\n% Deprecated fields:\n%   - fsample\n\nand in the code for 2011/latest\n\n    if ~isfield(data, 'fsample')\n      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));\n    end\n\n\nGiven the recent discussions (online and offline, a.o. with Craig and Roemer), I suggest to be lenient for the moment and keep the code as it is. I.e. fsample will be added on the fly if not present. Still, remember that other fieldtrip code should not rely on it.\n\nI have changed the specific code  and committed:\n\nmanzana> svn diff utilities/\nIndex: utilities/ft_datatype_raw.m\n===================================================================\n--- utilities/ft_datatype_raw.m (revision 5068)\n+++ utilities/ft_datatype_raw.m (working copy)\n@@ -100,7 +100,7 @@\n     end\n     \n     if ~isfield(data, 'fsample')\n-      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));\n+      data.fsample = 1/mean(diff(data.time{1}));\n     end\n\nmanzana> svn commit utilities/\nSending        utilities/ft_datatype_raw.m\nTransmitting file data .\nCommitted revision 5070."
+      - +@isprivate: "0"
+        commentid: "4595"
+        comment_count: "13"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-22 10:43:01 +0100
+        thetext: |-
+          Hmmm, I guess that one slipped through the previous grep
+
+          grep 'time{1}(2).*time{1}(1)' *.m */*.m */*/*.m
+          ft_freqsimulation.m:  cfg.fsample = 1/(cfg.time{1}(2) - cfg.time{1}(1));  % determine from time-axis
+          ft_scalpcurrentdensity.m:scd.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          ft_spike_triggeredspectrum.m:fsample = 1./ (data.time{1}(2)-data.time{1}(1)); % assumes constancy
+          compat/ft_databrowser_old.m:  fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          private/rejectvisual_channel.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          private/rejectvisual_summary.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          private/rejectvisual_trial.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+
+
+
+          Shall I change all of these as well to 1./mean(diff(data{1}.time))?
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+      - +@isprivate: "0"
+        commentid: "4596"
+        comment_count: "14"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-22 10:44:21 +0100
+        thetext: |-
+          Wooops, something went wrong with the previous copy/paste. The proper list:
+
+          grep 'time{1}(2).*time{1}(1)' *.m */*.m */*/*.m:
+
+          ft_freqsimulation.m:  cfg.fsample = 1/(cfg.time{1}(2) - cfg.time{1}(1));  % determine from time-axis
+          ft_scalpcurrentdensity.m:scd.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          ft_spike_triggeredspectrum.m:fsample = 1./ (data.time{1}(2)-data.time{1}(1)); % assumes constancy
+          compat/ft_databrowser_old.m:  fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          private/rejectvisual_channel.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          private/rejectvisual_summary.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          private/rejectvisual_trial.m:fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          fileio/private/ft_datatype_raw.m:      data.fsample = 1/(data.time{1}(2) - data.time{1}(1));
+          utilities/private/data2raw.m:  data.fsample = 1/(data.time{1}(2)-data.time{1}(1));
+      - +@isprivate: "0"
+        commentid: "4751"
+        comment_count: "15"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-01-11 14:36:51 +0100
+        thetext: '*** Bug 905 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "5099"
+        comment_count: "16"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-02-01 16:53:15 +0100
+        thetext: Done for all occurrences, fixed and closed.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "202"
+        date: 2011-12-19 13:47:00 +0100
+        delta_ts: 2011-12-19 13:47:30 +0100
+        desc: No Baseline corrected spectrum
+        filename: 1.jpg
+        type: image/jpeg
+        size: "20909"
+        attacher:
+          +content: craig.richter
+          +@name: Craig Richter
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "203"
+        date: 2011-12-19 13:56:00 +0100
+        delta_ts: 2011-12-19 13:56:13 +0100
+        desc: TFR with DC numerical error problem
+        filename: 2.jpg
+        type: image/jpeg
+        size: "91533"
+        attacher:
+          +content: craig.richter
+          +@name: Craig Richter
+        data: REMOVED

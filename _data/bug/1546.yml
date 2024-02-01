@@ -1,0 +1,54 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1546"
+    creation_ts: 2012-06-21 21:31:00 +0200
+    short_desc: calling resampledesign with a control variable can yield incoherent results
+    delta_ts: 2012-06-22 09:24:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: chavera
+      +@name: Saskia Helbling
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6498"
+        comment_count: "0"
+        who:
+          +content: chavera
+          +@name: Saskia Helbling
+        bug_when: 2012-06-21 21:31:03 +0200
+        thetext: "Hej,\n\nit seems to me that resampledesign implicitely assumes that levels of the control variable are entered into the design matrix in a blockwise fashion and in ascnding order. If these assumptions are violated columns of the returned resample matrix are not in the correct order.\n\nThe following code snippet should produce the permutations for an independent T-test with a control variable in the second row of the design matrix. resampledesign would be expected to return a resample matrix where entries in odd columns were only permuted with entries in odd columns, and entries in even columns only with those in even columns, respectively. \n\nclear\na = 2;\nb = 2;\nn = 3;\ndesign = [repmat([1 1 2 2],1,n); repmat([1,2],1,b*n)];\n\n% design =\n% \n%      1     1     2     2     1     1     2     2     1     1     2     2\n%      1     2     1     2     1     2     1     2     1     2     1     2\n\n\ncfg.ivar = [1];\ncfg.cvar = [2];\ncfg.numrandomization = 10;\n \ncfg.resampling = 'permutation';\ncd('PATH_TO_FIELDTRIP\\private')\nresample = resampledesign(cfg, design);\n\n\nInstead, resampledesign returns a resample matrix where the first columns only contain odd and the later columns only even values.\n\n\nReplacing line 130 \nresample = cat(2, blockres{:}); \nwith \nresample(:,cat(2, blocksel{:})) = cat(2, blockres{:});\n\nseems to resolve the problem.\nI used version fieldtrip-20120618.\n\nCheers Saskia"
+      - +@isprivate: "0"
+        commentid: "6499"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-22 09:24:46 +0200
+        thetext: "thanks!\n\nMainly as a reminder to myself when I look in the details: have a look at \n\nhttp://fieldtrip.fcdonders.nl/faq/how_can_i_use_the_ivar_uvar_wvar_and_cvar_options_to_precisely_control_the_permutations\n\nand fieldtrip/test/test_resampledesign.m which is not in the ftp version (but is in svn), see \nhttp://code.google.com/p/fieldtrip/source/browse/trunk/test/test_resampledesign.m"

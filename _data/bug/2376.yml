@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2376"
+    creation_ts: 2013-11-13 17:35:00 +0100
+    short_desc: Plotting elec for spherical model fails due to chanpos/elecpos mismatch
+    delta_ts: 2014-02-24 10:56:36 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11910"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-13 17:35:20 +0100
+        thetext: |-
+          When creating the concentric spheres models for EEG I'd like to get a verification plot of the volume and the sensors. When I do ft_prepare_vol_sens the electrodes are projected on the sphere but this only affects elec.elecpos, not elec.chanpos.
+
+          So if I try to do ft_plot_sens I get spherical volume with non-spherical sensors. Doing elec.chanpos = elec.elecpos does the trick but I think it'd be better to have a principled solution.
+      - +@isprivate: "0"
+        commentid: "11911"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-13 18:01:54 +0100
+        thetext: |-
+          One solution is to have ft_plot_sens plot the electrode position, not the channel position. This is what should happen with coil=yes as extra input argument.
+
+          But the channel position should also be updated if the coil position (or in this case elec position) changes. This needs to be updated for each volume conductor and projection style. E.g. the first one I encounter is halfspace which deals with elecpos from line 342-359.
+
+          I think that cleanest would be to have a xxx_project function for each EEG headmodel xxx. That splits the code between channel/electrode selection and projection. Hmm, but for BEM and FEM it is not a simple projection, as tra is updated as well. I am also not yet sure how to deal with positions of bipolar channels. Perhaps better is to do
+
+          sens.chanpos = nan(size(sens.chanpos));
+
+          early in the code and then later do
+
+          sens.chanpos = channelposition(sens)
+
+          to update it again. The channelposition function is used elsewhere as well and should therefore have the appropriate intelligence in dealing with electrodes and channels. Agreed?
+      - +@isprivate: "0"
+        commentid: "11912"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-13 18:12:53 +0100
+        thetext: |-
+          (In reply to comment #1)
+          OK, but this should be in your code as channelposition is a privare function
+      - +@isprivate: "0"
+        commentid: "11925"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-14 11:34:35 +0100
+        thetext: |-
+          mac001> svn commit
+          Sending        forward/ft_prepare_vol_sens.m
+          Sending        plotting/ft_plot_mesh.m
+          Sending        plotting/ft_plot_vol.m
+          Adding         test/test_bug2376.m
+          Sending        test/test_ft_plot_mesh.m
+          Transmitting file data .....
+          Committed revision 8777.
+
+          please see test_bug2376 for a demonstration.
+      - +@isprivate: "0"
+        commentid: "12944"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:36 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

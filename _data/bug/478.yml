@@ -1,0 +1,125 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "478"
+    creation_ts: 2011-02-07 17:02:00 +0100
+    short_desc: implement an svn hook to replace the svn externals
+    delta_ts: 2011-02-23 13:51:10 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "490"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1383"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-07 17:02:21 +0100
+        thetext: |-
+          #!/bin/bash
+
+          # This post-commit script synchronizes multiple files in the same
+          # repository, i.e. if you change and commit file1 in directoryA, then
+          # file1 in directoryB is also updated. It can be used to replicate
+          # identical versions of files at multiple locations in the repository.
+          #
+          # This script serves as a replacement for svn file externals, which
+          # are very slow and require a lot of resources on the server when
+          # used with svn+ssh.
+          #
+          # step 1: the working copy of the repository is updated
+          # step 2: the changed file is copied over all other occurences of that file
+          # step 3: all changes in the working copy are committed
+
+          umask 0000
+
+          REPOS="$1"
+          REV="$2"
+
+          # this defines the working copy, which should be located on the svn server
+          SYNCPATH="/Users/robert/tmp/working"
+
+          # this specifies a text file to be checked to limit the files that
+          # are replicated, e.g. if you have Makefiles at various locations,
+          # you probably don't want those to be copied over each other
+          REPLFILE=$SYNCPATH/.replicate
+
+          # ensure that it is up to date, also including all additions/removals
+          svn update $SYNCPATH/$FILE --ignore-externals
+
+          # determine the files that have changed
+          CHANGED=`svnlook changed -r "$REV" "$REPOS" | grep "^[U|A]" | awk '{print $2}'`
+
+          for FILE in $CHANGED
+          do
+          BASE=`basename $FILE`
+          FULL=$SYNCPATH/$FILE
+          if ( grep -q $BASE $REPLFILE ) ; then
+          # copy the changed file to each replicated instance of the same file
+          find $SYNCPATH -name $BASE ! -path $FULL -exec cp -a $FULL {} \;
+          fi
+          done
+
+          svn commit $SYNCPATH -m "automatically synchronized the replicated files"
+      - +@isprivate: "0"
+        commentid: "1384"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-07 17:04:40 +0100
+        thetext: |-
+          and it should use a property like
+
+
+          MacBook> if [ `svn propget replication file1` ] ;then echo 1; else echo 0 ; fi
+          1
+          MacBook> if [ `svn propget replication file2` ] ;then echo 1; else echo 0 ; fi
+          0
+
+
+          instead of the (hidden) .replicate file
+      - +@isprivate: "0"
+        commentid: "1423"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-12 23:40:50 +0100
+        thetext: finished, although some more testing would be desired
+      - +@isprivate: "0"
+        commentid: "1497"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-23 13:51:10 +0100
+        thetext: I closed all bugs that were in the RESOLVED/FIXED or otherwise RESOLVED state.

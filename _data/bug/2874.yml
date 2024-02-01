@@ -1,0 +1,118 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2874"
+    creation_ts: 2015-03-31 10:12:00 +0200
+    short_desc: ft_sourcegrandaverage of a field that is not 'pow'
+    delta_ts: 2016-06-14 16:18:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15573"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2015-03-31 10:12:03 +0200
+        thetext: "More of a question than a bug, this one.\n\nI did some all-to-all connectivity using ft_connectivityanalysis, but I'm only really interested in connectivity from X-to-all, and from Y-to-all. So rather than keep the whole matrix (which was quite big) I created two structures;\n\nnow my data look like this;\n        pos: [19344x3 double]\n        dim: [24 31 26]\n       unit: 'cm'\n     inside: [19344x1 logical]\n     params: [1x1 struct]\n    initial: [4x4 double]\n        cfg: [1x1 struct]\n     seed_l: [19344x1 double]\n     seed_r: [19344x1 double]\n\nwhen I try to create a grandaverage of these data, thus;\n\ncfg=[];\ncfg.parameter='seed_l';\ngrandaverage=ft_sourcegrandaverage(cfg,data{:});\n\nI get the following response;\n??? Reference to non-existent field 'pow'.\n\nError in ==> ft_sourcegrandaverage at 141\nif iscell(varargin{1}.(cfg.parameter))\n\nSo my question is; should ft_sourcegrandaverage work with nonstandard parameters such as mine? Or should it only work with the standard 'pow', 'cohspctrm', etc etc? \n\nIf the answer is, 'it should work with any parameter you specify' (which I think would be a sensible answer!) then right now it doesn't.\n\nWeirdly, if I do this:\nfor i=1:nsubs\n    data{i}.pow=data{i}.seed_l; %just create a field 'pow'\nend\n\nthen I call sourcegrandaverage\n\ncfg=[];\ncfg.parameter='seed_l'; %notice I did *not* ask to average 'pow'\ngrandaverage=ft_sourcegrandaverage(cfg,data{:});\n\nthen the command completes, but I have 'pow', and not 'seed_l' in my grand average! Ie, my request to average the parameter 'seed_l' got ignored.\n\nSeems like somewhere my requested parameter is being overriden (and I guess 'pow' is the default to average if no parameter is specified)."
+      - +@isprivate: "0"
+        commentid: "15574"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-31 12:35:33 +0200
+        thetext: |-
+          Hi Tom,
+
+          Looks like a bug to me, ignoring the cfg.paramneter field. I see some code that pertains to dealing with a selection of avg.xxx, which might be the cause. I'll try to reproduce and fix.
+      - +@isprivate: "0"
+        commentid: "15575"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-31 13:00:15 +0200
+        thetext: |-
+          Hi Tom,
+
+          The following works fine for me
+
+          ------------------------------------
+
+          pos = randn(19344, 3);
+          nsubj = 3;
+
+          clear source
+          for i=1:nsubj
+            source{i}.pos = pos; % needs to be the same over subjects
+            source{i}.dim = [24 31 26];
+            source{i}.unit = 'cm';
+            source{i}.inside = ones(19344, 1);
+            source{i}.params = 'something'; % don't know what this is
+            source{i}.initial = randn(4,4); % don't know what this is
+            source{i}.cfg = [];
+            source{i}.seed_l     = randn(19344, 1);
+            source{i}.avg.seed_r = randn(19344, 1);
+          end
+
+          %%
+
+          cfg = [];
+          cfg.parameter = 'seed_l';
+          grandavg = ft_sourcegrandaverage(cfg, source{:});
+
+
+          %%
+
+          cfg = [];
+          cfg.parameter = 'avg.seed_r';
+          grandavg = ft_sourcegrandaverage(cfg, source{:});
+
+          ------------------------------------
+
+          That means that the problem you encounter has been fixed already. Note that I am assuming here that you are using a fixed (and hence not the latest) version of FT.
+
+          I did just make some cleanups to the code, but those do not affect the behaviour.
+
+          mac011> svn commit
+          Sending        ft_sourcegrandaverage.m
+          Sending        ft_sourcestatistics.m
+          Adding         test/test_bug2874.m
+          Transmitting file data ...
+          Committed revision 10313.
+      - +@isprivate: "0"
+        commentid: "17526"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:18:23 +0200
+        thetext: Hereby I am closing several bugs that have been resolved for some time (WONTFIX, WORKSFORME, etc.). If you disagree, please reopen and explain.

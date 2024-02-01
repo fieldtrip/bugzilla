@@ -1,0 +1,79 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3236"
+    creation_ts: 2017-01-30 16:06:00 +0100
+    short_desc: Problem with simbio FEM
+    delta_ts: 2019-08-10 12:37:35 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: nico.coquelet
+    assigned_to: fieldtriptoolbox
+    cc:
+      - carsten.wolters
+      - j.schoffelen
+      - jens.klinzing
+      - r.oostenveld
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18315"
+        comment_count: "0"
+        who:
+          +content: nico.coquelet
+          +@name: ""
+        bug_when: 2017-01-30 16:06:42 +0100
+        thetext: "My colleagues and I are involved in the development of resting state functional connectivity with EEG. \nFor this experience, we used combined MEG (Vectorview, Elekta) and EEG (EGI 256-channels) recording.\n\nWe are facing some issues regarding the computation of the leadfield for the EEG dataset for the finite element method simbio.\n\nThe first problem arises in the function ft_prepare_leadfield.m<prepare_headmodel.m<ft_prepare_vol_sens.m<sb_transfer.m. This function seems to assume that the first electrode is the electrode of reference. However, there is no guarantee that this would be actually the case.\nIndeed, average reference can be used and not necessarily an electrode of reference. Moreover, (in particular for an EGI dataset), the electrode of reference is referenced as the last electrodes (and not the first). Therefore, to bypass this issue, we had to circshift (see MATLAB function circshift.m) my EEG dataset to use this function in the right way. It might be appropriate to implement some safeguards in order to use this function properly.\n\nThe second problem takes place in the function ft_prepare_leadfield.m<ft_prepare_sourcemodel.m<ft_inside_vol.m. This function estimates the dipoles that are inside and outside of the brain. To our point of view, there is a mistake for the simbio case (from the line 150 to 167). Indeed, one should not evaluate headmodel.hex and headmodel.tissue only for the discard indices, because the function dsearchn.m will return the dipole indices that make only sense for the array elementpos which is absolutely not the same than the array brain, leading to an unsuccessful evaluation of the dipoles within the brain.\nTo further support this claim, I compute the leadfield for the MEG dataset based on a sources grid from a deformation of the MNI template. When we modified the aforementioned function, we found that the number of sources inside and outside of the brain are practically the same for MEG and EEG (+-15550 for EEG and +-15545 for MEG) which is not the case when we run the original script (+- 2000 sources for EEG and +-15545 for MEG).\n\nI hope I have been able to explain you my issues.\nLet me know if you want to have more details\n\nBest regards,"
+      - +@isprivate: "0"
+        commentid: "18386"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 21:24:43 +0100
+        thetext: "Hi Nico,\n\nregarding the reference. In the computation of the leadfield any electrode can be the reference, since at a later stage in ft_prepare_leadfield the reference is explicitly changed. The default is to average reference the leadfield, but with elec.tra it is possible to specify more complex referencing schemes. \n\nAt least, this is how it should be, but bugs are always possible. Can you please confirm that the leadfield is average referenced? This should be the case irrespective of your data and of the channel order.\n\n===\n\nRegarding the automatic identification of sources inside the brain compartment. We recently have been making changes to that, please make sure that you have a recent (say less than 2 weeks old FT version). But the automatic identification of sources is not fool-proof. That is why you can set it (or change it) it yourself. Counting the number of inside-dipole-positions is not so interesting, more relevant to know is where they are. Furthermore, the heuristics and the default settings to determine which sources are interesting are different between EEG and MEG. As such it would surprise me that they would be the same. You know best which sources are of interest, and whether you want to extend the search space to a little-bit in the skull (useful for MEG, not at all appropriate for EEG) or not. See http://www.fieldtriptoolbox.org/faq/why_is_there_a_rim_around_the_brain_for_which_the_source_reconstruction_is_not_computed \n\nThere are many ways in which you can plot and visualise the data, which provides much better insight than summary statistics such as sum(grid.inside) to count inside positions. \n\nSee http://www.fieldtriptoolbox.org/example/coregistration_quality_control for a demonstration of some plotting functions.  \n\nIf you want to follow up the 2nd issue, you will have to share more details. E.g. a test script (including data) that demonstrates what is wrong, and a suggestion how to fix it would help."
+      - +@isprivate: "0"
+        commentid: "19271"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-15 11:22:08 +0100
+        thetext: '@nico, what is the status of this? If there is no active need to pursue this, I suggest to close this bug to avoid clutter.'
+      - +@isprivate: "0"
+        commentid: "19280"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-28 10:46:51 +0100
+        thetext: close for now, due to lack of perceived urgency of the reporter. Feel free to reopen.
+      - +@isprivate: "0"
+        commentid: "20396"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:37:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2459"
+    creation_ts: 2014-01-28 18:48:00 +0100
+    short_desc: Error in ft_postamble_history > warning_once
+    delta_ts: 2014-03-12 12:19:54 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "2407"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12623"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-28 18:48:10 +0100
+        thetext: |-
+          Hi, I'm calling ft_timelockanalysis within a method in a class object called plxReader. When called from the commandline there is no errors but when the same commad is called from the function I get the following error:
+
+          Invalid field name: 'plxReader.ftAnalysis'.
+
+          Error in warning_once>fieldnameFromStack (line 196)
+            ft_previous_warnings.(stack(end).name) = []; % iteratively build up structure fields
+
+          Error in warning_once (line 123)
+            [tmpfname ft_default.warning.identifier line] = fieldnameFromStack(ft_default.warning.identifier);
+
+          Error in ft_postamble_history (line 55)
+          warning_once('-clear');
+
+          Error in ft_postamble (line 55)
+            evalin('caller', ['ft_postamble_' cmd]);
+
+          Error in ft_timelockanalysis (line 371)
+          ft_postamble history    timelock
+
+          Error in plxReader/ftAnalysis (line 213)
+          				av{i} = ft_timelockanalysis(cfg,ft);
+
+          The class.method name in the stack causes the error.
+      - +@isprivate: "0"
+        commentid: "12627"
+        comment_count: "1"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 10:48:54 +0100
+        thetext: "I've fixed this for my needs by the following:\n\ndiff --git a/utilities/private/warning_once.m b/utilities/private/warning_once.m\nindex 33f9f27..d930ef2 100644\n--- a/utilities/private/warning_once.m\n+++ b/utilities/private/warning_once.m\n@@ -193,7 +193,8 @@ end\n \n fname = horzcat(stack(end).name);\n if ~issubfield(ft_previous_warnings, stack(end).name)\n-  ft_previous_warnings.(stack(end).name) = []; % iteratively build up structure fields\n+  name = regexprep(stack(end).name,'\\.','');\n+  ft_previous_warnings.(name) = []; % iteratively build up structure fields\n end"
+      - +@isprivate: "0"
+        commentid: "12632"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-29 13:20:57 +0100
+        thetext: |-
+          Hi Ian, thanks for reporting and providing a tentative fix. I'll look into this now and will report back on how we solved this :)
+
+          *** This bug has been marked as a duplicate of bug 2407 ***
+      - +@isprivate: "0"
+        commentid: "12714"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-29 13:54:02 +0100
+        thetext: |-
+          fixed in a slightly more generic way by
+          fname = regexprep(fname,'[^a-zA-Z0-9]','');
+
+          thanks very much for reporting this!
+      - +@isprivate: "0"
+        commentid: "12716"
+        comment_count: "4"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 13:57:25 +0100
+        thetext: Cool, no problem a good regex can't fix ;-)

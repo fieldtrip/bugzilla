@@ -1,0 +1,231 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1237"
+    creation_ts: 2011-12-19 16:05:00 +0100
+    short_desc: ft_getopt fails on windows 64-bit systems
+    delta_ts: 2012-03-14 10:00:45 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    blocked: "1231"
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - b.reuderink
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4564"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-19 16:05:49 +0100
+        thetext: |-
+          >> ft_topoplotER(cfg, data)
+          ??? Invalid MEX-file 'M:\FieldTrip\trunk\utilities\ft_getopt.mexw64': Access is denied.
+      - +@isprivate: "0"
+        commentid: "4565"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-19 16:14:17 +0100
+        thetext: |-
+          also fails for windows 32 and also on /home/common:
+
+          >> ft_getopt
+          ??? Invalid MEX-file
+          'H:\common\matlab\fieldtrip\utilities\ft_getopt.mexw32': Access is
+          denied.
+      - +@isprivate: "0"
+        commentid: "4567"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-12-20 14:39:27 +0100
+        thetext: 'I had the exact same issue just now. The mex-files seem to be invalid (@Jörn: indeed, my previous attempts were using the /utilities/ mex-files rather than the new /src/ ones). I will now commit new versions of the mex files (see bug 1231), hopefully that will solve this bug as well.'
+      - +@isprivate: "0"
+        commentid: "4575"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-12-20 15:02:06 +0100
+        thetext: I filed this one already, assigning it to JM who was being proactive :)
+      - +@isprivate: "0"
+        commentid: "4576"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-12-20 15:02:48 +0100
+        thetext: Oops, wrong bug :S Never mind, this should have been 1238...
+      - +@isprivate: "0"
+        commentid: "4601"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-12-22 14:17:35 +0100
+        thetext: Confirmed, I get the same error message.
+      - +@isprivate: "0"
+        commentid: "4625"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 11:30:15 +0100
+        thetext: |-
+          A workaround is to delete all the ft_getopt.mexw64 files:
+
+          ./src/ft_getopt.mexw64
+          ./plotting/private/ft_getopt.mexw64
+          ./connectivity/private/ft_getopt.mexw64
+          ./specest/private/ft_getopt.mexw64
+          ./qsub/private/ft_getopt.mexw64
+          ./peer/private/ft_getopt.mexw64
+          ./fileio/private/ft_getopt.mexw64
+          ./forward/private/ft_getopt.mexw64
+      - +@isprivate: "0"
+        commentid: "4686"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-05 09:30:48 +0100
+        thetext: |-
+          It turns out that the file permissions were not OK. Apparently (which sort of makes sense, but not at first glance) MATLAB needs execute permissions for its MEX-files *on Windows only*. After I execute:
+
+          1011 $ chmod ag+rx ft_getopt.*
+
+          on a Linux terminal, everything works fine. This is actually quite strange, since the Linux versions of the MEX-files work perfectly well without execute permissions. So it seems like the Samba server is understanding that Windows MATLAB wants to execute the MEX-file, then checks for the appropriate Linux permission, and then refuses access in case it is not present. The weird thing is of course that Windows does not even have an "execute" permission, but anyway.
+
+          I will now check whether changing permissions and committing also results in the permissions being updated in the repository.
+      - +@isprivate: "0"
+        commentid: "4687"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-05 10:09:11 +0100
+        thetext: |-
+          SVN does not keep track of file permissions. However, I have found the special svn:executable property, which tells SVN that the file needs to have its executable flag set. I set this property on all MEX-files, and committed (rev 5096) the change. This should cause the executable flag to be set whenever a working copy (including the /home/common/fieldtrip/ one) is updated.
+
+          For the future: anyone committing a new MEX-file needs to make sure the svn:executable property is set (to '*', it's the only valid value). Also, make sure any autosync-ed versions of the file also have this property set.
+      - +@isprivate: "0"
+        commentid: "4699"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-01-09 11:14:42 +0100
+        thetext: |-
+          I encountered the problem again in an external folder:
+          ??? Invalid MEX-file 'M:\FieldTrip\trunk\external\spm8\spm_bwlabel.mexw64': Access is denied.
+
+          Although we are not supposed to keep track of of external toolboxes, I guess it's a wise idea to change their file permissions as well? (I did it now locally on my machine)
+      - +@isprivate: "0"
+        commentid: "4701"
+        comment_count: "10"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-09 11:31:49 +0100
+        thetext: |-
+          (In reply to comment #9)
+          I tried setting the svn:executable flag on the externals/ mex-files as well, but that gave a permission denied error when I committed those changes. I'm adding Robert as CC, he could probably fix this :)
+      - +@isprivate: "0"
+        commentid: "4703"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-09 11:53:30 +0100
+        thetext: "(In reply to comment #10)\n\nall core developers have full permissions for fieldtrip/src, so I don't know what went wrong. I checked the file permissions and except for getpid.m (which I fixed, see below) they are all ok. \n\n\nmanzana> svn status\n M      getpid.m\n\nmanzana> svn commit\nSending        src/getpid.m\nCommitted revision 5101."
+      - +@isprivate: "0"
+        commentid: "4704"
+        comment_count: "12"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-09 11:55:57 +0100
+        thetext: |-
+          (In reply to comment #11)
+
+          The problem is with fieldtrip/external/; I don't think we can set the svn:executable flag on files in that directory. I was able to set the flag on all mex-files, in all folders, *except* for /external/
+      - +@isprivate: "0"
+        commentid: "4705"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-09 14:29:20 +0100
+        thetext: "(In reply to comment #12)\n\nyep, that is correct. \n\nWhat is actually desired? I just noticed that according to http://fieldtrip.fcdonders.nl/development/svn#keeping_the_svn_repository_tidy they are not executable, whereas presently (in src) they are all executable."
+      - +@isprivate: "0"
+        commentid: "4706"
+        comment_count: "14"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-09 14:34:28 +0100
+        thetext: |-
+          (In reply to comment #13)
+
+          Desired is that all mex-files, for all platforms, in all subfolders, have the svn:executable property set to '*' (the only allowed value). This will solve the 'Access is denied' issue with the mex-files on Windows, when accessing them through a Samba server.
+
+          For .m files setting the property either way does not matter (but it might indeed be tidy to have it not be present, as per the wiki page).
+      - +@isprivate: "0"
+        commentid: "4708"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-09 15:54:32 +0100
+        thetext: |-
+          (In reply to comment #14)
+
+          I have updated the wiki page http://fieldtrip.fcdonders.nl/development/svn?&#keeping_the_svn_repository_tidy and committed the updated mex files in revision 5104.
+      - +@isprivate: "0"
+        commentid: "4736"
+        comment_count: "16"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-01-11 09:56:09 +0100
+        thetext: That solves it.
+      - +@isprivate: "0"
+        commentid: "5551"
+        comment_count: "17"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-03-14 10:00:45 +0100
+        thetext: closing several bugs that have been RESOLVED for a long time

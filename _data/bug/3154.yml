@@ -1,0 +1,277 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3154"
+    creation_ts: 2016-06-26 01:49:00 +0200
+    short_desc: Elekta MEG channel selection broken
+    delta_ts: 2016-07-22 12:11:59 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sarang
+      +@name: Sarang Dalal
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - montoya.jair
+      - sarang
+      - stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17589"
+        comment_count: "0"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-06-26 01:49:04 +0200
+        thetext: |-
+          Something changed within the past week that breaks channel selection for Elekta data, so that basic calls like the following yield no channels at all:
+          cfg.dataset = 'meg.fif'
+          cfg.channel = {'MEG'};
+          data = ft_preprocessing(cfg);
+
+          If no cfg.channel is specified, all channels load as expected. However ft_chantype reports 'unknown' for all channels (with the exception that 'eog' is correctly recognized), so I suppose this is why channel selection fails.
+
+          Maybe this was introduced by recent changes in ft_datatype_sens?
+      - +@isprivate: "0"
+        commentid: "17591"
+        comment_count: "1"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-06-26 16:00:50 +0200
+        thetext: Also ft_sourceanalysis doesn't work anymore, even when indexing the channels manually by number. It does not produce an error, but a result full of zeros.
+      - +@isprivate: "0"
+        commentid: "17592"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-27 08:57:39 +0200
+        thetext: |-
+          is this for native elekta data, or after ICA cleaning and backprojecting?
+
+          Can you give a small example dataset (or script on basis of elekta data we have on the ftp)?
+      - +@isprivate: "0"
+        commentid: "17593"
+        comment_count: "3"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-06-27 09:32:53 +0200
+        thetext: |-
+          This is for native/continuous data (no max filter etc). I don't have a small dataset on hand since I'm at HBM, and the data I see on your FTP is already imported into mat files.
+
+          But I believe the code I wrote above would fail with any elekta data imported from the raw FIF file.
+
+          However with the data called 'subjectK.mat':
+          load subjectK
+          ft_chantype(data_left)
+
+          Returns mostly channel type 'unknown'
+      - +@isprivate: "0"
+        commentid: "17594"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-27 09:33:45 +0200
+        thetext: |-
+          (In reply to Sarang Dalal from comment #3)
+
+          I will have a look...
+      - +@isprivate: "0"
+        commentid: "17595"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-28 08:47:57 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+          I used "git bisect" to identify the commit. It is related to the work of last week.
+
+          882dba3426db583f7f4f9ac0cdf4eb3c26aaefc1 is the first bad commit
+          commit 882dba3426db583f7f4f9ac0cdf4eb3c26aaefc1
+          Author: Robert Oostenveld <r.oostenveld@gmail.com>
+          Date:   Wed Jun 22 12:47:47 2016 +0200
+
+              ENH - improve combined planar MEG sensor handling, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3144
+
+          :040000 040000 55dede70567039600fcf39be5c076aea065dd57c 5e53f62a05db15a1caf469083e00506388ea58d3 M	fileio
+          :040000 040000 dd359f1b96820d71e7da86c04c4d7f928dd7af4e 369c5f2869fafc378ee789e236ec78b1d43831b9 M	forward
+          :100644 100644 d0288875565b1c6246502fe453430db15a08c8aa 723c57a0c2b73bae7899c6342293012fe4012741 M	ft_combineplanar.m
+          :040000 040000 76f08c9ae39f63bef191b7518675143f27971dd7 9c38f4f9830f03042c649ff809cb21c662128804 M	inverse
+          :040000 040000 969c8fa4126ebe5482de522fa201267149c10f0d b443792f5ef9fac8e779de826b8332380fe8b46d M	plotting
+          :040000 040000 c1f2959a8491d097cc093f8face8ac42c112b1b6 85077bcaeb21ed099d7954234b5870e0be314bdf M	test
+          :040000 040000 ccf9e21768ef91ee555bb8b3df0ec6452f806b35 0be55c1178b5d0d40d2fcc3a5ba892f0d7f04f91 M	utilities
+      - +@isprivate: "0"
+        commentid: "17596"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-28 08:52:34 +0200
+        thetext: the error is due to the senstype being detected as neuromag306_combined, whereas it is simply 306 raw channels.
+      - +@isprivate: "0"
+        commentid: "17597"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-28 15:46:59 +0200
+        thetext: "mac011> git commit -a\n[bug3154 ab9cc10] FIX - resolved incorrect detection of senstype (neuromag306_combined instead of neuromag306), causing channel selection to fail. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3154\n 8 files changed, 363 insertions(+), 214 deletions(-)\n create mode 100644 test/test_bug3154.m\n\nthis resolves it:\nhttps://github.com/fieldtrip/fieldtrip/pull/185 \n\nIn the process, I also made ft_chanunit more consistent with ft_chantype. \n\nThere is now a test script that goes though the actions that I used to identify and fix all underlying issues."
+      - +@isprivate: "0"
+        commentid: "17600"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-29 08:44:57 +0200
+        thetext: '*** Bug 3155 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "17648"
+        comment_count: "9"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-07-15 17:00:48 +0200
+        thetext: |-
+          Even after this fix, cfg.channel input like 'MEG', 'MEGMAG', or 'MEGGRAD' into ft_sourceanalysis fails because no channels are found. (Again with Elekta, perhaps other systems are affected as well?)
+
+          I traced this down to line 657 in ft_selectdata.m:
+          selchannel = ft_channelselection(cfg.channel, varargin{k}.label);
+
+          This will output an empty matrix for Elekta channel labels. Providing the senstype could fix this:
+          selchannel = ft_channelselection(cfg.channel,varargin{k}.label,varargin{k}.grad.type);
+
+          However, I don't know of a general solution that does not break other datatypes; e.g., EEG data would not have a grad substructure. Any suggestions?
+      - +@isprivate: "0"
+        commentid: "17655"
+        comment_count: "10"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 13:44:54 +0200
+        thetext: "Hi Sarang! \n\nI have the same problem. \n\nI located the problem in ft_senstype, line 357-364 where input channel labels are compared with hardcoded lists of neuromag channel labels. One is in lowercase, the other in uppercase. \n\nI was trying to reproduce and fix it, but I am trapped by persistent variables in ft_senstype and ft_channelselection... arg... and have to run off now.\n\nAnyway, I uploaded some test data as well.\n\nBest,\nStephen"
+      - +@isprivate: "0"
+        commentid: "17656"
+        comment_count: "11"
+        attachid: "800"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 13:49:34 +0200
+        thetext: |-
+          Created attachment 800
+          small datastruct with neuromag gradiometers
+      - +@isprivate: "0"
+        commentid: "17657"
+        comment_count: "12"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 15:22:50 +0200
+        thetext: "It is getting very strange now: \n\nft_channelselection works on the uploaded data, when using 'MEG', 'MEGGRAD', and 'all'.\n\nHowever, when I tried to test it on combined gradiometers, ft_combineplanar seems to output the wrong names for the combined gradiometers, namely the magnetometer names (which are therefor duplicates in the .label field)."
+      - +@isprivate: "0"
+        commentid: "17658"
+        comment_count: "13"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 16:19:10 +0200
+        thetext: Okay, so the lower-case thing makes sense because ft_senstype calls itself with lower(inputchannels) in the case the sensor type is unknown. The problem therefor lies upstream to that point (not recognizing the sensory type).
+      - +@isprivate: "0"
+        commentid: "17659"
+        comment_count: "14"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 16:27:27 +0200
+        thetext: The problem is when ft_senstype has to determine the sensor type on the basis of the channel labels (ft_senstype(data_cue.label)), rather than the datastruct (ft_senstype(data_cue)), which works.
+      - +@isprivate: "0"
+        commentid: "17660"
+        comment_count: "15"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 16:45:48 +0200
+        thetext: |-
+          Okay - so here is the problem for real:
+
+          Line 356, etc., in ft_senstype reads:
+
+           % there are two possibilities for the neuromag channel labels: with and without a space, hence the 0.4
+              elseif all(mean(ismember(ft_senslabel('neuromag306_combined'), sens.label)) > 0.4)
+                type = 'neuromag306_combined';
+              elseif all(mean(ismember(ft_senslabel('neuromag306'),          sens.label)) > 0.4)
+                type = 'neuromag306';
+
+          Now, for Neuromag data ft_senslabel gives 2 (combined) or 3 (original) columns of labels for each channel, e.g. MEG0112, MEG0113, MEG0111 for the original, and MEG0111, MEG0112+MEG0113 for the combined. Now, by using "any" in the above code, it will fail to recognize it as neuromag when you input either only combined, or only gradiometers, which is often the case.
+
+          I suggest the following solution:
+
+          1) make the case neuromagXXX_combined depend only on the combined labels from ft_senslabel, i.e. the second column. Only these are unique.
+          2*) use ANY instead of ALL, and keep this order of cases (both the original and the combined condition will be a hit).
+
+          Actually 2 is the only feasible one, since this would also allow one to input only magnetometers.
+
+          Cheers,
+          Stephen
+      - +@isprivate: "0"
+        commentid: "17663"
+        comment_count: "16"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 16:56:12 +0200
+        thetext: |-
+          See bug 3164 for the new ft_combineplanar bug I mentioned:
+
+          http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3164
+      - +@isprivate: "0"
+        commentid: "17683"
+        comment_count: "17"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-22 12:11:59 +0200
+        thetext: "The problem is not fixed yet. \n\nThe problem is that ft_senslabel('neuromag306') and ft_senslabel('neuromag306_combined') overlap as they now both include magnetometers. Since ft_senstype uses elseif (instead of if) on line 356, it will detect non-combined as combined.\n\nIf ft_senslabel is only used to detect senstype, it would be solved by removing the magnetometer column from the ft_senslabel('neuromag306_combined') list. To me that makes total sense, but I can't totally oversee all the consequences for e.g. ft_channelselection('MEG',data) is done on combined gradiometer data."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "800"
+      date: 2016-07-20 13:49:00 +0200
+      delta_ts: 2016-07-20 13:49:34 +0200
+      desc: small datastruct with neuromag gradiometers
+      filename: data_grad.mat
+      type: text/plain
+      size: "682375"
+      attacher:
+        +content: stephen.whitmarsh
+        +@name: Stephen Whitmarsh
+      data: REMOVED

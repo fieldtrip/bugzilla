@@ -1,0 +1,125 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1762"
+    creation_ts: 2012-10-02 18:28:00 +0200
+    short_desc: config object fails on struct-array
+    delta_ts: 2015-02-11 10:40:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1614
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7759"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 18:28:54 +0200
+        thetext: |-
+          a = []
+          a(1).field = 1
+          a(2).field = 2
+          [a.field]   % this works
+
+          b = config(a)
+          [b.field]   % this fails with
+
+          ??? Error using ==> config.subsref
+          Too many output arguments.
+
+          --------
+
+          the config object should behave exactly like a structure, but apparently it does not. This has consequences for ft_megplanar line 260, which does
+
+            [neighbsel] = match_str({cfg.neighbours.label}, cfg.channel);
+
+          I noticed this when testing bug 2 with cfg.trackconfig = 'report'. The problem itself is not related to bug 2 or ft_megplanar and might also occur elsewhere.
+
+          --------
+
+          the workaround is not to use trackconfig.
+      - +@isprivate: "0"
+        commentid: "7762"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-10-02 21:03:19 +0200
+        thetext: I ran into this sometime ago as well with ft_multiplotER, in bug 1614. This time related to subasgn for cfg objects. Maybe they are related?
+      - +@isprivate: "0"
+        commentid: "8231"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-11-09 16:17:27 +0100
+        thetext: "I spent a few hours getting to know the object and (mostly) how subsref works, and passes along arguments of various sorts. \n\nI added some test-code to the bottom of @config/subsref.m. It should work in all circumstances I think, but there is one thing that isn't working properly, related to how matlab determines the nargout, and (I think) get's lost in recursive functions.\n\n\nRequest a field from all structures using a.field VS a(:).field:\n\n>>a.field\nans =\n     1\nans =\n     2\n\n>> a(:).field\nans =\n     1\nans =\n     2\n\nThese should be identical for b using the test-code, however:\n>> b.field\nans =\n     1\nans =\n     2\n\n>> b(:).field\nans =\n     1\n\n\nIn the first call, i.e. x.fieldname, matlab determines that nargout = 2. In the second case, it determines that nargout = 0 (i.e. no output defined). Doing [tmp1 tmp2] = b(:).field yields the expected output. \n\nHow matlab determines nargout before running any of the function-code (easily checked by placing a nargout at places), I do not know. Maybe matlab does some very simple parsing of the input and the code during/after compilation, and the recursiveness is too difficult for it? I do not know. \nHow matlab can be influenced in this I also do not know ;). Any two you have an idea?"
+      - +@isprivate: "0"
+        commentid: "12580"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-23 14:50:01 +0100
+        thetext: |-
+          I stumbled on this issue again today, and it took me a while to remember that it already exists as a bug. The workaround at the moment indeed is to use cfg.trackconfig = 'no', or to explicitly convert a potential config object into a struct.
+
+          Would a solution lie in the non-recursive config'ification of a cfg-structure in the first place? I.e. do not convert the cfg-fields that are struct(-array)s into a config object?
+      - +@isprivate: "0"
+        commentid: "14183"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-20 14:33:02 +0200
+        thetext: |-
+          The specifically reported problems are now resolved. There is still a known incompatibility, which is flagged as warning (not error) in the test script.
+
+          mac011> svn commit \@config/* test/test_config.m
+          Sending        @config/private/get.m
+          Sending        @config/subsasgn.m
+          Sending        @config/subsref.m
+          Adding         test/test_config.m
+          Transmitting file data ....
+          Committed revision 9747.
+      - +@isprivate: "0"
+        commentid: "15245"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:40 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

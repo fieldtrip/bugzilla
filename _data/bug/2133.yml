@@ -1,0 +1,203 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2133"
+    creation_ts: 2013-04-23 09:11:00 +0200
+    short_desc: egi_mff_v2 reading causes global variables to be deleted
+    delta_ts: 2014-06-19 14:41:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2466"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: cdavey
+      +@name: Colin Davey
+    cc:
+      - cdavey
+      - jdien07
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10200"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 09:11:00 +0200
+        thetext: "Joe wrote:\n\nI just wanted to alert you all to an issue with the EGI MFF Matlab reader code that seems to be due to a bug in Matlab itself, at least as of 2012a (on the Mac at least).  The function mff_setup calls the command \"javaclasspath(p);\"\n\nUnfortunately, this Matlab function in turn calls on \"clear('java')\" which in addition to clearing up the java instances also clears out all the ordinary global variables whether or not they are in scope.\n\nSo the mff reader will crash any Matlab program that relies on global variables.\nI'm putting in a workaround into my EP Toolkit as follows:\n\n            if strcmp(fileFormat,'egi_mff_v2') %workaround for Matlab bug\n                globalList=whos('global');\n                for i=1:length(globalList)\n                    eval(['global ' globalList(i).name ';']);\n                    eval(['save EPtemp' globalList(i).name ' ' globalList(i).name ';']);\n                end;\n            end;\n            [hdr]=ft_read_header(fileName,'dataFormat',fileFormat, 'headerformat',fileFormat);\n            \n            [theData]=ft_read_data(fileName,'dataformat',fileFormat, 'headerformat',fileFormat);\n            \n            [eventHdr]=ft_read_event(fileName,'dataformat',fileFormat, 'headerformat',fileFormat,'eventformat',fileFormat);\n            if strcmp(fileFormat,'egi_mff_v2')\n                for i=1:length(globalList)\n                    eval(['load EPtemp' globalList(i).name ';']);\n                    eval(['delete EPtemp' globalList(i).name '.mat;']);\n                end;\n            end;\n\nIn other words it temporarily saves all the global variables to disk and then restores them afterwards.\nYou may want to consider doing something similar for mff_setup so that it doesn't affect Matlab programs that call on it.\nI've also submitted a bugreport to Mathworks so hopefully they can get it fixed."
+      - +@isprivate: "0"
+        commentid: "10201"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 09:12:44 +0200
+        thetext: |-
+          I suggest to make a test script to confirm it, and then implement a similar work-around in the ft_read_xxx functions.
+
+          @Joe, do you by any chance know whether it affects other matlab versions? If you don't know, don't bother. We can check that out. At least for linux we keep all older versions of matlab installed.
+      - +@isprivate: "0"
+        commentid: "10280"
+        comment_count: "2"
+        attachid: "461"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-04-23 19:46:47 +0200
+        thetext: |-
+          Created attachment 461
+          test file
+
+          you'll need to change the file name to your mff test file.
+      - +@isprivate: "0"
+        commentid: "10281"
+        comment_count: "3"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-04-23 19:49:37 +0200
+        thetext: |-
+          I also found it in 2012a and 2012b.  I didn't get a chance to test further back.
+
+          I'll put the fix in once I get a moment.
+      - +@isprivate: "0"
+        commentid: "10283"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 21:19:25 +0200
+        thetext: "(In reply to comment #2)\n\nthanks. I updated the script a little bit and pointed it to a test file on our linux computers. I have not been able to test it yet from my laptop (as I don't have data local), but it should show up on  ihttp://fieldtrip.fcdonders.nl/development/dashboard in a few hours.\n\n\nmbp> svn commit test_bug2133.m \nAdding         test_bug2133.m\nTransmitting file data .\nCommitted revision 8066."
+      - +@isprivate: "0"
+        commentid: "10288"
+        comment_count: "5"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-04-24 22:33:58 +0200
+        thetext: Okay, just committed the fix.  It works on OS X.  I couldn't test on Windows because there is an unrelated problem that keeps it from working on that platform (Windows sees mff files as being folders, not files).  I'm going to raise that issue with the EGI team and see if we can find a solution.
+      - +@isprivate: "0"
+        commentid: "11425"
+        comment_count: "6"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-09-24 21:34:38 +0200
+        thetext: It turns out the fix only partly works.  So the workaround I implemented makes a cell list holding all the global variables prior to the mff setup call, then restores them afterwards as global variables, then delinks all the global variables that were not originally linked to the current scope.  However, it turns out that this procedure does not restore the global links to the functions that called the current function.  But if you try to redeclare the global variables after the mff call, Matlab registers an error.  The workaround therefore has to be to carry out the mff setup at the end of the initial function so that global variables are not needed afterwards.  The initial function then terminates and passes control to other functions which can then initialize the global variables as usual.  Needless to say, this is all rather messy.
+      - +@isprivate: "0"
+        commentid: "12778"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-03 10:07:52 +0100
+        thetext: "Hi Joe,\n\nSince a new version of mff_v2 is about to be released by EGI, I am looking into the related issues and found this one.\n\nI had to make a fix to the test script\n\nmac001> svn commit test_bug2133.m \nSending        test_bug2133.m\nTransmitting file data .\nCommitted revision 9180.\n\n\n\nOn my desktop mac I was subsequently not able to reproduce it, i.e. the test works fine for me on MATLAB Version: 8.0.0.783 (R2012b) on maci64.\n\nBut on linux I was able to reproduce it with Version 7.10.0.499 (R2010a) 64-bit (glnxa64).\n\n>> test_bug2133\nWarning: adding /home/mrphys/roboos/matlab/fieldtrip/external/egi_mff toolbox\nto your Matlab path\nWarning: adding\n/home/mrphys/roboos/matlab/fieldtrip/external/egi_mff/java/MFF-1.0.jar to your\nJava path\n> In mff_setup at 16\n  In ft_read_header at 996\n  In test_bug2133 at 16\n??? Reference to a cleared variable testvariable.\n\nError in ==> test_bug2133 at 18\nassert(exist(testvariable, 'var'));"
+      - +@isprivate: "0"
+        commentid: "12780"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-03 10:17:49 +0100
+        thetext: "Here is another demonstration of the problem, now separate from the script.\n\n>> clear all\n>> global a\n>> a = 1\na =\n     1\n>> cd matlab/fieldtrip/external/egi_mff/\n>> whos\n  Name      Size            Bytes  Class     Attributes\n\n  a         1x1                 8  double    global    \n\n>> mff_setup\nWarning: adding /home/mrphys/roboos/matlab/fieldtrip/external/egi_mff/java/MFF-1.0.jar to your Java path \n> In mff_setup at 16\n>> whos\n>> \n\nthe 2nd whos returns nothing, i.e. the global variable disappeared. Note that this is on matlab2010a on 64-bit linux. I did not try any other versions."
+      - +@isprivate: "0"
+        commentid: "12782"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-03 10:43:16 +0100
+        thetext: |-
+          I made a change similar to the one suggested by Joe, except that I store the variables in a "localcopy" structure rather than on disk, and restore them immediately afterwards.
+
+
+          roboos@mentat001> svn commit
+          Sending        egi_mff/mff_setup.m
+          Transmitting file data .
+          Committed revision 9181.
+
+          It works in the sense that global variables remain global and in memory. However, the global variable is not visible after "mff_setup", i.e. one again has to do "global xxx" to make the global variable visible.
+
+          I guess this is due to the variable being cleared, and then restored.
+
+          The only possible solution I see is to do something with evalin, but that only allows restoring them in the caller and in the base, not at other levels of the function call sequence (i.e. "stack"). Also, it is difficult to ensure that only previously known global variables are restored at the appropriate level.
+      - +@isprivate: "0"
+        commentid: "12982"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-27 08:54:18 +0100
+        thetext: |-
+          The only real solution is that the user calls mff_setup/javaclasspath immediately after starting, but prior to assigning any global variables (either himself, or somewhere in the code).
+
+          I have added this warning with instructions to mff_setup, which points to this bug.
+
+          Warning: javaclasspath clears all global variables due to a bug in MATLAB. Please execute /Users/robert/matlab/fieldtrip/external/egi_mff/mff_setup.m immediately after starting MATLAB. See http://bit.ly/1o7QlRk
+      - +@isprivate: "0"
+        commentid: "12983"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-27 08:55:16 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          mbp> svn commit
+          Sending        egi_mff/mff_setup.m
+          Transmitting file data .
+          Committed revision 9250.
+      - +@isprivate: "0"
+        commentid: "13636"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:54 +0200
+        thetext: closed several of my bugs that have been resolved
+      - +@isprivate: "0"
+        commentid: "13887"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-19 14:41:54 +0200
+        thetext: "The recent update to the code made this issue reappear. The warning message should be reinserted.\n\nmac011> svn log mff_setup.m \n\n------------------------------------------------------------------------\nr9456 | coldav | 2014-04-25 23:22:01 +0200 (Fri, 25 Apr 2014) | 1 line\nMajor update to new version of the code.\n\n------------------------------------------------------------------------\nr9250 | roboos | 2014-02-27 08:55:04 +0100 (Thu, 27 Feb 2014) | 2 lines\nenhancement - added warning with instructions for javaclasspath"
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "461"
+      date: 2013-04-23 19:46:00 +0200
+      delta_ts: 2013-04-23 19:46:47 +0200
+      desc: test file
+      filename: testScript.m
+      type: application/octet-stream
+      size: "171"
+      attacher:
+        +content: jdien07
+        +@name: Joseph Dien
+      data: REMOVED

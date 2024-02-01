@@ -1,0 +1,111 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2403"
+    creation_ts: 2013-12-03 09:20:00 +0100
+    short_desc: ft_senstype does not detect brainvision eeg data without elec field
+    delta_ts: 2019-08-10 12:29:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2404
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.herring
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12179"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 09:20:41 +0100
+        thetext: "I ran into this problem because ft_channelrepair returned a grad field after using the 'nearest' methods (requires neighbourhood structure, not elec field).\n\nft_senstype does not detect dat the input data structure is an eeg type if there is no .elec field. \n\nLooking in data.hdr I find that there is a cell matrix called chantype, which in my case contains the correct type, namely 'eeg'. I propose to set type to eeg if all values in hdr.chantype equal 'eeg'. (Looking at ft_read_header this will hold for all brainvision datatypes)."
+      - +@isprivate: "0"
+        commentid: "12180"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 09:22:16 +0100
+        thetext: Changed back to NEW again (so that other can easily comment if needed ;) )
+      - +@isprivate: "0"
+        commentid: "12181"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 10:07:59 +0100
+        thetext: |-
+          ft_senstype is not meant to detect all possible acquisition devices with all possible sensor arrangements, only those that require special treatment by the code (usually MEG, where different channel arrangements require different handling).
+
+          I see that there is this problem: "ft_channelrepair returns a grad which was not there before".
+
+          Can you try to describe the actual problem, prior to coming with suggestions to solve it? It seems to me that you are trying to solve it the complicated way.
+      - +@isprivate: "0"
+        commentid: "12182"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 10:22:55 +0100
+        thetext: "Good point. I will create a new bug describing the problem before immediately trying to fix anything. \n\nShall we close this bug then?"
+      - +@isprivate: "0"
+        commentid: "12184"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 11:02:41 +0100
+        thetext: |-
+          I've created the new bug describing the initial problem, rather a possible solution.
+
+          Also, I understand that ft_senstype is not meant to detect all possible acquisition devices. I only intended to expand the detection of eeg datasets, not adding a separate 'brainvision' type. Now ft_senstype returns 'unknown' when passing my data. I thought this could be a potential problem for other higher level functions relying on the output of ft_senstype.
+      - +@isprivate: "0"
+        commentid: "12192"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 11:49:37 +0100
+        thetext: "(In reply to comment #4)\n\nAh, I now see that you had already split it over two bugs. Sorry, I missed that and mixed up 2403 and 2404.\n\nsenstype=unknown is the correct behaviour for data from many systems. Most parts of fieldtrip code should not depend on the type of system. In this case it uses an inverse-distance weighted average, which assumes that channel positions are known. However in this case it is not the type of channels in the data.trial, but whether there is an elec or grad structure that is relevant. Using the ft_fetch_sens function hides the name (elec/grad) of sensor array from the code, hence it is needed to determine whether it was an elec or grad afterwards. \n\nThe type of your data can remain unknown, since you have uninformative channel labels. But ft_senstype should return eeg on the sensor array (as it has elecpos). I changed the guessing into looking in the sensor array, instead of looking in the data. \n\nI think that senstype in general should not be called with data as input argument, but rather with a grad or elec as input argument. The channel data is too often of a mixed nature (i.e. 306 channels MEG plus 74 channels EEG, plus some ExG, plus some triggers, plus some aux)."
+      - +@isprivate: "0"
+        commentid: "12509"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-16 10:10:28 +0100
+        thetext: I've changed the status of this bug to resolved-invalid as the bug in this case is rather a feature as ft_senstype should output 'unknown' in certain cases.
+      - +@isprivate: "0"
+        commentid: "20057"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:47 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,376 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2639"
+    creation_ts: 2014-07-06 23:32:00 +0200
+    short_desc: ft_sourceanalysis and ft_checkdata, possible channel ordering bug?
+    delta_ts: 2016-05-06 08:05:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    dependson: "1746"
+    everconfirmed: "1"
+    reporter:
+      +content: monklefish+field
+      +@name: Matt Craddock
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - jorn
+      - monklefish+field
+      - philipp.ruhnau
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14051"
+        comment_count: "0"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-06 23:32:12 +0200
+        thetext: "Hi,\n\nI've recently been getting to grips with beamforming. I recently tried the latest version of fieldtrip and got different results to those I got with a marginally older version (fieldtrip-20140609), with identical data and scripts (see the attached figure).\n\nNow I've been trying to figure out why this happens. I think the difference is down to the change in behaviour of ft_selectdata (it no longer sorts the data by the alphabetical order of channels), but isn't *directly* caused by that. Rather, it's caused by how something further down the line deals with the order of channels.\n\nft_checkdata is used during ft_sourceanalysis to switch from a 'sparsewithpow' representation of the cross-spectrum to a 'full' representation; it first converts to sparse, then converts from sparse to full. Line 1182 in ft_checkdata is     \n\ndata.label = unique(data.labelcmb(:));\n\nThis returns data.label in alphabetical order, and data.label is subsequently used to populate the full cross-spectrum with the relevant values in the relevant locations; so the cross-spectrum is also arranged as if the data had been submitted in alphabetical order, which isn't necessarily true. If I change line 1182 to\n\ndata.label = unique(data.labelcmb(:),'stable');\n\nit preserves the channel labels in the original order, and the resulting output from ft_sourceanalysis goes back to the way it was in the older version of FT. I didn't have this problem with the older version of Fieldtrip, which I guess is because ft_selectdata was ordering my data (both channels and labels) alphabetically anyway. But what I'm finding hard is that although this seems to make the output consistent, I can't figure out at which step it makes a difference, and I'm left not entirely sure which output is correct. \n\nIn any case, it seems that somewhere along the line in the source analysis scripts, something to do with the ordering of channels is messed up in a way I seem to have little control over without directly altering them - they altered without warning by a function i am not directly calling."
+      - +@isprivate: "0"
+        commentid: "14052"
+        comment_count: "1"
+        attachid: "650"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-06 23:33:24 +0200
+        thetext: |-
+          Created attachment 650
+          Plots of the source analysis output
+      - +@isprivate: "0"
+        commentid: "14053"
+        comment_count: "2"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-06 23:53:37 +0200
+        thetext: |-
+          Some additional details and code snippets. My data is EEG data recorded using a BioSemi 64 channel system. The electrode locations I use are those from standard1005.elec mapped on to the equivalent Biosemi electrodes (e.g. biosemi A1 is Fp1). I create a leadfield like so:
+
+              cfg = [];
+              cfg.vol = vol;
+              cfg.reducerank = 3;
+              cfg.normalize = 'no';
+              cfg.grid.unit = 'mm';
+              cfg.grid.resolution = 10;
+              cfg.channel = dataComb.label;
+              [grid] = ft_prepare_leadfield(cfg,dataComb);
+
+          dataComb is data combined across six conditions, similarly to how the beamforming tutorial is done.
+
+          The frequency data - pow and CSD is derived as so:
+
+          cfg = [];
+          cfg.method    = 'mtmfft';
+          cfg.keeptrials = 'yes';
+          cfg.output    = 'powandcsd';
+          cfg.tapsmofrq = 12;
+          cfg.foilim    = [65 65];
+          freqComb = ft_freqanalysis(cfg, dataWindow);
+
+          Source analysis itself is called as below (vol is the standard_bem.mat):
+
+          cfg              = [];
+          cfg.method       = 'dics';
+          cfg.frequency    = freqComb.freq;
+          cfg.grid         = grid;
+          cfg.vol          = vol;
+          cfg.dics.projectnoise = 'yes';
+          cfg.keeptrials = 'yes';
+          cfg.dics.lambda       = '10%';
+          cfg.dics.keepfilter = 'yes';
+          cfg.dics.fixedori = 'yes';
+          cfg.dics.realfilter = 'yes';
+          cfg.channel = dataComb.label;
+
+          sourceMicro = ft_sourceanalysis(cfg,freqComb);
+      - +@isprivate: "0"
+        commentid: "14054"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-07 09:35:28 +0200
+        thetext: |-
+          I believe this to be a duplicate of an issue that was recently discovered and even more recently fixed. Please see bug 2597.
+
+          There was indeed an undesired channel ordering in the output of ft_selectdata. Some functions call ft_selectdata, others don't. Consequently, the channel order was only sometimes changed. Combined with the bug 1746 for which a resolution has not been implemented yet, this resulted in leadfields with a row-ordering that could be inconsistent with the data.
+
+          Could you check the indicated bug 2597 and whether the resolution for that also solves your problem?
+
+          *** This bug has been marked as a duplicate of bug 2597 ***
+      - +@isprivate: "0"
+        commentid: "14056"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-07 09:48:50 +0200
+        thetext: "Hi Robert,\n\nfrom what I see bug 2597 was on ft_selectdata, but here monklefish writes:\n\n\"\nLine 1182 in ft_checkdata is    \n\ndata.label = unique(data.labelcmb(:));\n\nThis returns data.label in alphabetical order, and data.label is subsequently used [...] \"\n\nHence, it seems that checkdata is reordering channels if changing the representation from sparse to full, but does not reorder the data itself. See\nhttps://code.google.com/p/fieldtrip/source/browse/trunk/utilities/ft_checkdata.m#1182\n\nSo, it might be that monklefish's former output (from june 6), where ft_selectdata was ordering channels alphabetically is correct, because the channels in the crsspctrm were also reordered. In any case, it seems like a different issue than bug 2597, where just ft_selectdata was changed and ft_checkdata was untouched."
+      - +@isprivate: "0"
+        commentid: "14057"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-07 09:53:04 +0200
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #4)
+          ah, and probably I am wrong here, because everything in data.label is subsequently indexed correctly according to the original data.labelcmb... I should revert to first read everything and then write ;)
+
+          @monklefish: so, to me it appears that Robert is (as usual) correct and this was solved with bug 2597 ;)
+      - +@isprivate: "0"
+        commentid: "14058"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-07 10:28:26 +0200
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #5)
+
+          please do not take my word on it!
+
+          On http://fieldtrip.fcdonders.nl/development/guidelines/code?&#avoid_changing_the_order_of_the_channels_in_the_data_if_possible you can find the agreed-upon guideline. This was only recently written, but code should behave like this. If any FT code does not behave like this, it can be considered a bug.
+      - +@isprivate: "0"
+        commentid: "14065"
+        comment_count: "7"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-08 04:17:35 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #6)\n\nI had seen the original bug (probably should have referenced it!) and indeed it was that bug which pointed me in the right direction here. I had independently noticed that ft_selectdata re-organized the data, and tried to account for that in my own scripts, so I was caught a bit off guard when it changed!\n\nAs with the selectdata bug, ft_checkdata re-organizes the cross-spectrum along alphabetical lines when converting from sparsewithpow to full. For example, the cross-spectrum (well, auto-spectrum) of electrode O2, which was electrode 64 in the original list, is, instead of being located at crsspctrm(64,64), located at crsspctrm(45,45), where it is in the alphabetical list (this goes for any pairing of electrodes). Thus when the cross-spectrum is subsequently combined with a leadfield generated according to the original order of the electrodes, well...\n\nSo this is ultimately the same issue as the previous bug, but occurs in a different function and is even harder for the end-user to spot since ft_checkdata is called within ft_sourceanalysis. The user thus never sees what it does without entering debug mode.\n\nWhen line 1182 is called with 'stable' (data.label = unique(data.labelcmb(:),'stable'), the resulting cross-spectrum has the power of O2 located at crsspctrm(64,64), and we get different - and presumably correct - results from the beamformer.\n\nAnother thing in relation to the previous bug, 2597. It actually seems like, for eeg, having cfg.channel in before calling ft_prepare_leadfield(cfg,data) causes the leadfield to be in the order specified in cfg.channel, not the order in data.elec. For MEG data, this only happens if the volume 'localspheres' is used. So this particular part of the issue was not one I encountered - my leadfield was generated correctly, and because the data was re-organized alphabetically, the ft_checkdata re-ordering also caused no issue in the older version of FT. \n\nCheers,\nMatt"
+      - +@isprivate: "0"
+        commentid: "14109"
+        comment_count: "8"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-11 01:09:09 +0200
+        thetext: |-
+          Hi again,
+
+          Since I've seen no further comments on this, I'm wondering if you still consider this to be a duplicate of 2597. I see a couple of things about my last post which perhaps were not quite clear, so I want to reiterate that it is both not a duplicate and is a very bad thing.
+
+          I have been preparing my DICS sourceanalysis as follows:
+
+          I compute a leadfield/grid using the electrode positions and channel order that corresponds to the data. This is not alphabetical - in the older FT version it was, because ft_selectdata re-organized the data to be alphabetical, but in any case the data is not originally in alphabetical order.
+
+          I then pass the pre-computed leadfield/grid to ft_sourceanalysis. Internally, ft_sourceanalysis calls ft_checkdata to convert the cross-spectrum from sparsewithpow to full. In doing so, it rearranges the data in alphabetical order. Although, as you say Joern, it is correctly indexed - the data.label added to the data is in alphabetical order, and using this to derive the relevant co-ordinates for each electrode pair confirms that the values are in the right place for alphabetically ordered data. But this does not matter. The leadfield was computed with the original channel order, which was not alphabetical, and thus when it is combined with the alphabetized cross-spectrum the results are incorrect.
+
+          If I do not generate a leadfield first, and instead pass the relevant parameters in the cfg. file to allow generation of the leadfield on the fly, the leadfield is generated *after* ft_checkdata re-organizes the cross spectrum and uses the now-alphabetical channel order from the data. The results are then correct.
+
+          I think that what this means is that any data submitted with a pre-computed leadfield which is not in alphabetical order will generate incorrect results, because the data will be re-organized in alphabetical order but the leadfield will not. Thus this is not a duplicate of bug 2597 - it's a little more like bug 1746 - but causes the same problem: a mismatch between the leadfield and the data. This time this cannot be spotted by the user without debug mode and stepping through the code, because the user cannot see or control the re-organization of the data by ft_checkdata. The only way the user can avoid it in the first place is to generate a leadfield in alphabetical order, or allow computation of the leadfield on the fly; but there's no reason why you would think this would be necessary.
+
+          As I noted earlier, all you have to do is add 'stable' to the call to unique on line 1182 (or maybe some extra lines for backwards compatibility - I use Matlab 2012b and don't know when 'stable' was introduced). This returns the channel labels in the order they occur, keeps the cross-spectrum in the original order, and thus means the pre-computed leadfield is in the same order.
+
+          Cheers,
+          Matt
+
+          PS please ignore the last part of my last post in this thread, about cfg.channel overriding the channel order in the data. I was wrong - i'd been confused by ft_selectdata re-organizing the data!
+      - +@isprivate: "0"
+        commentid: "14110"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-11 10:31:55 +0200
+        thetext: "Hi Matt,\n\nhmm... this could indeed be an issue. The channel order between leadfield and data *has* to be identical. Any channel reordering that is happening during source reconstruction after the leadfield was computed will therefore lead to wrong results. \n\nHave you checked whether the same re-ordering is applied when computing the leadfield? Or in other words, is the same transformation done? If you do not know the answer, don't bother searching for it - it's our job to do that ;)\n\nBest,\nJörn\n\nPS: the 'stable' option was introduced in matlab 2012a"
+      - +@isprivate: "0"
+        commentid: "14111"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-11 11:32:43 +0200
+        thetext: "(In reply to Matt Craddock from comment #8)\n\nSo the problem seems to be that *inside* ft_sourceanalysis the order of channels in crsspcrm gets reordered, whereas the channel order of the lead field does not get reordered. The user (i.e. you) is not able to affect the channel reordering, since it happens inside a FT function.\n\nI wrote a test script converting one freq representation to another, in which I am able to reproduce the undesired reordering. There were also cases where the reordering did not happen. \n\nIn all cases that I have seen in the test, the reordering is always done consistently between channels and data (pow/fourier/crsspctrm). So the error is not in ft_checkdata by itself (its input and output are internally correct), but in the (absence of) interaction between ft_checkdata and the lead field channel ordering. \n\nmac011> svn commit test/test_bug2639.m utilities/ft_checkdata.m\nAdding         test/test_bug2639.m\nSending        utilities/ft_checkdata.m\nTransmitting file data ..\nCommitted revision 9722."
+      - +@isprivate: "0"
+        commentid: "14112"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-11 11:38:05 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          note that the commit does not fix it yet, it only demonstrates the problem.
+
+          There are 4 representations: full, sparse, fourier, sparsewithpow. I do not think that it is possible to always ensure that the channel ordering will remain consistent in the conversion between them. Given that ft_selectdata by itself is consistent with reordering of channels and data, I feel that the solution lies in addressing bug #1746. This will not only solve it here, but will also solve it in case the user did change the channel order him/herself, or made a subset of channels that differs between data and lead field.
+
+
+          Agreed?
+      - +@isprivate: "0"
+        commentid: "14113"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-11 11:41:05 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+          I agree.
+      - +@isprivate: "0"
+        commentid: "14114"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-11 11:42:16 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+
+          oh, and presently test_bug2639 at the end runs in an unrelated bug, where freq data is not converted to the desired representation. The channel ordering bug is presently commented out.
+      - +@isprivate: "0"
+        commentid: "14115"
+        comment_count: "14"
+        who:
+          +content: monklefish+field
+          +@name: Matt Craddock
+        bug_when: 2014-07-11 12:20:37 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+
+          Definitely sounds like it would fix it to me - the 'stable' thing was just a quick fix and i'm not sure it would always work. When I generated an alphabetically ordered leadfield by simply re-arranging data.label, that would then produce correct results[1] (without 'stable'; with 'stable', it would again produce incorrect results, because the data was no longer re-ordered); so the real killer is the absence of a check that the leadfield order and data order match up, or use of some kind of indexing to ensure that they do.
+
+          Cheers,
+          Matt
+
+          [1] might have had to do something else too, but can't check right now.
+      - +@isprivate: "0"
+        commentid: "15400"
+        comment_count: "15"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-19 16:06:58 +0100
+        thetext: |-
+          I just had this problem as well.
+          After a small change I made to ft_prepare_sourcemodel (see bug 1746) to keep the grid.label subfield, I now propose to add this to ft_sourceanalysis at line 379:
+
+            if isfield(grid,'leadfield') && isfield(grid,'label')
+              if length(grid.label)<length(cfg.channel)
+                % FIXME: subselect appropriate channels in data and sens to match
+                % predefined leadfield
+                error('not enough channels in predefined leadfield for the data present');
+              elseif length(cfg.channel)<length(grid.label)
+                % leadfield should be recomputed for average re-reference of
+                % subset of channels.
+                error('not enough channels in data for the predefined leadfield');
+              end
+              [cc,ic,il]=intersect(cfg.channel,grid.label);
+              grid.label=grid.label(il);
+              for ii=1:length(grid.leadfield)
+                if grid.inside(ii)
+                  grid.leadfield{ii}=grid.leadfield{ii}(il,:);
+                end
+              end
+            elseif isfield(grid,'leadfield') && ~isfield(grid,'label')
+              % or should this be an error?
+              warning('order of leadfield may not match the data')
+            end
+
+
+          What do you think?
+      - +@isprivate: "0"
+        commentid: "15464"
+        comment_count: "16"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-25 17:11:08 +0100
+        thetext: |-
+          An update to my suggestion (for temporary fix) (now to be inserted at line 384 of current version of ft_sourceanalysis):
+
+            if isfield(grid,'leadfield') && isfield(grid,'label')
+              if length(grid.label)<length(cfg.channel)
+                % FIXME: subselect appropriate channels in data and sens to match
+                % predefined leadfield
+                error('not enough channels in predefined leadfield for the data present');
+              elseif length(cfg.channel)<length(grid.label)
+                % leadfield should be recomputed for average re-reference of
+                % subset of channels.
+                error('not enough channels in data for the predefined leadfield');
+              end
+              [cc,ic,il]=intersect(cfg.channel,data.label);
+              if ~all(ic==il) % this will be ok for freq but not necessarily timelock
+                error('fixme: reorder data fields to match cfg.channel');
+              end
+              [cc,ic,il]=intersect(cfg.channel,grid.label,'stable');
+              grid.label=grid.label(il);
+              for ii=1:length(grid.leadfield)
+                if grid.inside(ii)
+                  grid.leadfield{ii}=grid.leadfield{ii}(il,:);
+                end
+              end
+            elseif isfield(grid,'leadfield') && ~isfield(grid,'label')
+              % or should this be an error?
+              warning('order of leadfield may not match the data')
+            end
+      - +@isprivate: "0"
+        commentid: "15465"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-25 17:23:07 +0100
+        thetext: |-
+          (In reply to Johanna from comment #16)
+
+          rather than intersect, I suggest to use fieldtrip/utilities/match_str. It takes two cell-arrays and returns the intersection according to the order of the first input argument. With the matlab intersect function the order might change.
+      - +@isprivate: "0"
+        commentid: "15497"
+        comment_count: "18"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-03-05 16:23:13 +0100
+        thetext: "I have used Robert's 'match_str' suggestion and commited my previous suggestion.\n\nzumerj@psychl-132432-1:~/home/fieldtrip_svn$ svn commit ft_sourceanalysis.m \nSending        ft_sourceanalysis.m\nTransmitting file data .\nCommitted revision 10267.\n\nI have tested it on my own data using both DICS and MNE.  Does this solve the full problem/bug here, or is there something more still?\n\nCheers,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "17276"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-05 09:50:46 +0200
+        thetext: I am not sure whether this one has been re-opened. I set it to fixed until some new body drops out of the closet.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "650"
+      date: 2014-07-06 23:33:00 +0200
+      delta_ts: 2014-07-06 23:33:24 +0200
+      desc: Plots of the source analysis output
+      filename: FtSourceplots.png
+      type: image/png
+      size: "997722"
+      attacher:
+        +content: monklefish+field
+        +@name: Matt Craddock
+      data: REMOVED

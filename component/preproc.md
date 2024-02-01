@@ -1,0 +1,5 @@
+---
+title: preproc
+---
+
+{% include component %}

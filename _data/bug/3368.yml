@@ -1,0 +1,99 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3368"
+    creation_ts: 2017-11-10 20:59:00 +0100
+    short_desc: error writing .gdf (or .eeg) data
+    delta_ts: 2017-11-20 20:03:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dorahermes
+      +@name: Dora Hermes
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19025"
+        comment_count: "0"
+        who:
+          +content: dorahermes
+          +@name: Dora Hermes
+        bug_when: 2017-11-10 20:59:04 +0100
+        thetext: "I am trying to convert a dataset to a .gdf or .eeg format. However, if I write and then load the data, I get ~300 NaNs where there were numbers in the original set. An example is here, with a Fieldtrip example dataset:\n\n% load a fieldtrip dataset\nieeg_name = fullfile(rootDir,'fieldtrip_examples','SubjectNY394','NY394_VisualLoc_R1.edf');\ncfg            = [];\ncfg.dataset    = ieeg_name;\ncfg.continuous = 'yes';\ncfg.channel    = 'all';\nft_data        = ft_preprocessing(cfg);\n\n% name to write the file\nieeg_name_gdf = fullfile(rootDir,'fieldtrip_examples','SubjectNY394','NY394_VisualLoc_R1.gdf');\n\n% fetch the header\nhdr_data = ft_fetch_header(ft_data);\n        \n% write the data\nft_write_data(ieeg_name_gdf,ft_data.trial{1},'header',hdr_data,'dataformat','gdf')\n\n% load the data back in\ntest_ft_data      = ft_read_data(ieeg_name_gdf);\ntest_ft_header    = ft_read_header(ieeg_name_gdf);\n\n% now check whether the loaded data are the same as the written data, \n% the following should be zero:\nlength(find(test_ft_data-ft_data.trial{1}~=0))"
+      - +@isprivate: "0"
+        commentid: "19027"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-13 09:37:23 +0100
+        thetext: confirmed. I created a test function that reproduces your observation
+      - +@isprivate: "0"
+        commentid: "19029"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-13 11:21:09 +0100
+        thetext: |-
+          the error lies in the fact that the biosig reading code (sread) is replacing the data points that exceed some threshold defined in the file header. I suspect that due to numerical tolerance issues, the most extreme values are by consequence replaced by NaNs. This is upon reading, not writing.
+
+          Since I am reluctant to delve into the low-level (and mostly ugly) biosig tools, even though this should be the place to fix it in a clean way, I suggest to increase the numerical tolerance in the writing code (which is in fieldtrip).
+      - +@isprivate: "0"
+        commentid: "19030"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-13 11:21:46 +0100
+        thetext: I'd rather have you do the work, but it'll probably take me more to explain how to do it, rather than doing it myself.
+      - +@isprivate: "0"
+        commentid: "19031"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-13 11:32:53 +0100
+        thetext: Fixed with github PR 575
+      - +@isprivate: "0"
+        commentid: "19072"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-20 11:13:54 +0100
+        thetext: |-
+          Dora, zou je even kunnen bevestigen dat dit nu voor je werkt, a.u.b.? Dan weet ik in ieder geval dat ik niet voor jan joker hieraan heb gewerkt.
+          M.v.g., JM
+      - +@isprivate: "0"
+        commentid: "19078"
+        comment_count: "6"
+        who:
+          +content: dorahermes
+          +@name: Dora Hermes
+        bug_when: 2017-11-20 19:22:12 +0100
+        thetext: "Erg bedankt, het werkt nu prima! \n(sorry voor de vertraging, ik had het meteen al getest, maar was vergeten een comment achter te laten)"

@@ -1,0 +1,186 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3367"
+    creation_ts: 2017-11-04 07:29:00 +0100
+    short_desc: ft_datatype qualifies a mesh structure as 'source+mesh'
+    delta_ts: 2019-08-10 12:41:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18998"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-11-04 07:29:34 +0100
+        thetext: "Just wondering whether this is desired behavior, as it implies we'd have to re-organize a few switch case situations, e.g. in ft_electrodeplacement*.\n\nmesh  = ft_read_headshape('freesurfer/surf/lh.pial')\n\nmesh = \n\n  struct with fields:\n\n          pos: [117024×3 double]\n          tri: [234044×3 double]\n         sulc: [117024×1 double]\n         curv: [117024×1 double]\n         area: [117024×1 double]\n    thickness: [117024×1 double]\n         unit: 'mm'\n\nft_datatype(varargin{1})\n\nans =\n\n    'source+mesh'\n\n\nFast-forwarding to line 46 in ft_datatype:\nissource       = (isfield(data, 'pos') || isfield(data, 'pnt')) && isstruct(data) && numel(data)==1; % pnt is deprecated, this does not apply to a mesh array\nismesh         = (isfield(data, 'pos') || isfield(data, 'pnt')) && (isfield(data, 'tri') || isfield(data, 'tet') || isfield(data, 'hex')); % pnt is deprecated\n\n> there's a pos field and isstruct(data) returns true, hence ft_datatype thinks it's source, besides the actual mesh.\n\n\n\n*at line 127\nswitch ft_datatype(varargin{1})\n    case 'volume'\n      cfg.method = 'volume';\n    case 'mesh'\n      cfg.method = 'headshape';\n  end\n\n> there's currently no 'case source+mesh'"
+      - +@isprivate: "0"
+        commentid: "19035"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-14 10:05:34 +0100
+        thetext: "I think that the source+mesh is to be expected in this case, because it contains vectors of numeric data, corresponding with the number of positions.\n\nI am not sure what the thought is behind returning 'headshape' in case one asks for a 'mesh' in ft_datatype. Perhaps Simon can comment? \n\nAlso, is there something that does not work for you, or did you just want to have it mentioned here?"
+      - +@isprivate: "0"
+        commentid: "19037"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 10:06:17 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          FYI, I just got a bugzilla server email for this...
+      - +@isprivate: "0"
+        commentid: "19038"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-14 10:07:22 +0100
+        thetext: Thanks for letting us know. I explicitly added you to the CC-list, so that at least still works :o).
+      - +@isprivate: "0"
+        commentid: "19039"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 10:44:16 +0100
+        thetext: "there is a general issue here: some datatypes are well defined (with a dimord and all) and others are not so well defined.\n\nIn general the outputs of ft_highlevelfunction(cfg, ...) are well defined, whereas the outputs of ft_read_lowlevel(filename) are not. I would also say that \"well defined\" implies that there should be a fieldtrip/utilities/ft_dadtatype_xxx for that datatype. \n\nThe source structure is well defined (an old one, and a new one), whereas headships, meshes, etc are still not well defined."
+      - +@isprivate: "0"
+        commentid: "19043"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-11-14 17:26:13 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          I just wondered. ft_electrodeplacement will fail though when you give it a mesh as input and don't specify cfg.method = 'headshape'. But the headshape-based functionality hasn't been really fully developed anyway (I might do this in near future).
+
+          Will just leave it with this notification then, just to have made you aware of it.
+      - +@isprivate: "0"
+        commentid: "19044"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 17:44:47 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #5)
+
+          The headshape-based method is mainly the work of Simon (who is on the CC). If there is anything that needs to be improved or fixed, please clarify it to him and try to make it SMART (https://en.wikipedia.org/wiki/SMART_criteria).
+      - +@isprivate: "0"
+        commentid: "19045"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-11-14 17:58:54 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          Well, part of the work that needs to be done is to figure out what we want it to do. I'm thinking it should be able to do the same as the volume-based functionality of ft_electrodeplacement, as in that it should allow reading in electrode labels and spitting out an elec structure. The main difference should then be that the user can mark electrode locations on the surface (e.g. on the basis of intraop photos) instead of localizing within a volume (typically a CT).
+
+          The basics in terms of selecting a point on the surface seem to be there. Just there's not much more beyond a single click right now. I might take this project up to train a student on fieldtrip coding (Richard Jimenez, also in the Knight lab), if Simon is okay with that.
+      - +@isprivate: "0"
+        commentid: "19053"
+        comment_count: "8"
+        who:
+          +content: s.homolle
+          +@name: Simon
+        bug_when: 2017-11-15 10:20:07 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #7)
+          Hey Arjen,
+
+          As already said by Robert there are some datatypes well defined. Especially the data structure of mesh is similar to a source data structure. (Not yet easily distinguishable).
+
+          Anyway if you want to use it as a student project, please feel free to improve ft_electrodeplacement.
+      - +@isprivate: "0"
+        commentid: "19054"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-15 13:06:16 +0100
+        thetext: |-
+          (In reply to Simon from comment #8)
+
+          @Arjen, have a look at http://www.fieldtriptoolbox.org/tutorial/electrode to see how Simon intends it to be used at the moment.
+      - +@isprivate: "0"
+        commentid: "19055"
+        comment_count: "10"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-11-15 17:37:28 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #9)\n\nHey both,\n\nThat looks to be a nice project. \n\nPer the implementation in ft_electrodeplacement, I wonder whether you'd find it a useful feature to have the same list box with electrode labels in the figure as we have for localizing electrodes in volumes (see electrode placement figure at http://www.fieldtriptoolbox.org/tutorial/human_ecog).\n\nIn short, the user would assign electrode labels directly to the current crosshair positions (instead of afterwards), move the crosshair to an already localized electrode by clicking on its label in the listbox, or remove an electroce location altogether by double clicking its label in the listbox. The labels in the listbox can be prespecified by giving electrode labels from some EEGcap montage file information / header file information (hdr.label) to cfg.channel. Another advantage is that the list functions as a to do list for the user.\n\nThe only obstacle I see is space for this listbox, but we could probably figure that out."
+      - +@isprivate: "0"
+        commentid: "19056"
+        comment_count: "11"
+        who:
+          +content: s.homolle
+          +@name: Simon
+        bug_when: 2017-11-16 09:36:55 +0100
+        thetext: '@Arjen I really like your idea Arjen! Especially the part with the to do list is really handy.'
+      - +@isprivate: "0"
+        commentid: "19093"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-11-23 05:19:59 +0100
+        thetext: Thanks, Simon. Richard and I made a start today taking up this project and you will hear back from us in the form of a PR.
+      - +@isprivate: "0"
+        commentid: "20299"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:34 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20499"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:47 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

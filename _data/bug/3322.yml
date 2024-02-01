@@ -1,0 +1,73 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3322"
+    creation_ts: 2017-07-06 23:51:00 +0200
+    short_desc: ft_timelockstatistics using spm 8, not compatible with Matlab 2017
+    delta_ts: 2019-08-10 12:40:44 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "3288"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: arnaudpoublan
+      +@name: Arnaud
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18795"
+        comment_count: "0"
+        who:
+          +content: arnaudpoublan
+          +@name: Arnaud
+        bug_when: 2017-07-06 23:51:36 +0200
+        thetext: "Hi,\n\nUsing the code from your tutorial http://www.fieldtriptoolbox.org/development/cluster_permutation_timelock, the within subject part, with your template data :\n\"\ncfg = [];\ncfg_neighb        = [];\ncfg_neighb.method = 'distance';         \nneighbours        = ft_prepare_neighbours(cfg_neighb, allsubjFIC{1,1});\ncfg.neighbours    = neighbours;  \ncfg.channel = {'MEG'};\ncfg.latency = [0 1];\ncfg.method = 'montecarlo';\ncfg.statistic = 'depsamplesT';\ncfg.correctm = 'cluster';\ncfg.clusteralpha = 0.05;\ncfg.clusterstatistic = 'maxsum';\ncfg.minnbchan = 2;\ncfg.neighbours = neighbours;  % same as defined for the between-trials experiment\ncfg.tail = 0;\ncfg.clustertail = 0;\ncfg.alpha = 0.025;\ncfg.numrandomization = 500;\n\nsubj = 10;\ndesign = zeros(2,2*subj);\nfor i = 1:subj\n  design(1,i) = i;\nend\nfor i = 1:subj\n  design(1,subj+i) = i;\nend\ndesign(2,1:subj)        = 1;\ndesign(2,subj+1:2*subj) = 2;\n\ncfg.design = design;\ncfg.uvar  = 1;\ncfg.ivar  = 2;\n\n[stat] = ft_timelockstatistics(cfg, allsubjFIC{:}, allsubjFC{:})\n\"\n\nWith the modification I made and reported in another bug report on the last command line which is \"[stat] = ft_timelockstatistics(cfg, allsubjFIC, allsubjFC)\" on the tutorial and not working.\n\nI have the error :\n\n'/usr/lib/system/libsystem_coreservices.dylib->/usr/lib/libgcc_s.1.dylib->/Users/spillay/Documents/MATLAB/fieldtrip/external/spm8/spm_bwlabel.mexmaci64'\nMissing symbol '_strncmp' required by\n'/usr/lib/system/libsystem_coreservices.dylib->/usr/lib/libgcc_s.1.dylib->/Users/spillay/Documents/MATLAB/fieldtrip/external/spm8/spm_bwlabel.mexmaci64'\nMissing symbol '_strchr' required by\n'/usr/lib/system/libsystem_stats.dylib->/usr/lib/libgcc_s.1.dylib->/Users/spillay/Documents/MATLAB/fieldtrip/external/spm8/spm_bwlabel.mexmaci64'\nMissing symbol '_strncmp' required by\n'/usr/lib/system/libsystem_stats.dylib->/usr/lib/libgcc_s.1.dylib->/Users/spillay/Documents/MATLAB/fieldtrip/external/spm8/spm_bwlabel.mexmaci64'.\n\nError in findcluster (line 90)\n    [labelmat(spatdimlev, :, :), num] = spm_bwlabel(double(reshape(onoff(spatdimlev, :, :),\n    nfreq, ntime)), 6); % the previous code contained a '4' for input\n\nError in clusterstat (line 197)\n      posclusobs = findcluster(reshape(postailobs,\n      [cfg.dim,1]),channeighbstructmat,cfg.minnbchan);\n\nError in ft_statistics_montecarlo (line 347)\n  [stat, cfg] = clusterstat(cfg, statrand, statobs);\n\nError in ft_timelockstatistics (line 184)\n    [stat, cfg] = statmethod(cfg, dat, design);\n\n\nWith hundreds of line as the first lines before. So it seems the \"spm_bwlabel\" function of spm was in cause. With some research on the web I found that spm 8 was not compatible anymore with the last versions of Matlab, I'm using Matlab 2017a on a OS X Yosemite 10.10.5.\n\nSolution :\nI just removed the spm2 and spm 8 folders from the external folder of fieldtrip, letting only spm12 and it worked. But maybe you would like to change the code so it's using the good version of spm depending on Matlab version.\n\nThank you,\n\nBest regards,\n\nArnaud"
+      - +@isprivate: "0"
+        commentid: "18797"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-07-07 10:04:37 +0200
+        thetext: |-
+          This is a known issue on OS X in combination with R2017. It is possible to recompile the SPM8 mex files on R2017. We have not yet been able to get a set of mex files that works both on older and newer MATLAB versions.
+
+          *** This bug has been marked as a duplicate of bug 3288 ***
+      - +@isprivate: "0"
+        commentid: "20227"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:34 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20426"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:44 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

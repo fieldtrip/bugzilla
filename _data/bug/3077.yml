@@ -1,0 +1,281 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3077"
+    creation_ts: 2016-02-22 17:09:00 +0100
+    short_desc: nargin seems to be both a variable and a function in ft_rejectcomponent
+    delta_ts: 2017-01-17 11:29:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: m.leenders
+      +@name: Maarten
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16940"
+        comment_count: "0"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2016-02-22 17:09:01 +0100
+        thetext: |-
+          I am trying to reject some components using ft_rejectcomponent, and even when I "clear nargin" before executing ft_rejectcomponent(cfg,ica,meg) -the respective structures- I receive this error message:
+
+          Error: File: ft_rejectcomponent.m Line: 83 Column: 1
+          "nargin" previously appeared to be used as a function or command,
+          conflicting with its use here as the name of a variable.
+          A possible cause of this error is that you forgot to initialize the
+          variable, or you have initialized it implicitly using load or eval.
+
+          I believe this is a bug on fieldtrip's side? If I am mistaken I apologize.
+
+          Best,
+
+          Maarten
+      - +@isprivate: "0"
+        commentid: "16943"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 17:14:11 +0100
+        thetext: |-
+          Hi Maarten,
+
+          This morning I made some changes related to bug #3075 that affected "nargin" and therefore suspiciously close in time...
+
+          Looking at the code, I think that my change (not a bug in itself) only revealed a obscure coding pattern that is ft_rejectvisual which is deprecated by MATLAB. Probably the old code was not causing this to be flagged as error yet.
+
+          line 82:
+
+          % the data can be passed as input arguments or can be read from disk
+          nargin = 1;
+          nargin = nargin + exist('comp', 'var');
+          nargin = nargin + exist('data', 'var');
+
+
+          Which MATLAB version are you using (so that I can try to reproduce?
+      - +@isprivate: "0"
+        commentid: "16945"
+        comment_count: "2"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2016-02-22 17:16:14 +0100
+        thetext: I am currently running Matlab R2014a, on our local torque servers.
+      - +@isprivate: "0"
+        commentid: "16949"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 18:14:13 +0100
+        thetext: "I was able to reproduce without problems and have fixed it in my local working copy. \n\nmac011> git commit -a\n[bug3077 edc7d31] FIX - resolve nargin issue reported by Maarten, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3077\n 2 files changed, 56 insertions(+), 13 deletions(-)\n create mode 100644 test/test_bug3077.m\n\nHowever, I realize that the same incorrect/outdated use of nargin might also be present in other functions. The following are vulnerable \n\nmac011> grep -l nargin.*[0-9] *.m \nft_artifact_zvalue.m\nft_audiovideobrowser.m\nft_channelselection.m\nft_databrowser.m\nft_denoise_pca.m\nft_electroderealign.m\nft_examplefunction.m\nft_layoutplot.m\nft_multiplotER.m\nft_multiplotTFR.m\nft_neighbourplot.m\nft_prepare_bemmodel.m\nft_prepare_headmodel.m\nft_prepare_layout.m\nft_prepare_leadfield.m\nft_prepare_localspheres.m\nft_prepare_neighbours.m\nft_prepare_sourcemodel.m\nft_qualitycheck.m\nft_recodeevent.m\nft_rejectartifact.m\nft_sensorrealign.m\nft_singleplotER.m\nft_singleplotTFR.m\nft_sourceanalysis.m\nft_sourcedescriptives.m\nft_sourcemovie.m\nft_sourceparcellate.m\nft_sourceplot.m\nft_statistics_stats.m\nft_stratify.m\nft_topoplotCC.m\nft_topoplotER.m\nft_topoplotIC.m\nft_topoplotTFR.m\nft_volumerealign.m\nft_wizard.m"
+      - +@isprivate: "0"
+        commentid: "16952"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 18:57:49 +0100
+        thetext: |-
+          I went through another bunch of files
+
+          mac011> git status
+          On branch bug3077
+          Changes not staged for commit:
+            (use "git add <file>..." to update what will be committed)
+            (use "git checkout -- <file>..." to discard changes in working directory)
+
+          	modified:   ft_artifact_zvalue.m
+          	modified:   ft_audiovideobrowser.m
+          	modified:   ft_databrowser.m
+          	modified:   ft_electroderealign.m
+          	modified:   ft_layoutplot.m
+          	modified:   ft_neighbourplot.m
+          	modified:   ft_prepare_headmodel.m
+          	modified:   ft_prepare_layout.m
+          	modified:   ft_prepare_leadfield.m
+          	modified:   ft_prepare_neighbours.m
+          	modified:   ft_qualitycheck.m
+          	modified:   ft_rejectartifact.m
+          	modified:   ft_sensorrealign.m
+          	modified:   ft_sourceanalysis.m
+          	modified:   ft_sourcemovie.m
+          	modified:   ft_sourceparcellate.m
+          	modified:   ft_sourceplot.m
+          	modified:   ft_stratify.m
+          	modified:   ft_topoplotCC.m
+          	modified:   ft_volumerealign.m
+
+          mac011> git commit -a
+          [bug3077 ce2c080] ENH - consistent handling of nargin, allow data to be read from disk as well. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3077
+           20 files changed, 130 insertions(+), 78 deletions(-)
+
+          The ones that I did not consistently deal with yet are the plotting functions (all f them) that use the variable name in the title of the figure. These are not consistent at the moment, and some use cfg.dataname, whereas others don't.
+      - +@isprivate: "0"
+        commentid: "16953"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 18:58:36 +0100
+        thetext: please note that these changes are not yet in the release version, as I first have to test the changes (since there are so many functions with small changes involved)...
+      - +@isprivate: "0"
+        commentid: "16955"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 19:03:10 +0100
+        thetext: 'I created a separate bug for the input variable name handling and nargin/inputfile in the plotting functions, please see bug #3079.'
+      - +@isprivate: "0"
+        commentid: "16999"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:57:14 +0100
+        thetext: "I am not sure yet, and it could be a coincidence, but after merging of branch 3077 into the master branch, something fishy seems to be going on when doing stuff in matlab2015b as compared to 2014b or earlier.\n\nSo this is what happens. When working on another bug I tried to run something as simple as ft_freqanalysis, which obscurely crashes in 2015b, and not on 2014b\n\nThe cause of the error is most likely that rollback_provenance (called in line 231 of ft_freqanalysis) returns cfg.channel = 'all' in 2015b, but the full channel list when called from 2014b (even though before the call to rollback_provenance cfg.channel actually was 'all'). \n\nLater on in ft_freqanalysis it is more or less assumed that cfg.channel is a list of labels, apparently relying on rollback_provenance on converting 'all' into this list. As of version 2015b this does not happen anymore. \n\nI don't know whether this already existed prior to merging branch bug3077, since I only sporadically used matlab2015b, but this smells like a causal relationship."
+      - +@isprivate: "0"
+        commentid: "17000"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:58:12 +0100
+        thetext: "I am not sure yet, and it could be a coincidence, but after merging of branch 3077 into the master branch, something fishy seems to be going on when doing stuff in matlab2015b as compared to 2014b or earlier.\n\nSo this is what happens. When working on another bug I tried to run something as simple as ft_freqanalysis, which obscurely crashes in 2015b, and not on 2014b\n\nThe cause of the error is most likely that rollback_provenance (called in line 231 of ft_freqanalysis) returns cfg.channel = 'all' in 2015b, but the full channel list when called from 2014b (even though before the call to rollback_provenance cfg.channel actually was 'all'). \n\nLater on in ft_freqanalysis it is more or less assumed that cfg.channel is a list of labels, apparently relying on rollback_provenance on converting 'all' into this list. As of version 2015b this does not happen anymore. \n\nI don't know whether this already existed prior to merging branch bug3077, since I only sporadically used matlab2015b, but this smells like a causal relationship."
+      - +@isprivate: "0"
+        commentid: "17001"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:59:24 +0100
+        thetext: or not, because looking closer as the list of changed files, ft_freqanalysis, ft_selectdata, rollback_provenance have not been touched.
+      - +@isprivate: "0"
+        commentid: "17003"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 11:06:26 +0100
+        thetext: |-
+          doh, the grepped files are not the ones that have changed...
+
+          It seems that ft_selectdata returns different data.cfg in 2014b and 2015b, probably due to some preamble/postamble stuff.
+      - +@isprivate: "0"
+        commentid: "17005"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 11:16:19 +0100
+        thetext: |-
+          changing
+
+          cfg = ft_checkconfig(cfg, 'trackconfig', 'off', 'checksize', 'yes');
+
+          into
+
+          cfg = ft_checkconfig(cfg, 'trackconfig', 'report', 'checksize', 'yes');
+
+          in ft_postamble_trackconfig seems to fix it. huh?
+      - +@isprivate: "0"
+        commentid: "17127"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-10 10:12:58 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #11)
+
+          I am not following this in sufficient detail. Let's discuss in person.
+      - +@isprivate: "0"
+        commentid: "17533"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:21:29 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #12)
+
+          @Maarten, all problems with nargin seem to have been resolved. Matlab 2016a and especially 2016b (see bug 3138) are very strict and therefore the code needed to be cleaned up anyway.
+
+          @Jan-Mathijs, are there still things to discuss in person? If so, let's meet in person (over a cup of coffee or so).
+      - +@isprivate: "0"
+        commentid: "17536"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-14 17:02:46 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #13)
+
+          can we do an 'or so'? :o)
+
+          I don't have a good recollection of what exactly went wrong when I wrote my earlier comments. I suggest to leave it at this with respect to this bug, and keep eyes and ears open for matlab2015b (which I really should start using).
+      - +@isprivate: "0"
+        commentid: "17538"
+        comment_count: "15"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2016-06-14 17:05:57 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #13)\n\nHey Robert,\n\nthis is probably not a coincidence:\n\nit was indeed working fine, but right after your e-mail, I started receiving crashes again, so I guess something was committed that didn't work?\n\nUndefined function or variable 'ft_nargin'.\nError in ft_preamble_init (line 34)\nif ft_nargin==0\nError in ft_preamble (line 56)\n    evalin('caller', ['ft_preamble_' cmd]);\nError in ft_selectdata (line 89)\nft_preamble init              % this will reset ft_warning and show the\nfunction help if nargin==0 and return an error\nError in ft_denoise_synthetic (line 88)\ndata   = ft_selectdata(tmpcfg, data); \n\nThis happened after using ft_denoise_synthetic"
+      - +@isprivate: "0"
+        commentid: "17547"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 18:56:24 +0200
+        thetext: |-
+          (In reply to Maarten from comment #15)
+
+          I suspect this to be due to another commit that I did this afternoon.
+
+          does the problem persist if you close matlab and start it again? I suspect it to be due to a change in one function, and that MATLAB keeps another related function in memory without updating it, although the code should be "recompiled" as well.
+
+          Please follow up and report at http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3145
+
+          thanks
+          Robert
+      - +@isprivate: "0"
+        commentid: "18179"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:41 +0100
+        thetext: closed multiple bugs that were resolved some time ago

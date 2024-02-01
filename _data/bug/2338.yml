@@ -1,0 +1,633 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2338"
+    creation_ts: 2013-10-25 15:08:00 +0200
+    short_desc: revise the openmeeg BEM implementation and ensure it works
+    delta_ts: 2019-08-10 12:33:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "2398"
+      - "2396"
+      - "2397"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - alexandre.gramfort
+      - ddewong
+      - j.schoffelen
+      - litvak.vladimir
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11691"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 15:08:31 +0200
+        thetext: |-
+          On 24 Oct 2013, at 18:32, Alexandre Gramfort wrote:
+
+          Thanks Daniel for the clarification.
+
+          I guess we should deprecate the old pipeline and update the
+          demos scripts + tests. As you know this code well (and better than me)
+          would you consider giving it a try?
+
+          Thanks again
+          Alex
+
+
+          On Thu, Oct 24, 2013 at 6:12 PM, Daniel Wong <ddewong@gmail.com> wrote:
+          Hi Alexandre,
+
+          We've left the old pipeline intact, so the test scripts will still call
+          that.  To use the new pipeline, the vol structure needs to be prepared
+          manually as in the following example:
+
+          vol.bnd = bnd;
+          vol.cond = [0.33 0.0042 0.33];
+          vol.type = 'openmeeg';
+          vol.basefile = 'testfile';
+          vol.path = './testpath';
+          vol.method = 'adjoint';  % or 'hminv'
+
+          This is done instead of using ft_prepare_headmodel or ft_prepare_bemmodel
+          because these two functions calculate and import the head matrix.  Importing
+          this matrix can be problematic with denser head meshes as Matlab is not well
+          known for it's memory management efficiency.
+
+          When calling ft_prepare_leadfield, this vol structure is provided in the cfg
+          structure as usual.  However, because the head matrix is missing from this
+          manually created vol strucuture, the revised pipeline will be called.  All
+          openmeeg inputs and outputs (including the head matrix) will be stored in
+          ./testpath and filenames will begin with file.  Note that if the basefile
+          and basepath parameters are not provided, the inputs and outputs for
+          openmeeg will be stored in a temporary directory and will be deleted at the
+          end.  Please see ft_leadfield_openmeeg for more details.
+
+          We are in the process of writing a tutorial that can be posted on the
+          fieldtrip website.
+
+
+          Best Regards,
+          Daniel Wong
+
+          Daniel Wong, PhD (IBBME, University of Toronto)
+          Postdoctoral Fellow
+          Neural Oscillations Group
+          Department of Psychology
+          University of Konstanz
+          Tel. +49 1609 9814144
+
+
+          On Thu, Oct 24, 2013 at 5:41 PM, Alexandre Gramfort
+          <alexandre.gramfort@telecom-paristech.fr> wrote:
+
+          hi Sarang,
+
+          thanks for working on this. I just tried running the demo/tests script
+          in the openmeeg folder (openmeeg_meg_leadfield_example.m and
+          openmeeg_eeg_leadfield_example.m) and they still fail. I suspect
+          issues with surface orientations. Do you confirm that they fail
+          for you too? My tests scripts testOpenMEEGeeg.m script is
+          also currently broken :(
+
+          Alex
+          --
+          Alexandre Gramfort, PhD
+          Assistant Professor,
+          TSI, Telecom ParisTech,  CNRS LTCI
+          37-39 Rue Dareau, 75014 Paris, France
+          http://alexandre.gramfort.net
+          alexandre.gramfort@telecom-paristech.fr
+
+
+
+          On Mon, Oct 21, 2013 at 3:13 PM, Sarang S. Dalal
+          <sarang.dalal@uni-konstanz.de> wrote:
+          Hi everyone,
+
+          Daniel and I just committed our revised OpenMEEG pipeline to the SVN
+          repository. The main function is ft_leadfield_openmeeg.m, which involved
+          some minor changes to ft_compute_leadfield.m, ft_prepare_vol_sens.m, and a
+          couple new functions for working with meshes from various MR segmentation
+          tools: ft_import_surf.m and ft_iso2surf.m
+
+          Please let us know in case of any problems! Maybe someone else should
+          try it with their own data, before we make an announcement to the general
+          mailing list. :-)
+
+          All the best,
+          Sarang
+
+
+          On Oct 4, 2013, at 4:26 PM, Maureen Clerc <maureen.clerc@INRIA.FR>
+          wrote:
+
+          [sorry my mail was initially rejected by the fieldrip-dev so here I
+          post it again]
+
+
+           Dear Sarang, Daniel,
+
+            Like Alex I thank you for having devoted time to maintaining the
+          OpenMEEG/Fieldtrip connection.
+            We were aware from colleagues in Marseille and Lyon that there were
+          issues, but had not had the time to look into it.
+
+            It may be of interest to you to know that OpenMEEG will very soon
+          have the ability to
+            handle non-nested geometries with BEM, and that it may be
+          interesting to look into incorporating
+            this into Fieldtrip as well !
+            Best regards
+
+
+
+          Maureen Clerc
+          -----
+          INRIA
+          http://www-sop.inria.fr/members/Maureen.Clerc
+          http://www-sop.inria.fr/athena
+
+
+          ----- Mail original -----
+          | Hi everyone,
+          |
+          | With my postdoc Daniel Wong, we've been working on a revised OpenMEEG
+          | pipeline for FieldTrip, which is based on the previous workflow as
+          | well as our own Nutmeg pipeline. As reported by Jean-Michel Badier,
+          | it seems that the FieldTrip-OpenMEEG bindings have been broken for a
+          | few months in FieldTrip's SVN, and we were able to correct this as
+          | well.
+          |
+          | This involves modifications to the OpenMEEG-specific code in
+          | ft_compute_leadfield.m, a revised pipeline script, and a dependency
+          | on the free iso2mesh package (for mesh manipulation).
+          |
+          | Since we think these developments will be of general interest, we
+          | think it would be worth incorporating into the official version of
+          | FieldTrip. If you guys agree, I was wondering what would be the best
+          | way to validate and contribute our code. I do have SVN developer
+          | access, but hesitate to contribute such significant developments
+          | without consulting with you guys first!
+          |
+          | All the best,
+          | Sarang
+          |
+          |
+          |
+          | ----------------------------------------------------------
+          | Sarang S. Dalal, Ph.D.
+          | Neuroelectromagnetic Oscillations Group
+          | Zukunftskolleg / Department of Psychology
+          | University of Konstanz
+          | http://nutmeg.berkeley.edu/sarang/
+          | tel: +49 7531 88 5706
+          | fax: +49 7531 88 5709
+          |
+          |
+          | _______________________________________________
+          | fieldtrip-dev mailing list
+          | fieldtrip-dev@science.ru.nl
+          | http://mailman.science.ru.nl/mailman/listinfo/fieldtrip-dev
+          |
+
+
+
+          _______________________________________________
+          fieldtrip-dev mailing list
+          fieldtrip-dev@science.ru.nl
+          http://mailman.science.ru.nl/mailman/listinfo/fieldtrip-dev
+      - +@isprivate: "0"
+        commentid: "11694"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 15:19:14 +0200
+        thetext: |-
+          I see a number of items that need to be followed up
+
+          1) ensure that test scripts run through
+          1a) make an inventory of test scripts that are specific to openmeeg
+          1b) make an inventory of test scripts that relate to openmeeg
+          1c) make new test scripts where needed
+
+          2) review the code changes and ensure that they are consistent with fieldtrip style
+
+          3) ensure all present documentation is up to date
+
+          4) make a tutorial
+
+
+          Regarding 2: I suspect that some "options/features" that are now passed in the vol structure would have to be handled through ft_prepare_headmodel and ft_headmodel_openmeeg.
+
+          Regarding 4: is a new tutorial needed? Is it possible to extend or improve http://fieldtrip.fcdonders.nl/tutorial/headmodel_eeg. On the long run (=years) it is a lot of work to keep all those tutorials up to date, therefore I woudl prefer making it part of the existing tutorials. We will also have a SimBio FEM tutorial, which needs to be fitted in somehow.
+      - +@isprivate: "0"
+        commentid: "11695"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 15:21:24 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          regarding 2, fieldtrip style is close to this http://www.youtube.com/watch?v=XVa4B5OxPRY
+      - +@isprivate: "0"
+        commentid: "11700"
+        comment_count: "3"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-10-25 15:52:28 +0200
+        thetext: |-
+          Lol at the video :D
+
+          We can definitely add on to http://fieldtrip.fcdonders.nl/tutorial/headmodel_eeg for the tutorial.  I wasn't planning on writing all the initial coregistration steps which is currently explained quite well.  I was thinking more along the lines of describing how segmentation is done using the 3rd party software (much of this is actually already written for the Nutmeg website), how to mesh that data in FieldTrip (with our new functions), and how to call the new BEM pipeline.
+
+          I can modify the ft_prepare_headmodel and ft_headmodel_openmeeg functions to provide the new vol structure.  I haven't touched them yet as their main purpose seems to be to call the head matrix computation in the old pipeline and I didn't want to mess with that until we were sure that our new pipeline is working.  So for now, I'll probably add a flag to call our pipeline, and then eventually make that the default as we phase out the old pipeline.
+      - +@isprivate: "0"
+        commentid: "11701"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 15:58:45 +0200
+        thetext: |-
+          regarding pipeline flow and documentation: we often have the situation that a pipeline consists of N steps, each with multiple options. So
+
+          step 1 -> step 2 -> step 3
+
+          where either 1a, b, c are combined with  2a or b, and 3a, b, or c. Working them all out results in 3*2*3 possible flows, which is impossible to maintain as documentation.
+
+          Important is to use a consistent style of describing the steps, as then it is possible to start another piece of documentation with "we are going to continue at step X" or "as alternative to 2a in this pipelien, lets look at 2b (without redoing 1 and 3)".
+
+          How does the structure of the http://fieldtrip.fcdonders.nl/tutorial/headmodel_eeg match with your view on it?
+      - +@isprivate: "0"
+        commentid: "11703"
+        comment_count: "5"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-10-25 16:37:30 +0200
+        thetext: |-
+          For the headmodel_eeg tutorial, I'm proposing the following modifications:
+
+          1. For the segmentation, I was thinking we could give that it's own page/sub-pages (linked from headmodel_eeg), covering the different options (there's 4 including the pre-existing SPM segmentation).
+
+          2. The meshing section can be expanded to cover the new meshing tools - ft_iso2surf and ft_import_surf, which are used depending on whether the 3rd party segmentation software gave us a segmented tissue volume or a mesh.
+          We could potentially try having these functions called from ft_prepare_mesh, with ft_iso2surf falling back on the old meshing function if the ISO2MESH toolbox is not detected.  (The new meshing functions are more robust at repairing errors in the mesh)  @Robert: What do you think?
+
+          3.  The rest of the steps in headmodel_eeg leaves us off exactly where we need to be before calling the BEM computation (once I modify ft_prepare_headmodel and ft_headmodel_openmeeg).  Since the vol structure will have been set up by ft_prepare_headmodel and ft_headmodel_openmeeg, I only need to specify in the tutorial what flag needs to be specified in those two functions to call the new pipeline.
+
+          Much of the new pipeline was designed to be as similar as possible to the old pipeline, so I don't foresee the need for major changes for tighter integration with the existing fieldtrip workflow.
+      - +@isprivate: "0"
+        commentid: "12100"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-28 12:48:35 +0100
+        thetext: "I have started by fixing the old implementation:\n\nupdated the example and test script to use elecpos instead of pnt, made the representation of the boundaries and the conductivity consistent (they were the other way around)\n\nmac001> svn commit \nSending        external/openmeeg/om_write_cond.m\nSending        external/openmeeg/openmeeg.m\nSending        external/openmeeg/openmeeg_eeg_leadfield_example.m\nSending        external/openmeeg/testOpenMEEGeeg.m\nTransmitting file data ....\nCommitted revision 8878."
+      - +@isprivate: "0"
+        commentid: "12102"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-28 12:58:37 +0100
+        thetext: |-
+          openmeeg_eeg_leadfield_example and testOpenMEEGeeg now run through
+
+          There was an error in elec.pnt (shoudl be elec.elecpos) and an inssue in the order of the conductivities (the meshes were swapped flipped inside-out, but the conductivity was not flipped along).
+
+          hmm, with a new test script that explicitly checks the flip error, I see that it still goes wrong.
+      - +@isprivate: "0"
+        commentid: "12103"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-28 13:07:32 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          sorry, that was a false alarm. The error was in my test script. It actually works fine now, both with the old ft_prepare_bemmodel and with the new (and more generic) ft_prepare_headmodel.
+
+          mac001> svn commit test/
+          Adding         test/test_bug2338.m
+          Transmitting file data .
+          Committed revision 8879.
+      - +@isprivate: "0"
+        commentid: "12104"
+        comment_count: "9"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2013-11-28 16:41:04 +0100
+        thetext: |-
+          thanks everyone. It seems to run smoothly now all openmeeg_eeg_leadfield_example.m, openmeeg_meg_leadfield_exampleM and testOpenMEEGeeg.m run fine.
+
+          nice work !
+      - +@isprivate: "0"
+        commentid: "12107"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 09:38:22 +0100
+        thetext: "Now we should move on and get the other functionality from Sarang and Daniel properly merged as well, as there is now some functionality that is implemented at the incorrect place. The fieldtrip/forward module has a strict (and limited) API, which ensures its reuse for other toolboxes (SPM, EEGLAB) but also the consistent use in FieldTrip high-level functions. See http://fieldtrip.fcdonders.nl/development/forward\n\nThe functions\n  ft_leadfield_openmeeg\n  ft_iso2surf\n  ft_import_surf\nare not part of that API. \n\nIt seems that ft_import_surf should be merged with fieldtrip/fileio/ft_read_headshape, that ft_iso2surf should be merged with fieldtrip/ft_prepare_mesh (i.e. a higher-level T function) and that ft_leadfield_openmeeg resembles the functionality of fieldtrip/ft_prepare_leadfield (also higher level).\n\nHowever, I also see some functionality in ft_leadfield_openmeeg that pertains to mesh validation: that should be part of fieldtrip/forward/ft_headmodel_openmeeg. Some functionality might also have to move to fieldtrip/forward/ft_prepare_vol_sens and fieldtrip/forward/ft_compute_leadfield.\n\nI will start with the simple ones."
+      - +@isprivate: "0"
+        commentid: "12108"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 09:40:13 +0100
+        thetext: before I forget, ft_leadfield_openmeeg presently needs the "Parallel Computing Toolbox". I don't think that it appropriate and it should also be fixed.
+      - +@isprivate: "0"
+        commentid: "12152"
+        comment_count: "12"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-11-30 07:54:54 +0100
+        thetext: ft_openmeeg_leadfield doesn't need the parallel computing toolbox. OMP_NUM_THREADS is an environment variable that can be set when running openmeeg compiled with OpenMP for it's own parallel processing capabilities. Matlab itself doesn't use it.
+      - +@isprivate: "0"
+        commentid: "12165"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-02 11:13:44 +0100
+        thetext: "(In reply to comment #12)\n\n\"needs\" is a too large word: there is a dependency on the parallel toolbox, i.e. a insignificant function from the parallel toolbox was being called. \n\nBummer, I cannot find it any more. I should have noted which function it was."
+      - +@isprivate: "0"
+        commentid: "16408"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 14:08:10 +0100
+        thetext: |-
+          I am reassigning this to jim, who will take care that for the "head model" section in
+
+          http://www.fieldtriptoolbox.org/tutorial/headmodel_eeg#head_model
+
+          there will be an "option 1, 2, 3 - xxx" with xxx
+          1) dipoli
+          2) openmeeg
+          3) bemcp
+
+          all three would be for EEG and on the same geometry.
+      - +@isprivate: "0"
+        commentid: "16409"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 14:09:57 +0100
+        thetext: "furthermore, Jim will rewrite the section \nhttp://www.fieldtriptoolbox.org/tutorial/headmodel_meg#head_model\n\nalso into an \"option 1,2 - xxx\" with option\n1) singleshell\n2) openmeeg, where this one needs to refer to the meshes from the headmodel_eeg tutorial."
+      - +@isprivate: "0"
+        commentid: "16411"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 14:15:13 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #15)
+
+          Note to Jim: I have the following in my .profile, and have my .bashrc symlinked to my .profile
+
+          export OPENMEEG=/opt/openmeeg/2.1.0
+          export PATH=$PATH:$OPENMEEG/bin
+          export LD_LIBRARY_PATH=$PATH:$OPENMEEG/lib
+
+          Furthermore, there is the openmeeg module, so you should also (instead of this) be able to do "module load openmeeg"
+      - +@isprivate: "0"
+        commentid: "16425"
+        comment_count: "17"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-11-24 10:01:12 +0100
+        thetext: |-
+          I am not able to use 'module'. I've tried on mentat002 and mentat003.
+
+          bash-4.2$ module
+          bash: module: command not found
+
+          Any ideas?
+      - +@isprivate: "0"
+        commentid: "16426"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-24 11:00:18 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #17)
+
+          best to contact the TG (as I see you have already done).
+      - +@isprivate: "0"
+        commentid: "16459"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-11-27 13:14:42 +0100
+        thetext: As an encouragement to Jim, I have just managed to create a three-shell openmeeg BEM leadfield for MEG. Pretty much out of the box. So, in principle it should work.
+      - +@isprivate: "0"
+        commentid: "16463"
+        comment_count: "20"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-11-27 14:35:46 +0100
+        thetext: Yes, I was also able to create a three shell headmodel within the EEG headmodel tutorial. I've added a few lines to the Wiki and will update the test scripts next week.
+      - +@isprivate: "0"
+        commentid: "16492"
+        comment_count: "21"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-12-03 14:40:32 +0100
+        thetext: "I've added creation of an openmeeg headmodel to the eeg headmodel tutorial. Will also refer to it in the meg headmodel tutorial. I've also updated the test_headmodel_openmeeg script to load the openmeeg module (using system('load module openmeeg') to add the openmeeg paths when running the test script. \n\nSending        test_headmodel_openmeeg.m\nSending        test_tutorial_headmodel_eeg.m\nTransmitting file data ..\nCommitted revision 10963.\n\nthe tutorial test_script will most likely fail now because I still need to add a copy of the generated head model to the FTP server. Will do so now."
+      - +@isprivate: "0"
+        commentid: "16859"
+        comment_count: "22"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 11:55:38 +0100
+        thetext: what's the status of this?
+      - +@isprivate: "0"
+        commentid: "16958"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-23 08:54:58 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #22)
+
+          In a recent MEG meeting Jim mentioned that "it just works". But a colleague from NatMEG later ran into a problem (2 weeks ago) that it did not work for elekta data. I did a small fix, but the error back then suggested that it would have only worked for 4D data with magnetometers.
+      - +@isprivate: "0"
+        commentid: "16960"
+        comment_count: "24"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-23 09:10:23 +0100
+        thetext: '@Jim: could you chime in?'
+      - +@isprivate: "0"
+        commentid: "16970"
+        comment_count: "25"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-02-23 20:33:39 +0100
+        thetext: "Hi, sorry, missed this E-mail. \nWhat exactly doesn't work for Neuromag data? Creating a headmodel and running a source analysis on the tutorial data worked for me."
+      - +@isprivate: "0"
+        commentid: "16971"
+        comment_count: "26"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-02-24 07:50:52 +0100
+        thetext: |-
+          Hi,
+
+          I believe the current version in the repository assumes that there are only magnetometers and no reference sensors, so this likely means that all the additional possibilities with Elekta (gradiometers only, gradiometers + magnetomers, reference sensors) are not currently implemented.
+
+          We made some updates (not yet submitted as they are not yet validated) so that things work for CTF systems, both with and without synthetic gradient correction. It shouldn't be too much work for us to get Elekta support fully implemented after this.
+
+          From March 1, I will be at Aarhus where we there is an Elekta system, so I am happy to develop and test any further updates that the various Elekta permutations will require.
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "16991"
+        comment_count: "27"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-24 23:48:41 +0100
+        thetext: "(In reply to Sarang Dalal from comment #26)\n\nHi Sarang,\n\nI recently made some changes to the code (basically replace chanpos into coilpos when writing the sensors to disk) that addresses the point you mention. Lau (NatMEG) ran into precisely this.\n\nI just wonder why it apparently worked for Jim on the CTF data...  \n\nRobert"
+      - +@isprivate: "0"
+        commentid: "17004"
+        comment_count: "28"
+        attachid: "778"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-02-25 11:11:50 +0100
+        thetext: |-
+          Created attachment 778
+          Test script for source reconstruction with openmeeg MEG headmodel
+      - +@isprivate: "0"
+        commentid: "17006"
+        comment_count: "29"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-02-25 11:26:56 +0100
+        thetext: "@Robert, I was wondering the same thing.\n\nI've added a test script that I've run just now with Fieldtrip version r10962 (the same version I tested the headmodel and source reconstruction back then). The test script loads the openmeeg (2.2.0) headmodel I created back then and uses some lines from the test_tutorial_beamforming test script.  \n\nOnly one bug popped-up which was a dimension mismatch in multiplying the transformation matrix with the computed leadfield \n(ft_compute_leadfield, line 273):\n\n lf = sens.tra * lf;\n\nsize(sens.tra) =\nans =\n\n   149   298\n\nsize(lf) =\nans = \n149  4452\n\nSimply transposing the sens.tra field solved this issue (if this is allowed?). I don't remember seeing this bug in the past but I may have forgotten. Besides this everything works as normal and I end-up with a nice source structure:\n\n\nWarning: use cfg.headmodel instead of cfg.vol \n> In ft_checkconfig at 117\n  In ft_prepare_leadfield at 111 \nusing gradiometers specified in the configuration\nconverting units from 'mm' to 'cm'\nWarning: MEG with openmeeg only supported with NEMO lab pipeline. Please omit the mat matrix from the headmodel\nstructure. \n> In ft_prepare_vol_sens at 291\n  In fieldtrip-dev/private/prepare_headmodel at 94\n  In ft_prepare_leadfield at 140 \ncreating dipole grid based on automatic 3D grid with specified resolution\nusing gradiometers specified in the configuration\ncreating dipole grid with 1 cm resolution\n1484 dipoles inside, 11956 dipoles outside brain\nmaking tight grid\n1484 dipoles inside, 1558 dipoles outside brain\nthe call to \"ft_prepare_sourcemodel\" took 2 seconds and required the additional allocation of an estimated 0 MB\ncalculating leadfield for all positions at once, this may take a while...\nWarning: Ignoring the version specified. The version flag applies to MAT-files only. \n> In om_save_full at 29\n  In openmeeg_dsm at 60\n  In ft_compute_leadfield at 263\n  In ft_prepare_leadfield at 184 \nAssembling OpenMEEG DSM matrix\nElapsed time is 103.947392 seconds.\nWarning: Ignoring the version specified. The version flag applies to MAT-files only. \n> In om_save_full at 29\n  In openmeeg_megm at 59\n  In ft_compute_leadfield at 264\n  In ft_prepare_leadfield at 184 \nWarning: Ignoring the version specified. The version flag applies to MAT-files only. \n> In om_save_full at 29\n  In openmeeg_megm at 62\n  In ft_compute_leadfield at 264\n  In ft_prepare_leadfield at 184 \nAssembling OpenMEEG H2MM and S2MM matrices\nElapsed time is 2.680017 seconds.\nthe call to \"ft_prepare_leadfield\" took 218 seconds and required the additional allocation of an estimated 3 MB\nthe input is freq data with 149 channels, 1 frequencybins and no timebins\nWarning: use cfg.headmodel instead of cfg.vol \n> In ft_checkconfig at 117\n  In ft_sourceanalysis at 176 \nWarning: The field cfg.feedback is deprecated, please specify it as cfg.dics.feedback instead of cfg. \n> In ft_checkconfig at 462\n  In ft_sourceanalysis at 213 \nWarning: the selected value 18 should be within the range of the array from 17.8808 to 17.8808 \n> In nearest at 93\n  In ft_selectdata>getselection_freq at 1041\n  In ft_selectdata at 270\n  In ft_sourceanalysis at 282 \nthe call to \"ft_selectdata\" took 0 seconds and required the additional allocation of an estimated 0 MB\nusing gradiometers specified in the data\nconverting units from 'mm' to 'cm'\nWarning: MEG with openmeeg only supported with NEMO lab pipeline. Please omit the mat matrix from the headmodel\nstructure. \n> In ft_prepare_vol_sens at 291\n  In fieldtrip-dev/private/prepare_headmodel at 94\n  In ft_sourceanalysis at 311 \ncreating dipole grid based on user specified dipole positions\nusing gradiometers specified in the configuration\n1484 dipoles inside, 1558 dipoles outside brain\nthe call to \"ft_prepare_sourcemodel\" took 0 seconds and required the additional allocation of an estimated 0 MB\nthe call to \"ft_selectdata\" took 0 seconds and required the additional allocation of an estimated 0 MB\nusing precomputed leadfields\nthe call to \"ft_sourceanalysis\" took 6 seconds and required the additional allocation of an estimated 1 MB\n>>"
+      - +@isprivate: "0"
+        commentid: "17019"
+        comment_count: "30"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-29 11:46:28 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #29)
+
+          no you should not transpose the tra or initial lf
+
+          the tea is channels*coils, the initial lf is coils*orientations, the resulting lf is channels*orientations.
+
+          In this specific code (ft_prepare_leadfield) it is computed for many dipoles at once, and the 4452 is actually 1484 grid positions times 3 orientations per grid position. There are 149 channels, and 298 coils.
+      - +@isprivate: "0"
+        commentid: "17020"
+        comment_count: "31"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-29 11:47:02 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #30)
+
+          stupid spelling control: "tea" should read "tra"
+      - +@isprivate: "0"
+        commentid: "17037"
+        comment_count: "32"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-03-02 09:37:32 +0100
+        thetext: "Then there shouldn't have been a dimension mismatch but somehow the resulting lf (channels*orientations) was being multiplied with sens.tra (channels*coils) again leading to a mismatch between the number of rows in sens.tra and the number of columns in lf, right? \n\nIn any case I don't exactly remember what happened back then. I just read the previous comments and found JM had no problems creating a BEM leadfield out of the box as well so it seems unlikely I had this issue with ft_prepare_leadfield back then as well:\n\n\"As an encouragement to Jim, I have just managed to create a three-shell openmeeg BEM leadfield for MEG. Pretty much out of the box. So, in principle it should work.\" - JM\n\nI'm glad Lau discovered this issue. Is the fix you made sufficient or should we look into a more permanent solution?"
+      - +@isprivate: "0"
+        commentid: "17038"
+        comment_count: "33"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-02 09:47:57 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #32)
+
+          I think the fix is sufficient. Let's consider this issue resolved.
+      - +@isprivate: "0"
+        commentid: "20186"
+        comment_count: "34"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:20 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "778"
+      date: 2016-02-25 11:11:00 +0100
+      delta_ts: 2016-02-25 11:11:50 +0100
+      desc: Test script for source reconstruction with openmeeg MEG headmodel
+      filename: test_openmeeg.m
+      type: text/plain
+      size: "2035"
+      attacher:
+        +content: j.herring
+        +@name: Jim Herring
+      data: REMOVED

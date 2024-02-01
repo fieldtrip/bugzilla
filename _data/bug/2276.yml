@@ -1,0 +1,188 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2276"
+    creation_ts: 2013-09-09 09:20:00 +0200
+    short_desc: implement/wrap around neuroconn import
+    delta_ts: 2014-03-12 12:20:26 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc: http://www.neuroconn.de
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - falk.schlegelmilch
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11270"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-09-09 09:20:48 +0200
+        thetext: |-
+          During the TMS-EEG workshop, I was approached by an engineer from neuroconn (Dr. Falk Schlegelmilch). He asked what is necessary to make FieldTrip able to import neuroconn data. I told him that it might be a good idea to send us the (already available) Matlab low-level function of reading in those files, and we can make ft_read_XXX functions wrap around this. He seemed willing to help if necessary, but imho it would be best if we take care of the high-level functions, while relying on the companies' low-level function.
+
+          I did not receive the import-function by mail yet, but I'll contact him today
+      - +@isprivate: "0"
+        commentid: "11272"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-09 11:06:41 +0200
+        thetext: you might want to add him to this bugzilla thread.
+      - +@isprivate: "0"
+        commentid: "11578"
+        comment_count: "2"
+        who:
+          +content: falk.schlegelmilch
+          +@name: Falk Schlegelmilch
+        bug_when: 2013-10-15 14:43:28 +0200
+        thetext: "MATLAB files for low-level access to NEURO PRAX data (*.EEG) are available. \n\n------------------------------------\nnp_readfileinfo.m\n- reads general information of the EEG header (filename, electrode setup, patient's name, sampling frequency, channel list, a.s.o.)\n\nnp_readdata.m\n- reads a block of data from the *.EEG file\n\nnp_readmarker.m\n- reads the sample indices of all markers (set by function key during the recording) and external events (digital trigger inputs at the amplifier) in the *.EEG file\n-------------------------------------\n\nneuroConn will send data examples to Jörn Horschig. We have to discuss the integration into Fieltrip."
+      - +@isprivate: "0"
+        commentid: "11580"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-10-15 16:30:38 +0200
+        thetext: |-
+          thanks, I received the m-files as well the datafile.
+
+          In FieldTrip, we use the same high-level function for reading in header information, data and events independent of the data format. These functions are called ft_read_header, ft_read_data and ft_read_event, respectively. The body of the function is basically a switch-statement on the dataformat and then wrapping around the dataformat specific reading functions. Most likely, we will do the same with your dataformat. I will discuss tomorrow with Robert on how to best implement the wrapping and what to take care of, as he is way more experienced with importing data into FieldTrip (and the head of the project). Most likely though, I will take care of the wrapping and the documentation and contact you if necessary (or if I am done).
+
+          Some background information:
+          ft_read_data reads in a continuous chunk of data, i.e. one trial at a time. Channel selection is either made by the low-level function or, if not possible, all channels are read in and ft_read_data dismisses the undesired channels afterwards. For more information, you can have a look at our wiki-page:
+          http://fieldtrip.fcdonders.nl/reference/ft_read_data
+
+          After reading in all trials, we put them together and create a raw data-structure:
+          http://fieldtrip.fcdonders.nl/reference/ft_datatype_raw
+          The content of the fields is what we need to extract by using your functions.
+
+          Additional, we need to be able to read header and events. A header contains these fields:
+          http://fieldtrip.fcdonders.nl/reference/ft_read_header
+          And an event=structure these:
+          http://fieldtrip.fcdonders.nl/reference/ft_read_event
+
+
+          On our wiki-page, we have a page on how to import data of various formats:
+          http://fieldtrip.fcdonders.nl/reading_data
+          That page contains information about those dataformats, which need special care or additional information (mostly peculiarities of the datafiles or sensor-arrangement, if the format is associated with a particular one). If we notice any such things during the course of the implementation of your format or if you happen to know things that are different between your format and other formats, we can create a new page and add all that information there. In any case, we should make sure to add the neuroconn-format to http://fieldtrip.fcdonders.nl/dataformat once it all runs smoothly.
+      - +@isprivate: "0"
+        commentid: "11589"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-10-16 13:54:45 +0200
+        thetext: |-
+          Hi Falk,
+
+          I forgot that Robert is in Stockholm the whole week and I am in the US from next week on for a month, so the integration will still take a while. Anyway, I got all necessary files now. I will discuss with Robert when I am back on how to exactly implement the import :)
+
+          Best,
+          Jörn
+      - +@isprivate: "0"
+        commentid: "11594"
+        comment_count: "5"
+        who:
+          +content: falk.schlegelmilch
+          +@name: Falk Schlegelmilch
+        bug_when: 2013-10-16 16:13:15 +0200
+        thetext: |-
+          Hi Jörn,
+
+          thank you for your reply. I am also out of office for at least two weeks. Therefore we don't need to hurry.
+
+          Best wishes,
+          Falk
+      - +@isprivate: "0"
+        commentid: "12329"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-11 16:54:42 +0100
+        thetext: |-
+          Hi Falk,
+
+          I just started working on this and then realized that all files are starting with np_. Is this the same format as the neuroprax format? It looks exactly identical. If so, then the support should be already there, see
+          http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/private/np_readdata.m
+          http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/private/np_readmarker.m
+          http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/private/np_readfileinfo.m
+
+          Best,
+          Jörn
+      - +@isprivate: "0"
+        commentid: "12484"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-14 10:25:06 +0100
+        thetext: |-
+          Hi Thomas,
+
+          I hope this email reaches you, as I am not sure which of your addresses in bugzilla is the most recent.
+
+          I recall you having worked with Neurocon in the past for http://sourceforge.net/p/console-kn. Are you able to shed some light on the questions of Jorn in this thread?
+
+          thanks,
+          Robert
+      - +@isprivate: "0"
+        commentid: "12487"
+        comment_count: "8"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-01-14 10:29:37 +0100
+        thetext: |-
+          hi robert, hello everybody,
+          yes, i have worked with neuroconn. however, i had nothing to do with their file format as i read the data directly from the amplifier and saved them after some processing directly in BDF format.
+          best of luck with the endavour!
+          thomas
+      - +@isprivate: "0"
+        commentid: "12489"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-14 10:56:38 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #8)
+
+          ah, too bad. Thanks for the quick reply. I'll remove you again from the CC so that you won't be bothered by this.
+      - +@isprivate: "0"
+        commentid: "12560"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-22 10:10:48 +0100
+        thetext: "I saw down in the basement at the dummy scanner a neuroconn mousepad on which they explicitly also mention neuroprax devices/tools, so I assume that this is *the* neuroprax format. \nFalk, if there should be anything else, please let me/us know. We are glad if we can incorporate and support the work of you guys in FieldTrip!"

@@ -1,0 +1,219 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3220"
+    creation_ts: 2016-12-14 14:16:00 +0100
+    short_desc: ft_componentanalysis doesn't accept NaNs in the data
+    delta_ts: 2017-11-20 20:13:44 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3238
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "2645"
+      - "3218"
+      - "3219"
+    everconfirmed: "1"
+    reporter:
+      +content: p.mostert
+      +@name: Pim Mostert
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18064"
+        comment_count: "0"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-14 14:16:04 +0100
+        thetext: |-
+          ft_componentanalysis throws the following error when the data contains NaNs:
+
+          Error using schur
+          Input to SCHUR must not contain NaN or Inf.
+
+          I realize that it's not trivial that an ICA algorithm should be able to handle NaNs. However, I consider it plausible that an ICA is run after artifact rejection. Given that I reject artifacts by filling them with NaNs (ft_rejectartifact with cfg.artfctdef.reject = 'nan'), I would expect ft_componentanalysis to be able to handle that.
+
+          I uploaded an example data set and script to the FTP dropbox:
+          - tmp_script_4.m
+          - tmp_data_small.mat
+          This script contains comments to demonstrate the problem.
+
+          Thanks!
+      - +@isprivate: "0"
+        commentid: "18065"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-14 14:32:01 +0100
+        thetext: |-
+          why do you expect ft_componentanalysis to be nan-aware?
+
+          what about ft_freqanalysis?
+
+          more in general, the series of bugs you recently opened pertain to nan-awareness in general.
+
+          it may be worthwile to make an inventory of where nans may cause unexpected behaviour,
+
+          e.g. in ft_compoenentanalysis/ft-freqanalysis/functions of the ft_preproc module etc
+
+          and where it can be addressed relatively straightforwardly
+
+          e.g. by discarding the nans before the computation, and adding them back afterwards (as in ft_componentanalysis)
+
+          Note that there used to be a bug that was related to inventorizing the nan-awareness of the functions in the preproc module. I cannot easily find it right now.
+      - +@isprivate: "0"
+        commentid: "18067"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-15 09:35:46 +0100
+        thetext: |-
+          Hi Pim (this one is a question to you :o) ),
+
+          Do you need the NaN-trials throughout your analysis pipeline?
+          In other words, if ft_componentanalysis would be made nan-aware by explicitly throwing out the NaNs before estimating the mixing model, but not putting them back, would that be OK behavior for you?
+      - +@isprivate: "0"
+        commentid: "18073"
+        comment_count: "3"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-16 16:11:54 +0100
+        thetext: "Thanks for the fixes to the other two bugs! \n\nNo, that would not be acceptable behavior for me. The reason I want to keep them, is that I ultimately want to work with the trials in chan*time*trial matrix, which implies that all trials need to be of equal length. I'll work around this issue manually for now.\n\nHowever, for ft_componentanalysis the solution is relative simple I think. For estimation of the weights you could simply a priori throw out the timepoints with NaNs. For the subsequent transformation of the data using these weights, a simple matrix multiplication would give the desired result, as the NaNs in the original data should result in NaNs in the transformed data, right?\n\nI encountered another problem using NaNs (would you like me to open a new bug?): when using ft_databrowser after (whole) trials have been filled with NaNs, the y-axes are set to [NaN NaN]. This is probably specifically the case due to the fact that my very first trial is entirely filled with NaNs."
+      - +@isprivate: "0"
+        commentid: "18074"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-19 11:23:14 +0100
+        thetext: |-
+          (In reply to Pim Mostert from comment #3)
+
+          Your solution for ICA (estimate it on the non-nan sections, apply it to the whole) is fine.
+
+          Please open a separate bug for data browser.
+      - +@isprivate: "0"
+        commentid: "18075"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-19 11:28:49 +0100
+        thetext: Uhm, I don't think that this particular bug has been fixed. I have addressed 3218 and 3219
+      - +@isprivate: "0"
+        commentid: "18077"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-19 11:50:06 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+          Is your idea that this is implemented in the FT code, rather than the users' script (which I assumed)?
+      - +@isprivate: "0"
+        commentid: "18078"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-19 11:56:12 +0100
+        thetext: 'Well, I think that Pim''s expectation is that it is going to be built into the code, I would be fine with the users having to deal with this themselves, in which case the correct resolved status of this bug will be: ''WONTFIX'' :o).'
+      - +@isprivate: "0"
+        commentid: "18079"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-19 13:39:37 +0100
+        thetext: |-
+          another random thought: why isn't ft_timelockanalysis 'gap-aware'?
+
+          In other words, cfg.keeptrials gives an Nrpt x Nchan x Ntime matrix with nans for missing values. However, if at an earlier stage (ft_rejecttrial + cfg.reject = 'partial') trials have been chopped up, these subsegments end up in different slices of tlck.trial.
+      - +@isprivate: "0"
+        commentid: "18081"
+        comment_count: "9"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-19 15:05:57 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #7)
+
+          I'd personally say that the FT code should handle it. Doing it manually isn't all that hard, but it is pretty ugly. Moreover, I think it's fair that a user may expect these functions to handle NaNs properly. Currently, they don't, and neither do they very clearly tell you.
+
+          So I'd say, either add it to the code; or (for now) make the function throw an explicit error to inform the user that he/she should do it him-/herself.
+
+          Additionally, ft_rejectcomponent doesn't handle NaNs either. In this case I do get an explicit error :-), though I don't understand it:
+
+          "
+          Error using ft_apply_montage (line 262)
+          Your input data contains NaNs in channels that are unused in the supplied montage. This would result in
+          undesired NaNs in the output data. Please remove these channels from the input data (using ft_selectdata)
+          before attempting to apply the montage.
+
+          Error in ft_rejectcomponent (line 184)
+          data = ft_apply_montage(data, montage, 'keepunused', keepunused, 'feedback', cfg.feedback);
+          "
+
+          I'll do the rejection manually for now.
+      - +@isprivate: "0"
+        commentid: "18103"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:01:26 +0100
+        thetext: Assigned to a named person, to keep it on the radar. ;o)
+      - +@isprivate: "0"
+        commentid: "18117"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-23 11:50:30 +0100
+        thetext: "(In reply to Pim Mostert from comment #9)\n\nagreed that FT should do it. \n\nHaving NaNs in the data allows for smart stuff, but right now FT code is not so smart yet. It would help to classify the functions according to input-output-algorithm, since I expect that there are only a limited number of patterns, which makes it possible to implement and reuse the solutions."
+      - +@isprivate: "0"
+        commentid: "18946"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-09-22 13:50:44 +0200
+        thetext: I have just implemented nan-transparency for ft_componentanalysis (throwing away the columns that have nans in the concatenated data matrix).
+      - +@isprivate: "0"
+        commentid: "19004"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 17:11:23 +0100
+        thetext: I believe that this has been addressed.

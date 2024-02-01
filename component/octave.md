@@ -1,0 +1,5 @@
+---
+title: octave
+---
+
+{% include component %}

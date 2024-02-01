@@ -1,0 +1,130 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2671"
+    creation_ts: 2014-08-07 12:05:00 +0200
+    short_desc: error when fitting dipole to independent component
+    delta_ts: 2019-08-10 12:28:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - j.herring
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14244"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-08-07 12:05:01 +0200
+        thetext: "Hi guys,\n\nI am trying to fit a dipole to an independent component. According to the function description this should be possible.\n\nHere's my input and all the fieldtrip output...\n\ncfg=[];\ncfg.method='runica';\ncomp=ft_componentanalysis(cfg,data);\n\ncfg=[];\ncfg.numdipoles=1;\ncfg.gridsearch='yes';\ncfg.nonlinear='yes';\ncfg.grid=subjgrid; %subject-specific grid already created.\ncfg.component=1; %fit to first ICA component.\ncfg.vol=vol; %singleshell volume conduction model already created.\ndip=ft_dipolefitting(cfg,comp);\n\nthe input is component data with 273 components and 273 original channels\nthe input is raw data with 273 channels and 110 trials\nundoing the comp balancing for the gradiometer definition\nundoing the comp balancing for the gradiometer definition\nusing headmodel specified in the configuration\nusing gradiometers specified in the data\ncomputing surface normals\nselected 0 channels\nselected 1 topographies\nWarning: not enough channels to perform a dipole fit \n> In ft_dipolefitting at 255\ncreating dipole grid based on user specified dipole positions\nusing headmodel specified in the configuration\nusing gradiometers specified in the configuration\n9785 dipoles inside, 9559 dipoles outside brain\nthe call to \"ft_prepare_sourcemodel\" took 0 seconds and required the additional allocation of an estimated 0 MB\nscanning grid\n??? Reference to non-existent field 'forwpar'.\n\nError in ==> ft_compute_leadfield at 241\n        dippar((i-1)*3+1, :) = [vol.forwpar.scale*pos(i, :) 1 0 0]; % single dipole with unit\n        strength, x-orientation\n\nError in ==> ft_dipolefitting at 331\n      lf = ft_compute_leadfield(grid.pos(indx,:), sens, vol);\n\nFirst off, I'm not too happy about 'Warning: not enough channels to perform a dipole fit'. There are of course no 'channels' as such in this data, there are component topographies and time courses. However the serious this is this lack of 'forwpar'. I dug around in the code and apparently 'forwpar' can be created by calling ft_prepare_vol_sens prior to ft_dipolefitting, so I called it first in my code and specified the new vol.\n\n[vol2,sens]=ft_prepare_vol_sens(vol,data.grad,'channel',ft_channelselection('MEG',comp.label));\n\n\nhowever this produces a new error...\n\nscanning grid\n??? Error using ==> mtimes\nInner matrix dimensions must agree.\n\nError in ==> ft_compute_leadfield at 251\n        lf = sens.tra * lf;\n\nError in ==> ft_dipolefitting at 331\n      lf = ft_compute_leadfield(grid.pos(indx,:), sens, vol);\n\nI presume that you're not supposed to have to call ft_prepare_vol_sens yourself prior to ft_dipolefitting, but in any case it seems not to solve the problem. Can somebody advise?\n\nCan provide a data snippet if necessary although I don't think there's anything odd about the data I'm using.\n\nBest,\nTom"
+      - +@isprivate: "0"
+        commentid: "14245"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-08-07 12:10:54 +0200
+        thetext: |-
+          Hi Tom,
+
+          Hmm I was just playing around with dipole-fitting an IC myself and everything seems to work fine.
+
+          For diagnostics, could you try creating a skeleton comp structure like so:
+
+          c2 = [];
+          c2.topo = comp.topo;
+          c2.topolabel = comp.topolabel;
+
+          and doing the dipolefit on that, specifying the data's (not the comp's) grad in the configuration:
+
+          ....
+          cfg.grad = data.grad;
+          dip = ft_dipolefitting(cfg, c2);
+
+          ? Thanks.
+      - +@isprivate: "0"
+        commentid: "14246"
+        comment_count: "2"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-08-07 12:15:30 +0200
+        thetext: |-
+          Hey,
+
+          cfg.grad=data.grad fixed it!
+
+          I can still do the skeleton test if you want, but for my purposes this works not.
+      - +@isprivate: "0"
+        commentid: "14247"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-08-07 12:19:25 +0200
+        thetext: |-
+          (In reply to t.marshall from comment #2)
+          I assume the "not" should be "now"? ;)
+
+          I already suspected the grad thing would fix it. ft_dipolefitting needs to know how the sources project to the original sensors, which are described by data.grad. comp.grad describes how sources project to the components. Likely somewhere in the code the channel labels (of the physical channels) are matched to the grad's channels (which, in case of comp.grad, are the IC channels), leading to an empty intersection.
+
+          ft_dipolefitting's interface needs to be updated, but marking this as resolved for now.
+      - +@isprivate: "0"
+        commentid: "14248"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-08-07 12:29:15 +0200
+        thetext: Is it always the case that you should use data.grad instead of comp.grad when trying to fit dipoles to IC topographies? If so, we should probably document it in the help of ft_dipolefitting, shouldn't we?
+      - +@isprivate: "0"
+        commentid: "14249"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-08-07 12:31:14 +0200
+        thetext: |-
+          (In reply to Jim Herring from comment #4)
+          Yes, and, yes, probably :)
+      - +@isprivate: "0"
+        commentid: "14250"
+        comment_count: "6"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-08-07 12:31:49 +0200
+        thetext: Verily, you are correct. 'not' = 'now', I wasn't trying to be archaic.
+      - +@isprivate: "0"
+        commentid: "19988"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:45 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

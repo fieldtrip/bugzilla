@@ -1,0 +1,188 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2843"
+    creation_ts: 2015-02-13 18:08:00 +0100
+    short_desc: ft_sourceinterpolate fails on avg.pow of mne output
+    delta_ts: 2015-02-23 14:56:20 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.bastiaannet
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15367"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-13 18:08:19 +0100
+        thetext: "I'm filing this as I know there were some recent changes to source analysis code.\n\nI ran MNE on ERP timelock data with a full-brain grid (not surface).  I want to interpolate onto MRI to sourceplot.  But ft_sourceinterpolate fails, and I coudln't figure out why.  I'm using the most recent SVN version.\n\nmrinormlin = \n\n      anatomy: [201x213x251 double]\n    transform: [4x4 double]\n          dim: [201 213 251]\n       params: [1x1 struct]\n      initial: [4x4 double]\n     coordsys: 'spm'\n          cfg: [1x1 struct]\n         unit: 'mm'\n\n\n>> erp_mne\n\nans = \n\n      time: [1x3784 double]\n       dim: [20 25 22]\n    inside: [11000x1 logical]\n       pos: [11000x3 double]\n    method: 'average'\n       avg: [1x1 struct]\n       cfg: [1x1 struct]\n\ncfg            = [];\ncfg.parameter = 'avg.pow';\nerp_source  = ft_sourceinterpolate(cfg, erp_mne , mrinormlin);\n\n\n\nWarning: use cfg.parameter='pow' instead of cfg.parameter='avg.pow' \n> In ft_checkconfig at 139\n  In ft_sourceinterpolate at 119 \nthe input is volume data with dimensions [201 213 251]\nthe input is source data with 11000 brainordinates on a [20 25 22] grid\nselecting subvolume of 47.4%\ninterpolating\ninterpolating 100.0%\n\nreslicing and interpolating pow\ninterpolating\nError using interpn (line 151)\nWrong number of input arguments.\n\nError in ft_sourceinterpolate>my_interpn (line 511)\n  av(sel) = interpn(fv, ax(sel), ay(sel), az(sel), interpmethod);\n\nError in ft_sourceinterpolate (line 422)\n          av( sel) = my_interpn(fv, ax(sel), ay(sel), az(sel), cfg.interpmethod, cfg.feedback);"
+      - +@isprivate: "0"
+        commentid: "15368"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-13 18:16:11 +0100
+        thetext: |-
+          The error is rather uninformative, I agree, but it is intended that source-level data with 'time' in the dimord cannot be interpolated (to protect your RAM). You can use ft_sourceplot, though, on the original source data (which allows you to visualize the stuff without the anatomy on the background).
+          All well?
+      - +@isprivate: "0"
+        commentid: "15369"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-13 19:40:37 +0100
+        thetext: "The error\n\nError in ft_sourceinterpolate>my_interpn (line 511)\n  av(sel) = interpn(fv, ax(sel), ay(sel), az(sel), interpmethod);\n\nsuggests that it fails on interpolating a 3-D volume, not 4D including time. The only reason I can see for this is that the number of dimensions of argument fv does not match the 3 ax/ay/az arguments. This is also suggested by the following\n\n>> fv = randn(10,10); \n>> interpn(fv, 1:2:10, 1:2:10, 1:2:20, 'linear')\nError using interpn (line 152)\nWrong number of input arguments.\n\nI agree with JM that there is a reason why this might not have to work, but I would rather have code crash your computer as it goes out of RAM, than have it give a MATLAB error. And ideally there would be \"this will crash your computer, are you sure you want to proceed (y/n)?\"\n\nCould you share your data (e.g. by personal mail to a dropbox link or so)?"
+      - +@isprivate: "0"
+        commentid: "15370"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-14 08:29:08 +0100
+        thetext: 'NOTE: last FT-meeting it was discussed that it would make sense to split the functionality of the visualization functions of source data (ft_sourceplot + ft_sourcemovie) along the lines of having either scalar functional data defined on 2D or 3D brain ordinates (this would be a case for ft_sourceplot), or having time(-freq) data, requiring functionality to browse through the data (this would be a case for ft_sourcemovie). I just started working on ft_sourcemovie to streamline it (for a slightly different purpose), and broke my local copy along the way. Once this one is in place, this intended functionality can be implemented.'
+      - +@isprivate: "0"
+        commentid: "15373"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-16 10:44:19 +0100
+        thetext: "Hi JM and Robert,\n\nYes, using ft_sourceplot on just the erp_mne works without interpolating to the MRI.\n\nI've got 32GB of RAM on my local machine, so I'd rather see it try to do a high-memory computation if it can!  :-)\n\nMore info on my data:\n\n>> erp_mne.avg\n\n       mom: {1x11000 cell}\n       pow: [11000x3784 double]\n    inside: [11000x1 logical]\n       pos: [11000x3 double]\n\nand at line 511 of ft_sourceinterpolate, the data is:\nK>> whos\n  Name                    Size                   Bytes  Class     Attributes\n\n  av                5094496x1                 40755968  double              \n  ax                5094496x1                 40755968  double              \n  ay                5094496x1                 40755968  double              \n  az                5094496x1                 40755968  double              \n  blocksize               1x1                        8  double              \n  feedback                1x4                        8  char                \n  fv                     20x25x22                88000  double              \n  interpmethod            1x7                       14  char                \n  lastblock               1x1                        8  double              \n  num                     1x1                        8  double              \n  sel                     1x254724             2037792  double              \n\n(with interpmethod as 'nearest'.)\n\nI will also send the data via dropbox.\n\nCheers,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "15374"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-16 11:04:38 +0100
+        thetext: "(In reply to Johanna from comment #4)\ncorrection, interpmethod is 'linear' at the point where it crashes.  \n\nEarlier in the code (where it succeeds) it is 'nearest'."
+      - +@isprivate: "0"
+        commentid: "15375"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-16 11:09:13 +0100
+        thetext: |-
+          (In reply to Johanna from comment #4)
+
+          I received the data and copied it to /home/common/matlab/fieldtrip/data/test/bug2843.mat
+      - +@isprivate: "0"
+        commentid: "15415"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 12:01:17 +0100
+        thetext: |-
+          I will properly create a testscript, but what I see is that in this scenario ft_checkdata (l 165 in ft_sourceinterpolate) fails to convert the functional data into the expected dimensions (i.e. reshaping the 11000 positions into 3D).
+
+          I'll look into it, but suspect that this works fine if the the data is scalar (one value per position).
+      - +@isprivate: "0"
+        commentid: "15416"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 12:09:13 +0100
+        thetext: |-
+          cfg=[];
+          cfg.elec=elec;
+          cfg.vol=voldipolimm;
+          cfg.grid=lf;
+          cfg.method='mne';
+          cfg.mne.lambda=2;
+          cfg.mne.prewhiten='yes';
+          cfg.mne.scalesourcecov='yes';
+          s=ft_sourceanalysis(cfg,tlock_erp);
+
+          v=ft_checkdata(s,'datatype','volume');
+
+          % this gives a pow field of 11000*3784
+
+          s2=s;
+          s2.avg.pow=s2.avg.pow(:,1);
+          v2=ft_checkdata(s2,'datatype','volume');
+
+          % this gives a pow field of 20x25x22
+      - +@isprivate: "0"
+        commentid: "15417"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 12:12:11 +0100
+        thetext: 'ft_checkdata: line 734 calls parameterselection, which fails to recognize ''pow'' as a to-be-reshaped data field.'
+      - +@isprivate: "0"
+        commentid: "15424"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 14:35:41 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #9)
+
+          parameterselection should become deprecated at a certain point...
+
+          Might it be that parameterselection is missing it because internally the avg structure is not used any more?
+      - +@isprivate: "0"
+        commentid: "15428"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 14:56:20 +0100
+        thetext: |-
+          I agree about the deprecation of parameterselection.
+          In this specific instance, I think it would suffice to check for the fields that have a pos in the dimord and reshape those.
+
+          NOTE, the following functions (in fieldtrip/utilities) call parameterselection:
+
+          ft_checkdata
+          ft_selectdata_old (hehehe)
+          ft_source2full
+          ft_source2sparse
+
+          in fieldtrip-main the functions are:
+
+          ft_sliceinterp (the dinosaur)
+          ft_sourceinterpolate
+          ft_sourceplot
+          ft_volumedownsample
+          ft_volumenormalise
+          ft_volumerealign
+          ft_volumewrite

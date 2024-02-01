@@ -1,0 +1,383 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1708"
+    creation_ts: 2012-09-12 14:36:00 +0200
+    short_desc: ft_denoise_synthetic sets all grad.chanpos and grad.chanori  to NaN
+    delta_ts: 2015-07-20 10:19:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.wollbrink
+      +@name: Andreas Wollbrink
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7340"
+        comment_count: "0"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-12 14:36:11 +0200
+        thetext: "using the function ft_denoise_synthetic the values for grad.chanori and grad.chanpos are set to NaN which disables the usage of the corresponding data structure to be used for later processings steps (for example ft_prepare_leadfield)\n\nexample code: \n\n        % split data in event related trials\n        cfg = [];\n        cfg.dataset                 = dsName;\n        cfg.channel   = chanUsed;\n        cfg.trl = trlOrg;\n        trialData = ft_preprocessing(cfg);\n        \n        % define noise balancing (synthetic gradiometer order)\n        cfg = [];\n        cfg.gradient = 'G3BR';\n        trialDataBal3 = ft_denoise_synthetic(cfg, trialData);"
+      - +@isprivate: "0"
+        commentid: "7350"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-14 10:58:11 +0200
+        thetext: '*** Bug 1710 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "7352"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 11:12:34 +0200
+        thetext: |-
+          bash-3.2$ svn add test_bug1708.m
+          A         test_bug1708.m
+          bash-3.2$ svn commit test_bug1708.m
+          Adding         test_bug1708.m
+          Transmitting file data .
+          Committed revision 6457.
+
+
+
+          Hi Andreas, I cannot reproduce the error on some test data of our own (using the above script). Could you upload a small data structure (i.e. at least containing a .grad and some other necessary stuff), in order that we can look what is going on. At this moment I have reasons to believe that there is something going on in your data.
+      - +@isprivate: "0"
+        commentid: "7355"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-14 12:27:00 +0200
+        thetext: '*** Bug 1713 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "7359"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 13:19:25 +0200
+        thetext: |-
+          Hi Andreas,
+
+          In your data there seems to be a mismatch between the channels that are specified in the balancing structures:
+
+          avgData.grad.balance.GxBR:
+
+          for the first and second order gradient, there are 281 channels, for the G3BR there are 288.
+
+          This is what confuses FieldTrip, and to be on the safe side, it removes the channel position and channel orientation info. Note that this does not affect the coil position and coil orientation info. As such forward computations should still be possible.
+          Do you agree that this is a feature in your data and not a bug in FieldTrip?
+      - +@isprivate: "0"
+        commentid: "7360"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 13:23:23 +0200
+        thetext: |-
+          Additional comment: I just noticed that something similar is the case in our data ;-), i.e. the number of channels in the G3BR balancing structure is > the number of channels for G(1/2)BR.
+
+          The difference though with our data is, that at the level of the grad structure the number of channels (as defined in grad.label) equals grad.balance.G3BR.labelorg/labelnew, whereas in your data the grad.label equals grad.balance.G1BR.labelorg/labelnew
+      - +@isprivate: "0"
+        commentid: "7361"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 13:35:18 +0200
+        thetext: Did you record the data in G1BR?
+      - +@isprivate: "0"
+        commentid: "7362"
+        comment_count: "7"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-14 14:18:42 +0200
+        thetext: |-
+          (In reply to comment #6)
+          yes, the recording / acquisition was done using balancing level 1
+      - +@isprivate: "0"
+        commentid: "7364"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 14:57:35 +0200
+        thetext: |-
+          OK. Then it seems that the cause of the problem should be sought higher up:
+
+          fieldtrip/fileio/private/ctf2grad.m applies the balancing on line 212. I suspect that the information from the additional coils is lost here, causing the 'problem' later on.
+
+          I think we need to address the issue, but for now I am wondering what is exactly causing the problems for you downstream in your analysis. As I mentioned before, it shouldn't be the case that forward modeling fails, because the coil position and orientation is what counts there, and those are still represented correctly (I think) in the grad-structure. At least they are not nan.
+      - +@isprivate: "0"
+        commentid: "7366"
+        comment_count: "9"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-14 15:28:34 +0200
+        thetext: "(In reply to comment #8)\nthe problem encounters when one tries to prepare a leadfield matrix using the following code: \n\n%%%% first line of code\n% load volumeconductor model\nvolCondModelName = 'singleShell.mat';\nload(volCondModelName, 'vol');\n\n%% option1 : get grad from preprocessed data (including ft_denoise_synthetic) \nload('SyntheticGrad.mat', 'avgDataBal3');\n\n% calculate leadfield matrix used as search grid during beamforming\ngridRes = 10; % search grid resolution [mm]\n\ncfg                 = [];\ncfg.grad            = avgDataBal3.grad;\ncfg.vol = vol;\n\ncfg.reducerank      = 2;\ncfg.channel         = {'MEG' 'MEGREF'};\ncfg.grid.resolution = gridRes/10.0;   % use a 3-D grid\nleadfield = ft_prepare_leadfield(cfg);\n\n\n%% option2 : get grad from raw data \nload('hdr.mat', 'hdr');\n\n% calculate leadfield matrix used as search grid during beamforming\ngridRes = 10; % search grid resolution [mm]\n\ncfg                 = [];\ncfg.grad            = hdr.grad;\ncfg.vol = vol;\n\ncfg.reducerank      = 2;\ncfg.channel         = {'MEG' 'MEGREF'};\ncfg.grid.resolution = gridRes/10.0;   % use a 3-D grid\nleadfield2 = ft_prepare_leadfield(cfg);\n%%% last line of code\n\noption 1 fails, option 2 works out\n\nI just tried to add an additional attachment including an archive with all the files I used running the script.\nI might have failed since I did not get any further response from the bugzilla server.\n\nPlease let me know in case you need the archive for further problem solving"
+      - +@isprivate: "0"
+        commentid: "7367"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 15:31:27 +0200
+        thetext: What's the error message?
+      - +@isprivate: "0"
+        commentid: "7368"
+        comment_count: "11"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-14 15:33:22 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          the error / report message is the following:
+
+          using headmodel specified in the configuration
+          using gradiometers specified in the configuration
+          computing surface normals
+          creating dipole grid based on automatic 3D grid with specified resolution
+          using headmodel specified in the configuration
+          using gradiometers specified in the configuration
+          0 dipoles inside, 0 dipoles outside brain
+          making tight grid
+          0 dipoles inside, 0 dipoles outside brain
+          the call to "ft_prepare_sourcemodel" took 0 seconds and required the additional allocation of an estimated 0 MB
+          computing leadfield
+
+          the call to "ft_prepare_leadfield" took 3 seconds and required the additional allocation of an estimated 3 MB
+      - +@isprivate: "0"
+        commentid: "7369"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 15:54:36 +0200
+        thetext: OK, so the problem seems to be that the ft_prepare_sourcemodel fails to construct a meaningful 3D-grid given the input.
+      - +@isprivate: "0"
+        commentid: "7370"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-16 09:00:14 +0200
+        thetext: |-
+          So, we have identified 2 problems:
+
+          -ctf2grad should keep the unused channels when converting to a different balancing scheme. Apparently, only all channels/coils are kept in the case of 'none' and 'G3BR'.
+
+          -ft_prepare_sourcemodel with a cfg that contains both a vol and a grad, and furthermore asks for a 3D grid with only the resolution parameter specified, yields a 0-dipole grid, when the chanpos in the grad contains only nans.
+      - +@isprivate: "0"
+        commentid: "7398"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-19 15:27:22 +0200
+        thetext: |-
+          Hi Andreas,
+
+          Would it be possible to upload a .res4 file that was recorded with first-order balancing switched on?
+
+          Thanks,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "7415"
+        comment_count: "15"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-19 16:33:59 +0200
+        thetext: |-
+          (In reply to comment #14)
+          Hi Jan-Mathijs,
+
+          yes sure.
+
+          How should we perform the data transfer?
+
+          I can either put a dataset on our ftp server (and provide you with the access information) or are there options to upload such a large file directly to your environment.
+
+          Please let me know how to proceed.
+
+
+          Andreas
+      - +@isprivate: "0"
+        commentid: "7420"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-19 16:53:00 +0200
+        thetext: Well, I think just a .res4 would be enough. Could you upload it as an attachment to this bug?
+      - +@isprivate: "0"
+        commentid: "7421"
+        comment_count: "17"
+        attachid: "309"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-19 17:00:52 +0200
+        thetext: |-
+          Created attachment 309
+          res4 file noise balncing set to GradOrd1
+      - +@isprivate: "0"
+        commentid: "7422"
+        comment_count: "18"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-19 17:01:19 +0200
+        thetext: Thanks.
+      - +@isprivate: "0"
+        commentid: "7468"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-20 12:09:32 +0200
+        thetext: "changing line 212 in ctf2grad to also keep the unused coils seems to recover the channel positions.\n\nThe updated code (fieldtrip/fileio/private/ctf2grad.m) will be available in tonight's ftp-release, but is already available at google code: http://code.google.com/p/fieldtrip/source/checkout\n\nCould you check whether it works now? \n\nThis would mean that the header information needs to be read (and the hdr.grad needs to be put into the data structure) before you can proceed with the creation of the source model.\n\nI hope that this fix fixes the downstream issue, with ft_prepare_sourcemodel not adequately detecting the inside of the brain..."
+      - +@isprivate: "0"
+        commentid: "7482"
+        comment_count: "20"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2012-09-20 14:32:21 +0200
+        thetext: |-
+          (In reply to comment #19)
+          SUCCESS:
+
+          after using the new fieldtrip version the grad.chanori and grad.chanpos kept their original values after applying ft_denoise_synthetic in order to change the data noise balance level from 1 (acquisition) to 3.
+
+          furtheron I successfully could use the re-balanced data to prepare a leadfield matrix having entries for 300 channels (MEG + MEGREF) for each source
+
+          I did not understand your comment:
+
+          'This would mean that the header information needs to be read (and the hdr.grad
+          needs to be put into the data structure) before you can proceed with the
+          creation of the source model.
+
+          I hope that this fix fixes the downstream issue, with ft_prepare_sourcemodel
+          not adequately detecting the inside of the brain'
+
+          Do I have to use ft_read_header prior to preparing a source model?
+          It seems to work without this additional step.
+      - +@isprivate: "0"
+        commentid: "7487"
+        comment_count: "21"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-20 14:40:25 +0200
+        thetext: "Hi Andreas,\n\nNo you don't need to use ft_read_header, but my comment related to the fact that you may have wanted to use data that was already preprocessed and existed as .mat file on your filesystem. In these data structures, the gradiometer definition pre-dates the fix. \n\nThanks for the feedback."
+      - +@isprivate: "0"
+        commentid: "13367"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-16 17:45:25 +0200
+        thetext: "Hi JM,\n\nIn https://code.google.com/p/fieldtrip/source/diff?spec=svn9260&r=9260&format=side&path=/trunk/test/test_bug1708.m\n\nyou added some code and a test file to the test script for this specific bug. That test file cannot be found on the usual location. Could you copy it there and rename it to bug1708.mat for consistency. \n\nthanks,\nR"
+      - +@isprivate: "0"
+        commentid: "13378"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-17 09:52:21 +0200
+        thetext: hmmm, I cannot find the file anymore :(. I suspect that I created a dummy data structure based on the .res4 sent to us by Andreas. This contained a first order synthetic gradient balancing. Let me try to reconstruct a data structure like this.
+      - +@isprivate: "0"
+        commentid: "15289"
+        comment_count: "24"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-11 14:16:56 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #23)
+          The test data for the bug is still missing.
+      - +@isprivate: "0"
+        commentid: "15296"
+        comment_count: "25"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:16:03 +0100
+        thetext: Yes indeed.
+      - +@isprivate: "0"
+        commentid: "15299"
+        comment_count: "26"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:20:12 +0100
+        thetext: Sorry guys, I really don't know where to find this data anymore. I suggest to uncomment in the test function the part that uses this data.
+      - +@isprivate: "0"
+        commentid: "15302"
+        comment_count: "27"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:34:14 +0100
+        thetext: unfixable due to lost data.
+      - +@isprivate: "0"
+        commentid: "15958"
+        comment_count: "28"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-20 10:19:30 +0200
+        thetext: Closed several bugs at once.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "309"
+      date: 2012-09-19 17:00:00 +0200
+      delta_ts: 2012-09-19 17:00:52 +0200
+      desc: res4 file noise balncing set to GradOrd1
+      filename: Test_SystemWartung-AW_20120903_noConnected.res4
+      type: application/octet-stream
+      size: "3165513"
+      attacher:
+        +content: a.wollbrink
+        +@name: Andreas Wollbrink
+      data: REMOVED

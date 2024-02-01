@@ -1,0 +1,77 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3442"
+    creation_ts: 2018-08-21 15:24:00 +0200
+    short_desc: Repeated calls to ft_prepare_vol_sens/sb_transfer by functions in the simbio FEM-model pipeline
+    delta_ts: 2019-04-01 08:57:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: arnfinn.aamodt
+      +@name: Arnfinn Aamodt
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19413"
+        comment_count: "0"
+        who:
+          +content: arnfinn.aamodt
+          +@name: Arnfinn Aamodt
+        bug_when: 2018-08-21 15:24:06 +0200
+        thetext: "Hi,\n\nWe are doing source reconstruction, and for the forward modelling we use a SimBio FEM-model with the recommended pipeline from Vorwerk et al 2018 (https://doi.org/10.1186/s12938-018-0463-y). The problem is that in our pipeline we successively call ft_prepare_vol_sens,  ft_prepare_headmodel, ft_prepare_leadfield and ft_sourceanalysis. The latter two of these functions calls prepare_headmodel (not the same as ft_prepare_headmodel!), which in line 112 again calls ft_prepare_vol_sens. So in summary, we end up calling ft_prepare_vol_sens three times in our pipeline, which is problematic, because ft_prepare_vol_sens is very slow for our FEM model. \n\nSo far, our fix is to change prepare_headmodel to implement a test to see if it is necessary to run ft_prepare_vol_sens again, as follows (ft_prepare_vol_sens populates the headmodel.transfer field by calling sb_transfer):\n\nif ~isfield(headmodel,'transfer') \n    [headmodel, sens] = ft_prepare_vol_sens(headmodel, sens, 'channel', cfg.channel, 'order', cfg.order);\nend\n\nEven though this problem is probably less significant for other types of models, because ft_prepare_vol_sens might be quicker, I still think the problem should be fixed.\n\nBest regards,\nArnfinn Aamodt"
+      - +@isprivate: "0"
+        commentid: "19414"
+        comment_count: "1"
+        who:
+          +content: arnfinn.aamodt
+          +@name: Arnfinn Aamodt
+        bug_when: 2018-08-21 15:56:37 +0200
+        thetext: "Sorry, there is a small error in the bug-report. Where it says:\n\n\"The problem is that in our pipeline we successively call ft_prepare_vol_sens,  ft_prepare_headmodel, ft_prepare_leadfield and ft_sourceanalysis.\",\n\nit should really say \n\n\"The problem is that in our pipeline we successively call ft_prepare_vol_sens, ft_prepare_leadfield and ft_sourceanalysis.\"\n\nThat is, ft_prepare_headmodel (not the same as prepare_headmodel!) is not part of the problem."
+      - +@isprivate: "0"
+        commentid: "19614"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-12-30 18:14:51 +0100
+        thetext: |-
+          Sorry for not catching up on this, but would the following address the issue?
+
+          https://github.com/fieldtrip/fieldtrip/pull/517
+
+          If so, I think that this can be closed, right?
+      - +@isprivate: "0"
+        commentid: "19618"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-01-08 12:35:35 +0100
+        thetext: Closing for now. Feel free to reopen

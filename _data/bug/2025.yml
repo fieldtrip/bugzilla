@@ -1,0 +1,214 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2025"
+    creation_ts: 2013-03-04 12:13:00 +0100
+    short_desc: '''infinite'' forward model not working properly'
+    delta_ts: 2013-04-23 12:06:32 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: moddaser
+      +@name: Hamid
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9622"
+        comment_count: "0"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-04 12:13:31 +0100
+        thetext: |-
+          It seems to me the 'vol' calculated by the ft_prepare_head_model have some problems in the case of 'infinite' method.
+
+          1) The first minor error is that ft_plot_vol does not support this vol. I know there is nothing to show here, but ft_plot_vol should inform user rather than giving error.
+
+          2) In using ft_prepare_leadfield, I get an error because vol.sens is void. I think the function should use sens saved in cfg.grad, or ft_prepare_head_model should return vol.sens.
+
+          3) The calculated grid using ft_prepare_ leadfield all the points are marked as 'inside' and there is no 'outside' points. It is clear that lead-fields are independent from the brain volume, but same as 'singleshell' and 'localspheres' we should only calculate the lead-fields for inside of the brain volume not a cube.
+
+          4) I think this case should be checked further and there might be other errors, as I don't get sensible results at the end.
+
+          Assuming an 'infinite' volume conductor gives a simple forward solution and which is independent from head registration and movement resulting in a more robust solution and, therefore I think it is an important variation.
+      - +@isprivate: "0"
+        commentid: "9634"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-04 16:32:37 +0100
+        thetext: "I started making a test script, first fomr the simple stuff:\n\n>> test_bug2025\n\nReference to non-existent field 'sens'.\nError in ft_datatype_headmodel (line 118)\n      vol.sens = ft_datatype_sens(vol.sens);\nError in ft_plot_vol (line 46)\nvol = ft_datatype_headmodel(vol);\nError in test_bug2025 (line 12)\nft_plot_vol(vol); \n\nLine 118 should relate to type=interpolate, not infinite. \n\nI also change ft_plot_vol, it now gives a warning.\n\n\nroboos@mentat001> svn commit \nSending        plotting/ft_plot_vol.m\nSending        utilities/ft_datatype_headmodel.m\nTransmitting file data ..\nCommitted revision 7568.\n\nroboos@mentat001> svn add test/test_bug2025.m \nA         test/test_bug2025.m\nroboos@mentat001> svn commit \nAdding         test/test_bug2025.m\nTransmitting file data .\nCommitted revision 7570."
+      - +@isprivate: "0"
+        commentid: "9635"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-04 16:39:28 +0100
+        thetext: |-
+          (In reply to comment #0)
+
+          1 and 2 are now fixed.
+
+          Regarding 3: this model is for an infinite volume conduction model. For MEG it models a magnetic dipole in a vacuum, and it can be used to model a head-localizer coil (whose field is not affected by the presence of a head). For EEG it models a current dipole in an infinite homogenous conducting medium, i.e. an "electric eel in an ocean". So regardless of where the source is, it is inside the infinite volume conduction model. There is no brain or head involved here.
+
+          Regarding 4: I think that your expectations are inconsistent with what the method is (supposed to be) delivering. I don't see a reason for any concerns as to the implementation. Documentation might be up for improvement.
+      - +@isprivate: "0"
+        commentid: "9638"
+        comment_count: "3"
+        attachid: "432"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-04 17:24:19 +0100
+        thetext: |-
+          Created attachment 432
+          comparing singleshell and infinite
+      - +@isprivate: "0"
+        commentid: "9678"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-06 10:24:43 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          why do you compare an magnetic dipole model (infinite) with an electric dipole model (singleshell)? They are physically not equivalent. And in the brain you cannot place magnetic dipoles easily. Stimulating on a DBS electrode pair also causes an electric dipole. You'd have to implant a ferromagnetic piece of material, or a current loop (like a localizer coil).
+      - +@isprivate: "0"
+        commentid: "9679"
+        comment_count: "5"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-06 10:46:02 +0100
+        thetext: '(In reply to comment #4) Thanks for your reply, I just wanted to localise phantom data and I think ''infinite model'' better suits.'
+      - +@isprivate: "0"
+        commentid: "9680"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-06 10:53:05 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          Depends on the phantom whether it is a magnetic or electric dipole phantom. It won't be both. I suggest you visually compare the lead fields for a single dipole, that will show a.o. that the patterns are rotated 90 degrees.
+      - +@isprivate: "0"
+        commentid: "9682"
+        comment_count: "7"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-06 12:51:11 +0100
+        thetext: '(In reply to comment #6) The patterns are at the right place, but there are few mm errors. The error can reduce possibly by a better forward model?'
+      - +@isprivate: "0"
+        commentid: "9683"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-06 14:11:57 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          > The error can reduce possibly by a better forward model?
+
+          yes, or a better coregistration. A better forward model here refers to using the appropriate model for the generator (most likely not a magnetic dipole, although those phantoms also exist). If it is an electric dipole, then you'll have to model the geometry. In case of a sphere (most often used for electric dipole phantoms), please use the singlesphere model.
+
+          An probably you are better off with a dipole fit than a beamformer scan. In case of a beamformer, use a very fine mesh (1 mm) otherwise you might miss the peak. And of course use the appropriate contrast, as without contrast the beamformer is depth biassed.
+
+           I am closing this bug, as there seems to be nothing wrong with FT code.
+      - +@isprivate: "0"
+        commentid: "9684"
+        comment_count: "9"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-06 14:28:28 +0100
+        thetext: '(In reply to comment #8) Thanks for help,'
+      - +@isprivate: "0"
+        commentid: "9685"
+        comment_count: "10"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-06 14:36:44 +0100
+        thetext: |-
+          (In reply to comment #8) I was thinking of single sphere, but the phantom is a half sphere and not homogeneous such that I cannot model inside (I even don't have the conductivity and diameter of the plastic shell). I also doubt ELEKTA ltd. has modelled this phantom for forward solution. So assuming 'infinite' model seems straightforward.
+
+          Please close this bug.
+      - +@isprivate: "0"
+        commentid: "9699"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 12:38:09 +0100
+        thetext: "I recall that the Elekta \"dry phantom\" produces magnetic fields that are consistent with those of a dipole in a homogenous conducting sphere. It has a smart way of wiring the currents that makes this possible. \n\n Please look it up in the Elekta documentation or ask on the neuromag list."
+      - +@isprivate: "0"
+        commentid: "9700"
+        comment_count: "12"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-07 12:39:28 +0100
+        thetext: '(In reply to comment #11) Great, I will'
+      - +@isprivate: "0"
+        commentid: "10233"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:02 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10258"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:32 +0200
+        thetext: closed various bugs
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "432"
+      date: 2013-03-04 17:24:00 +0100
+      delta_ts: 2013-03-04 17:24:19 +0100
+      desc: comparing singleshell and infinite
+      filename: infinteVSsingleshell.zip
+      type: application/zip
+      size: "42200"
+      attacher:
+        +content: moddaser
+        +@name: Hamid
+      data: REMOVED

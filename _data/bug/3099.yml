@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3099"
+    creation_ts: 2016-03-20 10:44:00 +0100
+    short_desc: support multiple buffers in buffer.exe stand-alone application
+    delta_ts: 2016-06-14 16:14:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17174"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-20 10:44:36 +0100
+        thetext: as discussed with Stephen, this is needed for https://github.com/eegsynth/eegsynth/issues/30
+      - +@isprivate: "0"
+        commentid: "17177"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-20 12:42:56 +0100
+        thetext: "I wrote this\n\n---------------------------------------------------------------\n\n/*\n * Copyright (C) 2016, Robert Oostenveld\n * Donders Centre for Cognitive Neuroimaging, Radboud University\n * Kapittelweg 29, 6525 EN Nijmegen, The Netherlands\n *\n * This application starts one or multiple FieldTrip buffers.\n *\n * Use as\n *    ./buffer.exe \n * to start a buffer on the default port.\n *\n * Use as\n *    ./buffer.exe 1972\n * to start a buffer on the specific port.\n *\n * Use as\n *    ./buffer.exe 1972,1973,1974\n * to start multiple buffers on the specified ports\n *\n */\n\n#include <stdio.h>\n#include <stdlib.h>\n#include <time.h>\n#include <pthread.h>\n\n#include \"buffer.h\"\n\n#define COUNT_MAX 16\n\nint main(int argc, char *argv[]) {\n  int port[COUNT_MAX], count=0, rc, i;\n  host_t host;\n  pthread_t tid;\n\n  check_datatypes();\n\n  if (argc>1) {\n    /* parse the command line, it should contain a comma-separated list of ports */\n    char *bp;\n    bp = strsep(&argv[1], \",\");\n    for (i=0; i<COUNT_MAX; i++) {\n      if (bp) {\n        port[count++] = atoi(bp);\n        bp = strsep(&argv[1], \",\");\n      }\n      else {\n        break;\n      }\n    }\n  }\n  else {\n    fprintf(stdout, \"using defaults\\n\");\n    port[count++] = DEFAULT_PORT;\n  }\n\n  for (i=0; i<count; i++) {\n    memcpy(host.name, DEFAULT_HOSTNAME, HOSTNAME_LENGTH);\n    host.port = port[i];\n    fprintf(stdout, \"starting buffer on %s:%d\\n\", host.name, host.port);\n\n    /* start a separate thread for each buffer */\n    rc = pthread_create(&tid, NULL, tcpserver, (void *)(&host));\n    if (rc) {\n      fprintf(stderr, \"Error: return code from pthread_create() is %d\\n\", rc);\n      exit(-1);\n    }\n    pthread_detach(tid);\n    usleep(1000000);\n  }\n\n  while (1) {\n    /* sleep until the process gets killed */\n    usleep(1000000);\n  }\n\n  return 0;\n}\n\n---------------------------------------------------------------\n\nwhich works by itself. And then I realized that tcpserver and the code behind it (tcpsocket, dmarequest) are all working with the same memory pointers for the HDR, DAT and EVT memory segments. So the whole libbuffer is not written with multiple buffers in mind.\n\nTherefore I'll have to abandon this idea and look at something like  http://stackoverflow.com/questions/356100/how-to-wait-in-bash-for-several-subprocesses-to-finish-and-return-exit-code-0 instead."
+      - +@isprivate: "0"
+        commentid: "17178"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-20 15:15:11 +0100
+        thetext: "The following bash script works to start jobs in parallel and to wait for them to finish. \n\n-----------------\n\n#!/usr/bin/env bash\n#\n# Bash helper script to execute multiple instances of a program in parallel.\n#\n# This script is inspired by http://stackoverflow.com/questions/356100/how-to-wait-in-bash-for-several-subprocesses-to-finish-and-return-exit-code-0\n# and by http://www.gnu.org/software/parallel/\n#\n# Killing the child processes can be difficult if you only have the PID of the parent parallel script. Please see \n# http://stackoverflow.com/questions/392022/best-way-to-kill-all-child-processes/33556110#33556110\n\nCOMMAND=$1\nARGS=`echo $2 | tr ',' ' '`\n\nif [ -z \"$COMMAND\" ] ; then\ncat << EOF\n\nUse as:\n  multiple <command> <arg1,arg2,arg3>\n\nThis will start in parallel\n  command arg1\n  command arg2\n  command arg3\n\nEOF\nexit\nfi\n\nif [ -z \"$ARGS\" ] ; then\n$COMMAND\nelse\necho $ARGS | xargs -IARG -n 1 -P 16 $COMMAND ARG\nfi"
+      - +@isprivate: "0"
+        commentid: "17179"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-20 15:15:30 +0100
+        thetext: the bash script solves it
+      - +@isprivate: "0"
+        commentid: "17184"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-29 09:35:04 +0200
+        thetext: |-
+          I have merged the various small changes to the buffer source code to the master branch and will delete the bug3099-buffer branch.
+
+          mac011> git merge bug3099-buffer
+          Updating 1b624e4..4851b0c
+          Fast-forward
+           realtime/bin/maci64/buffer               | Bin 49580 -> 49580 bytes
+           realtime/bin/maci64/buffer_rda           | Bin 69716 -> 69716 bytes
+           realtime/src/buffer/src/buffer.h         |   5 +-
+           realtime/src/buffer/src/dmarequest.c     |   2 -
+           realtime/src/buffer/src/tcprequest.c     | 161 ++++++++++++------------
+           realtime/src/buffer/src/tcpserver.c      | 401 ++++++++++++++++++++++++++++++------------------------------
+           realtime/src/buffer/src/tcpsocket.c      |   7 +-
+           realtime/src/buffer/src/util.c           |   3 +
+           realtime/src/buffer/test/demo_combined.c |   6 +-
+           test/test_bug3089.m                      |   3 +-
+           10 files changed, 294 insertions(+), 294 deletions(-)
+
+
+          mac011> git push upstream master
+          X11 forwarding request failed on channel 0
+          You're about to push master, is that what you intended? [y|n] y
+          Counting objects: 44, done.
+          Delta compression using up to 4 threads.
+          Compressing objects: 100% (24/24), done.
+          Writing objects: 100% (24/24), 18.33 KiB | 0 bytes/s, done.
+          Total 24 (delta 21), reused 0 (delta 0)
+          To git@github.com:fieldtrip/fieldtrip.git
+             95dcd49..3cc3486  master -> master
+      - +@isprivate: "0"
+        commentid: "17516"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:55 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

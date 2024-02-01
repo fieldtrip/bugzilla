@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2949"
+    creation_ts: 2015-08-23 15:42:00 +0200
+    short_desc: ft_selectdata does not work with comp (IC) data
+    delta_ts: 2019-08-10 12:31:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: flor.kusnir
+      +@name: Flor Kusnir
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16028"
+        comment_count: "0"
+        who:
+          +content: flor.kusnir
+          +@name: Flor Kusnir
+        bug_when: 2015-08-23 15:42:35 +0200
+        thetext: I can no longer select individual components (from ICA data) with ft_selectdata (worked in older versions). I currently have the most recent version of fieldtrip.
+      - +@isprivate: "0"
+        commentid: "16029"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-24 11:37:53 +0200
+        thetext: |-
+          (In reply to Flor Kusnir from comment #0)
+
+          Hi Flor,
+
+          We have this "new" ft_selectdata already for quite some time (like a year or so), so I suspect that you made a switch from a quite old version to the latest one.
+
+          I was not aware that the old version could select components. How did you do that, i.e. what did you exactly specify on the command line?
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "16063"
+        comment_count: "2"
+        who:
+          +content: flor.kusnir
+          +@name: Flor Kusnir
+        bug_when: 2015-08-27 13:40:04 +0200
+        thetext: "It could be that it was only implemented in an older version (I had not tried to run this script in about a year, or more). I specified as follows:\n\nindComp=23;\ncaseComp=ft_selectdata(comp,'channel',indComp);\n\nwhere inComp refers to the component number i want to keep (the rest i discard), and comp is the output of an IC analysis in which I keep 40 components (see below)\n\ncomp = \n\n      fsample: 249.999997591658\n         time: {1x376 cell}\n        trial: {1x376 cell}\n         topo: [240x40 double]\n     unmixing: [40x240 double]\n        label: {40x1 cell}\n    topolabel: {240x1 cell}\n          cfg: [1x1 struct]\n\nCheers,\nFlor"
+      - +@isprivate: "0"
+        commentid: "16093"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-11 11:21:25 +0200
+        thetext: |-
+          Well, this issue is related to the fact that ft_selectdata does not operate on 'raw'ish types of data structures anymore.
+
+          In other words, it will fail for channel and trial selection for datatypes 'raw' and 'comp'.
+
+          Have you tried ft_preprocessing?
+
+          cfg = [];
+          cfg.channel = 23;
+          compout = ft_preprocessing(cfg, compin);
+      - +@isprivate: "0"
+        commentid: "16100"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-14 15:52:27 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\nI agree with the workaround. However, it does work for raw data. E.g. it is also used for trial and channel selection in ft_timelockanalysis and plenty of other functions. So it might just not work for comp structures...\n\nI tried the following\n\nload dataFIC \n\ncfg = [];\ncfg.method = 'pca'; % the fastest\ncompFIC = ft_componentanalysis(cfg, dataFIC)\n \ncompFIC = \n\n      fsample: 300\n         time: {1x77 cell}\n        trial: {1x77 cell}\n         topo: [149x149 double]\n     unmixing: [149x149 double]\n        label: {149x1 cell}\n    topolabel: {149x1 cell}\n         grad: [1x1 struct]\n          cfg: [1x1 struct]\n\ncfg = [];\ncfg.channel = 1;\nft_selectdata(cfg, compFIC)\n\nans = \n\n      fsample: 300\n         time: {1x77 cell}\n        trial: {1x77 cell}\n         topo: [149x1 double]\n     unmixing: [1x149 double]\n        label: {'pca001'}   <====== note this, it was 149x1 before\n    topolabel: {149x1 cell}\n         grad: [1x1 struct]\n          cfg: [1x1 struct]\n\nBesides the trial output (i.e component time series) also the topo (mixing) and unmixing are updated.\n\nIt is only that the interface of ft_selectdata has changed, with the new it works, but with the old one I can confirm the problem.\n\n>> ft_selectdata(compFIC, 'channel', 1)\nundoing the comp balancing for the gradiometer definition\nundoing the comp balancing for the gradiometer definition\n\nans = \n\n      fsample: 300\n         time: {1x77 cell}\n        trial: {1x77 cell}\n        label: {149x1 cell}\n         grad: [1x1 struct]\n          cfg: [1x1 struct]\n     unmixing: [149x149 double]\n         topo: [149x149 double]\n    topolabel: {149x1 cell}\n  \nThe problem therefore is in ft_selectdata_old, which is old and deprecated for good reasons. So we are not going to fix it. Please use ft_selectdata according to its documentation."
+      - +@isprivate: "0"
+        commentid: "20107"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:24 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

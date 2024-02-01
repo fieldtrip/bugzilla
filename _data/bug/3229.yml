@@ -1,0 +1,323 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3229"
+    creation_ts: 2017-01-11 08:19:00 +0100
+    short_desc: ft_apply_montage generates NaN elec.chanpos
+    delta_ts: 2019-08-10 12:40:57 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1481
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1990
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2634
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18144"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-11 08:19:38 +0100
+        thetext: "Is there a reason why ft_apply_montage produces NaNs in elec.chanpos in stead of taking the spatial average of the positions of the to-be-rereferenced electrodes? Or am I using it incorrectly?\n\n\nCode to replicate:\n\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8'};\nelec.elecpos = randn(8,3);\nelec.chanpos = elec.elecpos;\nelec.tra = eye(8);\n\nmontage.labelold = elec.label;\nmontage.labelnew = strcat(elec.label(1:end-1), '-', elec.label(2:end)); % bipolar labels\nM1 = diag(-ones(numel(elec.label)-1,1),1);\nM2 = diag(ones(numel(elec.label)-1,1),-1);\nmontage.tra      = M1(1:end-1,:)+M2(2:end,:); % bipolar montage\n\nsens = ft_apply_montage(elec, montage);\n\nsens.chanpos\nans =\n\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n\n\nLine 377 and onward in ft_apply_montage (note the sens.chanpos = nan..):\n\n% The montage operates on the coil weights in sens.tra, but the output channels\n    % can be different. If possible, we want to keep the original channel positions\n    % and orientations.\n    [sel1, sel2] = match_str(montage.labelnew, inputlabel);\n    keepchans = length(sel1)==length(montage.labelnew);\n    \n    if isfield(sens, 'chanpos')\n      if keepchans\n        sens.chanpos = sens.chanpos(sel2,:);\n      else\n        if ~isfield(sens, 'chanposold')\n          % add a chanposold only if it is not there yet\n          sens.chanposold = sens.chanpos;\n        end\n        sens.chanpos = nan(numel(montage.labelnew),3);\n      end\n    end"
+      - +@isprivate: "0"
+        commentid: "18145"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-11 11:24:47 +0100
+        thetext: "Chanpos is not only used for visualization, but also for other stuff. Better have it invalid in case it is unknown rather than weird side effects happening. It would be nice to have an overview of where in the FT code chanpos is being used. The less, the better. \n\nThe rationale for the NANs is that you don't want EEG channels to be projected into the head. The position of a channel that consists of two electrodes is not peruse in between the two electrodes. For plotting (using ft_prepare_layout) you may want to make that assumption. That is also why the abs-weighted montage is used there to compute channel locations in the layout. \n\nAlso for an ICA cleaned dataset you don't want the channel positions to be shifted relative to the original ones.  \n\nPlease check whether ft_prepare_layout solves your problem"
+      - +@isprivate: "0"
+        commentid: "18146"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-11 17:52:22 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          Thanks for the elaboration.
+
+          "The rationale for the NANs is that you don't want EEG channels to be projected into the head. The position of a channel that consists of two electrodes is not peruse in between the two electrodes. For plotting (using ft_prepare_layout) you may want to make that assumption. That is also why the abs-weighted montage is used there to compute channel locations in the layout."
+
+          > I understand, just wouldn't that make ft_apply_montage obsolete for sens input, if not to adjust chanpos? If one wanted achieve one of your examples, one would specify a identity matrix for montage.tra. On a related note, wasn't it channel position adjustment that justified the existence of chanpos, besides elecpos, in the first place? One would use either one depending on the purpose, e.g. visualization vs. algorithmic.
+
+          All in all, in the case of bipolar electrode derivation (in say intracranial EEG), ft_apply_montage then would only be used for applying to the functional data, and not channel position adjustment?
+      - +@isprivate: "0"
+        commentid: "18150"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-12 08:05:11 +0100
+        thetext: "ft_prepare_layout with cfg.montage (and cfg.elec) flattens the 3D elecpos into a 2D layout. It doesn't calculate the spatial average between two electrode locations (that are used for a bipolar derivation). This is not a problem since it's so trivial, just I would assume that ft_apply_montage was meant to do that.\n\n\n\ncfg = [];\ncfg.montage.labelorg = elec.label;\ncfg.montage.labelnew = strcat(elec.label(1:end-1), '-', elec.label(2:end)); \nM1 = diag(-ones(numel(elec.label)-1,1),1);\nM2 = diag(ones(numel(elec.label)-1,1),-1);\ncfg.montage.tra      = M1(1:end-1,:)+M2(2:end,:);\n\ncfg.elec = elec;\n\n>> [layout, cfg] = ft_prepare_layout(cfg, [])\ncreating layout from cfg.elec\ncreating layout for eeg system\nthe call to \"ft_prepare_layout\" took 0 seconds and required the additional allocation of an estimated 1 MB\n\nlayout = \n\n        pos: [9x2 double]\n      width: [9x1 double]\n     height: [9x1 double]\n      label: {9x1 cell}\n    outline: {[101x2 double]  [3x2 double]  [10x2 double]  [10x2 double]}\n       mask: {[101x2 double]}\n        cfg: [1x1 struct]\n\n\ncfg = \n\n              montage: [1x1 struct]\n                 elec: [1x1 struct]\n    outputfilepresent: 'overwrite'\n             callinfo: [1x1 struct]\n              version: [1x1 struct]\n               rotate: []\n                style: '2d'\n           projection: 'polar'\n               layout: []\n                 grad: []\n                 opto: []\n             gradfile: []\n             elecfile: []\n             optofile: []\n               output: []\n             feedback: 'no'\n                image: []\n                 mesh: []\n                   bw: 0\n              channel: {8x1 cell}\n            skipscale: 'no'\n            skipcomnt: 'no'\n              overlap: 'shift'\n             previous: {}"
+      - +@isprivate: "0"
+        commentid: "18151"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-12 08:05:36 +0100
+        thetext: ..
+      - +@isprivate: "0"
+        commentid: "18181"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:42 +0100
+        thetext: closed multiple bugs that were resolved some time ago
+      - +@isprivate: "0"
+        commentid: "18433"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-27 19:45:01 +0100
+        thetext: "Re-opening this one as it does not (yet) satisfy re-weighting channel positions (e.g. for bipolar derivation). In short, it fails two-fold. 1) When creating new channel names (e.g. 1-2, 2-3) that do not match the original labels causes NaNs in chanpos (see situation #1). 2) Even when creating new labels that do match the originals, montage.tra does not cause channel positions to be averaged (see situation #2). \n\n\n\n\nThe reason it produces NaNs originates from (l. 380):\n\n[sel1, sel2] = match_str(montage.labelnew, inputlabel);\nkeepchans = length(sel1)==length(montage.labelnew);\n\nwhere keepchans = 0 in case labelnew are labels not occurring in inputlabel, as with combined labels (e.g. 1-2, 2-3). \n\nSITUATION #1 (using combined labels):\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8'};\nelec.elecpos = randn(8,3);\nelec.chanpos = elec.elecpos;\nelec.tra = eye(8);\n\nmontage.labelold = elec.label;\nmontage.labelnew = strcat(elec.label(1:end-1), '-', elec.label(2:end)); % bipolar labels\nM1 = diag(-ones(numel(elec.label)-1,1),1);\nM2 = diag(ones(numel(elec.label)-1,1),-1);\nmontage.tra      = M1(1:end-1,:)+M2(2:end,:); % bipolar montage\n\nsens = ft_apply_montage(elec, montage);\n\nsens.chanpos\nans =\n\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n   NaN   NaN   NaN\n\n\n\n\n\nNote that using original labels to get keepchans = 1 also does not seem to update the elecpos according to weights specified in montage.tra. \n\nSITUATION #2 (using original labels):\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8'};\nelec.elecpos = randn(8,3);\nelec.chanpos = elec.elecpos;\nelec.tra = eye(8);\n\nmontage.labelold = elec.label;\nmontage.labelnew = elec.label(1:end-1); % original labels\nM1 = diag(-ones(numel(elec.label)-1,1),1);\nM2 = diag(ones(numel(elec.label)-1,1),-1);\nmontage.tra      = M1(1:end-1,:)+M2(2:end,:); % bipolar montage\n\nsens = ft_apply_montage(elec, montage);\n\nsens.chanpos\nans =\n\n   0.5377    3.5784   -0.1241\n    1.8339    2.7694    1.4897\n   -2.2588   -1.3499    1.4090\n    0.8622    3.0349    1.4172\n    0.3188    0.7254    0.6715\n   -1.3077   -0.0631   -1.2075\n   -0.4336    0.7147    0.7172\n\nwhere sens.chanpos equals elec.chanpos(1:7), thus implying that the new tra matrix including +1 -1 weights on neighboring channels has not been applied."
+      - +@isprivate: "0"
+        commentid: "18434"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-27 20:44:42 +0100
+        thetext: |-
+          Simplifying the issue:
+
+          elec.label = {'1';'2';'3';'4'};
+          elec.elecpos = [1 1 1; 2 2 2; 3 3 3; 4 4 4];
+          elec.chanpos = elec.elecpos;
+          elec.tra = eye(4);
+          bipolar.labelold  = {'1', '2', '3', '4'};
+            bipolar.labelnew  = {'1', '2', '3'};
+            bipolar.tra       = [
+              +1 -1  0  0
+               0 +1 -1  0
+               0  0 +1 -1
+            ];
+          dat = ft_apply_montage(elec, bipolar);
+
+          dat.chanpos:
+               1     1     1
+               2     2     2
+               3     3     3
+
+          rather than the expected:
+               1.5     1.5     1.5
+               2.5     2.5     2.5
+               3.5     3.5     3.5
+
+          adding the same transformation used for datatype raw (data.trial{i} = montage.tra * data.trial{i}) to the code (e.g. at line 375: sens.chanpos = montage.tra * sens.chanpos), produces:
+
+              -1    -1    -1
+              -1    -1    -1
+              -1    -1    -1
+
+          which is also not correct, and makes me wonder whether it works correctly for raw data in the first place (given that both sens and data.trial are chan by something)
+      - +@isprivate: "0"
+        commentid: "18459"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-07 21:07:35 +0100
+        thetext: "(In reply to Arjen Stolk from comment #7)\n\nin your first case you have the same channel names in the output as the input, therefore it is assumed that the channels remain on the same position. See line 381 in ft_apply_montage. \n\n\nPlease note that positions are always weighted with an absolute number, so [+1 -1] is in between the two channels (+1/2 times one and +1/2 times the other), not +1 times the one position -1 times the other position. \n\nIn the following case you could expect the new channel positions to be in-between.\n\nbipolar.labelold  = {'1', '2', '3', '4'};\nbipolar.labelnew  = {'-2', '2-3', '3-4'};\nbipolar.tra       = [\n  +1 -1  0  0\n   0 +1 -1  0\n   0  0 +1 -1\n  ];\n\nelec_bi = ft_apply_montage(elec, bipolar);\n\nHowever, they are all nan. That is something which could be fixed."
+      - +@isprivate: "0"
+        commentid: "18460"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-07 23:46:36 +0100
+        thetext: |-
+          Agreed with the first case. Also agreed with the purpose of the second case:
+
+          The issue is that (temporarily) adding the tra matrix multiplication - similarly to how it's done with the EEG/MEG/ECoG signals - does neither lead to averaged positions nor the output of the first case. That is, and perhaps I'm doing this wrong, adding the following line
+
+          sens.chanpos = montage.tra * sens.chanpos;
+
+          to line 374/375 would produce:
+
+          output.chanpos:
+               1     1     1
+               2     2     2
+               3     3     3
+
+          rather than the expected:
+               1.5     1.5     1.5
+               2.5     2.5     2.5
+               3.5     3.5     3.5
+      - +@isprivate: "0"
+        commentid: "18461"
+        comment_count: "10"
+        attachid: "830"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-07 23:49:18 +0100
+        thetext: |-
+          Created attachment 830
+          sens.chanpos = montage.tra * sens.chanpos;
+      - +@isprivate: "0"
+        commentid: "18462"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-07 23:50:06 +0100
+        thetext: ">> elec.label = {'1';'2';'3';'4'};\nelec.elecpos = [1 1 1; 2 2 2; 3 3 3; 4 4 4];\nelec.chanpos = elec.elecpos;\nelec.tra = eye(4);\nbipolar.labelold  = {'1', '2', '3', '4'};\n  bipolar.labelnew  = {'1', '2', '3'};\n  bipolar.tra       = [\n    +1 -1  0  0\n     0 +1 -1  0\n     0  0 +1 -1\n  ];\ndat = ft_apply_montage(elec, bipolar)\n\ndat = \n\n       label: {'1'  '2'  '3'}\n     elecpos: [4x3 double]\n     chanpos: [3x3 double]\n         tra: [3x4 double]\n    labelold: {4x1 cell}\n\n>> dat.chanpos\n\nans =\n\n    -1    -1    -1\n    -1    -1    -1\n    -1    -1    -1\n\nrather than the expected:\n     1.5     1.5     1.5\n     2.5     2.5     2.5\n     3.5     3.5     3.5"
+      - +@isprivate: "0"
+        commentid: "18463"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-07 23:58:59 +0100
+        thetext: "Sorry, I copied the wrong code. \n\nThis code creates the following output, having added sens.chanpos = montage.tra * sens.chanpos; to line 375 and having commented out the nan-matrix generation at line 391/392. As you can see the new chanpos all are -1, -1, -1 and not 1.5, 1.5, 1.5, etc.\n\nelec.label = {'1';'2';'3';'4'};\nelec.elecpos = [1 1 1; 2 2 2; 3 3 3; 4 4 4];\nelec.chanpos = elec.elecpos;\nelec.tra = eye(4);\n\nbipolar.labelold  = {'1', '2', '3', '4'};\nbipolar.labelnew  = {'1-2', '2-3', '3-4'};\nbipolar.tra       = [\n  +1 -1  0  0\n   0 +1 -1  0\n   0  0 +1 -1\n  ];\n\nelec_bi = ft_apply_montage(elec, bipolar);\n\nelec_bi.chanpos\n\nans =\n\n    -1    -1    -1\n    -1    -1    -1\n    -1    -1    -1"
+      - +@isprivate: "0"
+        commentid: "18464"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-08 05:39:04 +0100
+        thetext: |-
+          Fast forwarding: I now see you calculate the weights differently than is done for raw data farther down in ft_apply_montage (data.trial{i} = montage.tra * data.trial{i};):
+
+          posweight = abs(montage.tra);
+          posweight = diag(1./sum(posweight,2)) * posweight;
+
+          sens.chanpos = posweight * sens.chanpos;
+
+          This produces the expected result:
+          ans =
+
+              1.5000    1.5000    1.5000
+              2.5000    2.5000    2.5000
+              3.5000    3.5000    3.5000
+
+
+          Would the same posweight matrix not also be used for (bipolar) derivation of the neural data?
+      - +@isprivate: "0"
+        commentid: "18465"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-08 08:16:44 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #13)
+
+
+          NO!
+      - +@isprivate: "0"
+        commentid: "18466"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-08 08:19:36 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #14)
+          Naturally Of_course?
+      - +@isprivate: "0"
+        commentid: "18467"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-08 08:44:35 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #15)
+
+          has been addressed in the corresponding github issue at https://github.com/fieldtrip/fieldtrip/pull/361#issuecomment-284968536
+
+          let's keep the discussions on either one of bugzilla or github, but not both.
+      - +@isprivate: "0"
+        commentid: "18468"
+        comment_count: "17"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-08 08:46:48 +0100
+        thetext: /me taps JM's fingers
+      - +@isprivate: "0"
+        commentid: "18469"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-08 12:21:25 +0100
+        thetext: "I made a test script (in a branch) that reveals a problem with ft_componentanalysis followed by ft_rejectcomponent. This touches upon the handling of balance, which is not  part of this bug per see. But it would be good to use this bug to also improve the overall handling of elec/grad/topo structures. \n\nI will add some bugs to the \"see also\" list."
+      - +@isprivate: "0"
+        commentid: "18583"
+        comment_count: "19"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-24 18:56:46 +0200
+        thetext: NaNs no more
+      - +@isprivate: "0"
+        commentid: "20242"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:47 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20441"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:57 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "830"
+      date: 2017-03-07 23:49:00 +0100
+      delta_ts: 2017-03-07 23:49:18 +0100
+      desc: sens.chanpos = montage.tra * sens.chanpos;
+      filename: Screen Shot 2017-03-07 at 2.48.21 PM.png
+      type: image/png
+      size: "92930"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

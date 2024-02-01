@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "937"
+    creation_ts: 2011-09-06 16:09:00 +0200
+    short_desc: ft_prepare_mesh inconsistencies and restructure suggestion
+    delta_ts: 2013-01-16 15:03:29 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1756"
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3077"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-09-06 16:09:18 +0200
+        thetext: |-
+          At the moment, ft_prepare_mesh works by first having the user do something like this (modified from Cristiano's recent email to the List):
+          % read in the mri
+          mri = ft_read_mri('Subject01.mri');
+          % segment it
+          cfg = [];
+          cfg.output = {'scalp', 'skull', 'brain'};
+          seg = ft_volumesegment(cfg, mri);
+          % assign a label
+          scalp = (seg.scalp) & ~(seg.skull | seg.brain);
+          skull = 2*(seg.skull);
+          brain = 3*(seg.brain);
+          seg.seg = scalp + skull + brain; % this line is different than in the email
+
+          Then calling ft_prepare_mesh such as:
+          cfg             = [];
+          cfg.method      = 'segmentation';
+          cfg.tissue      = [1 2 3]; % scalp = 1; skull = 2; brain = 3;
+          cfg.numvertices = [2000 1000 800];
+          cfg.sourceunits = 'mm';
+          cfg.mriunits    = 'mm';
+          bnd = ft_prepare_mesh(cfg, seg);
+
+          1) However, this does not work at the moment because, as suggested by a user on the list, line 25 of prepare_mesh_segmentation must be commented out so that cfg.tissue is not set to 1.  I have fixed this for now by removing that line (with Cristiano's recommendation), but perhaps consider:
+
+          2) I think it would be better if the part under '%assign a label' was incorporated into ft_prepare_mesh, and instead the user specifies which segments to use, for example cfg.segment={'scalp' 'skull' 'brain'} (or a subset) rather than cfg.tissue = [1 2 3].
+
+          2a) therefore seg.seg should not be a required subfield
+
+          3) cfg.method (in documentation) is not actually called by the code, and should be replaced by documenting cfg.interactive ('yes' calls 'manual', otherwise 'segmentation' or other options are used).  (I've fixed this).
+
+          4) contrary to documentation, an un-segmented MRI does not work as input.  The '.seg' field is required regardless.  I have updated the 'example' at the end of documetation to reflect the current implementation.  However, a more thorough check of all the cfg options with the documentation is still needed.
+      - +@isprivate: "0"
+        commentid: "3919"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:44 +0100
+        thetext: I closed all bugs that were recently resolved.
+      - +@isprivate: "0"
+        commentid: "7651"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-28 11:54:58 +0200
+        thetext: the redesign of ft_prepare_mesh by Robert and Johanna has to be validated. The test_bug937 script might be useful, but should be revised.
+      - +@isprivate: "0"
+        commentid: "7663"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-28 15:51:54 +0200
+        thetext: "The original complaints of this bug are either fixed or obsolete.  I now fix test_bug937 for it to work with current ft_prepare_mesh.  It is fixed now (svn 6598) \n\nexcept:\n\nBug in ft_voltype.m, introduced svn r5288.  Current lines 105-106 fail:\nelseif isfield(vol, 'bnd') && strcmp(type, {'dipoli', 'asa', 'bemcp', 'openmeeg'})\n  type = any(strcmp(type, {'dipoli', 'asa', 'bemcp', 'openmeeg'}));\n\nSince 'type' does not exist.  I realise the logic here is that it should only be give type='bem' if one of specific bem-types, but then A) how to detect that it is one of 4 BEM-types and not already taken care of by vol.type earlier in code? or B) what to do with input that indeed has vol.bnd but is not a BEM?"
+      - +@isprivate: "0"
+        commentid: "7734"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-02 10:59:54 +0200
+        thetext: "comment 3 is now bug 1756.  \nI will wait on that bug to be fixed, and then uncomment the lines in test_bug937 that depend on that part being fixed."
+      - +@isprivate: "0"
+        commentid: "7791"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-04 09:54:32 +0200
+        thetext: |-
+          bug 1756 resolved and updated ft_voltype in svn commit 6671.
+          Also updated this test function to better relfect what is desired (and removed some examples that made less sense).
+      - +@isprivate: "0"
+        commentid: "7869"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-10 13:25:35 +0200
+        thetext: test_bug937 fails again; dependent on bug 1756
+      - +@isprivate: "0"
+        commentid: "7936"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 12:57:02 +0200
+        thetext: test_bug937 now works again, without me doing anything, and even though bug 1756 is still open.

@@ -1,0 +1,205 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3295"
+    creation_ts: 2017-05-11 14:44:00 +0200
+    short_desc: ft_appenddata does not only select the channels present in all data structures anymore
+    delta_ts: 2019-08-10 12:40:58 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: thomas.hartmann
+      +@name: Thomas Hartmann
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18654"
+        comment_count: "0"
+        attachid: "839"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2017-05-11 14:44:44 +0200
+        thetext: |-
+          Created attachment 839
+          demo script for the bug
+
+          hi,
+          the previous behavior of ft_appenddata was that if you would append two or more data structures over the rpt dimension and these data structures have different channels, only those channels present in all the data structures and their data would end up in the result.
+
+          this behavior has changed dramatically leading to inconsistent data structures.
+
+          in the attached script, i simulate some data with 10 channels. i then create a version of that data with 7 and 6 channels, both taken out of the original data structure. the two new structures only share 3 of their channels.
+
+          in the next step, ft_appenddata is used to combine the three data structures. i would expect the result to have all trials containing only the info of those 3 channels, common to all the structures. but instead, the label field of the result contains all 10 original channels while the 150 trials contain the full set of channels present in the data structure they originate from.
+
+          best,
+          thomas
+      - +@isprivate: "0"
+        commentid: "18655"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-11 17:57:05 +0200
+        thetext: Hi Thomas, working on a new version of ft_appendsens as we speak.
+      - +@isprivate: "0"
+        commentid: "18656"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-11 20:33:22 +0200
+        thetext: |-
+          Hi Thomas,
+
+          Which version of ft are you using? When I used the latest:
+
+          K>> size(data_few_1.trial{1})
+
+          ans =
+
+               7   200
+
+          K>> size(data_few_1.label)
+
+          ans =
+
+               7     1
+
+          and
+
+          K>> size(data_few_2.trial{1})
+
+          ans =
+
+               6   200
+
+          K>> size(data_few_2.label)
+
+          ans =
+
+               6     1
+      - +@isprivate: "0"
+        commentid: "18657"
+        comment_count: "3"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2017-05-12 09:42:28 +0200
+        thetext: "(In reply to Arjen Stolk from comment #2)\nhi arjen,\nthanks for taking care of this.\n\ni am using the latest ft version (commit: c2f875cf6059bf19f202762d6a52248db29f0628).\n\nand concerning your comment: the two data_few_X structures are fine. they result from two calls to ft_selectdata which works perfectly.\n\nthe problem becomes apparent when you look at data_final, created in line 51 using ft_appenddata:\n\n>> data_final\n\ndata_final = \n\n  struct with fields:\n\n    label: {10×1 cell}\n    trial: {1×150 cell}\n     time: {1×150 cell}\n      cfg: [1×1 struct]\n\n>> size(data_final.trial{1})\n\nans =\n\n    10.0000e+000   200.0000e+000\n\n>> size(data_final.trial{51})\n\nans =\n\n     7.0000e+000   200.0000e+000\n\n>> size(data_final.trial{101})\n\nans =\n\n     6.0000e+000   200.0000e+000\n\nbest,\nthomas"
+      - +@isprivate: "0"
+        commentid: "18658"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-13 02:37:47 +0200
+        thetext: "Hi Thomas,\n\nI was able to replicate the issue. It seems append_common is doing its work properly, finding the 3 channels that overlap across your 3 datasets:\n\nline 123 in ft_appenddata: \ndata = append_common(cfg, dummy{:});\n\ndata = \n\n    label: {3x1 cell}\n\ndata.label\n\nans = \n\n    'chan_04'\n    'chan_05'\n    'chan_06'\n\nHowever, at lines 155 to 169, this information is not taken into account. As a result, data_final has 10 channel labels but unequally-sized trial matrices depending on the appended data (e.g. 10 rows, 7 rows, and 6 rows).\n\nI'm cc'ing Robert, to see where he thinks the fix should be implemented. That is, either in ft_appenddata or in append_common, in case the issue replicates with timelock and freq data."
+      - +@isprivate: "0"
+        commentid: "18675"
+        comment_count: "5"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2017-05-19 09:26:13 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #4)
+          any updates?
+      - +@isprivate: "0"
+        commentid: "18676"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-19 10:36:43 +0200
+        thetext: |-
+          I thought that it only pertained to the default behavior of the function, but actually this is a blatant bug in ft_appenddata.
+
+          with
+          ft_appenddata(cfg, data_all, data_few_1, data_few_2);
+          it returns a data structure that is internally not consistent.
+      - +@isprivate: "0"
+        commentid: "18677"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-19 11:13:16 +0200
+        thetext: |-
+          [bug3295-appenddata b7d0183] fixed bug in ft_appenddata when appending data with non-identical but overlapping channels. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3295 and thanks to Thomas for reporting.
+           2 files changed, 117 insertions(+), 26 deletions(-)
+           create mode 100644 test/test_bug3295.m
+      - +@isprivate: "0"
+        commentid: "18678"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-19 11:16:45 +0200
+        thetext: I made changes to the code, see https://github.com/fieldtrip/fieldtrip/pull/441
+      - +@isprivate: "0"
+        commentid: "18696"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-30 01:46:05 +0200
+        thetext: Thanks
+      - +@isprivate: "0"
+        commentid: "20243"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:47 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20442"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:58 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "839"
+      date: 2017-05-11 14:44:00 +0200
+      delta_ts: 2017-05-11 14:44:44 +0200
+      desc: demo script for the bug
+      filename: ft_appendata_bug.m
+      type: text/x-objcsrc
+      size: "1092"
+      attacher:
+        +content: thomas.hartmann
+        +@name: Thomas Hartmann
+      data: REMOVED

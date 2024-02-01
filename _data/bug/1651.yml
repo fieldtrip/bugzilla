@@ -1,0 +1,246 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1651"
+    creation_ts: 2012-08-13 18:03:00 +0200
+    short_desc: inconsistent binary masks in ft_volumesegment that leads to error in ft_prepare_mesh
+    delta_ts: 2012-10-29 13:44:56 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1652"
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6997"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-08-13 18:03:03 +0200
+        thetext: "hi,\n\nwhen I specify cfg.output={'brain','skull','scalp'}, it creates a brain and a scalp field where everything inside of the brain and inside of the scalp is 1, and everything outside of them is 0. But skull is a binary mask where only skull (and no voxel inside skull!) is 1. \n\nProbably, this is causing the error in ft_prepare_mesh. When I use imfill(skull,'holes') on skull before calling ft_prepare_mesh, ft_prepare_mesh works fine.\n\nWe discussed it with Robert that overlapping segmentations would be most desired, so it would be nice if skull would be also a filled volume.\n\nI think it can be solved around line 479:\n\nbraindil=imdilate(brain>0,strel_bol(6));\nsegment.skull=braindil & ~brain;\n\nCan I change it to \nsegment.skull=imdilate(brain>0,strel_bol(6));?\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "6998"
+        comment_count: "1"
+        attachid: "298"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-08-13 18:05:23 +0200
+        thetext: |-
+          Created attachment 298
+          seg
+
+          You can find the segmented mri attached.
+      - +@isprivate: "0"
+        commentid: "6999"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-13 18:07:08 +0200
+        thetext: "don't change it yet. \n\nYour suggested change relies on the image processing\ntoolbox, whereas the present implementation (I think) does not require the\nimage toolbox but uses spm. Better check with JM when he is back. I'll assign\nthis issue to him for the moment."
+      - +@isprivate: "0"
+        commentid: "7006"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-08-14 16:44:32 +0200
+        thetext: "(In reply to comment #2)\n\nHi Robert,\n\nyou wrote me also in an email that I should check which segmentation options are using the image processing toolbox. I have checked it, and as it is related to this bug, I report on what I have found:\n\nThe default output of ft_volumesegment are the \n - csf, white and gray fields (tissue prob maps): only spm functions are used\nOther options:\n - brain: only spm\n - skullstrip: only spm\n - skull: spm + functions: imdilate and strel_bol (image proc toolbox)\n - scalp: spm + funcitons: fill (that contains imfill) (image proc tb)\n\n\nSo, it seems to me by looking at the script of ft_volumesegment  that for the segmentation that the BEM model requires the image processing toolbox is used. But when only the brainmask is needed (e.g. for singleshell, MEG), only the spm functions are used.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "7007"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-14 17:01:05 +0200
+        thetext: in that case it does not hurt to slightly extend the use of the image processing toolbox. Note that it should only be used where it is really needed, so that for standard MEG usage the image proc toolbox is not called (since not all users have the image proc toolbox).
+      - +@isprivate: "0"
+        commentid: "7363"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-14 14:19:57 +0200
+        thetext: reassigning to lilla...
+      - +@isprivate: "0"
+        commentid: "7504"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 21:23:03 +0200
+        thetext: |-
+          I can confirm the problem as in
+
+
+          cfg = [];
+          cfg.tissue = {'brain', 'skull', 'scalp'};
+          cfg.numvertices = [1000 2000 3000];
+          bnd = ft_prepare_mesh(cfg, seg2);
+
+          not downsampling brain
+          not downsampling scalp
+          not downsampling skull
+          the call to "ft_volumedownsample" took 1 seconds and required the additional allocation of an estimated 0 MB
+          using the segmentation approach
+          using the brain segmentation
+          using the skull segmentation
+          using the scalp segmentation
+          triangulating the boundary of compartment 1
+          Subscript indices must either be real positive integers or logicals.
+
+          Error in triangulate_seg (line 110)
+            int = seg(sel);
+
+          Error in prepare_mesh_segmentation (line 94)
+            [pnt, tri] = triangulate_seg(seg, cfg.numvertices(i), ori);
+
+          Error in ft_prepare_mesh (line 127)
+            bnd = prepare_mesh_segmentation(cfg, mri);
+
+
+          ----
+
+          this is after running a "normal" ft_volumesegment. I'll save the segmented structure and make a test script out of it.
+      - +@isprivate: "0"
+        commentid: "7507"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 21:51:05 +0200
+        thetext: "added some lines to triangulate_seg to catch the case where the segmentation is empty. This does not explain why it happens.\n\nThe underlying cause is that the input skull is hollow, the brain and skin are solid.Subsequently the sum has\n\nK>> unique(mri.seg(:))\nans =\n     0\n     1\n     2\nwhereas the code is trying to make a mesh for 1, 2 and 3.\n\nI have added another few lines to detect the problem in prepare_mesh_segmentation and give a more useful error.\n\nAround line 43 in prepare_mesh_segmentation I changed \n    mri.seg = mri.seg + mri.(cfg.tissue{i});\ninto\n    mri.seg = mri.seg + imfill(mri.(cfg.tissue{i}), 'holes');\n\nThis allows the test case to run through.\n\nchange to the code: allow ft_plot_mesh to plot multiple meshes with the same settings.\n\n----------\n\nmbp> svn commit private/prepare_mesh_segmentation.m  test/test_bug1651* private/triangulate_seg.m plotting/ft_plot_mesh.m\nSending        plotting/ft_plot_mesh.m\nSending        private/prepare_mesh_segmentation.m\nSending        private/triangulate_seg.m\nAdding         test/test_bug1651.m\nAdding  (bin)  test/test_bug1651.mat\nTransmitting file data ....."
+      - +@isprivate: "0"
+        commentid: "7511"
+        comment_count: "8"
+        attachid: "316"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 21:54:09 +0200
+        thetext: |-
+          Created attachment 316
+          screenshot of skin surface with holes
+
+          After fixing the specific bug, a problem that remains is that the skin triangulation is one large mess.
+      - +@isprivate: "0"
+        commentid: "7512"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 22:34:31 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          turns out that the skin (which is hollow) is too thin and that there are holes going through it. Consequently, imfill-holes does not work because the inside and outside are connected and the mesh is made on the shin shell with holes.
+
+          Hmm, difficult to catch.
+
+          It turns out that the problem with the holes in the skin happen with the 128^3, but not with the original 256^3 volume.
+
+          Note to Lilla: the brain should have most vertices, not the skin!
+
+          I have found a trick to detect the hollow segmentation by looking along the int-line. It does not solve it, but at least gives a warning:
+
+          if ishollow
+            % this should not have hapened, especially not after filling the holes
+            warning('the segmentation is not star-shaped, please check the surface mesh');
+          end
+
+          ---------------------------------------------
+
+          mbp> svn commit  private/triangulate_seg.m test/
+          Sending        private/triangulate_seg.m
+          Sending        test/test_bug1651.m
+          Transmitting file data ..
+          Committed revision 6503.
+      - +@isprivate: "0"
+        commentid: "7513"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 22:37:06 +0200
+        thetext: the problem with the error has been resolved. The 128^3 test case still results in an ugly skin mesh, but that is because the segmentation is too coarse. On the 256^3 test case (see attached file, not included in the test script) it works fine.
+      - +@isprivate: "0"
+        commentid: "7517"
+        comment_count: "11"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-21 09:49:22 +0200
+        thetext: |-
+          (In reply to comment #10)
+          Hi Robert,
+
+          the differences between 128^3 and 256^3 are interesting. Should we say something about the suggested size of an mri volume for segmentation  in the help or FAQ or tutorial? Is it possible to solve this issue if people re-slice their volume before segmentation?
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8017"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:44:56 +0100
+        thetext: changed the status of several bugs that were RESOLVED some time ago to CLOSED
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "298"
+        date: 2012-08-13 18:05:00 +0200
+        delta_ts: 2012-08-13 18:05:23 +0200
+        desc: seg
+        filename: segmentedmri.mat
+        type: application/octet-stream
+        size: "345055"
+        attacher:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "316"
+        date: 2012-09-20 21:54:00 +0200
+        delta_ts: 2012-09-20 21:54:09 +0200
+        desc: screenshot of skin surface with holes
+        filename: Screen shot 2012-09-20 at 21.46.30.png
+        type: image/png
+        size: "22679"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

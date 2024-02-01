@@ -1,0 +1,187 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2024"
+    creation_ts: 2013-03-04 11:58:00 +0100
+    short_desc: ft_volumelookup cannot create masks based on anatomical labels alone
+    delta_ts: 2019-08-10 12:28:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2003
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "1725"
+      - "1843"
+      - "1846"
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9619"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 11:58:36 +0100
+        thetext: "source.dim = [121 145 121];\nsource.transform = ...\n[-1.5000         0         0   91.5000; ...\n    0.0000    1.5000    0.0000 -127.5000; ...\n   -0.0000   -0.0000    1.5000  -73.5000; ...\n         0         0         0    1.0000];\n     \ncfg = [];\ncfg.roi = 'Calcarine_R'; % right V1\ncfg.inputcoord = 'mni';\ncfg.atlas = '/home/common/matlab/fieldtrip/template/atlas/aal/ROI_MNI_V4.nii'; \nmask = ft_volumelookup(cfg, source);\n\n>> find(mask>0)\n\nans =\n\n   Empty matrix: 0-by-1\n\n\n\n\n\n[atlas] = ft_prepare_atlas('/home/common/matlab/fieldtrip/template/atlas/aal/ROI_MNI_V4.nii');\n\nThe labels are not present in variable 'atlas'. And not in the viewer:\n\ncfg              = [];\ncfg.method       = 'ortho';\ncfg.funparameter = 'brick0';\ncfg.funcolormap  ='jet';\nft_sourceplot(cfg, atlas)"
+      - +@isprivate: "0"
+        commentid: "9620"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 12:02:47 +0100
+        thetext: "ft_read_atlas, however, does contain the labels.\n\n\natlas = ft_read_atlas('/home/common/matlab/fieldtrip/template/atlas/aal/ROI_MNI_V4.nii')\nRescaling NIFTI: slope = 1, intercept = 0\n\natlas = \n\n            dim: [91 109 91]\n            hdr: [1x1 struct]\n      transform: [4x4 double]\n           unit: 'mm'\n         tissue: [91x109x91 double]\n    tissuelabel: {1x116 cell}\n\n>> atlas.tissuelabel{1}\n\nans =\n\nPrecentral_L"
+      - +@isprivate: "0"
+        commentid: "9621"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-04 12:11:20 +0100
+        thetext: I'm a bit surprised that the labels are there in ft_read_atlas, see bug 2003. When I tried reading it in, the labels were completely empty
+      - +@isprivate: "0"
+        commentid: "9623"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 12:17:09 +0100
+        thetext: |-
+          Yep, they seem to be now. :)
+
+          In fact, it seems that the corresponding voxels to those labels are also present in the 'tissue' field (or 'brick0' field in case of afni atlas).
+
+          Just they are not yet in the correct space (cf. dim fields of the examples)
+      - +@isprivate: "0"
+        commentid: "9625"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 12:59:19 +0100
+        thetext: "The problem seems to pertain only to the WFU/AAL atlas. The AFNI atlas seems to work fine:\n\nsource.dim = [121 145 121];\nsource.transform = ...\n[-1.5000         0         0   91.5000; ...\n    0.0000    1.5000    0.0000 -127.5000; ...\n   -0.0000   -0.0000    1.5000  -73.5000; ...\n         0         0         0    1.0000];\n     \ncfg = [];\ncfg.roi = 'Hippocampus';\ncfg.inputcoord = 'mni';\ncfg.atlas = '/home/common/matlab/fieldtrip/template/atlas/afni/TTatlas+tlrc.HEAD';\nmask = ft_volumelookup(cfg, source);\n\nfound 1 matching anatomical labels\nconstructing mask for Hippocampus\n791 voxels in mask, which is 0.037 % of total volume"
+      - +@isprivate: "0"
+        commentid: "9627"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 13:12:50 +0100
+        thetext: "The problem with the AAL atlas occurs at line 616 of ft_prepare_atlas. A line of text is read from text file in the /template/atlas/aal dir.\n \n[num, rem] = strtok(tline, 9);\n\nnum =\n\nFAG\n\nwhereas it should be '2001' in this case, is my guess (see line below).\n\ntline =\n\nFAG\tPrecentral_L\t2001\n\nbecause of this, the anatomical region will not be assigned to the output structure."
+      - +@isprivate: "0"
+        commentid: "9628"
+        comment_count: "6"
+        attachid: "431"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 13:21:27 +0100
+        thetext: |-
+          Created attachment 431
+          AAL lookup test
+      - +@isprivate: "0"
+        commentid: "9629"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-03-04 13:22:37 +0100
+        thetext: "changed\n\n[num, rem] = strtok(tline, 9);\n[str, rem] = strtok(tline, 9);\n\ninto\n\nC = textscan(tline,'%s');\nnum = C{1}{3}; \nstr = C{1}{2};\n\naround line 616"
+      - +@isprivate: "0"
+        commentid: "9630"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-04 13:49:39 +0100
+        thetext: ok, this was the exact same issue in bug 2003 ;) I'll mark that as a duplicate then
+      - +@isprivate: "0"
+        commentid: "9632"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-04 13:50:17 +0100
+        thetext: '*** Bug 2003 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "9633"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-04 14:06:10 +0100
+        thetext: |-
+          (In reply to comment #9)
+
+          @Arjen and/or Jorn
+
+          Could we have a test script for the aal and afni atlas that are included in the FT release?
+
+          Could you please review http://fieldtrip.fcdonders.nl/template/atlas for correctness and clarity?
+      - +@isprivate: "0"
+        commentid: "12748"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-01-29 16:11:48 +0100
+        thetext: |-
+          committed (new version of) test_ft_volumelookup & went through the text on that wiki page, changing:
+
+          aal = ft_read_atlas('fieldtrip/template/atlas/ROI_MNI_V4.nii')
+
+          into
+
+          aal = ft_read_atlas('fieldtrip/template/atlas/aal/ROI_MNI_V4.nii')
+      - +@isprivate: "0"
+        commentid: "19952"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:12 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "431"
+      date: 2013-03-04 13:21:00 +0100
+      delta_ts: 2013-03-04 13:21:27 +0100
+      desc: AAL lookup test
+      filename: Calcarine_R.png
+      type: image/png
+      size: "101538"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

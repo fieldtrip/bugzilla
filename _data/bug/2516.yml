@@ -1,0 +1,188 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2516"
+    creation_ts: 2014-03-31 05:48:00 +0200
+    short_desc: using  ft_sourceinterpolate and ft_sourceplot for 2D, 3D, 4D and 5D data
+    delta_ts: 2015-09-29 13:14:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: tyler.grummett
+      +@name: Tyler
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - jorn
+      - n.lam
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13179"
+        comment_count: "0"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2014-03-31 05:48:17 +0200
+        thetext: "I have been trying to plot my interpolated source data using the code:\n\n            % interpolate sources\n            mri = ft_read_mri('Subject01.mri');\n            mri = ft_volumereslice([], mri);\n            \n            cfg            = [];\n            cfg.downsample = 2;\n            cfg.parameter = 'avg.pow';\n            sourceInt  = ft_sourceinterpolate( cfg, source, mri);\n            sourceInt = rmfield( sourceInt,'time'); % The avg.pow parameter\n            % does not vary over time, therefore the time  dimension is not              needed.\n\n            % Plot interpolated data\n            cfg              = []; %#ok<UNRCH>\n            cfg.method       = 'ortho'; % spline\n            cfg.funparameter = 'avg.pow';\n            ft_sourceplot( cfg, sourceInt);\n\nHowever the figure that comes up just had orange squares in the subplots.\n\nI dont know where I have gone wrong."
+      - +@isprivate: "0"
+        commentid: "13180"
+        comment_count: "1"
+        attachid: "601"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2014-03-31 05:48:47 +0200
+        thetext: |-
+          Created attachment 601
+          example of error
+      - +@isprivate: "0"
+        commentid: "13185"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-03-31 17:06:11 +0200
+        thetext: "(please regard this as a separate discussion than the one on the mailing list)\n\nI tried to reproduce your problem, and it seems to stem from the fact that you do not have source.pos field. While ft_sourceplot refuses to plot such a source-structure, ft_sourceinterpolate is perfectly fine with it. However, it does some nasty things. Here an example:\n\nIf we have a regular source structure like this:\n\nsource = \n\n        dim: [20 25 22]\n        pos: [11000x3 double]\n     inside: [1x5798 double]\n    outside: [1x5202 double]\n     method: 'average'\n        avg: [1x1 struct]\n        cfg: [1x1 struct]\n\nThen interpolating on a standard MRI \ntemplate_mri = \n\n          dim: [91 109 91]\n      anatomy: [91x109x91 double]\n          hdr: [1x1 struct]\n    transform: [4x4 double]\n         unit: 'mm'\n\nis fine and results in (with cfg.downsample=2)\nsource_diff_int = \n\n       inside: [46x55x46 logical]\n          avg: [1x1 struct]\n          dim: [46 55 46]\n    transform: [4x4 double]\n      anatomy: [46x55x46 double]\n         unit: 'mm'\n          cfg: [1x1 struct]\n\n\nHowever, when I remove all fields outside the brain and trim all other fields accordingly (and remove .dim):\n\nsource = \n\n        pos: [5798x3 double]\n     inside: [1x5798 double]\n    outside: []\n     method: 'average'\n        avg: [1x1 struct] % source.avg.pow is also 5768x1 now\n\n\nand then doing sourceinterpolate results in\n\nsource_diff_int = \n\n        avg: [1x1 struct]\n        pos: [902629x3 double]\n        dim: [91 109 91]\n     inside: [1x902629 double]\n    outside: [1x0 double]\n       unit: 'mm'\n        cfg: [1x1 struct]\n\nI don't quite see why this is happening, so we need to discuss this at the next FieldTrip meeting ;)\nEither, some magic is happening that I cannot understand, or the whole approach to start off (trimming the source-structure) is faulty and it should have resulted in an error"
+      - +@isprivate: "0"
+        commentid: "13197"
+        comment_count: "3"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-04-02 13:53:06 +0200
+        thetext: "discussed 20140402: \n-ft_sourceinterpolate identifies the sparse functional data as is2Dfun, due to the dim-field missing. Therefore, it gives the 'unexpected' output.\n-the 'unexpected' output is a bit funny in two ways:\n  *it misses a transform and has a pos, although the interpolation was done onto a volume structure\n  *the inside and outside are non informative, and should be removed.\n-the latter point pertains probably to more code, and not only with respect to the inside/outside field. E.g it also pertains to the sampleinfo field.\n\nIt seems there is a mixture of unexpected things happening. \nWhat we need is:\n-a test script for ft_sourceinterpolate\n-it remains to be checked whether the source data in the input contained meaningful avg.pow to begin with.\n-also, why was the input defined on a sparse grid, where the dim was lost? Was it manually sparsified, rather than using ft_source2sparse?"
+      - +@isprivate: "0"
+        commentid: "14478"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 22:03:04 +0200
+        thetext: |-
+          Here is the commit to keep the anatomical description and the labeling of the parcellation in a "brainordinate" substructure
+
+          mac011> svn commit ft_sourceparcellate.m
+          Sending        ft_sourceparcellate.m
+          Transmitting file data .
+          Committed revision 9836.
+      - +@isprivate: "0"
+        commentid: "15481"
+        comment_count: "5"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2015-03-02 14:40:38 +0100
+        thetext: ft_sourceinterpolate works on 2D and 3D functional data, and 2D and 3D functional data. The 2D data can be defined on an irregular point cloud such as a cortical mesh. One of the functions in ft_sourceinterpolate is to "smudge" low resolution 2D functional data to fit on a 2D high resolution anatomical data.  Do we have any existing functional data like this?  If we do not, could I get some pointers on creating a low resolution 2D functional data (from a high res one?)
+      - +@isprivate: "0"
+        commentid: "15482"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-02 15:23:35 +0100
+        thetext: if you take a random 2D source model from one of the MOUS subjects, e.g. V1020sourcemodel2Dsurfreg, the bnd.orig contains the original high resolution 2D mesh, from which the 8196 point low resolution mesh has been created
+      - +@isprivate: "0"
+        commentid: "16075"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-02 18:09:17 +0200
+        thetext: |-
+          I discussed this with Nietzsche and looked at some of the open issues. We decided that it is desirable to have (in general) either this
+
+          interp = ft_sourceinterpolate(cfgi, function anatomical)
+          ft_sourceplot(cfgp, interp))
+
+          or this
+
+          ft_sourceplot(cfgp, function anatomical)
+
+          where the two should not differ in the figure that they create. Right now the 3nd input argument in ft_sourceplot is not documented, which allows for some flexibility (if needed) in changing its internal handling of that data.
+
+          Once the implementation works like this, Nietzsche can start finalising the plotting tutorial.
+
+          I have taken the test_ft_sourceinterpolate script that Nietsche committed earlier today, and will clean it and extend it to test all possible cases. This includes 4D and 5D data, and all possible permutations of the geometrical description (2x surf, 2x volume).
+      - +@isprivate: "0"
+        commentid: "16155"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 09:32:33 +0200
+        thetext: |-
+          I made a large commit with all reorganised code. As far as I can tell, all existing test scripts still work as they used to do.
+
+          mac011> svn commit ft_sourceinterpolate.m ft_sourceplot.m test/test_ft_sourceinterpolate.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourceplot.m
+          Sending        test/test_ft_sourceinterpolate.m
+          Transmitting file data ...
+          Committed revision 10700.
+      - +@isprivate: "0"
+        commentid: "16156"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 10:45:25 +0200
+        thetext: I identified a section of code in ft_checkdata from line 565-757 that deals with converting volume and source data. This code should be removed and some functionality (if needed) merged into ft_datatype_source and ft_datatype_volume.
+      - +@isprivate: "0"
+        commentid: "16159"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 13:14:20 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #9)
+
+          this (and some previous commits) removes the obsolete code from ft_checkdata.
+
+          mac011> svn commit ft_sourcegrandaverage.m ft_sourceparcellate.m utilities/ft_checkdata.m
+          Sending        ft_sourcegrandaverage.m
+          Sending        ft_sourceparcellate.m
+          Sending        utilities/ft_checkdata.m
+          Transmitting file data ...
+          Committed revision 10718.
+
+          Please note that source.pow and fourier are not treated specially any more.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "601"
+      date: 2014-03-31 05:48:00 +0200
+      delta_ts: 2014-03-31 05:48:47 +0200
+      desc: example of error
+      filename: sourceplot_example.png
+      type: image/png
+      size: "4480"
+      attacher:
+        +content: tyler.grummett
+        +@name: Tyler
+      data: REMOVED

@@ -1,0 +1,221 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1964"
+    creation_ts: 2013-01-30 15:10:00 +0100
+    short_desc: order of ft_preamble calls should be consistent
+    delta_ts: 2014-01-29 13:28:43 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1892"
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9275"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-30 15:10:01 +0100
+        thetext: |-
+          I added (not yet committed) the following to ft_preamble_provenance:
+
+          cfg.callinfo.usercfg = cfg;
+
+          to facilitate provenance and browsing pipelines.
+
+          This works well in e.g. ft_freqanalysis, where ft_preamble provenance is called before ft_preamble trackconfig, but it fails in e.g. ft_timelockanalysis, where the order of those is reversed.
+
+          Should I change them all so that ft_preamble provenance is the first after ft_preamble help?
+      - +@isprivate: "0"
+        commentid: "9276"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-30 15:12:08 +0100
+        thetext: |-
+          Is this problematic in ft_timelockanalysis where the preamble stuff is:
+
+          ft_defaults
+          ft_preamble help
+          ft_preamble trackconfig
+          ft_preamble debug
+          ft_preamble loadvar    data
+          ft_preamble provenance data
+
+          so loadvar is before provenance? Perhaps I can make it so that trackconfig is always the last one?
+      - +@isprivate: "0"
+        commentid: "9282"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-30 17:41:51 +0100
+        thetext: |-
+          conceptually they should "unroll" at the end of the function in the same order. e.g.
+
+          ft_preamble a
+          ft_preamble b
+          ft_preamble c
+
+          ...  do something
+
+          ft_postamble c
+          ft_postamble b
+          ft_postamble a
+
+          The consequence is that both at the begin and the end the pre/postambles should not interfere, but currently they do (see bug 1892).
+      - +@isprivate: "0"
+        commentid: "9321"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-02-06 16:05:10 +0100
+        thetext: |-
+          To my surprise, the preamble order was quite consistent already. I just updated ft_timelockanalysis, ft_multiplotER, ft_appendtimelock, and ft_prepare_concentricspheres such that provenance came after help (and updated the postamble clause accordingly).
+
+          All the following were checked:
+
+          bash-4.1$ grep -Rl --include="*.m" provenance .
+          ./utilities/private/ft_postamble_provenance.m
+          ./utilities/private/ft_preamble_provenance.m
+          ./utilities/ft_preamble.m
+          ./utilities/ft_postamble.m
+          ./ft_conjunctionanalysis.m
+          ./ft_prepare_sourcemodel.m
+          ./ft_examplefunction.m
+          ./ft_resampledata.m
+          ./ft_megplanar.m
+          ./ft_freqanalysis.m
+          ./ft_defaults.m
+          ./ft_artifact_threshold.m
+          ./ft_denoise_pca.m
+          ./ft_timelockbaseline.m
+          ./ft_interactiverealign.m
+          ./ft_clusterplot.m
+          ./ft_connectivityanalysis.m
+          ./ft_preprocessing.m
+          ./ft_connectivitysimulation.m
+          ./ft_topoplotTFR.m
+          ./ft_sourceanalysis.m
+          ./ft_scalpcurrentdensity.m
+          ./ft_movieplotER.m
+          ./ft_artifact_muscle.m
+          ./ft_topoplotER.m
+          ./ft_freqstatistics.m
+          ./ft_combineplanar.m
+          ./ft_analysispipeline.m
+          ./ft_denoise_synthetic.m
+          ./ft_math.m
+          ./ft_networkanalysis.m
+          ./ft_artifact_eog.m
+          ./ft_artifact_jump.m
+          ./ft_removetmsartifact.m
+          ./ft_rejectvisual.m
+          ./ft_freqbaseline.m
+          ./ft_freqsimulation.m
+          ./ft_sourceinterpolate.m
+          ./ft_timelockanalysis.m
+          ./ft_layoutplot.m
+          ./ft_sourcewrite.m
+          ./ft_multiplotER.m
+          ./ft_lateralizedpotential.m
+          ./ft_volumewrite.m
+          ./ft_rejectcomponent.m
+          ./ft_prepare_headmodel.m
+          ./ft_multiplotTFR.m
+          ./ft_megrealign.m
+          ./ft_redefinetrial.m
+          ./ft_rejectartifact.m
+          ./ft_appenddata.m
+          ./ft_appendspike.m
+          ./ft_freqinterpolate.m
+          ./ft_analysisprotocol.m
+          ./ft_sourcestatistics.m
+          ./ft_volumereslice.m
+          ./ft_sliceinterp.m
+          ./ft_volumenormalise.m
+          ./ft_prepare_atlas.m
+          ./ft_topoplotCC.m
+          ./ft_prepare_concentricspheres.m
+          ./ft_sourcemovie.m
+          ./ft_dipolefitting.m
+          ./ft_volumedownsample.m
+          ./ft_volumelookup.m
+          ./ft_prepare_bemmodel.m
+          ./ft_freqgrandaverage.m
+          ./ft_electroderealign.m
+          ./ft_mvaranalysis.m
+          ./ft_prepare_mesh.m
+          ./ft_artifact_ecg.m
+          ./ft_headmovement.m
+          ./ft_dipolesimulation.m
+          ./ft_definetrial.m
+          ./ft_freqanalysis_mvar.m
+          ./ft_singleplotTFR.m
+          ./ft_multiplotCC.m
+          ./ft_artifact_clip.m
+          ./ft_componentanalysis.m
+          ./ft_sourcegrandaverage.m
+          ./ft_singleplotER.m
+          ./ft_volumerealign.m
+          ./ft_channelrepair.m
+          ./ft_channelnormalise.m
+          ./ft_freqdescriptives.m
+          ./ft_prepare_singleshell.m
+          ./ft_prepare_layout.m
+          ./ft_topoplotIC.m
+          ./ft_sourceplot.m
+          ./ft_prepare_neighbours.m
+          ./ft_prepare_localspheres.m
+          ./ft_artifact_zvalue.m
+          ./ft_sourcedescriptives.m
+          ./ft_freqcomparison.m
+          ./ft_neighbourplot.m
+          ./ft_appendsource.m
+          ./ft_appendtimelock.m
+          ./ft_sensorrealign.m
+          ./ft_appendfreq.m
+          ./ft_connectivityplot.m
+          ./ft_databrowser.m
+          ./ft_movieplotTFR.m
+          ./ft_regressconfound.m
+
+          (Tip to check the order of preambles etc.: grep -R -B 2 -A 2 --include="*.m" provenance . )
+      - +@isprivate: "0"
+        commentid: "12685"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:43 +0100
+        thetext: changing lots of bugs from resolved to closed.

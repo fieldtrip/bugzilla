@@ -1,0 +1,167 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3064"
+    creation_ts: 2016-02-05 11:57:00 +0100
+    short_desc: rollback_provenance in ft_multiplotER breaks trial selection
+    delta_ts: 2019-08-10 12:42:05 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    blocked: "2978"
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - julian.keil
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16779"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-02-05 11:57:45 +0100
+        thetext: "ft_multiplotER lines 320-324:\n\n  tmpcfg = keepfields(cfg, 'channel');\n  tmpvar = varargin{1};\n  [varargin{:}] = ft_selectdata(tmpcfg, varargin{:}); \n  % restore the provenance information \n  [cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\n\nIf cfg contains cfg.trials = xxx before the call to rollback_provenance, this will no longer be there (set to 'all') after this call. Hence, trial selection further down will not happen.\n\nA consequence of this is that trial plotting from rejectvisual_summary is broken; it always plots the trial-average (while still displaying 'Trial X' in the title! dangerous bug!). I guess a quick and dirty patch (needed for the KCL workshop in which rejectvisual_summary features (preprocessing_erp tutorial)) would be to remember a possible cfg.trials setting and assign it again to cfg.trials after the rollback_provenance call.\n\nBut how to fix it more properly? Should ft_selectdata here be in charge of doing a subselection of trials? In that case, the trial selection code in lines 352-363 can be removed. But since that is done by ft_timelockanalysis, I'm not sure how that affects other aspects of ft_multiplotER."
+      - +@isprivate: "0"
+        commentid: "16781"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-02-05 12:10:35 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #0)
+          And, more generally, why is rollback_provenance touching cfg.trials at all..?
+      - +@isprivate: "0"
+        commentid: "16782"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-05 12:15:06 +0100
+        thetext: "initially it indeed sounds the best to have ft_selectdata do both channels and trials, rather than having local code or rather than doing it in ft_timelockanalysis. \n\n\nThe reason for it touching cfg.trials is that it is used both in the called function (select data) as in the caller function (multiplot). The interpretation here is the same, but imagine function 1 with cfg.method calling function 2 that also has (another) cfg.method...\n\nThere should be examples in the code of similar situations like this."
+      - +@isprivate: "0"
+        commentid: "18831"
+        comment_count: "3"
+        attachid: "845"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2017-08-15 11:00:24 +0200
+        thetext: |-
+          Created attachment 845
+          Hacked ft_multiplotER-function
+
+          I (crudely) hacked the function to accept the trialselection.
+      - +@isprivate: "0"
+        commentid: "18832"
+        comment_count: "4"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2017-08-15 11:02:07 +0200
+        thetext: |-
+          Dear Eelke, Dear Robert,
+
+          since the problem is still unresolved, I hacked the ft-multiplotER-function (see attachment) to accept the cfg.trial-selection.
+
+          Specifically, I included "trials" field in the keepselection (line
+      - +@isprivate: "0"
+        commentid: "18833"
+        comment_count: "5"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2017-08-15 11:06:42 +0200
+        thetext: |-
+          (sorry, hit the wrong button while typing).
+
+          Specifically, I included "trials" field in the keepselection (line 317 of the hacked function), I kept the old trial selection (line 350), temporarily switched the trial selection off (line 351) and transferred the old trial selection to the updated "varargin" (line 368).
+
+          I'm sure there are more elegant ways, but this works for me right now.
+
+          Cheers,
+
+          Julian
+      - +@isprivate: "0"
+        commentid: "18836"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-15 12:29:06 +0200
+        thetext: |-
+          (In reply to Julian Keil from comment #5)
+
+          Hi Julian,
+
+          Could you send it as pull request on github?
+
+          A detailed tutorial is here http://www.fieldtriptoolbox.org/development/git
+      - +@isprivate: "0"
+        commentid: "18840"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-16 16:43:07 +0200
+        thetext: |-
+          Julien made the PR at https://github.com/fieldtrip/fieldtrip/pull/492
+
+          I made an additional change and test script and merged it all under https://github.com/fieldtrip/fieldtrip/pull/493
+      - +@isprivate: "0"
+        commentid: "20319"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:50 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20520"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:42:05 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "845"
+      date: 2017-08-15 11:00:00 +0200
+      delta_ts: 2017-08-15 11:00:24 +0200
+      desc: Hacked ft_multiplotER-function
+      filename: ft_multiplotER.m
+      type: text/x-objcsrc
+      size: "36195"
+      attacher:
+        +content: julian.keil
+        +@name: Julian Keil
+      data: REMOVED

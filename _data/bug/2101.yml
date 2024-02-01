@@ -1,0 +1,252 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2101"
+    creation_ts: 2013-04-11 10:53:00 +0200
+    short_desc: Provenance very big, makes plotting and executing functions very slow
+    delta_ts: 2019-08-10 12:32:58 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2121
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: critical
+    target_milestone: '---'
+    dependson: "2255"
+    everconfirmed: "1"
+    reporter:
+      +content: simoneheideman
+      +@name: Simone Heideman
+    assigned_to: fieldtriptoolbox
+    cc:
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10047"
+        comment_count: "0"
+        attachid: "446"
+        who:
+          +content: simoneheideman
+          +@name: Simone Heideman
+        bug_when: 2013-04-11 10:53:10 +0200
+        thetext: |-
+          Created attachment 446
+          timelocked grandaverage EEG data from 2 different conditions
+
+          I think MATLAB cannot handle the cfg.previous information present in my variables (provenance is very big). Plotting and loading of variable information takes a lot of time. MATLAB often closes down especially when plotting with cfg.interactive = 'yes', even with 16Gb RAM. I already discussed this problem with Robert and he asked me to report this as a bug.
+      - +@isprivate: "0"
+        commentid: "10138"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-18 18:04:00 +0200
+        thetext: "I've noticed the same with a colleague here in my office. \nThough the initial data is very small, a stat structure of several 10's of MBs, it causes very severe memory issues. Calling ft_clusterplot on it, after a few plots are produced, memory uses suddenly goes up to 10+ GB (crashing in our case). This makes me think it is related to the postamble cleanup. Robert, I CC'ed you as well.\n\nSimone, what kind of plotting function did you use? (just to make it a little easier)"
+      - +@isprivate: "0"
+        commentid: "10139"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-18 18:04:56 +0200
+        thetext: (also changed this to critical as well, as it could affect many many functions)
+      - +@isprivate: "0"
+        commentid: "10140"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-18 18:06:41 +0200
+        thetext: Also, possibly related to bug 2121
+      - +@isprivate: "0"
+        commentid: "10148"
+        comment_count: "4"
+        who:
+          +content: simoneheideman
+          +@name: Simone Heideman
+        bug_when: 2013-04-18 20:27:01 +0200
+        thetext: "(In reply to comment #1)\nHi Roemer, \n\nIt is slowest when I use ft_multiplotER, especially when I then try to zoom in on a single channel. MATLAB sometimes cannot handle this. However, other plotting functions are slow as well and for example making changes in a plot e.g. navigate around to turn the axes upside down is almost impossible because it reacts so slow. I have TFR grandaverages of the same data and plotting this seems to go a bit faster but still takes a lot of effort."
+      - +@isprivate: "0"
+        commentid: "10170"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 11:51:44 +0200
+        thetext: "Hmmm, reconstructing the analysis pipeline from one of the datasets shows why it is so slow (using ft_analysispipeline([],Grandavg_LLR)). I attached the figure. \nThough it looks very complicated, this is not very uncommon I think. Many subjects with many previous steps. \n\nWhen it becomes this complicated, the cfg-tracking becomes the bulk of computation time when interacting with the data. Which is undesirable, especially because the cfg-tracking is on by default. \n\nMy guess is the slowness is caused by the deeply nested structure-arrays. Looking at the size of the compressed vs the uncompressed data (160MB vs 5MB on disk for one of the datasets), makes me lean towards this. Still thinking about how to approach this problem.\n\nReferring to my previous comment, the cfg structure of my office mate is about 2GBs, but is much less complicated than the ones I attached from Simone."
+      - +@isprivate: "0"
+        commentid: "10171"
+        comment_count: "6"
+        attachid: "458"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 11:52:40 +0200
+        thetext: |-
+          Created attachment 458
+          ft_analysispipeline on Simone's data
+      - +@isprivate: "0"
+        commentid: "10172"
+        comment_count: "7"
+        attachid: "459"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 11:53:01 +0200
+        thetext: |-
+          Created attachment 459
+          ft_analysisprotocol on Simone's data
+      - +@isprivate: "0"
+        commentid: "10174"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 13:41:02 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          looks impressive, but is indeed not uncommon considering group studies.
+      - +@isprivate: "0"
+        commentid: "10176"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 14:21:41 +0200
+        thetext: I've tracked down some of the slowdowns to calls like ft_preamble_provenance varargin, which on line 51 does mxSerialize on varargin (containing the data and the complicated cfg), the output is used for the getting the md5 hash. I guess the serialization has difficulties with the nested structure-arrays? Maybe we could circumvent this by only basing the hash on the data minus the cfg?
+      - +@isprivate: "0"
+        commentid: "10178"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 14:42:28 +0200
+        thetext: |-
+          (In reply to comment #9)
+
+          at this moment the input and output hashes are computed (both) on the data with cfg. Important is that input and output hashes remain comparable. So I think that it would be fine to switch both to data-witout-cfg.
+      - +@isprivate: "0"
+        commentid: "10185"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 17:16:23 +0200
+        thetext: "Alright, fixes applied. Ft_preamble/postamble provenance now first tries to remove the cfg field from any of the inputs, and then calculates the md5 checksum on those. This creates a copy of any of the data structures of course, but the reference to the data in memory doesn't change. At least, in matlab R2012a it doesn't. So, no additional memory is needed. \n\nSimone, all of the plotting should be much more responsive now. Could you play around and confirm? If not, it might be that the md5 still takes a lot of time to calculate.\n\n\n\nPS: Robert, used svn to commit it. But I yearn for git! ;)"
+      - +@isprivate: "0"
+        commentid: "10268"
+        comment_count: "12"
+        who:
+          +content: simoneheideman
+          +@name: Simone Heideman
+        bug_when: 2013-04-23 15:57:58 +0200
+        thetext: "I downloaded the newest version of Fieldtrip and tried to do some plotting after adding a new participant. However, MATLAB closes down when I try to plot the ERP grandaverages. MATLAB also gives warnings when I try to calculate the TFR's for this new participant: \n\nit gives the following warning for every trial (so a lot of warnings!): \n\nWarning: output time-bins are different from input time-bins \n> In ft_specest_mtrial 34, frequency 25 (50.00 Hz), 1 tapers\n\nWhen I try to calculate the TFR grandaverages it gives the following error:\n\ncomputing average powspctrm over 14 subjects\n??? Error using ==> plus\nArray dimensions must match for binary array op.\nError in ==> ft_freqgrandaverage at 190\n            tmp = tmp + varargin{s}.(cfg.parameter{k})./Nsubj; % do a\n            weighted running sum\n \nI never saw this error before. Is it possible that this (and perhaps also the closing down of MATLAB after plotting ERP's) is caused by the changes you made, or is it likely that I did something wrong myself? I think I used exactly the same procedure as I used for the other participants."
+      - +@isprivate: "0"
+        commentid: "10271"
+        comment_count: "13"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-23 17:10:47 +0200
+        thetext: "Hi Simone,\nNo, the changes I made for this bug cannot be the cause for your current issues I'm afraid. \n\nThe time-bin warning has been added recently, and serves to make it more obvious when the time-bins you request are not present in the data (the closest ones will be picked). This means your cfg.toi specified time-points that were not found in your data.time{i}. \n\nOn the error and the closing down (you mean a crash to desktop?), that looks like something different. Could you make a separate bug out of this with a copy-paste of the cfg you used, and maybe some data?\n\nWere you able to reach a point to plot data and see whether it was faster?"
+      - +@isprivate: "0"
+        commentid: "10475"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-17 08:44:12 +0200
+        thetext: |-
+          Arjen has provided me with another example structure that has a very large provenance history. I will add this data structure (as the one from Simone) to /home/common/matlab/fieldtrip/data/test/bug2101 for future reference and testing.
+
+
+          On 16 May 2013, at 13:58, Arjen Stolk wrote:
+
+          In de matfile zit de stucture genaamd 'SP'
+
+          K>> whos
+            Name             Size                 Bytes  Class     Attributes
+            SP               1x1             2234455688  struct
+
+          K>> SP = rmfield(SP,'cfg')
+
+          K>> whos
+            Name             Size                 Bytes  Class     Attributes
+            SP               1x1                 632540  struct
+      - +@isprivate: "0"
+        commentid: "10481"
+        comment_count: "15"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-05-17 12:02:14 +0200
+        thetext: "I had a look at the cfg from Arjen's mat-file, should give us some thought.\n\nFor every subject many multiple copies of the grads, vols and grids are kept, many in nested usercfgs. \n\nSingle large fields (like vol.tri) are removed because of checkconfig, but there are many other ones which are present very often (grad, grid, vol).\nExamples:\nvol.pnt 4000x3 double\ngrad.chanori 302x3 double\ngrad.chanpos 302x3 double\ngrad.chantype 302x1 cell\ngrad.coilori 595x3 double\ngrad.coilpos 595x3 double\ngrad.label 302x1 cell\ngrad.balance.G1BR.labelorg 281x1 cell\ngrad.balance.G1BR.labelnew 281x1 cell\ngrad.balance.GX1BR...\ngrid.inside 1x2998 double\ngrid.inside 1x2782 double\n\nFor all 24 subjects they are present at least several times, and some of the field are present inside themselves as well (e.g. grid.inside and grid.cfg.grid.inside)."
+      - +@isprivate: "0"
+        commentid: "20162"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:32:58 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "446"
+        date: 2013-04-11 10:53:00 +0200
+        delta_ts: 2013-04-11 10:53:10 +0200
+        desc: timelocked grandaverage EEG data from 2 different conditions
+        filename: bug.mat
+        type: application/octet-stream
+        size: "10567204"
+        attacher:
+          +content: simoneheideman
+          +@name: Simone Heideman
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "458"
+        date: 2013-04-19 11:52:00 +0200
+        delta_ts: 2013-04-19 11:52:40 +0200
+        desc: ft_analysispipeline on Simone's data
+        filename: huge_ft_analysispipeline.png
+        type: image/png
+        size: "50288"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "459"
+        date: 2013-04-19 11:53:00 +0200
+        delta_ts: 2013-04-19 11:53:01 +0200
+        desc: ft_analysisprotocol on Simone's data
+        filename: huge_ft_analysisprotocol.png
+        type: image/png
+        size: "67234"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED

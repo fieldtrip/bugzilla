@@ -1,0 +1,165 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1571"
+    creation_ts: 2012-06-28 16:47:00 +0200
+    short_desc: dftfilter does not work when not segmenting trials?
+    delta_ts: 2014-03-12 12:21:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6597"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-28 16:47:29 +0200
+        thetext: |-
+          On 6/28/2012 3:13 PM, Philipp Hintze wrote:
+
+          The issue with the continuous data is the following: I tried using
+               cfg                     = [];
+               cfg.channel      = {'EEG'};
+               cfg.datafile       = dataset;
+               cfg.headerfile   = dataset;
+               cfg.dataset       = dataset;
+
+               cfg.continuous = 'yes';
+
+               (cfg.padding         = 10;)
+               cfg.dftfilter           = 'yes';
+
+                filteredContinuousData  = ft_preprocessing(cfg);
+
+           but looking at averaged timelocked data for the subject, the data looks
+           identical to the result I get using no filter at all, i.e., contaminated by
+           strong line noise. Including padding makes no difference either, therefore
+           the brackets.
+          ----------------
+
+          First step: check whether this is a bug
+      - +@isprivate: "0"
+        commentid: "6598"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-28 16:55:13 +0200
+        thetext: "I suspect the data segment is so long that the dftfilter is too sharp and that the actual frequency that is filtered out is slightly off from the line-noise. \n\nIt is not uncommon for an EEG system to report that it samples at 512 Hz (in the specs and in the header), but where the actual sampling is at 512.01 Hz If your data is long enough (say 100 seconds), the spectral resolution of the DFT is too high (0.01 Hz) and the mismatch between the specified and true sampling rates becomes apparent."
+      - +@isprivate: "0"
+        commentid: "6601"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-28 17:04:54 +0200
+        thetext: ah, very good to know ;) I'm gonna check first with some synthetic signals, and there I can also model such cases.
+      - +@isprivate: "0"
+        commentid: "6703"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-04 15:31:50 +0200
+        thetext: |-
+          step 1:
+          verify with my own data
+          >> sum(filteredContinuousData.trial{1(:)-unfilteredContinuousData.trial{1}(:))
+          ans =
+           -4.4985e-008
+
+          meaning, dftfilter is doing something
+
+          I verified by doing an fft, and can see that the line noise is reduced by a factor of 8.
+
+          The remaining (still huge) 50Hz is a 'feature' of the dftfilter (see FAQ)
+
+          step 2:
+          build some synthetic signal and play around with sampling frequency:
+          I built a signal with 512.001Hz but setting fsample hardcoded to 512Hz. I also couldn't observe anything 'strange'/unexpected there.
+      - +@isprivate: "0"
+        commentid: "7173"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:00 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "8494"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-29 10:09:57 +0100
+        thetext: "in the automated regression testing this one often fails because\n\nPBS Job Id: 1388412.dccn-l014.dccn.nl\nJob Name:   test_bug1571\nExec host:  dccn-c014/3\njob deleted\nJob deleted at request of root@dccn-l014.dccn.nl\njob violates resource utilization policies\n\nEither it is taking too much memory, or too much time. Preferably the test script is trimmed down a bit in the memory or time requirement. Or perhaps there is an interactive figure on which it waits? \n\n@Jorn, can you have a look?"
+      - +@isprivate: "0"
+        commentid: "8546"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-05 10:10:33 +0100
+        thetext: |-
+          It's probably memory issues, at least it's no interactive figure and the function needs about 4 minutes of time.
+
+          I changed a strange assert statement to using isequal, maybe that helps. The test script passed successfully the last times though. Let's see what happens.
+      - +@isprivate: "0"
+        commentid: "8560"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-05 12:26:59 +0100
+        thetext: "Here is a conceptual answer:\n\nthe dft filter will be too sharp if the segment is very long, consequently it is likely that it will just miss the line noise frequency. I.e. removing the 50.000 Hz component whereas the linenoise is at 50.010 would not result in the desired effect, although technically the filter performed well. \n\nAlso slow fluctuations in the line noise amplitude (more likely with long segments) will cause the dft filter to be less efficient. See http://fieldtrip.fcdonders.nl/faq/why_is_there_a_residual_50hz_line-noise_component_after_applying_a_dft_filter\n\nThe question remains why the test script is using too much memory or running for too long. The data file is inly 77MB large, so it should fit comfortably in memory.\n\nPerhaps do some memtic/memtoc and tic/toc, or use the profiler."
+      - +@isprivate: "0"
+        commentid: "8562"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-05 14:19:40 +0100
+        thetext: |-
+          oops, found it:
+
+            data.time{1} = 0:1/real_fsample:100*fsample;
+
+
+          should be
+
+            data.time{1} = 0:1/real_fsample:100;
+
+
+          svn ci test_bug1571.m -m "enhancement - reduced synthetic data size and changed the other assert statement as well"
+          Sending        test_bug1571.m
+          Transmitting file data .
+          Committed revision 7097.

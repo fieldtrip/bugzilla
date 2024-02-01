@@ -1,0 +1,221 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1729"
+    creation_ts: 2012-09-20 14:39:00 +0200
+    short_desc: unequal frequency axis cannot be plotted properly (ft_singleplotTFR/ft_plot_matrix)
+    delta_ts: 2015-07-15 13:31:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7486"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-20 14:39:32 +0200
+        thetext: "This is related to Haiteng's recent mail on the mailinglist. In short, he did a TFR on low frequencies using a Hann taper and one on high frequencies using DPSS tapers. Then, he concatenated the two datasets. In the end, his frequency axis looked like this\n[4:30 35:5:100]\nWhen plotting from 4 to 30Hz, his TFR looked fine. However, when including higher frequencies, he realized that his frequency axis 'shifted' towards higher frequencies. My first hinge was, that the frequency axis is not handles properly in FieldTrip. I underestimated FieldTrip - my sincere apologies. FieldTrip is passing correctly the .freq field over to ft_plot_matrix.\n\nft_plot_matrix, which is doing the work for singleplotTFR, is internally calling Matlabs built-in funciton imagesc, which cannot deal with these kind of data and axes. Here a quick example which illustrates the problem:\nxvalues = [1:10 15:5:40];\nyvalues = [1:10 15:5:40];\ncvalues = xvalues'*yvalues;\nfigure;\nsubplot(211)\nimagesc(xvalues, yvalues, cvalues)\n\nxvalues = linspace(1, 40, numel(xvalues));\nyvalues = linspace(1, 40, numel(yvalues));\nsubplot(212)\nimagesc(xvalues, yvalues, cvalues);\n\nAlthough 'frequency-time' tiles in the first subplot should have different sizes, both subplot look exactly the same. This means, that Matlab cannot handle such a thing properly. \n\n\nLong story, short fix:\nInternally, look for the minimal distance within the frequency-axis min(diff(freq)), reconstruct the full frequency axis and interpolate (nearest-neighbour interpolation!) the 'missing' frequency bins. All this should of course happen in ft_plot_matrix, since it's a graphical issue and not some data handling thingy.\n\nI would pursue this, if agreed upon. When I receive no comments until Wednesday, I'll bring this up in the FT-meeting and we'll spend some time discussing it. Sounds like a bit like a threat, doesn't it? :P"
+      - +@isprivate: "0"
+        commentid: "7488"
+        comment_count: "1"
+        attachid: "313"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-20 14:43:14 +0200
+        thetext: |-
+          Created attachment 313
+          Haiteng's TFRs - note the shift of main activity from 10Hz to 20Hz when using more frequency bins.
+      - +@isprivate: "0"
+        commentid: "7490"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-20 14:56:40 +0200
+        thetext: Yes, but fieldtrip/plotting/private contains uimage and uimagesc which should be able to deal with this (to some extent, that is). I think in the past these functions were operational, but removed from the higher level plotting functions either due to non-robust behaviour, or due to the overhaul and move to the new intermediate level plotting functions.
+      - +@isprivate: "0"
+        commentid: "7496"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-20 16:22:58 +0200
+        thetext: hm, so?
+      - +@isprivate: "0"
+        commentid: "7497"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 16:23:34 +0200
+        thetext: "I have made a test scrip, please have a look at it. It goes like this\n\nfreq.label = {'chan'};\nfreq.time = 0;\nfreq.freq = [1:10 21:30];\nfreq.powspcrtm = zeros(1, 20, 1);\nfreq.powspcrtm(:) = freq.freq;\nfreq.dimord = 'chan_freq_time';\n\nmanzana> svn commit ft_singleplotTFR.m \nSending        ft_singleplotTFR.m\nTransmitting file data .\nCommitted revision 6500.\n\nmanzana> svn commit test/test_bug1729.m\nAdding         test/test_bug1729.m\nTransmitting file data .\nCommitted revision 6501."
+      - +@isprivate: "0"
+        commentid: "7498"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 16:26:22 +0200
+        thetext: see bug 419 and bug 250
+      - +@isprivate: "0"
+        commentid: "7499"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-20 16:29:31 +0200
+        thetext: |-
+          I plus-oned your test script commit on google code ;)
+          Would still need to know whether to use uimage* or the manual fix
+      - +@isprivate: "0"
+        commentid: "7501"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 17:05:05 +0200
+        thetext: "(In reply to comment #6)\n\nIt seems to me that uimagesc is being used, but that it \nmanzana> grep uimagesc *.m\nft_plot_matrix.m:% the uimagesc-call needs to be here to avoid calling it several times in switch-highlight\nft_plot_matrix.m:  h = uimagesc(hdat, vdat, cdat, clim);\nft_plot_matrix.m:% the uimagesc-call needs to be inside switch-statement, otherwise 'saturation' will cause it to be called twice\nft_plot_matrix.m:      h = uimagesc(hdat, vdat, cdat, clim);\n\nexcept when highlightstype=saturation, because that causes the normal imagesc to be called."
+      - +@isprivate: "0"
+        commentid: "7502"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 17:05:38 +0200
+        thetext: |-
+          (In reply to comment #0)
+
+          xvalues = [1:10 15:5:40];
+          yvalues = [1:10 15:5:40];
+          cvalues = xvalues'*yvalues;
+          figure;
+          subplot(211)
+          uimagesc(xvalues, yvalues, cvalues)
+
+          xvalues = linspace(1, 40, numel(xvalues));
+          yvalues = linspace(1, 40, numel(yvalues));
+          subplot(212)
+          uimagesc(xvalues, yvalues, cvalues);
+
+          works correctly, so I think uimage should be able to do it. But then... why is it not doing it properly?
+      - +@isprivate: "0"
+        commentid: "7552"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-24 13:38:50 +0200
+        thetext: |-
+          I'm pretty sure that I stepped through the function and the call was to imagesc rather than uimagesc
+
+          Nathan Weisz sent me a mail suggesting to use contourf instead. His main motivation for using contourf is the (nicer) interpolation, but apparently it can also deal with unequal frequency axes. Also, he said that he once had a similar problem and Ingrid replied on the mailinglist to his question (but he does not recall what she replied). Gonna look that up.
+          I assume to keep it consistent, the use of uimagesc would be preferred over contourf?
+      - +@isprivate: "0"
+        commentid: "7554"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-24 13:49:38 +0200
+        thetext: |-
+          example code:
+
+          xvalues = [1:10 15:5:40];
+          yvalues = [1:10 15:5:40];
+          cvalues = xvalues'*yvalues;
+          nlines = (numel(yvalues)*numel(xvalues))/4;
+
+          figure;
+          subplot(211)
+          [ch ch] = contourf(xvalues, yvalues, cvalues, nlines)
+          set(ch,'edgecolor','none');
+          xvalues = linspace(1, 40, numel(xvalues));
+          yvalues = linspace(1, 40, numel(yvalues));
+          subplot(212)
+          [ch ch] = contourf(xvalues, yvalues, cvalues, nlines);
+          set(ch,'edgecolor','none');
+      - +@isprivate: "0"
+        commentid: "7977"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-24 10:35:45 +0200
+        thetext: "aha, stepping throigh the function reveals that indeed uimagesc is used, but then a 'quick fix' is applied, which ruins it all. \n\nh = uimagesc(hdat, vdat, cdat, clim);     \nset(h,'CData',cdat); % quick fix\n\nThe reason why this is applied is because in the next step an alpha map is set which in turn needs to have the same dimensionality as the color data. \n\nset(h,'AlphaData',highlight);\n\nuimagesc however does some magic interpolation. Since we do not know what magic interpolation is happening here, I decided to go for this dirty but most efficient approach:\n\nh = uimagesc(hdat, vdat, highlight, clim);\nhighlight = get(h, 'CData');\nh = uimagesc(hdat, vdat, cdat, clim);\nset(h,'AlphaData',highlight);\n\n\nAn alternative would be to copy out the interpolation steps from uimage.m (which to my surprise is a private FieldTrip function) to ft_plot_matrix. I kept the quick&dirty approach for now cause it is more robust towards changes in uimage, okilidokili?"
+      - +@isprivate: "0"
+        commentid: "8475"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-28 17:53:51 +0100
+        thetext: no complaints + no comments = good fix ;)
+      - +@isprivate: "0"
+        commentid: "15716"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-09 17:33:01 +0200
+        thetext: regression function fails. This is caused by the fact that getdimord is not robust enough when trailing dimensions are singleton. Specifically, when a 'dimord' is in the datastructure, a check is performed whether the length of tokenize(dimord) is equal to the length(size(dataparameter)). For the latter, trailing singletons are not in the output of size
+      - +@isprivate: "0"
+        commentid: "15717"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-09 17:59:40 +0200
+        thetext: |-
+          [jansch@mentat002 private]$ svn commit -m "enhancement - made function more robust against trailing singleton-length dimensions" getdimord.m
+          Sending        getdimord.m
+          Transmitting file data .
+          Committed revision 10400.
+
+          this change fixes test_bug1729 and test_ft_selectdata still seems to work...
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "313"
+      date: 2012-09-20 14:43:00 +0200
+      delta_ts: 2012-09-20 14:43:14 +0200
+      desc: Haiteng's TFRs - note the shift of main activity from 10Hz to 20Hz when using more frequency bins.
+      filename: Haiteng-bug.png
+      type: image/png
+      size: "1316708"
+      attacher:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      data: REMOVED

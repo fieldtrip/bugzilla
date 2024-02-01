@@ -1,0 +1,77 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2816"
+    creation_ts: 2015-01-28 23:34:00 +0100
+    short_desc: getdimord -- getdimsiz infinite loop
+    delta_ts: 2015-02-11 10:40:53 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15110"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2015-01-28 23:34:51 +0100
+        thetext: "Hi, I noticed some changes to ft_timelockanalysis (I use the github repo) so wanted to test them out on my data sets. I find code which worked is now breaking, specifically I get into an infinite loop as getdimord calls getdimsiz call getdimord etc:\n\nIn getdimord (line 140)\ndatsiz = getdimsiz(data, field);\nIn getdimsiz (line 23)\n  dimord = getdimord(data, field);\nIn getdimord (line 64)\n    tmp   = getdimsiz(data, 'time');\nIn getdimsiz (line 23)\n  dimord = getdimord(data, field);\nIn getdimord (line 64)\n    tmp   = getdimsiz(data, 'time');\nIn getdimsiz (line 23)\n  dimord = getdimord(data, field);\n...\n...\n...\n\ncalled from:\n\nIn ft_selectdata (line 180)\n  dimord{i} = getdimord(varargin{1}, datfield{i});\nIn ft_timelockanalysis (line 131)\ndata = ft_selectdata(tmpcfg, data);\nIn LFPAnalysis/ftTimeLockAnalysis (line 473)\n\t\t\t\tav{i}\t\t\t\t\t\t\t= ft_timelockanalysis(cfg, ft);\n\nmy cfg looks like:\n\ncfg = \n    covariancewindow: [0.1 0.2]\n          keeptrials: 'yes'\n          removemean: 'yes'\n          covariance: 'yes'\n             channel: 'TETFP10'\n              trials: [1x65 double]\n\nand ft data:\n\nft = \n           hdr: [1x1 struct]\n         label: {'TETFP09'  'TETFP10'  'TETFP11'  'TETFP12'}\n          time: {1x142 cell}\n         trial: {1x142 cell}\n       fsample: 1000\n    sampleinfo: [142x2 double]\n     trialinfo: [142x1 double]\n           cfg: [1x1 struct]\n\nI create my data myself, so its possible this is triggered by something specific to my dataset. I can make a minimal dataset if necessary but suspect this is just due to recent the restructuring.\n\nLine 23 was edited recently:\n\nhttps://github.com/fieldtrip/fieldtrip/commit/59c516a364c0c8f5b3d9fa696340dd953634097d#diff-7\n\nAs an aside I also noticed a small typo:\n\nhttps://github.com/fieldtrip/fieldtrip/commit/59c516a364c0c8f5b3d9fa696340dd953634097d#diff-3"
+      - +@isprivate: "0"
+        commentid: "15111"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-29 08:24:02 +0100
+        thetext: |-
+          Hi Ian,
+
+          Sorry, this must have been my bad. I recall some issue with the infinite recursion during the development, but thought I had resolved it. Apparently not.
+
+          Thanks for the quick notification, I will be on it immediately.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15112"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-29 08:48:01 +0100
+        thetext: "I found it. \n\nIt was specific to raw data due to the cell-array \"time\" field. The motivation for the recursion had to do with a section of code in ft_XXXstatistics (each of them) where getdimsiz was supposed to also return the trailing singleton dimension. I solved it locally in those functions and removed the recursion between the two functions.\n\nmac011> svn commit \nSending        ft_freqstatistics.m\nSending        ft_sourcestatistics.m\nSending        ft_timelockstatistics.m\nAdding         test/test_bug2816.m\nSending        utilities/private/getdimsiz.m\nTransmitting file data .....\nCommitted revision 10140.\n\nI also swapped the alpha and tail options.\n\nmac011> svn commit ft_statistics_analytic.m \nSending        ft_statistics_analytic.m\nTransmitting file data .\nCommitted revision 10143."
+      - +@isprivate: "0"
+        commentid: "15255"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:53 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

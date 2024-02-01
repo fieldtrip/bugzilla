@@ -1,0 +1,276 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2994"
+    creation_ts: 2015-10-27 13:11:00 +0100
+    short_desc: ft_freqstatistics crash when dimord is 'subj_freq_time'
+    delta_ts: 2016-01-14 21:26:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: niels.kloosterman
+      +@name: Niels
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16269"
+        comment_count: "0"
+        who:
+          +content: niels.kloosterman
+          +@name: Niels
+        bug_when: 2015-10-27 13:11:46 +0100
+        thetext: "Since a while, the ft_freqstatistics does not work if I run it with dimord = 'subj_freq_time', ie on TFR's that are based on a pooling of sensors. I now tried ft version fieldtrip-20151005, but it works with a ~1 year old version (not sure exactly). I wonder if you can reproduce the problem with your own freq, otherwise I am happy to provide one of mine. Did maybe something change about how the function should be called?\n\nHere is my cfg:\n\n__________\ncfg = [];\ncfg.latency          = XLIM; % eg [0.2 0.4] \ncfg.frequency        = YLIM; % eg [5 150]\ncfg.method           = 'montecarlo';\ncfg.statistic        = 'depsamplesT';\ncfg.correctm         = 'cluster'; % no\ncfg.clusteralpha     = 0.05;\ncfg.clusterstatistic = 'maxsum';\ncfg.tail             = 0;\ncfg.clustertail      = 0;\ncfg.alpha            = 0.025;\ncfg.numrandomization = 1000;\ncfg.neighbours       = []; %in case no channel data present\n\ndesign = zeros(2,2*nsub);\nfor i = 1:nsub\n    design(1,i) = i;\nend\nfor i = 1:nsub\n    design(1,nsub+i) = i;\nend\ndesign(2,1:nsub)        = 1;\ndesign(2,nsub+1:2*nsub) = 2;\n\ncfg.design   = design;\ncfg.uvar     = 1;\ncfg.ivar     = 2;\n________________________\n\nAnd here is the command window output:\n\n--------------------\nlatstat{isoi, idrug, idiff} = ft_freqstatistics(cfg, freq2stats, freq2statszero);\n\nthe call to \"ft_selectdata\" took 0 seconds and required the additional allocation of an estimated 1 MB\nusing \"ft_statistics_montecarlo\" for the statistical testing\nusing \"ft_statfun_depsamplesT\" for the single-sample statistics\nconstructing randomized design\ntotal number of measurements     = 36\ntotal number of variables        = 2\nnumber of independent variables  = 1\nnumber of unit variables         = 1\nnumber of within-cell variables  = 0\nnumber of control variables      = 0\nusing a permutation resampling approach\nrepeated measurement in variable 1 over 18 levels\nnumber of repeated measurements in each level is 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 \ncomputing a parametric threshold for clustering\ncomputing statistic\nestimated time per randomization is 0.01 seconds\ncomputing statistic 1000 from 1000\n\nWarning: adding /Users/kloosterman/gridmaster2012/MATLAB/fieldtrip-20151005/external/spm8 toolbox to your MATLAB path \nError using findcluster (line 56)\ninvalid dimension of spatdimneighbstructmat\n\nError in clusterstat (line 194)\n      posclusobs = findcluster(reshape(postailobs, [cfg.dim,1]),channeighbstructmat,cfg.minnbchan);\n\nError in ft_statistics_montecarlo (line 356)\n  [stat, cfg] = clusterstat(cfg, statrand, statobs);\n\nError in ft_freqstatistics (line 190)\n    [stat, cfg] = statmethod(cfg, dat, design);\n-----------"
+      - +@isprivate: "0"
+        commentid: "16407"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 13:24:25 +0100
+        thetext: we discussed this shortly in the FT meeting, Jan-Mathijs will look into it
+      - +@isprivate: "0"
+        commentid: "16443"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-11-26 09:53:40 +0100
+        thetext: |-
+          Hi Niels,
+          Would it be possible to upload two very compact data structures for reproduction (i.e. multi-subject freq2stats structure with 2 frequency bins and optionally a few time bins)?
+      - +@isprivate: "0"
+        commentid: "16487"
+        comment_count: "3"
+        attachid: "759"
+        who:
+          +content: niels.kloosterman
+          +@name: Niels
+        bug_when: 2015-12-03 12:11:03 +0100
+        thetext: |-
+          Created attachment 759
+          example freq2stats structure
+
+          Hi Jan Matthijs,
+
+          See attached. The problem occurs for me already when I replace freq.powspctrum with zeros and test the freq against freqzero using freqstatistics.
+
+          Just let me know if you need more data.
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "16489"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-03 14:27:09 +0100
+        thetext: |-
+          OK, confirmed...after updating the data a bit (convert to double + making the number of labels consistent with the 'chan' dimension in the data :o) )....
+
+
+          there's apparently unexpected behaviour when creating the channelconnectivity, with cfg.channel = 'all'.
+      - +@isprivate: "0"
+        commentid: "16490"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-03 14:28:10 +0100
+        thetext: there's an evaluation of the number of elements in the variable cfg.channel, which pre-specifies the dimensionality of the spatial neighbourhood matrix, the 'all' returns a value of 3, rather than the required 2 (which is the number of channels in the data).
+      - +@isprivate: "0"
+        commentid: "16491"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-03 14:29:24 +0100
+        thetext: |-
+          for now, it should work when you explicitly specify cfg.channel = freq.label (assuming, of course, that the number of labels is equal to the channel dimension in your data).
+
+          I'll think of a fix.
+      - +@isprivate: "0"
+        commentid: "16494"
+        comment_count: "7"
+        who:
+          +content: niels.kloosterman
+          +@name: Niels
+        bug_when: 2015-12-03 15:44:41 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          I don't have a 'chan' dimension anymore here right? I must be missing something...
+      - +@isprivate: "0"
+        commentid: "16495"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-03 16:12:11 +0100
+        thetext: |-
+          you're absolutely right! my bad, what was I thinking :o)?
+          back to the drawing table it is.
+      - +@isprivate: "0"
+        commentid: "16496"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-03 16:17:44 +0100
+        thetext: "it works when I make size of powspctrm: [18 1 2 5], i.e. squeeze in a singleton 'chan' dimension, and change the dimord into 'subj_chan_freq_time'.\nRemoving the 'label' field on the other hand does not work, because the function explicitly expects a structure with a 'label' field. in the past you probably got away with it with the less explicit dimensionality check, but as far as I know the lower level cluster function has always expected the first dimension to be spatial, even if it were singleton. \nRequires some further digging..."
+      - +@isprivate: "0"
+        commentid: "16497"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-04 09:57:48 +0100
+        thetext: "Hi Niels,\n\nI created the following test script (see below), which runs through fine. It implements various scenarios to get from single subject data to a 'stat'-structure, where I start with the outdated way you seem to have done it (which by the way is the way I wouldn't do it anymore, see the other suggested ways as shown in the script). The sole difference with your approach is that the subject-concatenated and channel-averaged data is slighlty different when computed from the script, as compared to the data you sent along. Although according to Fieldtrip's philosophy in itself your data structure would be (almost) an allowed data structure, because the dimord of 'subj_freq_time' matches the numeric data, the presence of a label-field in the structure, and the absence of a singleton 'chan' dimension in the data makes it slightly inconsistent. When the 'label' field is ditched, the data structure becomes fully consistent, but the high-level fieldtrip code (ft_freqstatistics) does not seem to like this, because it explicitly requires a label-field in the data structure in order for it to proceed.\n\nAlthough we think that backward compatibility is very important, I would vote in favour of not trying to patch this. I think the recent improvements in data bookkeeping and consistent data structure definition outweigh a potential patch in the current situation. Would you be OK with adjusting your pipelines with one of the snippets from the suggested code below?\n\n\nBelow is the matlab-code:\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n% Bug 2994 has been reported by Niels. Apparently once upon a time it was\n% possible to call ft_freqstatistics with ft_freqgrandaveraged data in the\n% input, where the dimord is 'subj_freq_time' (NOTE the lacking chan\n% dimord) with the data containing apparently an average across channels.\n% The input data contains a label field. ft_freqstatistics crashes when the\n% low level function tries to cluster across space.\n\n% Let's start this form the beginning, create a multisubject\n% freq-structure, with data averaged across channels, and see whether it\n% pulls through\n\ntmp.freq   = [1 2 3];\ntmp.time   = [1 2 3 4 5];\ntmp.label  = {'a';'b'};\ntmp.dimord = 'chan_freq_time';\n\n\nfreq = cell(1,10);\nfreq0 = cell(1,10);\nfor k = 1:10\n  tmp.powspctrm = rand(2,3,5);\n  freq{k} = tmp;\n  tmp.powspctrm(:) = 0;\n  freq0{k} = tmp;  \nend\n\n%% ------------------------------------------------------------------------\n% here, the following is done:\n% -ft_freqgrandaverage (keepindividual = 'yes')\n% -ft_selectdata (avgoverchan = 'yes')\n% -ft_freqstatistics\n\ncfg1 = [];\ncfg1.keepindividual = 'yes';\n\ncfg2 = [];\ncfg2.avgoverchan = 'yes';\n\ncfg3 = [];\ncfg3.method    = 'montecarlo';\ncfg3.statistic = 'ft_statfun_depsamplesT';\ncfg3.design    = [ones(1,10) ones(1,10)*2;1:10 1:10];\ncfg3.numrandomization = 100;\ncfg3.correctm  = 'cluster';\ncfg3.ivar      = 1;\ncfg3.uvar      = 2;\n\nfreqall  = ft_selectdata(cfg2, ft_freqgrandaverage(cfg1, freq{:}));\nfreqall0 = ft_selectdata(cfg2, ft_freqgrandaverage(cfg1, freq0{:}));\nassert(isequal(size(freqall.powspctrm),[10 1 3 5])); % there should be a singleton channel dimension\nstat1    = ft_freqstatistics(cfg3, freqall, freqall0);\n\n%% ------------------------------------------------------------------------\n% here, the following is done:\n% -ft_freqgrandaverage (keepindividual = 'yes')\n% -ft_freqstatistics (avgoverchan = 'yes')\n\ncfg1 = [];\ncfg1.keepindividual = 'yes';\n\ncfg3 = [];\ncfg3.method    = 'montecarlo';\ncfg3.statistic = 'ft_statfun_depsamplesT';\ncfg3.avgoverchan = 'yes';\ncfg3.design    = [ones(1,10) ones(1,10)*2;1:10 1:10];\ncfg3.numrandomization = 100;\ncfg3.correctm  = 'cluster';\ncfg3.ivar      = 1;\ncfg3.uvar      = 2;\n\nfreqall  = ft_freqgrandaverage(cfg1, freq{:});\nfreqall0 = ft_freqgrandaverage(cfg1, freq0{:});\nassert(isequal(size(freqall.powspctrm),[10 2 3 5])); % there should be two channels\nstat2    = ft_freqstatistics(cfg3, freqall, freqall0);\n\n%% ------------------------------------------------------------------------\n% here, the following is done:\n% - NO ft_freqgrandaverage\n% -ft_freqstatistics (avgoverchan = 'yes')\n\ncfg3 = [];\ncfg3.method    = 'montecarlo';\ncfg3.statistic = 'ft_statfun_depsamplesT';\ncfg3.avgoverchan = 'yes';\ncfg3.design    = [ones(1,10) ones(1,10)*2;1:10 1:10];\ncfg3.numrandomization = 100;\ncfg3.correctm  = 'cluster';\ncfg3.ivar      = 1;\ncfg3.uvar      = 2;\ncfg3.avgoverchan = 'yes';\n\nstat3    = ft_freqstatistics(cfg3, freq{:}, freq0{:});\n\n%% ------------------------------------------------------------------------\n% here, the following is done:\n% -ft_appendfreq\n% -ft_freqstatistics (avgoverchan = 'yes')\n\ncfg1 = [];\ncfg1.parameter = 'powspctrm';\ncfg1.appenddim = 'rpt';\n\ncfg3 = [];\ncfg3.method    = 'montecarlo';\ncfg3.statistic = 'ft_statfun_depsamplesT';\ncfg3.avgoverchan = 'yes';\ncfg3.design    = [ones(1,10) ones(1,10)*2;1:10 1:10];\ncfg3.numrandomization = 100;\ncfg3.correctm  = 'cluster';\ncfg3.ivar      = 1;\ncfg3.uvar      = 2;\ncfg3.avgoverchan = 'yes';\n\nfreqall  = ft_appendfreq(cfg1, freq{:});\nfreqall0 = ft_appendfreq(cfg1, freq0{:});\n\nstat4    = ft_freqstatistics(cfg3, freqall, freqall0);\n\nassert(isequal(stat1.stat,stat2.stat));\nassert(isequal(stat1.stat,stat3.stat));\nassert(isequal(stat1.stat,stat4.stat));\nassert(isequal(stat2.stat,stat3.stat));\nassert(isequal(stat2.stat,stat4.stat));\nassert(isequal(stat3.stat,stat4.stat));\n\n% the conclusion so far is that with the current state of the code, all\n% seems to work fine."
+      - +@isprivate: "0"
+        commentid: "16500"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-12-05 07:31:34 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #10)
+
+          Hey cap,
+
+          I just got the same error in findcluster.m using the home/common/ version. Maybe it's a matter of updating of this depository still, so I'll try again tomorrow. Just in case you think it might be due to that change, I'm getting a 3x3 spatdimneighbstructmat (cfg.connectivity is a 3x3 matrix with zeros) whereas the onoff matrix is 17x21x17 (matching the data dimension).
+
+          This violates the 2nd part of the statement at line 55.
+
+          The context: using ft_sourcestatistics for comparing .pow fields across groups of subjects (indepsamplesT).
+
+          Yours,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "16501"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-05 08:43:09 +0100
+        thetext: "zoals aangegeven, komt dit waarschijnlijk door een foutieve interpretatie van \ncfg.channel = 'all' in channelconnectivity. Indien de leading dimensie van je data (die van 17) geen spatiele dimensie is, zou je kunnen proberen om cfg.connectivity op nan te zetten, voordat je ft_freqstatistics aanroept."
+      - +@isprivate: "0"
+        commentid: "16502"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-12-05 09:01:11 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #12)
+
+          Die cfg.connectivity wordt on the fly gedefinieerd. Dit is 'gewone' source power data, geen connectiviteit (er is dus ook geen cfg.channel). Stel je voor dat ik probeer te debuggen door cfg.connectiviteit te veranderen in een van die low-level functies?
+      - +@isprivate: "0"
+        commentid: "16503"
+        comment_count: "14"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-12-05 09:02:27 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #13)
+
+          Ik bedoel ipv 'low-level functie', tijdens het aanroepen van fr_sourcestatistics?
+      - +@isprivate: "0"
+        commentid: "16504"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-12-05 09:08:58 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #14)
+          met cfg.connectivity = nan tijdens het aanroepen van ft_sourcestatistics loopt de functie door
+      - +@isprivate: "0"
+        commentid: "16505"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-12-05 09:47:09 +0100
+        thetext: "Het idee achter de cfg.connectivity is om findcluster een idee te geven, hoe te clusteren over de spatiele dimensie van de data. \nIn het geval van kanaal data (of source data gedefinieerd op een triangular mesh, waarbij het wenselijk zou zijn om de buren te definiëren aan de hand van de edges) wordt cfg.connectivity gebruikt. Indien deze niet door de gebruiker is gedefinieerd, wordt deze on-the-fly gemaakt, aan de hand van cfg.neighbours (kanaaldata), of aan de hand van source.tri. Indien de data impliciet een representatie is van een reshapable 3D-grid, wordt de spatiele dimensie clusterbaar verondersteld als per spm_bwlabel.\nIk kan me voorstellen, dat de automatische machinerie faalt als je slechts 1 spatiele component hebt (e.g. 1 voxel, zoals in jouw geval, of 1 kanaal, zoals in Niels' geval).\nVoor kanaal-achtige data zou een oplossing kunnen zijn om cfg.connectivity=nan te zetten. In jouw geval (de aap kwam weer eens lekker laat uit de mouw) van ft_sourcestatistics zou idealiter een consistente data structuur voldoende moeten zijn. Dus, een source structuur met 1-pos, 1-inside en een dim van [1 1 1]."
+      - +@isprivate: "0"
+        commentid: "16506"
+        comment_count: "17"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-12-05 10:03:08 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #16)
+           I see: structurele connectivity. Dit was trouwens volume data, geen surface (ander project :p). Elke voxel zou dan minstens 6 buren moeten hebben?
+      - +@isprivate: "0"
+        commentid: "16604"
+        comment_count: "18"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-13 13:17:00 +0100
+        thetext: I haven't heard back for a while from Niels, so I assume all is fine. Changing status for now.
+      - +@isprivate: "0"
+        commentid: "16616"
+        comment_count: "19"
+        who:
+          +content: niels.kloosterman
+          +@name: Niels
+        bug_when: 2016-01-13 15:07:37 +0100
+        thetext: |-
+          Ha Jan-Matthijs, sorry voor de late reactie! Goed idee om een singleton dimensie voor de channel te gebruiken en niet de code aan te passen. Bedankt voor je moeite.
+
+          Groeten,
+          Niels
+      - +@isprivate: "0"
+        commentid: "16617"
+        comment_count: "20"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-13 15:15:07 +0100
+        thetext: |-
+          Check! Het belangrijkste is, dat je vooruit kunt, en dat lijkt het geval te zijn.
+          Als altijd bedankt voor je input, much appreciated.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "759"
+      date: 2015-12-03 12:11:00 +0100
+      delta_ts: 2015-12-03 12:11:03 +0100
+      desc: example freq2stats structure
+      filename: freq2.mat
+      type: application/x-matlab-workspace
+      size: "1762"
+      attacher:
+        +content: niels.kloosterman
+        +@name: Niels
+      data: REMOVED

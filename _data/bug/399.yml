@@ -1,0 +1,133 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "399"
+    creation_ts: 2011-01-14 00:29:00 +0100
+    short_desc: Bug with estimating power of Nyquist freq with ft_specest_mtmfft.m
+    delta_ts: 2011-03-18 00:37:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dgroppe
+      +@name: David Groppe
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: fieldtriptoolbox
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1021"
+        comment_count: "0"
+        attachid: "16"
+        who:
+          +content: dgroppe
+          +@name: David Groppe
+        bug_when: 2011-01-14 00:29:26 +0100
+        thetext: |-
+          Created attachment 16
+          small data set and alt function for computing power spectra
+
+          ft_specest_mtmfft.m overestimates the power at the Nyquist frequency by a factor of two when the number of time points used for estimation is a factor of two.  I believe the problem is that it doesn't take into account the fact that the Nyquist frequency is unique (like the DC component) when the number of time points is a factor of two and should not have its power doubled like the other non-DC frequencies.  To illustrate, I've attached a small data set and a function from our lab for estimating power spectra.  If you run the following code on the attached data set:
+
+          load dataPP2
+
+          %Estimate power across entire time window
+          cfg = [];
+          cfg.method = 'mtmfft';
+          cfg.output = 'pow';
+          cfg.foilim=[0 125]; % from 0 Hz to Nyquist
+          cfg.taper='boxcar';
+          freq=ft_freqanalysis(cfg,dataPP2);
+
+          %estimate power with our code
+          [pwr f]=pwr_spec_temp(dataPP2.trial{1}',250,'boxcar',-1);
+
+          n_time_pts=size(dataPP2.trial{1},2);
+          rect_wind=ones(1,n_time_pts);
+          rect_wind=rect_wind./norm(rect_wind); %normalize taper as is done by ft_specest_mtmfft.m
+          tapered_data=dataPP2.trial{1}.*rect_wind; %apply taper to data
+          fprintf('Sum Sqrs Time Domain: %g, Fieldtrip Sum Pwr: %g, Our Sum Pwr: %g\n', ...
+              sum(tapered_data.^2),sum(freq.powspctrm),sum(pwr));
+
+          You should get the following command line output:
+          "Sum Sqrs Time Domain: 139.156, Fieldtrip Sum Pwr: 139.183, Our Sum Pwr: 139.156"
+
+          Thus fieldtrip is over-estimating the power in the data.  The difference is in the Nyquist frequency which is twice as big as what it should be:
+          figure;plot(freq.freq,freq.powspctrm./pwr');
+      - +@isprivate: "0"
+        commentid: "1023"
+        comment_count: "1"
+        attachid: "17"
+        who:
+          +content: dgroppe
+          +@name: David Groppe
+        bug_when: 2011-01-14 00:59:38 +0100
+        thetext: |-
+          Created attachment 17
+          non-ftrip function for estimating power spectra
+
+          I think I forgot to include this in the original bug report.
+      - +@isprivate: "0"
+        commentid: "1651"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-03-18 00:36:43 +0100
+        thetext: |-
+          Hi Craig,
+
+          Sorry for responding so vastly late! I've been very busy the past months with traveling. You are completely right, we never implemented the scaling correction for the Nyquist frequency, only for the 0 Hz bin. You are probably the first to mention this (probably because of the inaccuracy of estimating power at the Nyquist). Thanks for your input! It should now correctly rescale the Nyquist bin as well.
+
+          Best,
+          Roemer
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "16"
+        date: 2011-01-14 00:29:00 +0100
+        delta_ts: 2011-01-14 00:29:26 +0100
+        desc: small data set and alt function for computing power spectra
+        filename: BUG.zip
+        type: application/zip
+        size: "12136"
+        attacher:
+          +content: dgroppe
+          +@name: David Groppe
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "17"
+        date: 2011-01-14 00:59:00 +0100
+        delta_ts: 2011-01-14 00:59:38 +0100
+        desc: non-ftrip function for estimating power spectra
+        filename: pwr_spec_temp.m
+        type: application/octet-stream
+        size: "4057"
+        attacher:
+          +content: dgroppe
+          +@name: David Groppe
+        data: REMOVED

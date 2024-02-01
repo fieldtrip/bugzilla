@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "639"
+    creation_ts: 2011-05-04 13:59:00 +0200
+    short_desc: fieldtrip-lite should exclude the templates and the externals
+    delta_ts: 2012-04-11 16:48:38 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: b.reuderink
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1978"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-04 13:59:03 +0200
+        thetext:
+      - +@isprivate: "0"
+        commentid: "4371"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-30 17:24:20 +0100
+        thetext: |-
+          Hoi Boris,
+
+          hier moeten we het even over hebben. Hoe kunnen we de "lite" versie lichter maken, en toch voldoende functioneel houden?
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "5513"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 12:25:04 +0100
+        thetext: |-
+          at this moment the release script is the following.
+
+          fieldtrip excludes all .svn and all test directories
+          fieldtrip-lite also excludes all *.mat files.
+
+
+          -----------------------------------------------------------------
+
+          #!/bin/sh
+
+          TODAY=$(date +%Y%m%d)
+          BASEDIR=$HOME/fieldtrip/release
+          TRUNK=$BASEDIR/trunk
+          MD5FILE=$BASEDIR/.tarmd5-release-ftp
+
+          cd $TRUNK && svn update
+
+          cd $HOME/fieldtrip/release || exit 1
+          rsync -ar --copy-links --delete --exclude .svn --exclude test $TRUNK/ release-ftp || exit 1
+
+          CURRMD5=$(tar cf - release-ftp |md5sum |awk '{print $1}')
+          LASTMD5=$(cat $MD5FILE)
+          if [ "x$CURRMD5" = "x$LASTMD5" ]
+          then
+              # the current release has not been updated compared to the previous
+              exit 0
+          else
+              # the current release is an updated version
+              echo $CURRMD5 > $MD5FILE
+              mv release-ftp fieldtrip-$TODAY
+              zip -r daily/fieldtrip-$TODAY.zip fieldtrip-$TODAY
+              zip -r daily/fieldtrip-lite-$TODAY.zip fieldtrip-$TODAY -x '*.mat'
+              mv fieldtrip-$TODAY release-ftp
+
+              rm -f daily/fieldtrip-latest.zip
+              ln daily/fieldtrip-$TODAY.zip daily/fieldtrip-latest.zip
+              rm -f daily/fieldtrip-lite-latest.zip
+              ln daily/fieldtrip-lite-$TODAY.zip daily/fieldtrip-lite-latest.zip
+
+              cp daily/fieldtrip-$TODAY.zip      /home/common/matlab/fieldtrip/data/ftp/fieldtrip-$TODAY.zip
+              cp daily/fieldtrip-lite-$TODAY.zip /home/common/matlab/fieldtrip/data/ftp/fieldtrip-lite-$TODAY.zip
+          fi
+      - +@isprivate: "0"
+        commentid: "5514"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 12:51:16 +0100
+        thetext: "I took the two versions of 20120309 and looked at their size\n\n\nroboos@mentat001> du -hs *\n309M    fieldtrip-full-20120309\n196M    fieldtrip-lite-20120309\n\nSo lite is 100MB smalled, but compared to full only 30%. Looking into the lite version\n\nroboos@mentat001> du -hs fieldtrip-lite-20120309/* | grep -v '\\.m' | grep M\n1.3M    fieldtrip-lite-20120309/engine\n100M    fieldtrip-lite-20120309/external\n5.1M    fieldtrip-lite-20120309/fileio\n1.4M    fieldtrip-lite-20120309/forward\n6.8M    fieldtrip-lite-20120309/multivariate\n5.3M    fieldtrip-lite-20120309/peer\n2.2M    fieldtrip-lite-20120309/private\n1.6M    fieldtrip-lite-20120309/qsub\n4.0K    fieldtrip-lite-20120309/README\n55M     fieldtrip-lite-20120309/realtime\n2.4M    fieldtrip-lite-20120309/src\n8.7M    fieldtrip-lite-20120309/template\n1.6M    fieldtrip-lite-20120309/utilities\n\nexternal is 100MB, realtime is 55MB. \n\nItems to exclude could be peer, engine and qsub, because they are for advanced users only. \n\nIdem multivariate and realtime. \n\nLooking in more detail into \"external\" shows these large ones\n\nroboos@mentat001> du -hs fieldtrip-lite-20120309/external/* | grep M\n1.3M    fieldtrip-lite-20120309/external/afni\n2.6M    fieldtrip-lite-20120309/external/bci2000\n7.9M    fieldtrip-lite-20120309/external/dmlt\n33M     fieldtrip-lite-20120309/external/fns\n7.7M    fieldtrip-lite-20120309/external/iso2mesh\n1.2M    fieldtrip-lite-20120309/external/neuroshare\n4.0K    fieldtrip-lite-20120309/external/README\n11M     fieldtrip-lite-20120309/external/simbio\n14M     fieldtrip-lite-20120309/external/spm2\n13M     fieldtrip-lite-20120309/external/spm8\n4.0M    fieldtrip-lite-20120309/external/sqdproject\n\ndmlt equals multivariate\n\nfns and simbio are for forward models, it includes binaries \n\niso2mesh is something Cristiano added, but it is unclear whether all of it is really needed, it includes binaries \n\nwe don't need both spm2 and spm8.\n\nsqdproject is not needed any more.\n\n\nIf I do\nrm -rf fieldtrip-lite-20120309/qsub\nrm -rf fieldtrip-lite-20120309/peer\nrm -rf fieldtrip-lite-20120309/engine\nrm -rf fieldtrip-lite-20120309/multivariate\nrm -rf fieldtrip-lite-20120309/realtime\nrm -rf fieldtrip-lite-20120309/external/dlmt\nrm -rf fieldtrip-lite-20120309/external/sqdproject\nrm -rf fieldtrip-lite-20120309/external/fns\nrm -rf fieldtrip-lite-20120309/external/simbio\nrm -rf fieldtrip-lite-20120309/external/iso2mesh\nrm -rf fieldtrip-lite-20120309/external/spm2\n\nI end up with\nroboos@mentat001> du -hs fieldtrip-lite-20120309/\n58M     fieldtrip-lite-20120309/\n\nThe resulting 58MB can be considered sufficiently \"lite\". I don't think that the trimmed down version affects a lot of functionality for novice users."
+      - +@isprivate: "0"
+        commentid: "5515"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 13:14:05 +0100
+        thetext: |-
+          removing the suggested directories results in
+
+          roboos@mentat001> ll -h daily/fieldtrip-*20120311.zip
+          -rw-r--r-- 2 roboos coherence 125M Mar 11 13:11 daily/fieldtrip-20120311.zip
+          -rw-r--r-- 2 roboos coherence  22M Mar 11 13:11 daily/fieldtrip-lite-20120311.zip
+
+          I consider that to be sufficiently "lite" and will do the release like this.
+
+          The implementation uses the -x option with an exclude file that contains
+
+          *.mat
+          */qsub/*
+          */test/*
+          */peer/*
+          */engine/*
+          */multivariate/*
+          */realtime/*
+          */external/dmlt/*
+          */external/sqdproject/*
+          */external/fns/*
+          */external/simbio/*
+          */external/iso2mesh/*
+          */external/spm2/*
+          */external/yokogawa/*
+      - +@isprivate: "0"
+        commentid: "5862"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:38 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

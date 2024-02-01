@@ -1,0 +1,133 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2054"
+    creation_ts: 2013-03-13 17:45:00 +0100
+    short_desc: use rollback_provenance consistently when calling a high-level FT function from another
+    delta_ts: 2014-07-17 09:18:16 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2596
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2051
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2625
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2655
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc: eelke.spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9810"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 17:45:29 +0100
+        thetext: "when fixing bug 2051 (ft_math) I had to solve a problem with updating the data representation. This required \n\n% ensure that the data in all inputs has the same channels, time-axis, etc.\ntmpcfg = [];\ntmpcfg.parameter = cfg.parameter;\n[varargin{:}] = ft_selectdata(tmpcfg, varargin{:});\n\nwhereafter I could have done\n\ncfg.parameter = tmpcfg.parameter;\n\nto copy it back into the main cfg. However, discussing this with Eelke we figured out that both the cfg and the data are affected by this, and therefore need to be updated.\n\nThis is also the case in for example ft_volumesegment, where\n\nif cfg.downsample ~= 1\n  tmpcfg            = [];\n  tmpcfg.downsample = cfg.downsample;\n  tmpcfg.smooth     = 'no'; % smoothing is done in ft_volumesegment itself\n  mri = ft_volumedownsample(tmpcfg, mri);\nend\n\nThe consequence of this is that in the provenance the user will see an extra ft_volumedownsample box that he did not explicitly ask for. \n\nThe user calls ft_volumesegment, that ft_volumedownsample is called should remain hidden. \n\nIdem for ft_math:\nThe user calls ft_math, that ft_selectdata is called should remain hidden. \n\nInstead of the first solution in ft_math, I now did\n\ntmpcfg = [];\ntmpcfg.parameter = cfg.parameter;\n[varargin{:}] = ft_selectdata(tmpcfg, varargin{:});\n% restore the provenance information\n[cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\n\nwhere rollback_provenance takes care of the provenance AND of merging the tmpcfg back into the original cfg.\n\nThis new approach (which is much cleaner w.r.t. provenance) needs to be implemented consistently."
+      - +@isprivate: "0"
+        commentid: "9811"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 17:46:47 +0100
+        thetext: |-
+          the following functions seem to be implied here
+
+
+          mac001> grep -l tmpcfg *.m
+          ft_appendfreq.m
+          ft_artifact_ecg.m
+          ft_artifact_eog.m
+          ft_artifact_jump.m
+          ft_artifact_muscle.m
+          ft_componentanalysis.m
+          ft_connectivityanalysis.m
+          ft_connectivityplot.m
+          ft_databrowser.m
+          ft_denoise_pca.m
+          ft_dipolefitting.m
+          ft_headmovement.m
+          ft_math.m
+          ft_megrealign.m
+          ft_multiplotER.m
+          ft_multiplotTFR.m
+          ft_mvaranalysis.m
+          ft_prepare_headmodel.m
+          ft_prepare_layout.m
+          ft_prepare_leadfield.m
+          ft_prepare_mesh.m
+          ft_prepare_sourcemodel.m
+          ft_redefinetrial.m
+          ft_rejectartifact.m
+          ft_singleplotER.m
+          ft_singleplotTFR.m
+          ft_sourceanalysis.m
+          ft_sourceinterpolate.m
+          ft_sourceplot.m
+          ft_sourcestatistics.m
+          ft_statistics_montecarlo.m
+          ft_stratify.m
+          ft_volumenormalise.m
+          ft_volumerealign.m
+          ft_volumereslice.m
+          ft_volumesegment.m
+          ft_volumewrite.m
+      - +@isprivate: "0"
+        commentid: "14011"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-03 17:42:04 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          These are the functions that call ft_selectdata but not rollback_provenance:
+
+          mac011> grep -L rollback_provenance `grep -l ft_selectdata.*cfg *.m`
+
+          ft_channelnormalise.m
+          ft_channelrepair.m
+          ft_componentanalysis.m
+          ft_connectivityanalysis.m
+          ft_connectivityplot.m
+          ft_denoise_pca.m
+          ft_denoise_synthetic.m
+          ft_freqdescriptives.m
+          ft_megplanar.m
+          ft_megrealign.m
+          ft_multiplotER.m
+          ft_preprocessing.m
+          ft_redefinetrial.m
+          ft_rejectvisual.m
+          ft_removetemplateartifact.m
+          ft_resampledata.m
+          ft_scalpcurrentdensity.m
+          ft_singleplotER.m
+          ft_sourcestatistics.m
+
+          The updates of these functions are at risk of introducing the error that is reported in bug #2625.

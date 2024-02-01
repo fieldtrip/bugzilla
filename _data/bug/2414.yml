@@ -1,0 +1,72 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2414"
+    creation_ts: 2013-12-05 17:22:00 +0100
+    short_desc: Neuralynx headers include unicode characters, which can crash ft_read_neuralynx_interp
+    delta_ts: 2014-02-24 10:56:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: locklin.jason
+      +@name: Jason Locklin
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: martinvinck
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12269"
+        comment_count: "0"
+        who:
+          +content: locklin.jason
+          +@name: Jason Locklin
+        bug_when: 2013-12-05 17:22:01 +0100
+        thetext: "## System:\nSystem Locale: en_CA.UTF-8\nSystem: Linux 3.8_amd64\nMatlab: 8.2.0.701 (R2013b)\n\nUsing either:\nJava: version \"1.7.0_25\"\nOpenJDK Runtime Environment (IcedTea 2.3.10)\nOpenJDK 64-Bit Server VM (build 23.7-b01, mixed mode)\n\nor:\nJava version \"1.7.0_45\"\nJava(TM) SE Runtime Environment (build 1.7.0_45-b18)\nJava HotSpot(TM) 64-Bit Server VM (build 24.45-b08, mixed mode)\n\n\n## Problem:\nWhen I use `ft_read_neuralynx_interp()`, I get the following error:\n\n> Invalid field name: 'DspFilterDelay_µ'.\n>\n> Error in setfield (line 34)\n>     s.(deblank(strField)) = varargin{end};\n>\n> Error in neuralynx_getheader (line 76)\n>       hdr = setfield(hdr, key, val);\n>\n> Error in read_neuralynx_ncs (line 37)\n> hdr = neuralynx_getheader(filename);\n>\n> Error in ft_read_header (line 1196)\n>     ncs = read_neuralynx_ncs(filename, 1, 0);\n>\n> Error in ft_read_neuralynx_interp (line 32)\n>   orig(i) = ft_read_header(fname{i});\n\n\nIt turns out that Matlab is trying to set a keyname in a struct based on\ninput from the neuralynx data headers, and one of those names is\n`DspFilterDelay_µ`. For some reason, my instance of matlab is happy with\nunicode characters pasted into the console or editor, and I can set\nstrings containing unicode characters, but I can't use unicode in identifiers:\n\n>>> '?'\n> ans =\n> ?\n\nworks fine, while the following fails:\n\n>>> ? = 1\n>  ? = 1\n>  |\n> Error: The input character is not valid in MATLAB statements or expressions.\n\n## Solution:\nI replaced the line:\n\n      hdr = setfield(hdr, key, val);\n\nin `neuralynx_getheader.m` with these lines:\n\n      try\n        hdr = setfield(hdr, key, val);\n      catch\n        fprintf('Key contains unallowed characters: %s, stripping...',key);\n        key = regexprep(key,'[^a-zA-Z]','');\n        hdr = setfield(hdr, key, val);\n      end \n\nThis solves the problem on my system, but won't result in any changes on systems supporting fully unicode characters.\n\nRegards,\nJason Locklin, \nUniversity of Waterloo, Canada"
+      - +@isprivate: "0"
+        commentid: "12385"
+        comment_count: "1"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-12-18 16:01:59 +0100
+        thetext: hi Robert, neuralynx_getheader shows a crash for the newer system because of unicode chars in the header. Do you agree with the proposed solution?
+      - +@isprivate: "0"
+        commentid: "12402"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-12-21 21:30:34 +0100
+        thetext: |-
+          The original fix here was not correct - as it was char(181) causing problems. I put the right comparison with char(181) in there now.
+          Jason's solution would work as well although numbers would have to be added. But it would leave us blind to the information being removed - therefore I'd prefer to solve one by one.
+      - +@isprivate: "0"
+        commentid: "12940"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:34 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

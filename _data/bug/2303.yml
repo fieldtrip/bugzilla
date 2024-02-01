@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2303"
+    creation_ts: 2013-09-27 00:06:00 +0200
+    short_desc: reading generic EEG files fails due to error message from ft_senslabel
+    delta_ts: 2014-02-24 10:56:20 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jdien07
+      +@name: Joseph Dien
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11476"
+        comment_count: "0"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-09-27 00:06:48 +0200
+        thetext: "ft_read_header calls on ft_chantype when there is no chantype field, which in turn when ft_senstype returns a positive for 'eeg' then calls on ft_senslabel to determine whether it matches 'eeg' which then fails since 'eeg' isn't on the list.  I'm wondering if it was meant to be calling on 'electrode' instead, which is on the list?  Or maybe 'eeg1010' or whatever?\n\n-----------ft_read_header-------------------\nif ~isfield(hdr, 'chantype')\n  % use a helper function which has some built in intelligence\n  hdr.chantype = ft_chantype(hdr);\nend % for\n---------------ft_chantype---------------\nelseif ft_senstype(input, 'eeg') && isheader\n  % use an external helper function to define the list with EEG channel names\n  type(match_str(hdr.label, ft_senslabel(ft_senstype(hdr)))) = {'eeg'};\n--------------ft_senstype----------------\n  case 'electrode'\n    % there is no default set of electrode labels for all possible EEG systems\n    % but nevertheless the requested input type 'electrode' should not result in an error\n    label = {};\n    \n  otherwise\n    error('the requested sensor type is not supported');\nend\n------------------------------\n\nI'm testing with fieldtrip-20130923 on Matlab 2013b on OS X 10.8.5"
+      - +@isprivate: "0"
+        commentid: "11479"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-27 08:33:54 +0200
+        thetext: |-
+          I have to admit that the organization is kind of spaghetti code. Part of it is implemented to deal with chantype while reading, part of it is there to deal with it to "fix" old fieldtrip data structures that are read from *.mat files. It is mainly relevant for MEG data, where some functions need to behave differently depending on axial or planar gradiometers.
+
+          I will have a look.
+      - +@isprivate: "0"
+        commentid: "11480"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-27 08:59:03 +0200
+        thetext: "I prefer to use eeg as the description of the acquisition system (like ctf151) rather than electrode. It is an \"eeg\" system, not an \"electrode\" system. But there is code that already uses \"electrode\" which is hard to track.\n\nI changed ft_senslabel so thaht eeg and electrode are treated the same. \n\nmac001> svn commit ft_senslabel.m\nSending        ft_senslabel.m\nTransmitting file data .\nCommitted revision 8556."
+      - +@isprivate: "0"
+        commentid: "11481"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-27 09:05:07 +0200
+        thetext: |-
+          Use eeg instead of electrode, and meg instead of magnetometer:
+
+          mac001> svn commit fileio/private/ft_senstype.m
+          Sending        fileio/private/ft_senstype.m
+          Transmitting file data .
+          Committed revision 8558.
+      - +@isprivate: "0"
+        commentid: "11482"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-27 09:19:20 +0200
+        thetext: I was not able to reproduce your error, but have made some changes to make the code more consistent. Could you try again?
+      - +@isprivate: "0"
+        commentid: "11497"
+        comment_count: "5"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-10-01 15:22:15 +0200
+        thetext: |-
+          The fix worked!  :)
+
+          I'm attaching a test case.
+      - +@isprivate: "0"
+        commentid: "11498"
+        comment_count: "6"
+        attachid: "525"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2013-10-01 16:05:28 +0200
+        thetext: |-
+          Created attachment 525
+          test case
+      - +@isprivate: "0"
+        commentid: "11499"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-01 17:45:20 +0200
+        thetext: "(In reply to comment #6)\n\nthanks, I added a test script. \n\nmac001> svn commit test_bug2303.m \nAdding         test_bug2303.m\nTransmitting file data .\nCommitted revision 8581."
+      - +@isprivate: "0"
+        commentid: "12898"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:20 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "525"
+      date: 2013-10-01 16:05:00 +0200
+      delta_ts: 2013-10-01 16:05:28 +0200
+      desc: test case
+      filename: Archive.zip
+      type: application/zip
+      size: "110693"
+      attacher:
+        +content: jdien07
+        +@name: Joseph Dien
+      data: REMOVED

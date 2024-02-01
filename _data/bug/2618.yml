@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2618"
+    creation_ts: 2014-06-20 10:29:00 +0200
+    short_desc: qsublist cannot determine pbsids when nr of jobs>999
+    delta_ts: 2014-07-15 17:25:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marcel.zwiers
+      +@name: Marcel Zwiers
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13903"
+        comment_count: "0"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2014-06-20 10:29:39 +0200
+        thetext: "Batches with over 999 jobs result in incorrect handling of the pbs/job ids.\nExample:\n\nqsubcellfun(@pause,repmat({0},1,1010), 'timreq',0, 'memreq',0, 'Stack',1)\n[..]\njob marzwi_dccn_c355_p10401_b1_j262 returned, it required 0 seconds and 9.3 MB\njob marzwi_dccn_c355_p10401_b1_j263 returned, it required 0 seconds and 10.6 MB\nWarning: cannot determine the pbsid that corresponds to jobid marzwi_dccn_c355_p10401_b1_j1000 \n> In qsublist at 89\n  In qsubget at 66\n  In qsubcellfun at 362\nWarning: cannot determine the pbsid that corresponds to jobid marzwi_dccn_c355_p10401_b1_j1001 \n> In qsublist at 89\n  In qsubget at 66\n  In qsubcellfun at 362\nWarning: cannot determine the pbsid that corresponds to jobid marzwi_dccn_c355_p10401_b1_j1002 \n> In qsublist at 89\n  In qsubget at 66\n  In qsubcellfun at 362\n[..]"
+      - +@isprivate: "0"
+        commentid: "13904"
+        comment_count: "1"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2014-06-20 11:22:34 +0200
+        thetext: |-
+          Somehow putting a dbstop at line 69 of qsublist does not stop matlab, but I think I found the bug at line 100 of qsublist
+
+            case 'del'
+              sel = strmatch(jobid, list_jobid);
+
+          If jobid='100', strmatch (which is, btw, deprecated and will be removed in future versions) will match both '100' and '1001'.
+
+          Solution:
+          Use either:
+
+          sel = strmatch(jobid, list_jobid, 'exact');
+
+          or better even (= future proof):
+
+          sel = strcmp(jobid, list_jobid);
+              if any(sel)
+
+
+          NB: The same strmatch-patch should be applied elsewhere in the code too
+      - +@isprivate: "0"
+        commentid: "13905"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 11:42:33 +0200
+        thetext: |-
+          (In reply to Marcel Zwiers from comment #1)
+
+          indeed!
+
+          >> strmatch('100', {'1000', '1001'})
+          ans =
+               1
+               2
+
+          >> strcmp('100', {'100', '1000', '1001'})
+          ans =
+               1     0     0
+      - +@isprivate: "0"
+        commentid: "13906"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-20 11:49:54 +0200
+        thetext: "this should fix it\n\nmac011> svn commit \nSending        qsubfeval.m\nSending        qsublist.m\nTransmitting file data ..\nCommitted revision 9643."
+      - +@isprivate: "0"
+        commentid: "14130"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:10 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

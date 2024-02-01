@@ -1,0 +1,192 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3207"
+    creation_ts: 2016-11-15 14:23:00 +0100
+    short_desc: support reading annotations from an EDF+ file
+    delta_ts: 2017-01-17 11:29:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: mark.roberts
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17968"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-15 14:23:01 +0100
+        thetext: The file contains ECoG data from Maastricht. The annotation channel is of a different sampling rate.
+      - +@isprivate: "0"
+        commentid: "17969"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-15 16:09:15 +0100
+        thetext: |-
+          I made a branch "bug3207-edf" and started testing with the provided dataset. With test3_2048Hz.EDF I already detected an error, since the annotation channel was not (as expected in the code) the last one in the file. I fixed that.
+
+          commit 378418254396ac0966deadc0b823dd7f6e7b88ad
+          FIX - don't assume the annotation channel is always the last, it can be another one as well. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3207
+
+          commit fde31b5bd546ff86aade208c8cd0d5e0619959e4
+          ENH - use emptymeaningfull=true for detectflank, otherwise EDF annotation cannot be read. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3207
+      - +@isprivate: "0"
+        commentid: "17970"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-16 10:38:12 +0100
+        thetext: |-
+          commit b765f9182aa4bd4f9473bcb49e2b2b602bfc1e23
+          ENH - added more elaborate section to test sscript, some cleanups to the read_edf function (no functional changes). See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3207
+
+          commit 71d360d4d60e9a3ff6b556fdb3720cd8f16197d8
+          ENH - added test script, see bug #3207
+      - +@isprivate: "0"
+        commentid: "17971"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-16 10:43:40 +0100
+        thetext: I created a PR and merged it into the release. https://github.com/fieldtrip/fieldtrip/pull/261
+      - +@isprivate: "0"
+        commentid: "17972"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-16 10:46:44 +0100
+        thetext: |-
+          @Mark, can you get the latest version of fieldtrip and have a look at the last section of the test script at https://github.com/fieldtrip/fieldtrip/blob/master/test/test_bug3207.m
+
+          it makes use of the following trial function
+
+          ----
+
+          function [trl, event] = trialfun_edf(cfg)
+
+          % read the header
+          hdr = ft_read_header(cfg.dataset);
+
+          % read the events, don't detect flanks in a trigger channel but read annotations
+          event = ft_read_event(cfg.dataset, 'detectflank', []);
+
+          % make a selection
+          sel = ismember({event.value}, {''});
+
+          % determine the sample numbers of events
+          smp = [event(sel).sample];
+
+          begsample = smp-round(0.250*hdr.Fs);
+          endsample = smp+round(0.750*hdr.Fs);
+          offset    = -ones(size(begsample))*round(0.250*hdr.Fs);
+
+          trl = [begsample(:) endsample(:) offset(:)];
+
+          sel = trl(:,1)>1;
+          trl = trl(sel,:);
+
+          sel = trl(:,2)<hdr.nSamples;
+          trl = trl(sel,:);
+
+          -----
+
+          The option 'detectflank'=[] is important, since otherwise it will try to read a sampled TTL trigger channel and detect up- or downing flanks in that channel. If [] it will read and parse the ascii content of the annotation channel.
+      - +@isprivate: "0"
+        commentid: "17973"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-16 10:59:08 +0100
+        thetext: I have added some documentation to http://www.fieldtriptoolbox.org/getting_started/edf
+      - +@isprivate: "0"
+        commentid: "17977"
+        comment_count: "6"
+        who:
+          +content: mark.roberts
+          +@name: Mark Roberts
+        bug_when: 2016-11-16 22:17:48 +0100
+        thetext: I downloaded version fieldtrip-20161115. On my home PC running 32 bit matlab 2009 I don' t get the events. I will try on a a different PC tomorrow.
+      - +@isprivate: "0"
+        commentid: "17978"
+        comment_count: "7"
+        who:
+          +content: mark.roberts
+          +@name: Mark Roberts
+        bug_when: 2016-11-17 00:04:15 +0100
+        thetext: |-
+          with 64bit matlab version I get events in the larger edf file, with the smaller I get an error from read_16bit.
+          In the larger file that does give events I only get 'annotation' for each event not what was written.
+          I set detectflank to [] when calling ft_read_event but it gets set to 'up' at around line 145 of ft_read_event. I only get events if I set detectflank to [] in ft_read_event
+
+          Will try again with a different PC
+      - +@isprivate: "0"
+        commentid: "17979"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-17 09:55:32 +0100
+        thetext: |-
+          (In reply to Mark Roberts from comment #7)
+
+          the edits that I made on 2016-11-16 will not be in version 20161115. You can also get the latest version directly from github as a zip file (or using git).
+      - +@isprivate: "0"
+        commentid: "17983"
+        comment_count: "9"
+        who:
+          +content: mark.roberts
+          +@name: Mark Roberts
+        bug_when: 2016-11-17 19:18:20 +0100
+        thetext: got it, it is working great
+      - +@isprivate: "0"
+        commentid: "17984"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-17 20:56:46 +0100
+        thetext: |-
+          (In reply to Mark Roberts from comment #9)
+
+          Thanks for the feedback. Please pass it on to Pieter.
+      - +@isprivate: "0"
+        commentid: "18199"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:47 +0100
+        thetext: closed multiple bugs that were resolved some time ago

@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "590"
+    creation_ts: 2011-04-19 11:09:00 +0200
+    short_desc: wltconvol gives weird results in lower frequencies
+    delta_ts: 2011-05-05 21:24:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - roemer.van.der.meij
+      - saskia.haegens
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1831"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-04-19 11:09:57 +0200
+        thetext: Just try and run the last part of the time-frequency tutorial (http://fieldtrip.fcdonders.nl/tutorial/timefrequencyanalysis#morlet_wavelets). Strangely, everything looks fine if you specify cfg.keeptrials='yes' (discovered by two Toolkit participants). Enjoy fixing this while strolling through NYC :)
+      - +@isprivate: "0"
+        commentid: "1834"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-04-19 11:27:38 +0200
+        thetext: '*** Bug 583 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "1844"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-04-20 19:32:34 +0200
+        thetext: "I took me a while, but I tracked down the cause of the error. In case of keeprpt = 1, NaNs were not being set when the powspctrcm variables were being filled. I.e. code like \"powspctrm(:,ifoi,~acttboi) = NaN;\" was commented out (line 615, 619 and 623, current version). This resulted in all low frequency stuff that did not fit into to the time-window to be 0, instead of a NaN. This is only the case for keeprpt == 1, in the other cases the relevant lines are not commented out. \n\nI tracked down this change to one you made, JM, on March the 16th: http://code.google.com/p/fieldtrip/source/detail?r=3117&path=/trunk/ft_freqanalysis.m\nYour svn-log says: \n\"fixed bug related to variable length trials in combination with keeptrials = 'no', leading to the sum over trials not being correctly normalised. introduced option to suppress feedback to screen for mtmfft and mtmconvol methods\"\n\n\nDo you remember why you commented the NaN lines out? At the moment I have NOT fixed the bug, I wanted to check with you first."
+      - +@isprivate: "0"
+        commentid: "1853"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-04-22 09:17:43 +0200
+        thetext: |-
+          I will look at it once I have time. I had a clear motivation for this at the time, but I have to think it over.
+          Who want to use 'wavelet' anyway ;o)
+      - +@isprivate: "0"
+        commentid: "1861"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-04-22 17:52:38 +0200
+        thetext: "Totally!\nIt looks like you made a special nan-handling down below if cfg.method = mtmconvol, which inserts nans in the appropriate fields. (and since this code is only executed in case of mtmconvol, wavelet breaks down). I assume this is directly related to changing the way mtmconvol give it's output spectrum, being chan_time_freqtap? And somehow something goes wrong with the acttboi variable used to insert nans the old way? You also do something there with a new trial-count?. \nA simple fix for the issue, not knowing why the trial-count stuff is necessary, would be to remove the nan-handling from your specific mtmconvol code? As it looks like the main purpose of the code is to do the trial-count stuff?"
+      - +@isprivate: "0"
+        commentid: "1870"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-04-26 10:36:34 +0200
+        thetext: "Guys, \n\nI fixed the issue. Could one of you check whether the problem persists by running part of the tutorial code? (I could not reproduce the problem to begin with).\n\n@Roemer: my changes are essential to ensure correct behaviour when the input contains variable length trials. If it is done in the original way, normalization is incorrect/a too constrained section of the TFR will be outputted (outputting only those time bin for which all trials contain data)."
+      - +@isprivate: "0"
+        commentid: "1872"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-04-26 10:51:51 +0200
+        thetext: 'Verified: tutorial code yields correct results again.'
+      - +@isprivate: "0"
+        commentid: "2007"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-05 21:24:27 +0200
+        thetext: 'bulk action: closed all bugs with status "resolved/fixed"'

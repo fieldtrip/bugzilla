@@ -1,0 +1,112 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2680"
+    creation_ts: 2014-08-30 23:02:00 +0200
+    short_desc: ft_timelockanalysis does not compute minperlength correctly
+    delta_ts: 2015-01-12 09:20:46 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: craig.richter
+      +@name: Craig Richter
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14282"
+        comment_count: "0"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-08-30 23:02:42 +0200
+        thetext:
+      - +@isprivate: "0"
+        commentid: "14283"
+        comment_count: "1"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-08-30 23:06:18 +0200
+        thetext: At line 155 of ft_timelockanalysis the minperlength is computed.  When multiple trials are used of the same length, this leads to a [start end] for minperlength that does not make sense since the starting value is selected as the start time of the final trial, and the end point is selected as the end time of the first trial.  This then triggers the error message at line 167.
+      - +@isprivate: "0"
+        commentid: "14285"
+        comment_count: "2"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-09-02 21:31:27 +0200
+        thetext: To add a bit more info that I determined.  It seems that this outcome is due to each trial having a different time axis (though the same length) after using ft_redefinetrial to cut one long (resting state) trial into equal length snippets.  Since this operation preserves the time-axis of the original trial, ft_timelockanalysis doesn't not seem to treat this situation in the right way.  I'm not sure if the best approach is to give a common axis to the output when using ft_redefinetrial to create sub-trial of a given length from a single-long trial, or that ft_timelockanalysis should disregard the time-axis.  Nonetheless, this computation is indeed giving the wrong result in determining that these trials are of different length, when they are indeed of the same length.
+      - +@isprivate: "0"
+        commentid: "14310"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-10 13:55:14 +0200
+        thetext: |-
+          expected behavior of a sequence of calls to ft_redefinetrial and then ft_timelockanalysis would yield the same data again.
+
+          to be tested in a script
+
+          irrespective of this the minperlength detection should be made correct
+      - +@isprivate: "0"
+        commentid: "14315"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-10 14:48:34 +0200
+        thetext: |-
+          My version of ft_timelockanalysis does not have an error message on line 167.
+
+          I created a test function that behaves the way I expect it to do, i.e. if a single long trial is cut into pieces, and subsequently ft_timelockanalysis is called with cfg.vartrllength = 2; the original data is returned.
+
+          Am I missing something?
+
+          Is it the confusion that the 'same length trials' actually should mean 'same length trials with identical time axes'?
+      - +@isprivate: "0"
+        commentid: "14318"
+        comment_count: "5"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-09-10 14:56:25 +0200
+        thetext: Exactly, they are the same length, thus they satisfy the criterion and thus should not require option 2 for cfg.vartrllength.  It seemed to me based on the description that I should use option 1, but since the time-axes are not the same, it should be option 2.  I realize that for computing an average over the trials, this wouldn’t make a lot of sense, but since I was interested in computing the covariance, it threw me for a loop.
+      - +@isprivate: "0"
+        commentid: "14322"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-10 15:10:52 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "documentation - updated ft_timelockanalysis to be more explicit in what is meant with 'equal length trials', bug 2680" ft_timelockanalysis.m
+          Sending        ft_timelockanalysis.m
+          Transmitting file data .
+          Committed revision 9785.

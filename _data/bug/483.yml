@@ -1,0 +1,139 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "483"
+    creation_ts: 2011-02-09 10:24:00 +0100
+    short_desc: 'Re: [FieldTrip] FT doesn''t close .fif files'
+    delta_ts: 2012-02-03 21:12:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - lhunt
+      - sburns
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1389"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-09 10:24:09 +0100
+        thetext: "On 4 Feb 2011, at 17:12, Scott Burns wrote:\n\nFieldTrip Experts -\n\nI'm building a FieldTrip pipeline for use on M/EEG data collected on a Neuromag 306 system.  Because I'm looping over subjects (13 currently), event type (5 unique events), and number of runs (4), there's lots of preprocessing to do.  After processing a certain amount of files, MATLAB refuses to open more files. \n\nI ran 'lsof MATLAB | grep \"/autofs/cluster/kuperberg/\" (to only include the data files I'm using, not MATLAB's system files) and found that for every innermost loop, my script is opening the .fif file twice and not releasing it.  I use a custom function for ft_definetrial and in that I use ft_read_event (that operates on the .fif file). After defining trials, I use ft_preprocessing.\n\nI would venture to guess that both ft_read_event and ft_read_data (ft_preprocessing:line 492) are either 1) not closing files they've opened (presumably through MNE functions), or 2) they're using shared code that doesn't close files.  I use MNE and haven't run into this issue before.  That being said, fclose('all') does close all these files but I think it's still worth looking into.\n\nFWIW I'm using CentOS 5 and MATLAB R2010B (glnxa64)."
+      - +@isprivate: "0"
+        commentid: "1390"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-09 10:24:37 +0100
+        thetext: "ft_read_data does the following on every read-request (line 772), \n  case {'neuromag_fif' 'neuromag_mne'}\n    % check that the required low-level toolbox is available\n    ft_hastoolbox('mne', 1);\n    if (hdr.orig.iscontinuous)\n      dat = fiff_read_raw_segment(hdr.orig.raw,begsample+hdr.orig.raw.first_samp-1,endsample+hdr.orig.raw.first_samp-1,chanindx);\n\nfrom this I understand that the file is already supposed to be open and represented in hdr.orig.raw (hdr.orig is in general where fieldtrip stores the original header details, i.e. including all system specific information).\n\nand prior to that it does (line 223)\n% read the header if it is not provided\nif isempty(hdr)\n  hdr = ft_read_header(filename, 'headerformat', headerformat);\nend\n\nI would expect the part on  ft_read_header not to be executed on every call to ft_read_data, because in general ft_read_header has already been called outside ft_read_data (e.g. to select the channels prior to start the reading). So ft_preprocessing calls ft_read_header once and ft_read_data many times. \n\nand in ft_read_header it does\n    orig = fiff_read_meas_info(filename);\nand\n     raw = fiff_setup_read_raw(filename);\n\nDiagnosis: ft_read_header opens the file, ft_read_data keeps it open. Then you move to the next file, and that one is also opened (and kept open). Hmm, indeed a problem. The design idea is that reading from files shoudl be stateless, i.e. prior and after each read operation the file should be closed. On modern file systems there is no penalty associated with that, and it keeps the code much cleaner. That is why fieldtrip does not have a ft_open_file and ft_close_file function, and why you cannot close the file (except with fclose('all')).\n\nDo you happen to know whether fiff_read_meas_info and fiff_setup_read_raw are supposed to keep the files open? I could not find a fiff_close function, do you know whether there is one?"
+      - +@isprivate: "0"
+        commentid: "1391"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-09 10:46:13 +0100
+        thetext: |-
+          On 9 Feb 2011, at 10:43, Robert Oostenveld wrote:
+
+          Hi Laurence
+
+          thanks for the reply to Scott. I had typed my email on the train yesterday evening (while offline) and sent it out this morning, without checking whether there was any news.
+
+          Does fiff_setup_read_raw take a significant amount of time? I.e. is there a severe performance impact if we would call it on each ft_read_data and fclose also on each call?
+
+          If Scott follows standard FieldTrip practise, he could very well call ft_read_header in his script but he cannot pass the hdr into the subsequent ft_read_data calls (because those are done by  ft_preprocessing, which will read it's own copy of the header info anyway).
+
+          Is the position of the file pointer relevant in the subsequent calls to ft_read_data? If not, then we could also do a plain fopen instead of fiff_setup_read_raw on subsequent calls to ft_read_data and also fclose on each call. A fopen/fseek/fclose does not take any measurable time on a modern operating system and file system (because the file is read-cached in memory anyway) and the advantage of the stateless implementation is worth more than lossing a milisecond on an operation that takes a second or more anyway (which is reading the actual data data and pumping it to memory).
+
+          What we could also do (alternative to the two options above) is to have a persistent variable for the filename and for the fid in ft_read_header. Using those, it could close the previous file it it detects that a new file is opened.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "4251"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-24 12:18:58 +0100
+        thetext: |-
+          I checked whether the bug report is still pertinent using a test scrip (see below and fieldtrip/test/test_bug483.m). According to the test script the problem does not occur any more. I guess that it has been resolved a long time ago but that this report was never closed.
+
+
+          ----------------------------------------------------------------------
+          function test_bug483
+
+          % TEST test_bug483
+          % TEST ft_read_header ft_read_data ft_read_event
+
+          filename = '/home/common/matlab/fieldtrip/data/test/original/meg/neuromag306/raw.fif';
+
+          if ~exist(filename)
+          filename = '/Users/robert/Manzana/data/dataformat/testdata/neuromag/rik_henson_MRC-CBU/raw.fif';
+          end
+
+          % open a new file and close it again
+          fidold = fopen(tempname, 'wb')
+          fclose(fidold);
+
+          hdr = ft_read_header(filename);
+          hdr = ft_read_header(filename);
+          hdr = ft_read_header(filename);
+
+          dat = ft_read_data(filename, 'begsample', 1, 'endsample', 1000, 'ckeckbondary', false);
+          dat = ft_read_data(filename, 'begsample', 1, 'endsample', 1000, 'ckeckbondary', false);
+          dat = ft_read_data(filename, 'begsample', 1, 'endsample', 1000, 'ckeckbondary', false);
+
+          event = ft_read_event(filename);
+          event = ft_read_event(filename);
+          event = ft_read_event(filename);
+
+          % open a new file and close it again
+          fidnew = fopen(tempname, 'wb')
+          fclose(fidnew);
+
+          % the file identifier for a new file should not have changed
+          % if it changed, then probably there is still a fif file open
+          assert(fidold==fidnew);
+      - +@isprivate: "0"
+        commentid: "4252"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-24 12:21:42 +0100
+        thetext: |-
+          mbp> svn commit
+          Adding         test/test_bug483.m
+          Transmitting file data .
+          Committed revision 4809.

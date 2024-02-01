@@ -1,0 +1,183 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3184"
+    creation_ts: 2016-10-12 20:19:00 +0200
+    short_desc: getdimord fails on pcc output
+    delta_ts: 2016-11-29 09:00:18 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17805"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-12 20:19:41 +0200
+        thetext: "Ok, this one is very specific (and because of it kept me busy for most of the day).\n\nWhen called on wavelet PCC data (ft_sourceanalysis with method=pcc on data frequency-transformed with Morlet wavelets), getdimord(data, 'mom') results in a wrong result. In my case this is '{pos}_freq_unknown' while it should actually be '{pos}_freq_rpt'. This leads to all kinds of problems, e.g. when forwarding the data to ft_connectivityanalysis.\n\nInterestingly, even if the beamformer output contained the correct dimord field this does not change the problem.\n\nI attached two example source structures. One was frequency-transformed with mtmfft one with wavelet. Both datasets were then projected to source space using \n\ncfg=[]; \ncfg.method      = 'pcc';\ncfg.grid        = grid;      \ncfg.headmodel   = vol;        \ncfg.keeptrials  = 'yes';     \ncfg.pcc.keepfilter = 'yes';\ncfg.pcc.realfilter = 'yes';\ncfg.fixedori = 'yes';\nsource = ft_sourceanalysis(cfg, freq); \n\ngetdimord(source,'mom') gives the correct answer for the mtmfft source but not the wavelet one. I cant find a structural difference between the two datasets, other that one contains data from more than one taper (and that they have different numbers of filter channel labels because they come from different datasets but structurally i do not see any other difference)."
+      - +@isprivate: "0"
+        commentid: "17806"
+        comment_count: "1"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-12 20:26:49 +0200
+        thetext: |-
+          Example data:
+          https://www.dropbox.com/s/znwhcilnjprfvi7/exampledata.mat?dl=0
+      - +@isprivate: "0"
+        commentid: "17809"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 10:59:30 +0200
+        thetext: Hmmm, I have noticed this, too. Thanks for reporting and filing the bug. I'll look into it
+      - +@isprivate: "0"
+        commentid: "17810"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 11:24:59 +0200
+        thetext: |-
+          Actually, they're both incorrect
+
+          should be {pos}_ori_rpttap in both cases, no freq.
+      - +@isprivate: "0"
+        commentid: "17811"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 11:28:07 +0200
+        thetext: |-
+          Hmmm, it seems also that the source structure is kind of unexpected, it lacks a 'csdlabel' field.
+
+          could you upload the grid/vol/freq_mtmfft/freq_wvlt, too? thanks
+      - +@isprivate: "0"
+        commentid: "17812"
+        comment_count: "5"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-13 12:08:38 +0200
+        thetext: "I see, yes the csdlabel field is removed when subselecting trials (ft_selectdata). \n\ngrid and vol are different for the two datasets, the mtmfft is from the beamformer tutorial, the wavelet one is one of my eeg datasets. I can try to create two analogous datasets based on the beamformer tutorial later today."
+      - +@isprivate: "0"
+        commentid: "17813"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 12:20:41 +0200
+        thetext: |-
+          no worries. Can you then upload your eeg based vol/grid.
+
+          I'll grab some data from somewhere for the mtmfft stuff.
+      - +@isprivate: "0"
+        commentid: "17814"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 13:17:30 +0200
+        thetext: "Hi Jens, \nI suspect that your initial bug report was inspired by you getting stuck on a higher level function call? (e.g. ft_connectivityanalysis). Could you confirm?"
+      - +@isprivate: "0"
+        commentid: "17815"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 13:20:25 +0200
+        thetext: |-
+          I have now verified, that the following should work:
+
+          source_wvlt.avg.csdlabel = {'scandip'};
+
+          getdimord(ft_datatype_source(source_wvlt), 'mom')
+
+          this should return {pos}_ori_rpt
+
+          I have changed ft_selectdata, so that csdlabel does not get lost along the way.
+
+          I am not sure whether getdimord is expected to work fine when data has not been passed through ft_datatype_source (effectively getting rid of the '.avg.' as an intermediate field.
+
+          I suggest to PR the changes I made to ft_selectdata, and to follow up potentially on a newly generated bug if your original problem still persists...
+      - +@isprivate: "0"
+        commentid: "17816"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 13:48:34 +0200
+        thetext: I merged it into the master branch
+      - +@isprivate: "0"
+        commentid: "17817"
+        comment_count: "10"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-13 16:26:35 +0200
+        thetext: |-
+          Hey, thanks for picking up that issue so quickly. It has resolved the issue in ft_connectivityanalysis because there the data is restructured before getdimord is called (all fields in data.avg are moved one level up and then getdimord is able to guess the correct dimensions).
+
+          I still cant get a correct result by calling getdimord on the original source-level data (getdimord still gives '{pos}_freq_unknown') but this might be because I failed in bringing the data in the correct form before calling ft_sourceanalysis (I turned all timepoints into repetitions because sourceanalysis wasnt able to deal with my variable-length trials). Thats still odd, though, because the resulting source-level datasets looked identical to me, in everything but the number of tapers.
+
+          Concerning your other question, yes the whole issue arose when I tried to calculate connectivity using the powercorr_ortho method. This still failes, this time at line 927 where ft_connectivityanalysis tries to directly access data.dimord which is not present in the data (i think it is never present in DICS or PCC data). At this part of the code dtype is 'freq', not 'source'. Just in case this is the reason for the problem.
+      - +@isprivate: "0"
+        commentid: "17818"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-13 16:29:49 +0200
+        thetext: |-
+          Thanks for the feedback Jens.
+
+          Well, I think you can work around this by explicitly removing the 'label' field.
+          After conversion (i.e. after the call to ft_datatype_source) the structure may contain a label-field (if filters/leadfields are kept), leading fieldtrip to recognize it as 'freq', which is incorrect in this case.
+      - +@isprivate: "0"
+        commentid: "17819"
+        comment_count: "12"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-13 16:53:48 +0200
+        thetext: Yes thanks that works!
+      - +@isprivate: "0"
+        commentid: "17837"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-21 09:30:17 +0200
+        thetext: I have pullrequested the changes that allow for a more smooth handling of pcc output data. It should be present in the main branch now.

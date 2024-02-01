@@ -1,0 +1,171 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3369"
+    creation_ts: 2017-11-14 10:05:00 +0100
+    short_desc: implement a elekta neuromag fif log file reader
+    delta_ts: 2019-08-10 12:40:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3253
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1792
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3374
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: mikkel.vinding
+      +@name: Mikkel Vinding
+    cc:
+      - lau.moller.andersen
+      - mikkel.vinding
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19036"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 10:05:43 +0100
+        thetext: the maxfilter(tm) software can produce an ascii log file that contains the head movements. It would be relevant to read and display all (temporal) parameters in that log file.
+      - +@isprivate: "0"
+        commentid: "19040"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 14:31:11 +0100
+        thetext: |-
+          mac011> git commit -a
+          [bug3369 fbd9347] ENH - implemented log file reader for Neuromag Maxfilter log files, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3369
+           4 files changed, 132 insertions(+)
+           create mode 100644 fileio/private/read_neuromag_maxfilterlog.m
+      - +@isprivate: "0"
+        commentid: "19041"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 14:35:11 +0100
+        thetext: "I have merged the first implementation of this. \n\nhttps://github.com/fieldtrip/fieldtrip/pull/579\n\nYou can use it as\n\ncfg.dataset = 'some recording.fif.log'\ndata = ft_preprocessing(cfg)\n\nbut you might also want to look into fieldtrip/fileio/private/read_neuromag_maxfilterlog.m\n\nNote that the channel labels still need refinement.\n\nAlso the offset of the recording is not consistent with the time indicated in seconds inside the log file. The first sample is now (by construct) at t=0."
+      - +@isprivate: "0"
+        commentid: "19042"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-14 14:35:53 +0100
+        thetext: '@Mikkel, can you now have a look at it and perhaps come with suggestions for improvement?'
+      - +@isprivate: "0"
+        commentid: "19051"
+        comment_count: "4"
+        who:
+          +content: mikkel.vinding
+          +@name: Mikkel Vinding
+        bug_when: 2017-11-14 18:38:47 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          I run an older version of Matlab (R2016a) which does not have the build-in function "contains" - replacing it with any(strfind( ... )) fixed this.
+
+          I am not entirely sure what I get in the output from ft_preprocessing( ) when calling to a log file? The structure contains 50 channels named HPI or single letters, which are sampled every second.
+      - +@isprivate: "0"
+        commentid: "19052"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-15 09:21:15 +0100
+        thetext: |-
+          (In reply to Mikkel Vinding from comment #4)
+
+          Contains was introduced in 2016b. I have added a drop-in replacement for "contains" in fieldtrip/compat/matlablt2016b. It will be automatically added to the path.
+
+
+          Regarding the output, that indeed still needs some work where you should help and where the documentation might be needed.  Please have a look in the code. The single letters come from the last line (of the 4 lines), the hpiN_M channels contain the Mth value of the line for the Nth hpi coil.
+
+          I suspect that the first 6 values are the (fixed) polhemus and the estimated position of each coil. For the 7th and 8th value: it mentions g and hence hpi1_7 should be renamed into something like gof1 (probably g is "goodness of fit") and the error ("err") could be err1 instead of hpi1_8. The last 4x3 block needs to be named differently as well.
+
+
+          % Hpi fit OK, movements [mm/s] =  55.8 / 48.1 / 42.7 / 52.3 /
+          %    79.5    0.0    0.0 /  79.2   -0.3    0.2 / g = 0.999 err =  0.5 mm / 0.998 -0.056 -0.011
+          %     0.0   79.5    0.0 /   0.1   80.0   -0.2 / g = 1.000 err =  0.5 mm / 0.057  0.989  0.137
+          %   -79.5    0.0    0.0 / -78.8   -1.0    0.2 / g = 0.994 err =  1.2 mm / 0.003 -0.138  0.990
+          %     0.0  -79.5    0.0 /  -0.6  -78.6   -0.2 / g = 0.999 err =  1.0 mm /  -0.2    1.4    5.8
+          % #t = 170.510, #e = 0.08 cm, #g = 0.998, #v = 0.75 cm/s, #r = 0.61 rad/s, #d = 0.26 cm
+      - +@isprivate: "0"
+        commentid: "19069"
+        comment_count: "6"
+        who:
+          +content: mikkel.vinding
+          +@name: Mikkel Vinding
+        bug_when: 2017-11-17 15:47:26 +0100
+        thetext: "We had it mostly figured out. I got this reply from Elektra:\n\nLine 1 (Hpi fit OK) tells the coil movement speeds from the previous fit point.\nLines 2-5: first 3 numbers are the digitized x,y,z, and the next 3 numbers give the fitted locations after transforming to the head coordinate system.\n\ng is goodness of fit between measured and modeled HPI data.\n\nErr indicates the distance between fitted and digitized locations. \n\nThe last part shows the transformation, first 3x3 rotation and then the translation from the device to the head coordinates.\n\nOn line 6, #t is the time, #e and #g are the mean err and g-values, and #v and #r are the mean translation and rotation velocities. The last value #d indicates how much has the origin moved (drifted) from the initial locations.\n\nMaybe it would make sense to separate the translation matrix from the rest in the \"trial\" struct. Should we move it to another field in the output called \"transform\" or something similar?"
+      - +@isprivate: "0"
+        commentid: "19089"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-22 11:25:04 +0100
+        thetext: "(In reply to Mikkel Vinding from comment #6)\n\nI discussed this with Mikkel and learned quite a bit. \n\nRelevant documentation is\nhttps://github.com/mne-tools/mne-python/blob/maint/0.15/mne/transforms.py#L1145-L1164\nand\nhttp://www.acsu.buffalo.edu/~johnc/ave_quat07.pdf"
+      - +@isprivate: "0"
+        commentid: "19090"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-11-22 11:35:58 +0100
+        thetext: |-
+          Since the maxfilter "pos" file has 6 quaternion parameters, I added support for that as well.
+
+          mac011> git commit -a
+          [bug3369 82d835b] ENH - support unit quarternion with 6 parameters, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3369
+           1 file changed, 11 insertions(+), 3 deletions(-)
+      - +@isprivate: "0"
+        commentid: "19138"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-12-11 15:34:04 +0100
+        thetext: I think this is good enough for now, so let's close this issue. If there is need for further improvements, they can still be made.
+      - +@isprivate: "0"
+        commentid: "20203"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20402"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:23 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

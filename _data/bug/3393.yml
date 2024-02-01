@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3393"
+    creation_ts: 2017-12-30 06:42:00 +0100
+    short_desc: ft_sourceplot cannot deal with trialaveraged data following ft_selectdata
+    delta_ts: 2022-03-21 16:21:10 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19151"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-12-30 06:42:17 +0100
+        thetext: "The issue is due to an incorrect dimension of freq.powspctrm, but I'm not sure whether it needs to be addressed in ft_sourceplot or in ft_selectdata. Any thoughts?\n\nThe issue occurs as follows:\n\ncfg               = [];\ncfg.frequency     = [70 150];\ncfg.avgoverfreq   = 'yes';\ncfg.latency       = [0 0.8];\ncfg.avgovertime   = 'yes';\ncfg.avgoverrpt    = 'yes';\nfreq_sel = ft_selectdata(cfg, freq_blc);\n\nwhich results in (note the 1 x 145 dim of powspctrm):\n\nans = \n\n  struct with fields:\n\n        label: {145×1 cell}\n       dimord: 'rpt_chan_freq_time'\n         freq: 110.1471\n         time: 0.4000\n         elec: [1×1 struct]\n    trialinfo: 711.5385\n    powspctrm: [1×145 double]\n          cfg: [1×1 struct]\n\n\nThe 1 x 145 dim of powspctrm will cause the following line (274) in ft_sourceplot to produce:\n\nfunctional     = ft_checkdata(functional, 'datatype', {'source', 'volume'}, 'feedback', 'yes', 'hasunit', 'yes');\n\nfunctional = \n\n  struct with fields:\n\n       pos: [145×3 double]\n      unit: 'mm'\n      freq: 110.1471\n      time: 0.4000\n    inside: [145×1 logical]\n\nwhich due to the missing powspctrm and powspctrmdimord will cause the plotting to fail. Flipping the dimension of freq_sel.powspctrm (freq_sel.powspctrm = freq_sel.powspctrm') makes ft_sourceplot run through and functional look as follows:\n\nfunctional = \n\n  struct with fields:\n\n                pos: [145×3 double]\n               unit: 'mm'\n          powspctrm: [145×1 double]\n    powspctrmdimord: 'pos_freq_time'\n               freq: 110.1471\n               time: 0.4000\n             inside: [145×1 logical]"
+      - +@isprivate: "0"
+        commentid: "19158"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-05 12:18:15 +0100
+        thetext: |-
+          well, my thought is to look into ft_checkdata.
+          somehow, you want to convert sensor-level type data into a source-type data.
+          in the conversion, you lose the data field with the stuff you want to plot
+      - +@isprivate: "0"
+        commentid: "19162"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-05 17:59:37 +0100
+        thetext: "Thanks for your response. It's true that after the conversion this is lost but only because the powspctrm field of the input is 1 x 145 and not 145 x 1 (following ft_selectdata). \n\nI guess my main question is: should averaging over trials with ft_selectdata result in a 1 x 145 powspctrm in the output (the input is rpt_chan_freq_time)? For convenience, the respective code:\n\n\ncfg               = [];\ncfg.frequency     = [70 150];\ncfg.avgoverfreq   = 'yes';\ncfg.latency       = [0 0.8];\ncfg.avgovertime   = 'yes';\ncfg.avgoverrpt    = 'yes';\nfreq_sel = ft_selectdata(cfg, freq_blc);\n\nwhich results in (note the 1 x 145 dim of powspctrm):\n\nans = \n\n  struct with fields:\n\n        label: {145×1 cell}\n       dimord: 'rpt_chan_freq_time'\n         freq: 110.1471\n         time: 0.4000\n         elec: [1×1 struct]\n    trialinfo: 711.5385\n    powspctrm: [1×145 double]\n          cfg: [1×1 struct]"
+      - +@isprivate: "0"
+        commentid: "19163"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-05 18:25:55 +0100
+        thetext: |-
+          Since we're here talking ft_selectdata, let me drop in another observation from a colleague related to ft_selectdata:
+
+          "when I use ft_selectdata to then narrow the time range with .latency (this is timelock data), I get a warning that it contains fields with and without repeats, and it keeps .trial and tosses .avg and .var"
+
+          Is this new and intended behavior, in an attempt to disambiguate output (just like with ft_mvaranalysis and ft_regressconfound)?
+      - +@isprivate: "0"
+        commentid: "19164"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-05 18:27:04 +0100
+        thetext: 'In other words: are the simultaneous occurrences of the avg and trial field in a timelock structure no longer allowed?'
+      - +@isprivate: "0"
+        commentid: "19166"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-06 17:16:09 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #4)
+
+          No, presence of trial and avg/var/dof is ambiguous and avg/dof/var are intentionally removed. If your colleague wants to do the operation on the average, ft_selectdata should be called with a tlck structure that has been obtained without cfg.keeptrials.
+      - +@isprivate: "0"
+        commentid: "19167"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-06 20:47:54 +0100
+        thetext: "Thanks.\n\nIn the meantime, I've narrowed the above problem down to a few possibilities, but it's getting over my head in terms of what are the intended behaviors of the respective functionalities:\n\n1) get_dimord (at line 242) thinks the data is rpt_chan_freq_time, which ft_checkdata does not check for at line 1281:\n\nfn = fieldnames(data);\nfn = setdiff(fn, {'label', 'time', 'freq', 'hdr', 'cfg', 'grad', 'elec', 'dimord', 'unit'}); % remove irrelevant fields\nfn(~cellfun(@isempty, regexp(fn, 'dimord$'))) = []; % remove irrelevant (dimord) fields\nsel = false(size(fn));\nfor i=1:numel(fn)\n  try\n    sel(i) = ismember(getdimord(data, fn{i}), {'chan', 'chan_time', 'chan_freq', 'chan_freq_time', 'chan_chan'});\n  end\nend\nparameter = fn(sel);\n\nAs a result, parameter becomes empty.\n\n2) Simply adding rpt_chan_freq_time to this checklist causes the data to be correctly converted, including a powsptrcm field and a rpt_pos_freq_time dimord. However, it throws issues further down the line in ft_sourceinterpolate:\n\nAssignment has more non-singleton rhs dimensions than non-singleton subscripts\n\nError in ft_sourceinterpolate (line 337)\n        allav(:,k,m)   = av;\n\nError in ft_sourceplot (line 335)\n  functional = ft_sourceinterpolate(tmpcfg, functional, anatomical); \n\n\n\n\nCODE:\n\nfor c = 1:10\n  freq.label{c,1} = num2str(c);\nend\nfreq.freq = 1;\nfreq.time = 1;\nfreq.powspctrm = rand(1,10);\nfreq.dimord = 'chan_freq_time';\nfreq.elec.elecpos = randn(10,3);\nfreq.elec.chanpos = freq.elec.elecpos;\nfreq.elec.label = freq.label;\nfreq.elec.unit = 'mm';\n\nmesh.pos = randn(117024,3);\nmesh.tri = randn(234044,3);\nmesh.unit = 'mm';\nmesh.coordsys = 'acpc';\n\ncfg               = [];\ncfg.funparameter  = 'powspctrm';\ncfg.funcolorlim   = [-.5 .5];\ncfg.method        = 'surface';\ncfg.interpmethod  = 'sphere_weighteddistance';\ncfg.sphereradius  = 8;\nft_sourceplot(cfg, freq, mesh);"
+      - +@isprivate: "0"
+        commentid: "19177"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-09 13:19:16 +0100
+        thetext: "Just for convenience, I took over the assignment. \n\nThe functionality breaks (after allowing for 'rpt_*' dimords in ft_checkdata, because ft_sourceinterpolate cannot deal with 'rpt_*' data, even if the rpt is singleton. I think that this is by design, although an informative error would have been appropriate.\n\nYet, I think the ft_checkdata - based in principle should allow for chan2source conversion, justifying the addition of 'rpt_*' dimords when doing the parameter selection.\n\nI notice that ft_selectdata has an option cfg.keeprptdim, which I think should git rid of the 'rpt_*' in combination with cfg.avgoverrpt = 'yes'\n\nI have written a test function, and am trying to test all this, but at the moment the cluster is really slow, and it's getting a bit annoying. Will try again soon."
+      - +@isprivate: "0"
+        commentid: "19180"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-09 17:09:20 +0100
+        thetext: |-
+          OK, it seems as if ft_selectdata does not appropriately reshape the powspctrm, even if cfg.keeprptdim is set to 'yes';
+
+          This is tracked to the squeezedim subfunction in ft_selectdata, where in case of a vectorial input, the data is not reshaped.
+      - +@isprivate: "0"
+        commentid: "19181"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-09 17:32:54 +0100
+        thetext: |-
+          Sleuth JM strikes gold!
+
+          Does that mean that the powspctrm field should have been 1 x 145, rather than 145 x 1, after calling ft_selectdata on rpt_chan_freq_time data?
+      - +@isprivate: "0"
+        commentid: "20609"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2022-03-21 16:21:02 +0100
+        thetext: This looks closable to me

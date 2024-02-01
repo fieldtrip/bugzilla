@@ -1,0 +1,74 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1869"
+    creation_ts: 2012-12-04 16:48:00 +0100
+    short_desc: forward/ft_senstype.m calls non existing sens variable
+    delta_ts: 2018-03-10 21:58:08 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8542"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-04 16:48:36 +0100
+        thetext: "Hi,\n\nI tried to run ft_sourcenanalyisis on my eeg freq analysis data, but \nI run into this error.\n\nthe input is freq data with 59 channels, 1 frequencybins and no timebins\nusing headmodel specified in the configuration\n??? Undefined function or variable \"sens\".\n\nError in ==> ft_senstype at 200\n  if isfield(sens, 'type')\n\nError in ==> ft_fetch_sens at 54\n  iseeg = ft_senstype(data, 'eeg');\n\nError in ==> prepare_headmodel at 54\nsens = ft_fetch_sens(cfg, data);\n\nError in ==> ft_sourceanalysis at 325\n[vol, sens, cfg] = prepare_headmodel(cfg, data);\n\n\nThe problem was (I think) that there was a structure called sens which in some cases did not exist yet, while it has been already called in ft_senstype.m.\n\nI made the following correction:\n\nbash-3.2$ svn diff ft_senstype.m\nIndex: ft_senstype.m\n===================================================================\n--- ft_senstype.m       (revision 7071)\n+++ ft_senstype.m       (working copy)\n@@ -196,7 +196,17 @@\n   sens = [];\n end\n \n-if isfield(sens, 'type')\n+if exist('sens')\n+  if isfield(sens,'type')\n+    istypefield = 1;\n+  else\n+    istypefield = 0;\n+  end\n+else\n+  istypefield = 0;\n+end\n+\n+if istypefield\n   % preferably the structure specifies its own type\n   type = sens.type;\n elseif isfield(input, 'nChans') && input.nChans==1 && isfield(input, 'label') && ~isempty(regexp(input.label{1}, '^csc', 'once'))\nbash-3.2$ cd ..\n\nBut probably it is a better solution, if the \"if...\" in line 150 would assign seg=[] in all cases.\n\nThe test_ft_senstype.m has run fine after the change, but I did not commit the changes yet.\n\nFirst of all, my question is: there are also ft_senstype functions in other directories. Should be those changed too? \n\nLilla"
+      - +@isprivate: "0"
+        commentid: "8544"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-04 19:18:18 +0100
+        thetext: The fix looks fine to me. If you update one instance of ft_senstype.m, all the others will automatically be updated (through the autosync mechanism). If you call svn update after your commit, all the other instances will be updated.
+      - +@isprivate: "0"
+        commentid: "8558"
+        comment_count: "2"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-05 12:23:49 +0100
+        thetext: |-
+          (In reply to comment #1)
+          thanks. revision 7094
+      - +@isprivate: "0"
+        commentid: "8559"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-05 12:24:43 +0100
+        thetext: see earlier comment.

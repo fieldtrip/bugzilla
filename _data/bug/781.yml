@@ -1,0 +1,191 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "781"
+    creation_ts: 2011-06-28 15:48:00 +0200
+    short_desc: Incorrect memavail reading peerslave command line executable
+    delta_ts: 2011-09-09 15:47:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: peer
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.a.kloosterman
+      +@name: Niels Kloosterman
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - craig.richter
+      - kai.roennburg
+      - n.a.kloosterman
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2441"
+        comment_count: "0"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-06-28 15:48:31 +0200
+        thetext: "Hi,\n\nWhen I use the following conf file for setting up multiple slaves with peerslave.glnxa64 the memavail is misrepresented:\n\n[peer]\n# allow jobs of up to 1 hour, mem 3GB\nmatlab=/sara/sw/matlab/64/2011a -nodisplay -singleCompThread\ntimavail=3600\nmemavail=3GB\n\n(and this times 7 in my conf file)\n\nWhen I run this in the terminal:\n\nniels@gb-r32n26:~/matlab$ ./fieldtrip/peer/bin/peerslave.glnxa64 peerslave_conf\npeerslave[18867]: peerinit: niels@gb-r32n26.irc.sara.nl, id = 497286917\n\nand then do in matlab:\n\n>> peerlist\nthere are   8 peers running in total (1 hosts, 1 users)\nthere are   1 peers running on  1 hosts as master\nthere are   7 peers running on  1 hosts as idle slave with 21 bytes memory available\nthere are   0 peers running on  0 hosts as busy slave with 0 bytes and 0 seconds required\nthere are   0 peers running on  0 hosts as zombie\nidle slave at niels@gb-r32n26.irc.sara.nl:1701, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1702, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1703, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1704, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1705, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1706, memavail = 3 bytes, timavail = 1.0 hours\nidle slave at niels@gb-r32n26.irc.sara.nl:1707, memavail = 3 bytes, timavail = 1.0 hours\nmaster     at niels@gb-r32n26.irc.sara.nl:1708 \n\nThere is only 3 bytes listed per slave. So it seems the GB from the conf file is not treated correctly.\n\nWhen I try by setting memavail in bytes (3000000000= 2.8 GB) and try to run peercellfun, the program does nothing. when I abort the script, the script hangs at \n\n??? Operation terminated by user during ==> peerfeval at 207\n\nline 207 of peerfeval is this:\n\n  if isempty(jobid)\n    % the job was not submitted succesfully and another attempt is needed\n    % give the peer network some time to recover\n    pause(sleep);\n    continue;\n  end\n\nWhen I manually open 7 peerslaves in separate matlab sessions this problem does not occur.\n\nLet me know if you need my scripts to solve these problems!\n\nBest,\n\nNiels"
+      - +@isprivate: "0"
+        commentid: "2445"
+        comment_count: "1"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-06-28 17:17:08 +0200
+        thetext: "Also, if I run 7 peerslaves manually (starting 7 matlabs and typing peerslave in each of them) and run peercellfun with a number of jobs, the following error sometimes occurs:\n\n??? Error using ==> peerfeval at 161\nthere are no slave peers available that meet the memory requirements\n\nError in ==> peercellfun at 248\n    [curjobid curputtime] = peerfeval(fname, argin{:}, 'timeout', 5, 'memreq', memreq, 'timreq', timreq, 'diary', diary);\n\nError in ==> MIBexp_peer at 71\npeercellfun(@MIBexp_TFR_analysis, input);\n\nIf I look how much memory ft wants to reserve for the job I get this:\n\nK>> memreq\n\nmemreq =\n\n   1.9517e+17\n \nSo it seems also here something is wrong with the units used, bytes, gigabytes, ... Until now I work around this problem by doing for every matlab slave:\n\npeerslave('memavail', 1.9517e+17)\n\nbut this is of course not nice."
+      - +@isprivate: "0"
+        commentid: "2447"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-28 17:43:57 +0200
+        thetext: "thanks for your report. The problem is known as well on the ESI-Frankfurt cluster (see CC) and was reported once upon a time from a London linux computer. However, on the DCCN-Nijmegen cluster it never happens.\n\nThe problem can be tracked down to peer/private/memprofile, which reads /proc/self/statm to determine each second how much memory MATLAB uses. It compiles a list of memory use oevr time, and upon completion of peerewxec.m the memory used (i.e. max-min) value is returned. \n\nIn peercellfun upon submission of the next job, the memory use from the previous jobs is used to pick a suitable idle slave.\n\nWhat are the details of your operating system?"
+      - +@isprivate: "0"
+        commentid: "2448"
+        comment_count: "3"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-06-28 17:53:22 +0200
+        thetext: "(In reply to comment #2)\n> thanks for your report. The problem is known as well on the ESI-Frankfurt\n> cluster (see CC) and was reported once upon a time from a London linux\n> computer. However, on the DCCN-Nijmegen cluster it never happens.\n> \n> The problem can be tracked down to peer/private/memprofile, which reads\n> /proc/self/statm to determine each second how much memory MATLAB uses. It\n> compiles a list of memory use oevr time, and upon completion of peerewxec.m the\n> memory used (i.e. max-min) value is returned. \n> \n> In peercellfun upon submission of the next job, the memory use from the\n> previous jobs is used to pick a suitable idle slave.\n> \n> What are the details of your operating system?\n\nHey Robert,\n\nI am working on the LISA cluster within the SARA network Amsterdam. See for a description \n\nhttps://subtrac.sara.nl/userdoc/wiki/lisa64/description\n\nThe OS is Debian Squeeze:\n\nhttps://subtrac.sara.nl/l/lisa/squeeze-2011-02-24 \n\nLet me know if you need more specific information. (Is there a unix command which nicely lists this?)\n\nNiels"
+      - +@isprivate: "0"
+        commentid: "2481"
+        comment_count: "4"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-06-29 23:32:19 +0200
+        thetext: |-
+          Interesting.  Seems to be a Debian issue?  On our system when I specify the memory for the peerslave it is correct, but I specify it in the conf file in bytes, whereas you specified it in GB and ended up with kilobytes.  Your work around could be helpful to me.  I had thought of trying that but worried it would get us into more trouble.  Robert, how do you think we should proceed?
+
+          Best,
+
+          Craig
+      - +@isprivate: "0"
+        commentid: "2509"
+        comment_count: "5"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-07-06 10:20:01 +0200
+        thetext: "Just specifying a huge memavail (peerslave('memavail', 3e18)) works for me, because I know from experience that my TFR analysis jobs never take more than 3GB, so when I start up 7 slaves I stay well under my 24GB RAM. So far it hasn't caused any problems. Still, for future (more memory-intensive) analyses it would be nice if this feature works...\n\nBest,\n\nNiels\n\n\n(In reply to comment #4)\n> Interesting.  Seems to be a Debian issue?  On our system when I specify the\n> memory for the peerslave it is correct, but I specify it in the conf file in\n> bytes, whereas you specified it in GB and ended up with kilobytes.  Your work\n> around could be helpful to me.  I had thought of trying that but worried it\n> would get us into more trouble.  Robert, how do you think we should proceed?\n> \n> Best,\n> \n> Craig"
+      - +@isprivate: "0"
+        commentid: "2525"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-06 15:59:07 +0200
+        thetext: |-
+          Thanks for suggesting this workaround!
+
+          The bug remains open and will be fixed (when I can find the time for it).
+      - +@isprivate: "0"
+        commentid: "2526"
+        comment_count: "7"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-07-06 16:03:10 +0200
+        thetext: Sounds good.  We have a new technical person here who is interested in dealing with the bug as well.  He is looking at it, so if he finds a solution this could save you some time.  He will be registering on bugzilla.  I will add him to the CC list when he has his account.
+      - +@isprivate: "0"
+        commentid: "2586"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:09:37 +0200
+        thetext: "On 8 Jul 2011, at 16:06, Roennburg, Kai wrote:\n\nHi Robert,\n \nwe had some time to dive into the whole issue with the peerslaves not running on the new ESI nodes on\nDebian Squeeze. We found several issues which are caused by the operation system and some by the code:\n \n1) With the Debian Squeeze release the error handling was changed from Syslogd to ksyslogd, as a result we\ngot a seg. fault when we compiled the code form the line:                          syslog_level = atol(pconf->verbose);\nThe quick and dirty workaround was to hardcode the log level into the code.\n \n2) With the kernel 2.6 there was a change in the way statm is working, as a result the output gives bogus values.\nYou already had the right idea, but it was not that obvious. We found a nice link for that issue:\nhttp://search.cpan.org/dist/mod_perl/docs/api/Apache2/SizeLimit.pod\n \nSuggested ways to handle the issue are:\n1) parse the 'VmSize' and 'VmRSS' variables from /proc/self/status   or\n2) parse the first lines of /proc/self/smaps with the variables 'Size' and 'Rss',\n \nWe did the second and got at least for small jobs correct values back, but it looks like we found another problem\nwhich might be code related.\n \n3) When we started bigger jobs requiring several GB of Ram we found the mem-requirements to change from\ncorrect to wrong values. We guess it’s a result of the getmem() from util.c, which needs to be changed to something\nlike 'unsigned long' or 'long long' to be able to handle the bigger numbers (sometimes 16 Bit are not enough ;-)\nAs of now it looks like the variable is consequently been overwritten and thus give non-sense values.\n \nWe are currently working on issue number 3, but I guess you and your team might be faster and you have much\nmore expertise in fixing it.\n \nBest\n \nKai"
+      - +@isprivate: "0"
+        commentid: "2587"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:10:55 +0200
+        thetext: "(In reply to comment #8)\n> 1) With the Debian Squeeze release the error handling was changed from Syslogd\n> to ksyslogd, as a result we\n> got a seg. fault when we compiled the code form the line:                      \n>    syslog_level = atol(pconf->verbose);\n> The quick and dirty workaround was to hardcode the log level into the code.\n\nI suspect that this might have been due to a bug in the code, which caused pconf->verbose to be accessed while actually unassigned (i.e. still NULL). That was fixed last week or so."
+      - +@isprivate: "0"
+        commentid: "2588"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:16:42 +0200
+        thetext: "(In reply to comment #8)\n\n> 2) With the kernel 2.6 there was a change in the way statm is working, as a\n> result the output gives bogus values.\n...\n> Suggested ways to handle the issue are:\n> 1) parse the 'VmSize' and 'VmRSS' variables from /proc/self/status   or\n> 2) parse the first lines of /proc/self/smaps with the variables 'Size' and\n> 'Rss',\n\n/proc/self/smaps looks very complex on the quad-CPU 48-core AMD Opteron machine on which I just checked. \n\n/proc/self/status looks simple, I suggest to go for that. If you have a diff/patch or just an updated util.c, please send it to me and I'll integrate it in the svn trunk."
+      - +@isprivate: "0"
+        commentid: "2589"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:22:29 +0200
+        thetext: |-
+          > 3) When we started bigger jobs requiring several GB of Ram we found the
+          > mem-requirements to change from
+          > correct to wrong values. We guess it’s a result of the getmem() from util.c,
+          > which needs to be changed to something
+          > like 'unsigned long' or 'long long' to be able to handle the bigger numbers
+          > (sometimes 16 Bit are not enough ;-)
+
+          Indeed, the numbers can be large. I have just changed the code for getmem in util.c from fscanf(fp, "%u%u"...)  into fscanf(fp, "%llu%llu"...).
+
+          At this moment I don't have much time to work on it in full detail and hope that my comments help you further in solving it.
+      - +@isprivate: "0"
+        commentid: "2590"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:23:36 +0200
+        thetext: "On 8 Jul 2011, at 16:06, Roennburg, Kai wrote:\n\nHi Robert,\n \nwe had some time to dive into the whole issue with the peerslaves not running on the new ESI nodes on\nDebian Squeeze. We found several issues which are caused by the operation system and some by the code:\n \n1) With the Debian Squeeze release the error handling was changed from Syslogd to ksyslogd, as a result we\ngot a seg. fault when we compiled the code form the line:                          syslog_level = atol(pconf->verbose);\nThe quick and dirty workaround was to hardcode the log level into the code.\n \n2) With the kernel 2.6 there was a change in the way statm is working, as a result the output gives bogus values.\nYou already had the right idea, but it was not that obvious. We found a nice link for that issue:\nhttp://search.cpan.org/dist/mod_perl/docs/api/Apache2/SizeLimit.pod\n \nSuggested ways to handle the issue are:\n1) parse the 'VmSize' and 'VmRSS' variables from /proc/self/status   or\n2) parse the first lines of /proc/self/smaps with the variables 'Size' and 'Rss',\n \nWe did the second and got at least for small jobs correct values back, but it looks like we found another problem\nwhich might be code related.\n \n3) When we started bigger jobs requiring several GB of Ram we found the mem-requirements to change from\ncorrect to wrong values. We guess it’s a result of the getmem() from util.c, which needs to be changed to something\nlike 'unsigned long' or 'long long' to be able to handle the bigger numbers (sometimes 16 Bit are not enough ;-)\nAs of now it looks like the variable is consequently been overwritten and thus give non-sense values.\n \nWe are currently working on issue number 3, but I guess you and your team might be faster and you have much\nmore expertise in fixing it.\n \nBest\n \nKai"
+      - +@isprivate: "0"
+        commentid: "2591"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-12 14:28:00 +0200
+        thetext: |-
+          (In reply to comment #12)
+
+          please ignore comment #12, it is just an accidental repost of comment #8
+      - +@isprivate: "0"
+        commentid: "3001"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-08-31 17:27:41 +0200
+        thetext: "I am closing this bug because the development on the fieldtrip/peer toolbox will be put onto hold in favor of the fieldtrip/qsub toolbox. The qsub toolbox is more promising for the DCCN as a whole and hence requires attention. \n\nThe peer toolbox will remain available within fieldtrip, and external contributions to the  code will be considered for inclusion.\n\nIn the future, the development on fieldtrip/peer may be started up again and the bugs that I hereby close as \"wontfix\" can be revisited."
+      - +@isprivate: "0"
+        commentid: "3110"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-09 15:47:55 +0200
+        thetext: closed all of my bugs that were resolved

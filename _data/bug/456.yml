@@ -1,0 +1,220 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "456"
+    creation_ts: 2011-01-29 01:44:00 +0100
+    short_desc: Add EGI MFF data format
+    delta_ts: 2011-05-06 23:43:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ingrid.nieuwenhuis
+      +@name: Ingrid Nieuwenhuis
+    assigned_to:
+      +content: ingrid.nieuwenhuis
+      +@name: Ingrid Nieuwenhuis
+    cc:
+      - bugzilla
+      - jdien07
+      - r.oostenveld
+      - simonshlomo.poil
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1315"
+        comment_count: "0"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-01-29 01:44:29 +0100
+        thetext: |-
+          Make FieldTrip read the new MFF data format of EGI (comes out of NetStation 4.5, beta version). Gio has send me some code (see below), I'll start implementing that:
+
+          Anyway, based on that and on the data I had I created a
+          read_mff_header.m and read_mff_data.m (attached).
+          It's only based on the one example dataset I created and it's the very
+          first version. It works with continuous data only and it doesn't read
+          trials nor markers (I didn't have them).
+
+          You can try the function yourself. You should add these lines to some
+          functions, in order to call the write function.
+          ----------------------------------------------------------------
+          % ft_read_header (line 707)
+            case 'egi_mff'
+              [header] = read_mff_header(filename);
+              hdr.Fs          = header.Fs;
+              hdr.nChans      = header.nChans;
+              hdr.nSamples    = header.nSamples;
+              hdr.nSamplesPre = header.nSamplesPre;
+              hdr.nTrials     = header.nTrials;
+              hdr.label       = header.label;
+              hdr.orig        = header; % keep the whole header, including xml files
+
+          % ft_read_data (line 699)
+            case 'egi_mff'
+              dat = read_mff_data(filename, hdr, begsample, endsample, chanindx);
+              dimord = 'chans_samples';
+
+          % ft_filetype (line 811)
+          % (this should be probably be above 569, because otherwise it checks
+          all the files in the directory)
+
+          elseif filetype_check_extension(filename, '.mff')
+            type = 'egi_mff';
+            manufacturer = 'Electrical Geodesics Incorporated';
+            content = 'EEG data (MFF)';
+
+          ----------------------------------------------------------------
+          I also had to add some matlab functions, to read XML. It's open
+          source, GNU licensed, and it works even without java (if you want to
+          run matlab -nojvm for example, xmlread from matlab requires Java), so
+          it could be integrated to fieldtrip.
+
+          Try this out:
+          hdr = ft_read_header('/path/to/20110110_short_test.mff')
+          % hdr will contain all the information, from signal.bin and all the xml files
+
+          cfg = [];
+          cfg.dataset = '/path/to/20110110_short_test.mff';
+          cfg.trialdef.triallength = 3;
+          def = ft_definetrial(cfg);
+
+          def.channel = {'1 Hz Sine'};
+          data = ft_preprocessing(def);
+
+          cfg = [];
+          cfg.continuous = 'no';
+          ft_databrowser(cfg, data)
+      - +@isprivate: "0"
+        commentid: "1569"
+        comment_count: "1"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-03-04 23:36:45 +0100
+        thetext: |-
+          I have not committed any changes or added any new mff functions to FieldTrip yet, because the programmers of EGI (contacts Tom Renner and Phan Luu) will provide and support a MATLAB interface to their new MFF file format.
+
+          copied from email (from Phan Luu):
+
+          > To this end, we provide a MEX layer wrapper around our MFF file
+          > format API which allows our MFF API to be accessed from the MATLAB
+          > environment. This API access will be kept in-synch with our MFF API
+          > functionality to provide a consistent level of MATLAB support as our
+          > MFF file format evolves.
+          >
+          > The MFF API is a C, C++, Objective-C, and Java API for accessing our
+          > MFF file format. Convenience functions are provided that capture the
+          > common usage modalities of MFF files, as well as a base level of raw
+          > MFF file I/O. Build environments supported include Makefiles, Xcode,
+          > Visual C++, NetBeans, and Eclipse.
+          >
+          > Our intent is to support a core reference API through which external
+          > software packages can interact with the MFF (having wrapped the core
+          > API). This ensures less fragmentation of the format, and ensure that
+          > external software packages can enjoy a continued up to date support.
+          > MATLAB is one such package, and one that EGI will be supporting
+          > directly.
+          >
+          > All our  file formats come will full documentation as well as XML
+          > schemas for automated file validation.
+
+          As soon as I get the MEX files (which will be any day now), I'll start writing a wrapper around them, and commit it to FieldTrip.
+      - +@isprivate: "0"
+        commentid: "1644"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-17 15:51:53 +0100
+        thetext: |-
+          I have just committed some initial (native matlab, no external stuff needed) support for reading a single signalX.bin file inside the mff directory.
+
+          It does not read any of the xml files and channel names are invented on the fly ('1', '2', ...). At least it is something to get started with. Using the 129 channel example from ingrid I can browse through the signal1.bin file.
+
+          code modifications include ft_filetype (for egi_mff_bin), ft_read_header and ft_read_data
+
+          additional code is contained in fileio/private/read_mff_bin, which is based on version 9 of the description document
+      - +@isprivate: "0"
+        commentid: "1646"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-17 16:18:24 +0100
+        thetext: |-
+          I just added egi_mff to the ft_filetype detection. What still needs to be done (sorry, in Dutch):
+
+          in read_header
+          case 'egi_mff'
+           lezen van xml files en daar iets moois van maken voor hdr en hdr.orig
+           eventueel voor alle signalX.bin files in de mff directory ft_read_header aanroepen en die combineren.
+
+          in read_data
+          case 'egi_mff'
+            op basis van hdr.orig bepalen welke kanalen het zijn en welke signalX.bin files
+            lezen van gewenste kanalen en samples uit signalx.bin files
+
+          in read_event
+          case 'egi_mff'
+            iets uit die xml files zien te halen
+
+          zowel read_header en read_data voor de mff dataset moet gaan met een directe call naar ft_read_data, dus niet zelf read_mff_bin aanroepen. Je hoeft dan namelijk niet het hanteren van de blokken opnieuw te implementeren.
+      - +@isprivate: "0"
+        commentid: "1845"
+        comment_count: "4"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-04-20 20:11:19 +0200
+        thetext: "Almost done now :) I removed the egi_mff_bin implementation, this implementation did not correctly deal with discontinuous epochs. I used much of the code Robert used for egi_mff_bin and changed it into an egi_mff implementation. \n\nWhat is done now:\n- Hdr is made that contains both info from xml files and header info from signals\n- Data is read in from all signal.bin files, merged into one data structure with correct channel labeling (as obtained from xml files).\n- Correct channel labeling for hdEEG net and PIB channels is implemented.\n- The presence of epochs is checked, and if present an epochdef field is added to the hdr.orig, specifying sample and offset info about the epochs, in such a way that it should be easy for the user to define a proper trl that only contains data from one epoch, with timing info that should match the events.\n\nWhat should be still done:\n- Reading of MFF events should be implemented in ft_read_event\n- XML4MATv2 toolbox could be added to fieldtrip/external (is GNU license). However, I've already implemented checking for this toolbox in ft_hastoolbox"
+      - +@isprivate: "0"
+        commentid: "1847"
+        comment_count: "5"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-04-21 02:07:30 +0200
+        thetext: |-
+          Implemented reading of events (egi_mff) in ft_read_event. Can also deal with stupid epoched data!
+
+          TO do:
+          - has to be tested with some other data (tested only with two datasets now), will do in the near future.
+          - Maybe XML4MATv2 toolbox could be added to fieldtrip/external (is GNU license).
+          However, I've already implemented checking for this toolbox in ft_hastoolbox
+      - +@isprivate: "0"
+        commentid: "1934"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-04-28 11:12:42 +0200
+        thetext: "(In reply to comment #5)\n> - Maybe XML4MATv2 toolbox could be added to fieldtrip/external (is GNU license).\n\nI don't mind adding it. You can unzip it in fieldtrip/external and then do \nsvn add fieldtrip/external/xml2mat\nsvn commit\n\nI suggest to call it xml2mat and leave out the version number. And please include a README that states where it was downloaded from and which version (so that we know in the future when it needs to be updated)."
+      - +@isprivate: "0"
+        commentid: "2040"
+        comment_count: "7"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-05-06 23:43:16 +0200
+        thetext: "(In reply to comment #6)\n> (In reply to comment #5)\n> > - Maybe XML4MATv2 toolbox could be added to fieldtrip/external (is GNU license).\n> \n> I don't mind adding it. You can unzip it in fieldtrip/external and then do \n> svn add fieldtrip/external/xml2mat\n> svn commit\n> \n> I suggest to call it xml2mat and leave out the version number. And please\n> include a README that states where it was downloaded from and which version (so\n> that we know in the future when it needs to be updated).\n\nToolbox added, and tested quite some data. I think we're done for now!"

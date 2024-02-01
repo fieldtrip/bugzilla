@@ -1,0 +1,201 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3143"
+    creation_ts: 2016-06-13 14:29:00 +0200
+    short_desc: ft_prepare_neighbours error with unexpected channel unit
+    delta_ts: 2016-11-29 09:01:50 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.n.oosterhof
+      +@name: nno
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17448"
+        comment_count: "0"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-13 14:29:02 +0200
+        thetext: "Recent versions of FieldTrip crash on my machine (OSX 11.10, GNU Octave 4.0.0 and Matlab 2015b) running the following code:\n\n    cfg=struct()\n    cfg.layout= '4D248.lay';\n    cfg.method= 'triangulation'\n    ft_prepare_neighbours(cfg)\n\nwhich result in the following output (with error):\n\n    Using the 2-D layout to determine the sensor position\n    reading layout from file 4D248.lay\n    the call to \"ft_prepare_layout\" took 0 seconds and required the additional allocation of an estimated 0 MB\n    Error using ft_datatype_sens (line 282)\n    unexpected channel unit \"ù\" in channel 117unexpected channel unit \"nknown\" in channel\n\n    Error in ft_fetch_sens (line 199)\n    sens = ft_datatype_sens(sens);\n\n    Error in ft_prepare_neighbours (line 154)\n        sens = ft_fetch_sens(cfg);\n\nError detected initially through travis [1] as part of the CoSMoMVPA test suite; the tests passed fine around June 5, 2016, which suggests that the error was introduced after that date. \n\n[1] https://travis-ci.org/CoSMoMVPA/CoSMoMVPA/jobs/136188710"
+      - +@isprivate: "0"
+        commentid: "17449"
+        comment_count: "1"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-13 14:40:22 +0200
+        thetext: |-
+          Using "git bisect' on these commands, I got:
+
+          dc689a0676bc4affa84da329a629a204f68d04e8 is the first bad commit
+          commit dc689a0676bc4affa84da329a629a204f68d04e8
+          Author: Robert Oostenveld <r.oostenveld@gmail.com>
+          Date:   Wed Jun 1 17:51:33 2016 +0200
+
+              ENH - added the "best" configuration to the test script, and added visualisation of the result
+      - +@isprivate: "0"
+        commentid: "17451"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-13 14:50:30 +0200
+        thetext: |-
+          sorry about this, Nick.
+
+          I think that the issue you experience is caused by Robert's recent changes to ft_datatype_sens, which now explicitly checks the physical units associated with a particular channel. Long story short, ft_datatype_sens expects this to be well-defined, and not 'unknown', which is the case for the 'COMNT' and 'SCALE' labels in the sens variable that made it into ft_datatype_sens. The reason why these labels are present is due to ft_fetch_sens creating a 'dummy' sens structure from a layout (from a lay file) which annoyingly has these COMNT and SCALE channels represented as separate 'channels'.
+
+          I think that the best way to fix this would be in ft_fetch_sens, i.e. around line 176 (if haslayout...)
+      - +@isprivate: "0"
+        commentid: "17460"
+        comment_count: "3"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-13 15:11:04 +0200
+        thetext: "Actually the mistake seems to be in another commit - my previous message wss based on Octave, which also resulted in an error, but a different one. \n\nWith Matlab I ran the following\n\n    git bisect start\n    git bisect bad b7828199978717810037e15c902e0b2315e3b3ea\n    git bisect good 943d2bd6ba88b401987c76d312c0ce7b74db9afe\n    git bisect run /Applications/MATLAB_R2015a.app/bin/matlab -r \"try,cfg=struct();cfg.layout='4D248.lay';cfg.method='triangulation';ft_prepare_neighbours(cfg),catch,exit(1);end;exit(0)\";\n\nwith the following output:\n\n    1881242752009456130ef9b2c89b9667b24b9b2e is the first bad commit\n    commit 1881242752009456130ef9b2c89b9667b24b9b2e\n    Author: Robert Oostenveld <r.oostenveld@gmail.com>\n    Date:   Fri Jun 10 09:08:42 2016 +0200\n\n        Use labelOLD instead of labelORG, idem for chanpos, chanori, chantype and chanunit. This is more consistent with old/new in ft_apply_montage. The previous montages (containing \"org\") should still work.\n\n    :040000 040000 1ea356b04558c8a8834d59d6f2c0e0d8f7bcaf99 e42ad6fa74d29c406fc8d616318b632584b3ccef M      forward\n    :040000 040000 3e16686b261545c18555a6e7a5330192150799ef 894591a3e1f16aaa64b6509cb1703fb2eebe1b3b M      test\n    :040000 040000 911a835291f2a928bb0ccacc4f6f7ac1bf08e950 79d8bb9bf26f5bb9eb1637d95a0f9c4a86ca3418 M      utilities\n    bisect run success"
+      - +@isprivate: "0"
+        commentid: "17461"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-13 15:13:44 +0200
+        thetext: Yeah, that looks more like it. It was a commit that gave me trouble last week as well. I addressed this in pull request 173 for my purpose, but based on my diagnosis of what's going on in your case I think that your problem needs to be solved elsewhere.
+      - +@isprivate: "0"
+        commentid: "17462"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-13 15:18:03 +0200
+        thetext: I will do this in a minute.
+      - +@isprivate: "0"
+        commentid: "17463"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-13 15:21:56 +0200
+        thetext: the just merged pull request 178 should fix the issue. Could you verify and close this bug if it works again?
+      - +@isprivate: "0"
+        commentid: "17465"
+        comment_count: "7"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-13 15:44:27 +0200
+        thetext: |-
+          Dear Jan-Matthijs,
+
+          thanks for looking into this and updating the code. I just updated my code to commit 9ad7ed369a9e02f4c2a3c4e085aa167a1183812a (which includes your pull request #178) and the original code now runs fine. However, I do get an error now with a neuromag306 layout. In particular, the following code:
+
+              cfg=struct();
+              cfg.layout='neuromag306planar.lay';
+              cfg.method='triangulation';
+              ft_prepare_neighbours(cfg);
+
+          now gives the following error
+
+              Using the 2-D layout to determine the sensor position
+              reading layout from file neuromag306planar.lay
+              the call to "ft_prepare_layout" took 0 seconds and required the additional allocation of an estimated 0 MB
+              Reference to non-existent field 'tra'.
+
+              Error in ft_datatype_sens (line 290)
+                          coil = find(abs(sens.tra(i,:))~=0);
+
+              Error in ft_fetch_sens (line 203)
+              sens = ft_datatype_sens(sens);
+
+              Error in ft_prepare_neighbours (line 154)
+                  sens = ft_fetch_sens(cfg);
+
+          Using git-bisect again as follows:
+
+              git bisect start
+              git bisect bad 9ad7ed369a9e02f4c2a3c4e085aa167a1183812a
+              git bisect good 943d2bd6ba88b401987c76d312c0ce7b74db9afe
+              git bisect run /Applications/MATLAB_R2015a.app/bin/matlab -r "try,cfg=struct();cfg.layout='neuromag306planar.lay';cfg.method='triangulation';ft_prepare_neighbours(cfg),catch,exit(1);end;exit(0)";
+
+          points to the same commit as in the earlier report:
+
+              1881242752009456130ef9b2c89b9667b24b9b2e is the first bad commit
+              commit 1881242752009456130ef9b2c89b9667b24b9b2e
+              Author: Robert Oostenveld <r.oostenveld@gmail.com>
+              Date:   Fri Jun 10 09:08:42 2016 +0200
+
+                  Use labelOLD instead of labelORG, idem for chanpos, chanori, chantype and chanunit. This is more consistent with old/new in ft_apply_montage. The previous montages (containing "org") should still work.
+
+              :040000 040000 1ea356b04558c8a8834d59d6f2c0e0d8f7bcaf99 e42ad6fa74d29c406fc8d616318b632584b3ccef M      forward
+              :040000 040000 3e16686b261545c18555a6e7a5330192150799ef 894591a3e1f16aaa64b6509cb1703fb2eebe1b3b M      test
+              :040000 040000 911a835291f2a928bb0ccacc4f6f7ac1bf08e950 79d8bb9bf26f5bb9eb1637d95a0f9c4a86ca3418 M      utilities
+      - +@isprivate: "0"
+        commentid: "17466"
+        comment_count: "8"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-13 16:00:00 +0200
+        thetext: |-
+          To help in debugging: I have made a separate branch [1] of CoSMoMVPA that enabled full regression testing for all 26 layouts known by (supported in) CoSMoMVPA. Since this functionality uses FieldTrip layouts, it may help in assessing to what extent changes in FieldTrip affect its behaviour with respect to dealing with layouts. Indeed, currently Travis reports a failing test [4]
+
+          To run this test, run tests/test_meeg_chan_neighbors.m using either MOxUnit [3] or Matlab's xUnit framework (recently removed from the Matlab file exchange)
+
+
+          [1] https://github.com/nno/CoSMoMVPA/tree/_tst/fieldtrip_full_chan_test
+          [2] https://travis-ci.org/nno/CoSMoMVPA/builds/137248715
+          [3] http://github.com/MOxUnit/MOxUnit
+      - +@isprivate: "0"
+        commentid: "17534"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:49:21 +0200
+        thetext: "(In reply to nno from comment #8)\n\nReplicating the small snippet\n\n>>  cfg=struct();\n    cfg.layout='neuromag306planar.lay';\n    cfg.method='triangulation';\n    ft_prepare_neighbours(cfg);\n\nI get\n\n---\n\nReference to non-existent field 'tra'.\n\nError in ft_datatype_sens (line 290)\n            coil = find(abs(sens.tra(i,:))~=0);\n\nError in ft_fetch_sens (line 203)\nsens = ft_datatype_sens(sens);\n\nError in ft_prepare_neighbours (line 154)\n    sens = ft_fetch_sens(cfg);\n \n290             coil = find(abs(sens.tra(i,:))~=0);\nK>> sens\n\nsens = \n\n  struct with fields:\n\n     balance: [1×1 struct]\n     chanpos: [204×3 double]\n    chantype: {204×1 cell}\n    chanunit: {204×1 cell}\n       label: {204×1 cell}\n        type: 'neuromag306'\n        unit: 'dm'\n\n---\n\nThis is not a valid sensor definition (according to the help of FT_DATATYPE_SENS), as it only contains chanpos, but no coilpos/elecpos/optopos. It is clear that coilpos/elecpos/optopos cannot be retrieved from a 2-D layout file. \n\nThe issue is that at the end of ft_fetch_sens it does this\n\n% ensure that the sensor description is up-to-date\nsens = ft_datatype_sens(sens);\n\nwhich then fails. We can circumvent that step by this\n\n% ensure that the sensor description is up-to-date\nif (hasgradfile + hascfggrad + hasdatagrad + ...\n    haselecfile + hascfgelec + hasdataelec + ...\n    hasoptofile + hascfgopto + hasdataopto)\n  sens = ft_datatype_sens(sens);\nend\n\nwhich allows the ft_prepare_neighbours call to run through.\n\n\nI will push the following to the master branch.\n \nmac011> git commit -a\n[master 1f8c36a] FIX - don't do consistency check on sensor definition that was created from a layout, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3143#c8\n 2 files changed, 30 insertions(+), 21 deletions(-)"
+      - +@isprivate: "0"
+        commentid: "17535"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-14 16:59:50 +0200
+        thetext: owja, dat kan natuurlijk ook :o)
+      - +@isprivate: "0"
+        commentid: "17543"
+        comment_count: "11"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2016-06-14 17:32:36 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #9)\n\nThanks Robert Oostenveld,\n\nyour commit [1] seems to address the issue; the regression tests on travis pass now [2]. Thanks for the quick and useful fix. \n\nI have changed the status of this bug to \"resolved\".\n\nbest,\nNick\n\n[1] https://github.com/fieldtrip/fieldtrip/commit/bc30db0ce2ce1cbf6f167f27daa5ddf75249d35c\n[2] https://travis-ci.org/nno/CoSMoMVPA/builds/137540231"

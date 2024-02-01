@@ -1,0 +1,198 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3177"
+    creation_ts: 2016-08-23 15:19:00 +0200
+    short_desc: ft_electroderealign expects field headshape.tri
+    delta_ts: 2017-01-17 11:29:46 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17756"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-23 15:19:29 +0200
+        thetext: |-
+          When ft_electroderealign is called with cfg.method = 'project' the field headshape.tri is expected in line 564:
+            [dum, prj] = project_elec(elec.elecpos, headshape.pos, headshape.tri);
+
+          The field .tri could have been added in 288:
+            if ~isfield(headshape, 'tri') && ~isfield(headshape, 'poly')
+              % generate a closed triangulation from the surface points
+              headshape.pos = unique(headshape.pos, 'rows');
+              headshape.tri = projecttri(headshape.pos);
+            end
+
+          But since headshape in my case originates from line 272:
+            headshape = mesh2edge(cfg.headshape);
+          ...which results in the fields .pos and .poly, the if statements in line 288 never evaluates to true and projecttri is never called.
+
+          I suggest two possible solutions. Either line 288 is truncated to:
+            if ~isfield(headshape, 'tri')
+          ...which may lead to unnecessary calls to projecttri, which takes a long time to be processed, or another call to projecttri is added before the field .tri is accessed in line 564:
+            if ~isfield(headshape, 'tri')
+                headshape.pos = unique(headshape.pos, 'rows');
+                headshape.tri = projecttri(headshape.pos);
+            end
+      - +@isprivate: "0"
+        commentid: "17757"
+        comment_count: "1"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-23 15:25:34 +0200
+        thetext: |-
+          I tested the latter suggestion and it works for me. I added it in a pull request:
+          https://github.com/fieldtrip/fieldtrip/pull/211
+      - +@isprivate: "0"
+        commentid: "17758"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-08-23 17:40:30 +0200
+        thetext: "Hi Jens,\n\nso you are making progress, but still ending up stuck further down in the code... \n\nIf I am right, you are working on a FEM model. I know that Simon (CC) has recently done some work on this section of code (although not for FEM). \n\nI think for the specific case it would be good to know some context, and perhaps make an explicit test script on the basis of your data (or simple test data) and particular use-case. Probably that will allow us to anticipate other issues along the line, and possibly clean up the conceptual aspects of the pipeline you are trying to achieve. \n\nSo in short: could you share a (simplified) analysis pipeline as script?"
+      - +@isprivate: "0"
+        commentid: "17759"
+        comment_count: "3"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-23 19:26:58 +0200
+        thetext: |-
+          Hi Robert,
+          I actually just try to create an FEM from an MRI image, strictly following the FEM tutorial. This is the last step in which I try to project the electrodes onto the head.
+
+          Here is an example script that lets you recreate the error. One can use the headshape from ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/tutorial/headmodel_fem/vol.mat
+
+          cfg                 = [];
+          cfg.elec            = ft_read_sens('standard_1020.elc');
+          cfg.headshape       = vol;
+          cfg.method          = 'project';
+          elec_proj           = ft_electroderealign(cfg);
+
+          leads to:
+
+          Reference to non-existent field 'tri'.
+
+          Error in ft_electroderealign (line 568)
+            [dum, prj] = project_elec(elec.elecpos, headshape.pos, headshape.tri);
+
+          Calling it with cfg.method = 'interactive' works fine now that bug 3176 got fixed.
+      - +@isprivate: "0"
+        commentid: "17760"
+        comment_count: "4"
+        who:
+          +content: s.homolle
+          +@name: Simon
+        bug_when: 2016-08-24 09:11:40 +0200
+        thetext: |-
+          (In reply to Jens Klinzing from comment #3)
+          Checked the tutorial again and it works for me.
+
+          The problem arises as stated above from ft_electroderealign line 272 when the headshape is described with hexahedral elements.
+          headshape = mesh2edge(cfg.headshape); rightfully produces .pos and .poly
+
+          Thus far project_elec is only implemented for triangulated meshes.
+          Dealing with this I can imagine 3 different ways.
+
+          1.Proposed in the Description
+          2.One can easily cut one square into 2 triangles, before line 564 in ft_electroderealign
+          3.Implement a projection for squares in project_elec
+      - +@isprivate: "0"
+        commentid: "17761"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-08-24 09:35:03 +0200
+        thetext: "(In reply to Simon from comment #4)\n\nSo there is indeed some incomplete functionality here. Supporting all possible combinations of algorithms with all possible types of data/models is also not trivial...\n\nI prefer the solution 2 Simon suggested. As there might be other places in the FT code (in general) where a polygon would not work, I think it is best implemented by extending mesg2edge with an option that converts poly to tri.  \n\nI am right now implementing a test script (also for future reference and for regression testing) and managed to reproduce the problem. I'll fix the problem and then commit it (including the test script)..."
+      - +@isprivate: "0"
+        commentid: "17762"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-08-24 10:14:33 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #5)\n\nit was easier given the flow in the existing code to make a separate private/poly2tri.m that splits the polygons. The following changes now make the test script run.\n\nmac011> git commit \n[master 6665b09] ENH - for electrode projection converts on the fly the hexaehders into a polygonal surface mesh and subsequently into a triangulated surface mesh. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3177\n 2 files changed, 53 insertions(+)\n create mode 100644 private/poly2tri.m\n create mode 100644 test/test_bug3177.m\n\nmac011> git commit mesh2edge.m poly2tri.m ../test/test_bug3177.m \n[master e8b547e] DOC - added some comments\n 3 files changed, 14 insertions(+), 5 deletions(-)\n\nmac011> git push upstream master\nX11 forwarding request failed on channel 0\nYou're about to push master, is that what you intended? [y|n] y\nCounting objects: 13, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (13/13), done.\nWriting objects: 100% (13/13), 2.05 KiB | 0 bytes/s, done.\nTotal 13 (delta 9), reused 0 (delta 0)\nremote: Resolving deltas: 100% (9/9), completed with 4 local objects.\nTo git@github.com:fieldtrip/fieldtrip.git\n   3b00b78..e8b547e  master -> master\n\n@Jens, please check it out."
+      - +@isprivate: "0"
+        commentid: "17763"
+        comment_count: "7"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-24 13:19:11 +0200
+        thetext: |-
+          Hi Robert and Simon,
+          looks good! It works for me if I call headshape = poly2tri(headshape); manually before the .tri field is needed. That currently does not happen automatically in ft_electroderealign, though. Maybe insert something like this before line 564?
+
+          if ~isfield(headshape, 'tri') && isfield(headshape, 'poly')
+          headshape = poly2tri(headshape);
+          end
+      - +@isprivate: "0"
+        commentid: "17774"
+        comment_count: "8"
+        who:
+          +content: s.homolle
+          +@name: Simon
+        bug_when: 2016-09-06 14:20:42 +0200
+        thetext: It seems that the test_script is not running properly. For me it gets stuck at the same place as from Sven's comment.
+      - +@isprivate: "0"
+        commentid: "17775"
+        comment_count: "9"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-09-06 14:25:11 +0200
+        thetext: |-
+          This might fix it:
+          https://github.com/fieldtrip/fieldtrip/pull/215
+      - +@isprivate: "0"
+        commentid: "17777"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-06 19:12:34 +0200
+        thetext: should be fixed, see github issue
+      - +@isprivate: "0"
+        commentid: "18197"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:46 +0100
+        thetext: closed multiple bugs that were resolved some time ago

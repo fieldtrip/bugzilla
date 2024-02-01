@@ -1,0 +1,241 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1299"
+    creation_ts: 2012-01-31 22:02:00 +0100
+    short_desc: gtec_mat support disappeared from ft_read_header in svn merged branch
+    delta_ts: 2012-04-02 16:27:04 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: maarten.hogervorst
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5015"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-31 22:02:23 +0100
+        thetext: "On 31 Jan 2012, at 15:57, Hogervorst, M.A. (Maarten) wrote:\n\nRobert,\nIk krijg sinds kort fouten bij het inlezen van de matfiles met EEGdata met fieldtrip.\nFieldtrip lijkt het format niet te kunnen interpreteren.\nAls ik jouw import-functies gebruik krijg ik onderstaande error-melding:\n---------------------------------\n??? Error using ==> ft_read_header at 1531\nunsupported header format (gtec_mat)\n \nError in ==> ft_preprocessing at 338\n  hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);\n--------------------------------\nIk gebruik de download fieldtrip-20120106"
+      - +@isprivate: "0"
+        commentid: "5016"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-31 22:05:14 +0100
+        thetext: "I zoomed in on the problem. Revision 4286 has the gtec_mat support, revision 4287 lost it. See\n\nhttp://code.google.com/p/fieldtrip/source/browse/trunk/fileio/ft_read_header.m?spec=svn4286&r=4286\nhttp://code.google.com/p/fieldtrip/source/browse/trunk/fileio/ft_read_header.m?spec=svn4287&r=4287\n\nThat is a commit from Jan-Mathijs:\n\nr4287 by jansch on Sep 23, 2011 \nenhancement - #879 redefine the\ndescription of the sensor-array, merged\nthe branch that was created for this back\ninto the trunk\n\nThis suggests that something went wrong with the svn merge. Other files with may also have been affected (i.e. other improvements to code may have been undone) and therefore should also be checked."
+      - +@isprivate: "0"
+        commentid: "5017"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-31 22:08:18 +0100
+        thetext: "To fix the immediate problem for Maarten, I have copied the relevant parts out of the last working revision into the latest/current revision. The diff is \n\nmbp> svn diff ft_read_header.m\nIndex: ft_read_header.m\n===================================================================\n--- ft_read_header.m    (revision 5188)\n+++ ft_read_header.m    (working copy)\n@@ -48,6 +48,7 @@\n %   NeuroScan (*.eeg, *.cnt, *.avg)\n %   Nexstim (*.nxe)\n %   BrainVision (*.eeg, *.seg, *.dat, *.vhdr, *.vmrk)\n+%   GTec (*.mat)\n %\n % The following spike and LFP dataformats are supported (with some limitations)\n %   Plextor (*.nex, *.plx, *.ddt)\n@@ -120,7 +121,7 @@\n   fallback = ft_getopt(varargin, 'fallback');\n   \n   if isempty(cache),\n-    if strcmp(headerformat, 'bci2000_dat') || strcmp(headerformat, 'eyelink_asc') || strcmp(headerformat, 'biosig')\n+    if strcmp(headerformat, 'bci2000_dat') || strcmp(headerformat, 'eyelink_asc') || || strcmp(headerformat, 'gtec_mat') || strcmp(headerformat, 'biosig')\n       cache = true;\n     else\n       cache = false;\n@@ -950,7 +951,31 @@\n       hdr = db_select('fieldtrip.header', {'nChans', 'nSamples', 'nSamplesPre', 'Fs', 'label'}, 1);\n       hdr.label = mxDeserialize(hdr.label);\n     end\n+\n+  case 'gtec_mat'\n+    % this is a simple MATLAB format, it contains a log and a names variable\n+    tmp = load(headerfile);\n+    log   = tmp.log;\n+    names = tmp.names;\n     \n+    hdr.label = cellstr(names);\n+    hdr.nChans = size(log,1);\n+    hdr.nSamples = size(log,2);\n+    hdr.nSamplesPre = 0;\n+    hdr.nTrials = 1; % assume continuous data, not epoched\n+\n+    % compute the sampling frequency from the time channel\n+    sel = strcmp(hdr.label, 'Time');\n+    time = log(sel,:);\n+    \n+    hdr.Fs = 1./(time(2)-time(1));\n+    \n+    % also remember the complete data upon request\n+    if cache\n+      hdr.orig.log = log;\n+      hdr.orig.names = names;\n+    end\n+\n   case {'itab_raw' 'itab_mhd'}\n     % read the full header information frtom the binary header structure\n     header_info = read_itab_mhd(headerfile);"
+      - +@isprivate: "0"
+        commentid: "5018"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-31 22:12:14 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          mbp> svn commit ft_read_header.m
+          Sending        ft_read_header.m
+          Transmitting file data .
+          Committed revision 5189.
+
+          @Maarten, the updated file will be in the ftp release tomorrow evening (it is too late for it to end up in the 20120131 release). You can also pick up this individual file itself at http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/ft_read_header.m?r=5189
+      - +@isprivate: "0"
+        commentid: "5019"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-31 22:14:22 +0100
+        thetext: "(In reply to comment #1)\n\nOh my ..., the merging of the branch affected a lot of files. \nSee http://code.google.com/p/fieldtrip/source/detail?spec=svn4287&r=4287"
+      - +@isprivate: "0"
+        commentid: "5075"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 15:35:51 +0100
+        thetext: |-
+          These are those files:
+
+          I'll check them to see whether there have been changes that were lost due to the branching	
+
+
+                  Modify	/trunk/fileio/ft_chantype.m	diff
+          	Modify	/trunk/fileio/ft_read_header.m	diff
+          	Modify	/trunk/fileio/ft_read_headshape.m	diff
+          	Modify	/trunk/fileio/ft_read_sens.m	diff
+          	Modify	/trunk/forward/ft_apply_montage.m	diff
+          	Modify	/trunk/forward/ft_average_sens.m	diff
+          	Modify	/trunk/forward/ft_compute_leadfield.m	diff
+          	Modify	/trunk/forward/ft_convert_units.m	diff
+          	Modify	/trunk/forward/ft_headmodel_localspheres.m	diff
+          	Modify	/trunk/forward/ft_prepare_vol_sens.m	diff
+          	Modify	/trunk/forward/ft_senstype.m	diff
+          	Add	/trunk/forward/private/channelposition.m	diff
+          	Add	/trunk/forward/private/fixsens.m	diff
+          	Modify	/trunk/forward/private/meg_forward.m	diff
+          	Modify	/trunk/forward/private/meg_ini.m	diff
+          	Add	/trunk/forward/private/undobalancing.m	diff
+          	Modify	/trunk/ft_channelrepair.m	diff
+          	Modify	/trunk/ft_electroderealign.m	diff
+          	Modify	/trunk/ft_headmodelplot.m	diff
+          	Modify	/trunk/ft_headmovement.m	diff
+          	Modify	/trunk/ft_interactiverealign.m	diff
+          	Modify	/trunk/ft_megplanar.m	diff
+          	Modify	/trunk/ft_megrealign.m	diff
+          	Modify	/trunk/ft_neighbourplot.m	diff
+          	Modify	/trunk/ft_prepare_layout.m	diff
+          	Modify	/trunk/ft_prepare_localspheres.m	diff
+          	Modify	/trunk/ft_prepare_neighbours.m	diff
+          	Modify	/trunk/ft_prepare_sourcemodel.m	diff
+          	Modify	/trunk/ft_scalpcurrentdensity.m	diff
+          	Modify	/trunk/ft_sensorrealign.m	diff
+          	Modify	/trunk/plotting/ft_plot_sens.m	diff
+          	Add	/trunk/plotting/private/fixsens.m	diff
+          	Modify	/trunk/plotting/private/ft_apply_montage.m	diff
+          	Modify	/trunk/plotting/private/ft_senstype.m	diff
+          	Modify	/trunk/private/constructplanargrad.m	diff
+          	Modify	/trunk/private/fixsens.m	diff
+          	Modify	/trunk/private/head_surf.m	diff
+          	Modify	/trunk/private/headsurface.m	diff
+          	Modify	/trunk/private/megplanar_fitplane.m	diff
+          	Modify	/trunk/private/megplanar_orig.m	diff
+          	Modify	/trunk/private/megplanar_sincos.m	diff
+          	Modify	/trunk/private/sel50p.m	diff
+          	Modify	/trunk/test/test_ft_megplanar.m	diff
+          	Modify	/trunk/utilities/ft_checkdata.m	diff
+          	Modify	/trunk/utilities/ft_datatype_comp.m	diff
+          	Modify	/trunk/utilities/ft_datatype_freq.m	diff
+          	Modify	/trunk/utilities/ft_datatype_mvar.m	diff
+          	Modify	/trunk/utilities/ft_datatype_raw.m	diff
+          	Modify	/trunk/utilities/ft_datatype_timelock.m	diff
+          	Modify	/trunk/utilities/ft_transform_geometry.m	diff
+      - +@isprivate: "0"
+        commentid: "5080"
+        comment_count: "6"
+        attachid: "223"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 15:50:09 +0100
+        thetext: |-
+          Created attachment 223
+          difference between revision 4286 and 4287
+
+          svn diff -r 4286:4287 > svndiff4286to4287.txt
+      - +@isprivate: "0"
+        commentid: "5082"
+        comment_count: "7"
+        attachid: "224"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 15:51:27 +0100
+        thetext: |-
+          Created attachment 224
+          summary of modified files
+      - +@isprivate: "0"
+        commentid: "5090"
+        comment_count: "8"
+        attachid: "225"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 16:22:58 +0100
+        thetext: |-
+          Created attachment 225
+          differences between 4286 and 4287 which were present in 4286, and not anymore in 4287
+      - +@isprivate: "0"
+        commentid: "5091"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 16:24:07 +0100
+        thetext: |-
+          I went throught the diff of all files modified from revision 4286 to 4287.
+
+          The only files that were incorrectly merged seem to be:
+
+          ft_read_header (fixed by Robert).
+          ft_checkdata (fixed by JM). revision5213
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "223"
+        date: 2012-02-01 15:50:00 +0100
+        delta_ts: 2012-02-01 15:50:09 +0100
+        desc: difference between revision 4286 and 4287
+        filename: svndiff4286to4287.txt
+        type: text/plain
+        size: "110731"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "224"
+        date: 2012-02-01 15:51:00 +0100
+        delta_ts: 2012-02-01 15:51:27 +0100
+        desc: summary of modified files
+        filename: svndiff4286to4287changedfiles.txt
+        type: text/plain
+        size: "1706"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "225"
+        date: 2012-02-01 16:22:00 +0100
+        delta_ts: 2012-02-01 16:22:58 +0100
+        desc: differences between 4286 and 4287 which were present in 4286, and not anymore in 4287
+        filename: svndiff4286to4287checked.txt
+        type: text/plain
+        size: "86866"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED

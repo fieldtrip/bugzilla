@@ -1,0 +1,121 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2663"
+    creation_ts: 2014-07-29 16:56:00 +0200
+    short_desc: ft_rejectvisual sorting of minimum values
+    delta_ts: 2019-08-10 12:28:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to: fieldtriptoolbox
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14206"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-07-29 16:56:20 +0200
+        thetext: |-
+          Hi,
+
+          ft_rejectvisual/summary works really well for most metrics but it does not plot the correct values when you want the minimum values across trials and channels.
+
+          With metric = 'min', rejectvisual_summary first gets the lowest value for each channel [1], and then it takes the maximum value across trials [2]. It should take the minimum value across trials too.
+
+          Example data:
+          ChanA = [-5, -2, 3];
+          ChanB = [-10, -5, 0];
+          ChanC = [5, 2, -2];
+
+          If the metric is min, you get: ChanA = -5, ChanB = -10, ChanC = -2. Then it takes the max value, which is -2, while it should be -10. I suggest to flip the sign before computing the max. So to insert at line 214:
+
+          if strcmp(info.metric, 'min')
+              level = level * -1;
+          end
+
+          [maxperchan maxpertrl maxperchan_all maxpertrl_all] = set_maxper(level, info.chansel, info.trlsel);
+
+          if strcmp(info.metric, 'min')
+              maxperchan = maxperchan * -1;
+              maxpertrl = maxpertrl * -1;
+              maxperchan_all = maxperchan_all * -1;
+              maxpertrl_all = maxpertrl_all * -1;
+              level = level * -1;  % see point below
+          end
+
+          The second part is necessary to have the correct sign in the plots. I'm not sure about the second "level = level * -1", because by flipping the sign again the color palette is the opposite of the color palette for the other metrics (red -> dangerously high values) and there is no colorbar with interpretable values.
+
+          I can commit the changes if you agree.
+          -g
+
+          [1] https://github.com/fieldtrip/fieldtrip/blob/master/private/rejectvisual_summary.m#L172
+          [2] https://github.com/fieldtrip/fieldtrip/blob/master/private/rejectvisual_summary.m#L214
+      - +@isprivate: "0"
+        commentid: "14327"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-10 15:47:41 +0200
+        thetext: |-
+          (In reply to Gio Piantoni from comment #0)
+
+          You have obviously give this a lot of thought ;-) If you trust this to work well, I would say please commit!
+      - +@isprivate: "0"
+        commentid: "14329"
+        comment_count: "2"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-09-10 17:52:00 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          Sure, I'll commit the changes (I'll be on vacation for two weeks now, so don't expect it soon). I think I waited at the time to see if somebody else had a better overview than me of the steps in ft_rejectvisual.
+      - +@isprivate: "0"
+        commentid: "14479"
+        comment_count: "3"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-09-24 23:47:13 +0200
+        thetext: |-
+          fix applied:
+
+          Sending        private/rejectvisual_summary.m
+          Transmitting file data .
+          Committed revision 9839.
+      - +@isprivate: "0"
+        commentid: "19977"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:34 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

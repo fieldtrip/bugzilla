@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3075"
+    creation_ts: 2016-02-19 15:08:00 +0100
+    short_desc: Can't use cfg.inputfile and cfg.outputfile commands
+    delta_ts: 2016-05-05 20:29:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: rina.blomberg
+      +@name: rinbl64
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16876"
+        comment_count: "0"
+        who:
+          +content: rina.blomberg
+          +@name: rinbl64
+        bug_when: 2016-02-19 15:08:57 +0100
+        thetext: "OVERVIEW:\n\nCFG.INPUT:\n\nUsing cfg.inputfile in functions (this example ft_preprocessing) produces error message:\n\nError using ft_preamble_loadvar (line 46)\ncfg.inputfile should not be used in conjunction with giving input data to this function\n\nError in ft_preamble (line 56)\n    evalin('caller', ['ft_preamble_' cmd]);\n\nError in ft_preprocessing (line 178)\nft_preamble loadvar data\n\nCODE TO REPRODUCE:\ncfg = [];\ncfg.inputfile = 'trialfile.mat';\n[outdata] = ft_preprocessing(cfg);\n\nCFG.OUTPUT:\n\nUsing cfg.outputfile in functions (this example ft_preprocessing) produces error message:\n\nOutput argument \"data\" (and maybe others) not assigned during call to \"ft_preprocessing\"\n\nCODE TO REPRODUCE:\ncfg = [];\ncfg.dataset = filename1;\ncfg.headerfile = filename1;\ncfg.trialfun  = 'ft_trialfun_general';\ncfg.trialdef.eventtype  = 'STI101';\ncfg.trialdef.eventvalue = [211];           \ncfg.trialdef.prestim = 1;                 % in seconds\ncfg.trialdef.poststim = 1;                  % in seconds\ncfg.outputfile = 'trialfile.mat'\ncfg = ft_definetrial(cfg);\n[outputdata] = ft_preprocessing(cfg);\n%%  note we know that this code does not produce this error if we write:  ft_preprocessing(cfg)  without \"[outputdata] =\"  \nhowever because we are having errors with cfg.input this error is included in this report.\n\nBUILD DATE & HARDWARE:\nfieldtrip 20160216 Windows 7 Enterprise\n\nEXAMPLE DATA:\nhttps://www.dropbox.com/s/2960h3a87tcsfxv/trialfile.mat?dl=0"
+      - +@isprivate: "0"
+        commentid: "16904"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 09:15:21 +0100
+        thetext: |-
+          I cannot reproduce the issue with the below code.
+          There is no reason to assume that there's something wrong with fieldtrip.
+          I tested it on linux and windows using matlab2014b.
+
+          Please try out the below code. Feel free to reopen if the problem persists.
+
+
+          data = [];
+          data.trial = {randn(2,1000)};
+          data.time  = {(0:999)./1000};
+          data.label = {'chan01';'chan02'};
+
+          filename1 = [tempname,'.mat'];
+          filename2 = [tempname,'.mat'];
+          save(filename1, 'data');
+
+          % check
+          cfg = [];
+          cfg.inputfile = filename1;
+          %cfg.lpfilter  = 'yes';
+          %cfg.lpfreq    = 10;
+          datanew = ft_preprocessing(cfg);
+
+          cfg.outputfile = filename2;
+          ft_preprocessing(cfg);
+
+
+          datanew2 = ft_preprocessing(cfg);
+          tmp = load(filename2);
+          assert(isequal(rmfield(datanew2,'cfg'), rmfield(tmp.data,'cfg'))); %the callinfo may be different
+      - +@isprivate: "0"
+        commentid: "16915"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 10:42:10 +0100
+        thetext: "I tested with matlab 2015b on osx and the test script from the pull request does not work for me.\n\nI also get \n\n>> test_bug3075\nError using ft_preamble_loadvar (line 46)\ncfg.inputfile should not be used in conjunction with giving input data to this function\n\nwhere on line 45 margin returns 2 (although I would expect it to be 1).\n\nI suspect that nargin is sensing the number of inputs to ft_preamble rather than the number of inputs to ft_preprocessing.\n\nUsing \"evalin\" in various ways, I am NOT able to get the correct number of input arguments from ft_preprocessing.\n\nIf I add to ft_preprocessing at the start\n  ft_nargin = nargin;\nand replace\n  if (nargin>1)\nby \n  if (ft_nargin>1)\nthen it works. \n\nNote that there is also a warning in the editor that \"Use of Nargin in a script will be removed in the future\".\n\nI suggest to replace revision by ft_revision (*) and to add ft_nargin to all functions that also have revision. \n\n*) although that should be revised as well"
+      - +@isprivate: "0"
+        commentid: "16916"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 10:44:02 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          I will do this.
+
+          ... and while I am at it, I will also rename "abort" to "ft_abort" for consistency between all variables that are passed between the main function and pre/post-ambles.
+      - +@isprivate: "0"
+        commentid: "16917"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 10:47:37 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          the same issue as with nargin is also present in nargout (use in ft_postamble_savevar). I will also use ft_nargout for that reason.
+      - +@isprivate: "0"
+        commentid: "16918"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 10:51:08 +0100
+        thetext: OK, which once more illustrates the necessity of reporting the MATLAB version...
+      - +@isprivate: "0"
+        commentid: "16919"
+        comment_count: "6"
+        who:
+          +content: rina.blomberg
+          +@name: rinbl64
+        bug_when: 2016-02-22 10:53:01 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+          My apologies,  I missed noting the version in this report.
+      - +@isprivate: "0"
+        commentid: "16920"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 10:56:42 +0100
+        thetext: No worries, but don't let it happen again :o).
+      - +@isprivate: "0"
+        commentid: "16921"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-22 11:19:57 +0100
+        thetext: |-
+          I resolved it in https://github.com/fieldtrip/fieldtrip/pull/100
+
+          prior to merging, I tested with 2015b and with 2012b (both on os x).

@@ -1,0 +1,126 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2372"
+    creation_ts: 2013-11-12 20:35:00 +0100
+    short_desc: ft_timelockstatistics crashes on data with keeptrials='yes' and cfg.parameter='avg'
+    delta_ts: 2015-01-12 09:23:27 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - dlozanosoldevilla
+      - i.andolina
+      - j.schoffelen
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11904"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-11-12 20:35:09 +0100
+        thetext: |-
+          Matlab 2012b, OS X 10.9, fieldtrip-20131111
+
+          The issue is with timelock data that contains all the trials (so data.trial exists and dimord='rpt_chan_time'), and also has the avg field.
+
+          When I run ft_timelockstatistics with cfg.parameter='avg', the function (correctly) removes the trial field on line 84. However, I believe it should also either modify or completely remove the dimord field because the avg field has the dimord 'chan_time'. Because dimord='rpt_chan_time' still exists, private/prepare_timefreq_data crashes on line 352 because the dimord dimensions do not get set correctly in its subfunction forcedimord (the check on line 475 finds that it still has a dimord field and does not properly set it to be 'chan_time'; this final point is the source of the crash and could be resolved by removing the dimord field earlier in ft_timelockstatistics).
+
+          Don't know how I haven't run into this before, but I guess I never really set keeptrials='yes' in ft_timelockanalysis.
+      - +@isprivate: "0"
+        commentid: "11905"
+        comment_count: "1"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-11-12 20:40:38 +0100
+        thetext: After testing, completely removing dimord in ft_timelockstatistics does not seem to be an option, but somehow it needs to be changed to reflect the contents of the avg field (fixdimord?).
+      - +@isprivate: "0"
+        commentid: "11918"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-14 09:44:34 +0100
+        thetext: "Hi Matt,\n\nThanks for posting this. \nThe handling of data structures with numeric data that have different 'dimord's is known to be a bit buggy at the moment. We have the intention to streamline this in the future, but this is not likely to happen anytime soon. In a nutshell, our intention would be to have more than one dimord once a data structure contains numeric fields that have different specifications along their matrix 'axes'. So, for your example this would lead to a timelock structure with both a 'avgdimord' of 'chan_time', and a 'trialdimord' of 'rpt_chan_time'. (for that matter, once there's a covariance as well, it should also have a 'covariancedimord' of 'rpt_chan_chan' (or 'chan_chan') However, this involves a non-trivial change to a lot of code, which potentially breaks the whole toolbox, so we are a bit anxious to get really started.\nWould it be OK for you that for the time being you work around it?\nIndeed, as you already noticed the following should work:\nPrior to calling ft_timelockstatistics, do:\n\ntlck = rmfield(tlck, 'trial');\ntlck.dimord = 'chan_time';"
+      - +@isprivate: "0"
+        commentid: "11938"
+        comment_count: "3"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-11-14 19:23:32 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          Sure, I'm happy to work around it for now in the way that you suggested, though it does seem reasonable to me to do the overwriting of dimord='chan_time' in ft_timelockstatistics, because what else could the dimord possibly be if cfg.parameter='avg'? (To answer my own question, I guess it could be 'chan_chan'). Anyway, I'm looking forward to the multiple dimord feature, good luck with all the changes.
+      - +@isprivate: "0"
+        commentid: "14191"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-22 14:27:01 +0200
+        thetext: '*** Bug 2659 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "14193"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-22 14:27:22 +0200
+        thetext: '*** Bug 2660 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "14202"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-25 17:20:53 +0200
+        thetext: '(In reply to Jan-Mathijs Schoffelen from comment #5)'
+      - +@isprivate: "0"
+        commentid: "14203"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-25 17:25:13 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #6)
+
+          Now ft_timelockgrandaverage does not support input data with "trial" field. This is the case when ft_timelockanalysis is called with cfg.keeptrials='yes'. The expected behavior from ft_timelockgrandaverage is to compute averages over individuals, not over the single trials and over individuals
+
+          Transmitting file data .
+          Committed revision 9756.
+
+          Also a test function is added:
+          Adding         test_bug2372.m
+          Transmitting file data .

@@ -1,0 +1,162 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1240"
+    creation_ts: 2011-12-22 12:30:00 +0100
+    short_desc: ft_read_data call ft_filetype over and over again in call to ft_getopt
+    delta_ts: 2012-04-11 16:48:38 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4597"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-22 12:30:41 +0100
+        thetext: |-
+          This clogs the screen when the filetype cannot be determined, and easily causes 1000s of unnecessary if-elseif calls. My suggestion would be to make an exception like (keeping consistent with ft_getopt):
+
+          dataformat    = ft_getopt(varargin, 'dataformat', []);
+          if isempty(dataformat)
+             dataformat =  ft_filetype(filename);
+          end
+
+          Or to switch back to the old style of using isfield. The above would be best I think.
+
+          Shall I make this change?
+      - +@isprivate: "0"
+        commentid: "4598"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-22 12:31:36 +0100
+        thetext: |-
+          CC: Robert
+
+          (I of course meant over and over again when reading in data, not inside ft_getopt).
+      - +@isprivate: "0"
+        commentid: "4599"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-12-22 13:13:30 +0100
+        thetext: Changed status to new, defect by developer. Robert, could you decide if you agree with the solution proposed by Roemer?
+      - +@isprivate: "0"
+        commentid: "4604"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 14:27:51 +0100
+        thetext: "ft_filetype should be very fast in returning the value as long as the filename did not change. It should not get further than line 90 in the code, i.e. \n\n...\n% these are for remembering the type on subsequent calls with the same input arguments\npersistent previous_argin previous_argout previous_pwd\n\nif nargin<2\n  % ensure that all input arguments are defined\n  desired = [];\nend\n\ncurrent_argin = {filename, desired, varargin{:}};\ncurrent_pwd   = pwd;\nif isequal(current_argin, previous_argin) && isequal(current_pwd, previous_pwd)\n  % don't do the detection again, but return the previous value from cache\n  type = previous_argout{1};\n  return  <----- UP TO HERE\nend\n\nIf that does not happen, then that is because of an intermittent call to ft_filetype with another filename. \n\nCan you check, eg. add \ndisp(['DEBUGGING ' filename]) \nat the begin and then see whether the filename alternates? If so, the problem might have to be resolved elsewhere."
+      - +@isprivate: "0"
+        commentid: "4605"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-22 14:39:50 +0100
+        thetext: "Well, the ft_read_data call occurs at every trial. So at every trial, it tries to determine the filetype automatically when parsing the input into ft_read_data, and throws a warning. The filename doesn't change over calls (it's reported in the warning). I hadn't thought of the line 90 code to stop all the if-elseifs, so it doesn't take a lot of compuation time. \nBut it's still unexpected behavior. If you have set your dataformat (like I do in the case of my own format), there is no reason to automatically determine the filetype. It only makes sense to do that when the dataformat is empty. That would avoid a warning for every trial that you read in, each taking up six lines in the command line. \nI doesn't happen often that a function is necessary during an ft_getopt, so it doesn't make sense to build-in functionality there to execute function calls, hence the idea for the simple workaround."
+      - +@isprivate: "0"
+        commentid: "4613"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 17:39:36 +0100
+        thetext: "It being called many times should not be the issue. That is a design principle that I think requires discussion in the following FT meeting in the new year. \n\nBut the warning being printed on the first call, whereas the call is only to determine the default value that remains unused anyway, is indeed unexpected behaviour.\n\nSimilar occurrences should be in the code for other type-detections. I was able to find the following:\n\nmanzana> grep getopt.*type\\( *.m */*.m */*/*.m\nfileio/ft_flush_data.m:dataformat = ft_getopt(varargin, 'dataformat', ft_filetype(filename));\nfileio/ft_flush_event.m:eventformat = ft_getopt(varargin, 'eventformat',  ft_filetype(filename));\nfileio/ft_flush_header.m:headerformat = ft_getopt(varargin, 'headerformat', headerformat = ft_filetype(filename));\nfileio/ft_read_data.m:dataformat    = ft_getopt(varargin, 'dataformat', ft_filetype(filename));\nfileio/ft_read_event.m:eventformat      = ft_getopt(varargin, 'eventformat', ft_filetype(filename));\nfileio/ft_read_header.m:headerformat = ft_getopt(varargin, 'headerformat', ft_filetype(filename)); % the default is automatically detected\nfileio/ft_read_headshape.m:fileformat  = ft_getopt(varargin,'format',  ft_filetype(filename));\nfileio/ft_read_mri.m:mriformat = ft_getopt(varargin, 'format', ft_filetype(filename));\nfileio/ft_read_sens.m:fileformat = ft_getopt(varargin, 'fileformat', ft_filetype(filename));\nfileio/ft_read_spike.m:spikeformat = ft_getopt(varargin, 'spikeformat', ft_filetype(filename));\nfileio/ft_read_vol.m:fileformat = ft_getopt(varargin, 'fileformat', ft_filetype(filename));\nfileio/ft_write_data.m:dataformat    = ft_getopt(varargin, 'dataformat', ft_filetype(filename));\nfileio/ft_write_event.m:eventformat = ft_getopt(varargin, 'eventformat', ft_filetype(filename));\nfileio/ft_write_mri.m:dataformat    = ft_getopt(varargin, 'dataformat', ft_filetype(filename));\n\nBut I still don't understand why you get many warnings? You should only get one. \n\nB.t.w. what is your file format that remains undetected?"
+      - +@isprivate: "0"
+        commentid: "4615"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-23 10:41:28 +0100
+        thetext: |-
+          Ah, I think the multiple warnings is due to the code at line 1000. If filetype is unknown, it doesn't save the argout and such as persistent variables. Is there a reason for this I am thinking of right now? Because, if the input stays the same, than the output should remain the same, regardless of whether the filetype is unknown or not right?
+
+          The specific fileformat I am using is the one I implemented some two years ago, which is only usable for our archive and a collaboration we have right now (nmc_archive_k). It's a fileformat that has a too generic filetype to be determined automatically (and it's not necessary since it is specified by the user anyway).
+      - +@isprivate: "0"
+        commentid: "4616"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-23 10:52:00 +0100
+        thetext: "the 'unknown' not being cached in the persistent variable is more a safety feature. The function is not only called when reading, but might also get called just prior to writing (to figure out the desired output format, which is then probably specified by the used, but ft_getopt sill would call ft_filetype to get a potential default). \n\nThe file then does not yet exist, which causes the filetype detection to fail. ft_getopt and the writing code don't care, because the user has to specify it anyway. On the next (read) call the file will exist and the filetype detection could work, were it not that the 'unknown' would then be remembered from the previous call.\n\nSo I think that a save change would be at the end\n - if the file exists and the type is not known, then remember it for the next call\nUpon the next call the file will be the same (assuming that its content did not change).\n\nDo you actually understand why there is the check on isempty(previous_argin)?"
+      - +@isprivate: "0"
+        commentid: "4879"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 09:51:59 +0100
+        thetext: '@Roemer, can you please read my comment 7 and see whether it resolves the issue. If so, I suggest to close the bug.'
+      - +@isprivate: "0"
+        commentid: "4882"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-01-20 10:35:51 +0100
+        thetext: |-
+          Hi Robert,
+          Sorry, totally forgot about the bug. I now added another elseif at line 990 or so. If the file or dir already exist, and the type is unknown, it saves the current output. Multiple irrelevant warnings are no longer given, the fix works.
+
+          Filename can also be a directory in case of some recording devices right? (CTF?). At the moment it checks for the existence of filename as a file or as a dir.
+      - +@isprivate: "0"
+        commentid: "4884"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-20 10:52:12 +0100
+        thetext: |-
+          (In reply to comment #9)
+
+          filename can indeed also be a directory. There are multiple dataformats (CTF is one of them) with a collection of well-defined files in a directory where the directory is used  to specify the dataset.
+      - +@isprivate: "0"
+        commentid: "5860"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:38 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

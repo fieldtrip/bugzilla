@@ -1,0 +1,103 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3146"
+    creation_ts: 2016-06-14 17:23:00 +0200
+    short_desc: translate vlim and hlim in multiplot to ylim and xlim
+    delta_ts: 2016-09-13 14:10:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - jorn
+      - m.kia83
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17540"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 17:23:53 +0200
+        thetext: |-
+          Seyed reported on https://github.com/fieldtrip/fieldtrip/pull/174 that
+
+          vlim and hlim in multiplot are translated to ylim and xlim in singleplot when the interactive option is used. This could be advantageous when the multiplotER is used interactively.
+
+          In the previous version even if zlim, vlim, and hlim are set in the call of multiplotER, they are not forwarded correctly to the interactively called singleplotER and the subsequent topoplotER. For example, this is problematic especially when you want to have a 'maxabs' limited topoplot. Even if the vlim and zlim are set to 'maxabs' before calling multiplot, in the subsequent topoplot which is interactively plotted, the zlim is still 'minmax'. The simple change proposed by this pull request solves the problem.
+      - +@isprivate: "0"
+        commentid: "17541"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 17:25:31 +0200
+        thetext: "I responded \n\nhmm, although I understand why you want this change, I have the feeling that it would move us in the wrong direction. The reason for moving away from xlim/ylim/zlim is that x/y/z are too confusing to label 3D data, and especially when the code needs to support 2D and 3D. \n\nThe multiplot and singleplot figures technically have a horizontal and vertical axis. And we use color (in case of 3D). I remember that we tried at a certain point to move away from x/y/z, but the code is not consistent in this respect."
+      - +@isprivate: "0"
+        commentid: "17542"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 17:27:39 +0200
+        thetext: |-
+          should we not replace xlim/ylim by hlim/vlim instead, i.e. opposite to the suggested change?
+
+          Why are we using zlim in some of the code instead of clim?
+      - +@isprivate: "0"
+        commentid: "17544"
+        comment_count: "3"
+        who:
+          +content: m.kia83
+          +@name: Seyed Mostafa Kia
+        bug_when: 2016-06-14 17:59:33 +0200
+        thetext: "As mentioned by Robert, there is a higher level problem in the code (above the specific case mentioned in my pull-request), where there is an inconsistency in naming different dimensions of the data. While in some functions the x/y/z convention is employed, others stick to h/v/c. This could be problematic when these two different conventions have conflict or interaction (for example when a sequence of interactive plots are drawn). \nI can understand the challenge of resolving this inconsistency and keeping the other components intact at the same time."
+      - +@isprivate: "0"
+        commentid: "17789"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-13 14:01:43 +0200
+        thetext: "(In reply to Seyed Mostafa Kia from comment #3)\n\nI came across https://github.com/fieldtrip/fieldtrip/pull/174 which triggered me to review parts of the code.\n\nAt this moment fieldtrip/plotting is exclusively using him/vlim/clim (horizontal, vertical, color).\n\nIn the high-level plotting functions (in fieldtrip main directory) I primarily see xlim/ylim/zlim. The documentation (and hence possibly the code) of the following high-level functions deviates from this\n\nmac011> grep '%.*hlim' *.m\nft_databrowser.m:range = range * (opt.hlim(2) - opt.hlim(1)) + opt.hlim(1);   % 0 becomes hlim(1), 1 becomes hlim(2)\nft_databrowser.m:% the hlim will be in seconds, the vlim will be in Tesla or Volt\nft_multiplotER.m:%   cfg.hlim          = 'maxmin' or [xmin xmax] (default = 'maxmin')\n\nmac011> grep '%.*vlim' *.m\nft_databrowser.m:          % this is a lot easier than the reverse, determining the y value of each time course scaled by the layout and vlim\nft_databrowser.m:% the hlim will be in seconds, the vlim will be in Tesla or Volt\nft_multiplotER.m:%   cfg.vlim          = 'maxmin', 'maxabs', 'zeromax', 'minzero', or [ymin ymax] (default = 'maxmin')\nft_multiplotER.m:% Get physical y-axis range (vlim / parameter):\n \nFor clim/zlim it is more difficult, so I'll skip that for now."
+      - +@isprivate: "0"
+        commentid: "17790"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-13 14:10:28 +0200
+        thetext: |-
+          ft_databrowser is not a problem, i.e. there is no end-user reference to hlim/vlim
+
+          ft_multiplotER is a problem, as it is inconsistent with ft_singleplotER. I changed that function to make it consistent.
+
+          mac011> git commit -a
+          [bug3146-xlimhlim bef460e] ENH - make xlim/ylim consistent throughout the high-level code, do not use hlim/vlim. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3146
+           1 file changed, 19 insertions(+), 19 deletions(-)

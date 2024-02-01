@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3244"
+    creation_ts: 2017-02-08 09:39:00 +0100
+    short_desc: modules should remain stand-alone
+    delta_ts: 2017-02-08 10:49:14 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: n.n.oosterhof
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18372"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 09:39:54 +0100
+        thetext: "Nathalie reported\n\n============\n\nwhile trying running qsubfeval I got the notification:\n\n??? Undefined function or method 'ft_platform_supports' for\ninput arguments of type 'char'.\nError in ==> qsubfeval at 190\n    if ft_platform_supports('program_invocation_name')\n\nThe same problem appears in all versions of Matlab and across multiple sessions. \n\n============\n\nI realize that this is due to making ft_platform_supports a full FT function (i.e. moving it out of private). \n\nOn http://www.fieldtriptoolbox.org/development/modules it is explained (shortly) that some subdirectories act as mini-toolboxes. Hence they should not have external dependencies. Some functions therefore need to be replicated in their respective private directories."
+      - +@isprivate: "0"
+        commentid: "18373"
+        comment_count: "1"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-08 09:53:42 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #0)
+
+          The issue is due to a PR I sent earlier [1]. I was not aware that some sub-directories should be able to run without external dependencies. I would be happy to send a PR to fix the ft_platform_supports issue?
+
+          Also, it may be useful to add to the website that the organisation into mini-toolboxes means that functions should be duplicated along the multiple directories. This is something that may not be obvious to new potential contributors - at least it was not to me.
+
+          >  Some functions therefore need to be replicated in their respective private directories.
+
+          ft_platform_supports was upgraded to first class citizen, mainly to solve the issue of functions in private directories calling each other - which seems not supported in Octave [1]. Would you agree that in this case ft_platform_supports should therefore be included in the other directories as well, not in the private subdirectory but in their root? Or mix it so that ft_platform_supports is included as first class citizen in utilities, but second class (private) in the subdirectories? I have to admit, this seems to become a bit messy with respect to the search path...
+
+          [1] https://github.com/fieldtrip/fieldtrip/pull/313
+      - +@isprivate: "0"
+        commentid: "18374"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 10:01:38 +0100
+        thetext: |-
+          [I just had a mid-air collision; let me first add this]
+
+
+          The might not only apply to ft_platform_supports, but also to other functions. In the past I have occasionally checked with "depfun" that the modules don't have dependencies outside their own directory...
+
+          Ah, I found it, it is test_dependencies. Apparently it failed to detect the dependency.
+
+          I checked the code, it primarily aims at checking the "compat" directory. That was (once upon a time) needed to smooth the transition from preprocessing (without ft) to ft_preprocessing. So the modular dependencies are not tested. I will add that.
+      - +@isprivate: "0"
+        commentid: "18375"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 10:06:14 +0100
+        thetext: "(In reply to nno from comment #1)\n\nPrivate functions not being able to call other private functions seems a bug in octave to me. Its implications would be much wider than this (explicitly exposed) function, which is now part of the official FieldTrip user interface and API.\n\nThe reason for private is to ensure that some functions are not relied on by users, and that we can change them (keeping our own usage consistent of course). \n\nHow is octave dealing with icosahedron42 (and some other numbers), which calls icosahedron? Both are in private, and called whenever a triangulated sphere is needed."
+      - +@isprivate: "0"
+        commentid: "18376"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 10:17:02 +0100
+        thetext: "I am aware that documentation for developers is incomplete and sometimes outdated. Documentation for beginners, more advanced users and power users is also incomplete. I cannot do everything myself and also need developers to contribute to the various pieces of documentation.  \n\nThere is mention of this particular requirement at http://www.fieldtriptoolbox.org/development/guidelines/code#calling_functions_that_are_located_elsewhere. Could you read (and review) the whole development guidelines and provide comments/improvements?"
+      - +@isprivate: "0"
+        commentid: "18377"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 10:26:15 +0100
+        thetext: "to implement a quick fix, I will add it back to\n\nmac011> git commit -a\n[master d831e7a] HOTFIX - added ft_platform_supports.m back to the respective private directories. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3244\n 11 files changed, 3137 insertions(+)\n create mode 100644 connectivity/private/ft_platform_supports.m\n create mode 100644 engine/private/ft_platform_supports.m\n create mode 100644 fileio/private/ft_platform_supports.m\n create mode 100644 forward/private/ft_platform_supports.m\n create mode 100644 inverse/private/ft_platform_supports.m\n create mode 100644 peer/private/ft_platform_supports.m\n create mode 100644 plotting/private/ft_platform_supports.m\n create mode 100644 preproc/private/ft_platform_supports.m\n create mode 100644 qsub/private/ft_platform_supports.m\n create mode 100644 specest/private/ft_platform_supports.m\n\nI have pushed to it the master branch.\n\nStill to be done is to improve test_dependencies to check that all modules are stand-alone. One reason for it failing might also be that \n\ntest_dependencies -> mydepfun -> depfun\n\nand \n\n>> depfun\nError using depfun (line 4)\nDEPFUN has been removed. Use matlab.codetools.requiredFilesAndProducts instead.\n\nwhich is silently caught in mydepfun.\n\nI should first test it on an old MATLAB version and then think of how to improve the test. I can imagine that the \"depfun\" command is also missing (or implemented differently) on Octave."
+      - +@isprivate: "0"
+        commentid: "18379"
+        comment_count: "6"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-08 10:42:27 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #3)\n\n> Private functions not being able to call other private functions seems a bug in octave to me\n\nI'll look more into it. The following code\n\n    mkdir private\n    echo \"function foo()\n    bar()\" > private/foo.m\n    echo \"function bar()\n    disp('bar was called');\" > private/bar.m\n    echo \"function main()\n    foo()\" > main.m\n\nwhich calls main -> private/foo -> private/bar runs fine. Yet there are errors reported on travis (https://travis-ci.org/nno/fieldtrip/jobs/196967097): \n\nfailure: no such file, '/home/travis/build/nno/fieldtrip/utilities/private/private/ft_platform_supports.m'\n  randomseed:47 (/home/travis/build/nno/fieldtrip/utilities/private/randomseed.m)\n  ft_preamble_randomseed:40 (/home/travis/build/nno/fieldtrip/utilities/private/ft_preamble_randomseed.m)\n  ft_connectivitysimulation:114 (/home/travis/build/nno/fieldtrip/ft_connectivitysimulation.m)\n  ft_preamble:72 (/home/travis/build/nno/fieldtrip/utilities/ft_preamble.m)\n  ft_connectivitysimulation:114 (/home/travis/build/nno/fieldtrip/ft_connectivitysimulation.m)\n  test_old_connectivityanalysis:29 (/home/travis/build/nno/fieldtrip/test/test_old_connectivityanalysis.m)\n  MOxUnitFieldTripTestCase>run_function_in_dir:72 (/home/travis/build/nno/fieldtrip/contrib/MOxUnit_fieldtrip/@MOxUnitFieldTripTestCase/MOxUnitFieldTripTestCase.m)\n\nwhich does seem to indicate some issues with functions in private directories. I'll see if I can identify the issue here."
+      - +@isprivate: "0"
+        commentid: "18380"
+        comment_count: "7"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-08 10:49:14 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          > I can imagine that the "depfun" command is also missing (or implemented differently) on Octave.
+
+          Indeed it seems missing; at least in Octave 4.0.3:
+
+          >> depfun
+          warning: the 'depfun' function is not yet implemented in Octave
+
+          Please read `http://www.octave.org/missing.html' to learn how you can
+          contribute missing functionality.
+          warning: called from
+              __unimplemented__ at line 524 column 5
+          error: 'depfun' undefined near line 1 column 1

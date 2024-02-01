@@ -1,0 +1,270 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1667"
+    creation_ts: 2012-08-22 09:50:00 +0200
+    short_desc: improve the caching implementation in ft_read_data
+    delta_ts: 2015-01-08 10:09:24 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1453
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - b.reuderink
+      - philipvandenbroek
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7059"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 09:50:04 +0200
+        thetext: "reading the manuscript from Wouter, it occurred to me that he probably did not use the local caching that is implemented in ft_read_data, at least he does not mention it. It might speed things up.\n\nThis might also be of interest to brainstream.\n\nAround line 191, together with the section at line 1088, there now is something like\n\nif cache=yes\n try to get data from cache\n if succes\n   return\n else\n  get data from the file or FT buffer\n  store in cache for the next time\n  end\nend\n\nIt needs to be improved w.r.t. the total cache size (it now will grow out of hand), i.e. old data should be flushed.\n\nFurthermore, the cache success is now boolean (yes/no), a partial cache hit is not supported. That means that the overlapping segment reading as used by Wouter would not benefit from this. If ft_fetch_data were made smarter (or perhaps it can already do it) and would return nans for the missing part of the data upon a partial cache hit, the subsequent read of the buffer/file could be restricted to only the part that was not present in the cache. \n\nI.e. something like\n\ndat = ft_fetch_data(...)\nif any(isnan(dat(1,;))\n  % get the section or sections of data that were not in the cache\n  begsample = ...\n  endsample = ...\n  read the data from the actual stream/file, use a recursive ft_read_data call with caching switched off\n  add the new segments to the cache\n  fill in the missing pieces of the requested data\n  return\nend\n\nI think it would be easiest to implement if the two sections now (at 191 and 1088) would be merged into one, using a recursive call to ft_read_data"
+      - +@isprivate: "0"
+        commentid: "7060"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 09:59:24 +0200
+        thetext: |-
+          another request that is clear from Wouters report is that it is desired to have WAIT_GET_DAT and integrate the blocking into the ft_read_data call.
+
+          See also bug #1428 and http://fieldtrip.fcdonders.nl/development/realtime/buffer_protocol#suggested_extensions_to_the_protocol
+      - +@isprivate: "0"
+        commentid: "7063"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-22 10:14:33 +0200
+        thetext: Good idea! Indeed, he did not use caching. It will make using the buffer more flexible and ease using it for real-time feedback application. I'm gonna work on that after the BioMag conference
+      - +@isprivate: "0"
+        commentid: "7065"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 10:25:44 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          please coordinate with Boris to ensure that the right stuff ends up in either the low-level C reference implementation or in the high-level MATLAB implementation.
+      - +@isprivate: "0"
+        commentid: "7476"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-20 13:23:42 +0200
+        thetext: "As a sidenote: you can ask the buffer for the amount of samples which are available and thus retrieve the last x samples. This invalidates the try-catch approach that Wouter used, which initiated this improvement.\n\n\nSo one thing, which is theeasy fix, is to improve the caching behaviour, so that you can ask for retrieving data from the cache, and if not available, only the data that is missing will be pulled over from the buffer.\nThe other thing concerns a new command for the buffer, so that the buffer can wait for the requested data to be available rather than returning an error. I guess this second one (WAIT_GET_DAT) would need to go into the buffer.c file, right, while the first one would be alright in the higher-level matlab function. \n\nBoris, any thoughts on this or additions?"
+      - +@isprivate: "0"
+        commentid: "7576"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-25 10:52:19 +0200
+        thetext: "One concern that I have is that Wouter used an approach that is probably sub-optimal for what was already available. For me this indicates that for each solution, we should think of how we inform and/or educate our users. \n\n@Jörn: shall we discuss this tomorrow at 10:00?"
+      - +@isprivate: "0"
+        commentid: "7577"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-25 11:13:18 +0200
+        thetext: yes, let's discuss it, 10 am is fine. Got a group meeting at 11 though.
+      - +@isprivate: "0"
+        commentid: "7615"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-26 15:30:25 +0200
+        thetext: |-
+          tasks:
+
+          ft_read_data
+           - change cachedata.trl to .sampleinfo to be consistent with current guidelines
+           - add a userspecific cfg option for cachelength, specified in samples
+           - remove trials if samples > thresholds (only remove full trials, not partially)
+
+          profiling/buffer:
+           - set up a buffer and use qsubcellfun to simulate many processes requesting events/header from the buffer. check timing
+
+           - test how fast pulling data over from the buffer is in the MEG w/o caching
+
+          profiling/ft_fetch_data
+           - write a test script to check speed of ft_fetch_data when inputdata has chunks of a few 100ms and data is requested that extends over several chunks (including asking for data outside the chunks). If time > (see above), think about if function can be faster or whether caching in ft_read_data does make sense.
+      - +@isprivate: "0"
+        commentid: "7632"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-27 10:33:35 +0200
+        thetext: "insights:\n\n1) caching could not be used before, because ft_fetch_data works in .sampleinfo rather than on .trl. changed this accordingly in ft_read_data\n\n2) ft_fetch_data cannot deal with requesting data from outside the input data. fixed this.\n\n3) 100 times fetching a 4s chunk of data from 20 cached segments takes about 1.5seconds, from 100 segments it takes about 2 seconds, with 1000segments about 5.5econds. Remember that this is for 100 iterations, so even with 1000segments it takes only about 50ms per fetch, with 20 cached segements one fetch takes on average 15ms.\nThe factor that is most determined is the length of the requested data, independently of the length of chunks in the cache, e.g when fetching only 1s time decreases by 25-50% (depending on cachesize). Remains the question how that compares to getting all data from the buffer compared to only a small part. \n\n4) ft_fetch_data could not deal properly with only 1 trial, i.e. it did not return nans but errored when data outside the trial was requested. Fixed this so that it is consistent with many trials. Made a testscript for this special case.\n\nhttp://code.google.com/p/fieldtrip/source/detail?r=6554"
+      - +@isprivate: "0"
+        commentid: "7633"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-27 11:12:46 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          regarding item 3:
+
+          This suggests that the ft_fetch_data function is memory inefficient, i.e. moving more bytes around in memory than it should be doing.
+
+          Have you done
+
+          profile clear; profile on
+          ... run script
+          profile report
+
+          to see the lines of code that take the most time?
+      - +@isprivate: "0"
+        commentid: "7634"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-09-27 12:07:20 +0200
+        thetext: "about 70% is due to ft_checkdata. once it is done by ft_fetch_header which an easily be saved by fetching the header in advance. the other call to ft_checkdata is in ft_fetch_data.\nIn ft_checkdata, most time (90%) consumed by ft_datatype_raw and here in particular fixtimeaxis (99%), line 211 takes up 60% of this:\nendtime(i)   = data.time{i}(end);\n\nthe rest is consumed mostly (50%) by looping through trials (~15-20%):\n        for xlop=1:length(utrl)\n          ok   = trialnum==utrl(xlop);\n          smps = samplenum(ok);\n          dat(:,ok) = data.trial{utrl(xlop)}(chanindx,smps);\n        end\n\n for trllop=1:trlnum \n  trllen(trllop) = size(data.trial{trllop},2); \n end \n\nor by dealing with matrices when having many trials (i.e. many samples):\n  count     = zeros(1, maxsample, 'int32');\n  trialnum  = zeros(1, maxsample, 'int32');\n  samplenum = zeros(1, maxsample, 'int32');\n\n  dat = NaN(numel(chanindx),endsample-begsample+1);"
+      - +@isprivate: "0"
+        commentid: "7660"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-09-28 14:48:13 +0200
+        thetext: Hey Jorn, your added code crashed if there was an offset present in the trl, I had a quick look, should be fixed as of now.
+      - +@isprivate: "0"
+        commentid: "7848"
+        comment_count: "12"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2012-10-08 13:25:05 +0200
+        thetext: |-
+          Hi Jörn,
+
+          As a suggestion, in the current implementation it seems like caching only seems to work if only one buffer is involved. Perhaps, you're already implementing such feature, but if not it might be worthwhile to consider making the caching "buffer-address" dependent.
+
+          Gr. Philip
+      - +@isprivate: "0"
+        commentid: "7849"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-08 15:54:51 +0200
+        thetext: "(In reply to comment #12)\n\nor more general, if \ndat1 = ft_read_data(datafile1)\ndat2 = ft_read_data(datafile2)\nare called with different datafiles, then ft_read_data should cache both and not get confused."
+      - +@isprivate: "0"
+        commentid: "12723"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-29 14:37:21 +0100
+        thetext: |-
+          caching from multiple streams might be tricky, because one would need a unique way to identify each stream. Right now, caching is implemented by comparing the channel labels of the cached and the input data. I would suggest to make a persistent variable called "dataset" which is a cell-array and contains as many entries as cached datasets (similar for cache_data). dataset will store the unique name of the dataset and only if that matches the already stored data, it will try to fetch data from the cached data structure
+
+          another problem, and potential bug, is that if cached data is fetched, everything outside the current cached data is filled with nans. the question is, in what cases should it be kept like this and when should the nans be tried to filled current data?
+      - +@isprivate: "0"
+        commentid: "15009"
+        comment_count: "15"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-01-07 11:04:30 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #14)
+          the nan-fill question still needs to be addressed by one of the senseis ;)
+      - +@isprivate: "0"
+        commentid: "15019"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-08 10:02:26 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #15)
+
+          In order to cache data from multiple datasets it needs to keep track of the data source (i.e. string like "localhost://buffer:1972" and of the channels that were read previously from that source.
+
+          Would this work by means of having two cell array of structs like
+              cachefilename{i} = string, i.e. filename input arg
+          and
+              cachedata{i}.label = hdr.label(chanindx);
+              cachedata{i}.fsample = hdr.Fs;
+              cachedata{i}.time    = {};
+              cachedata{i}.trial   = {};
+              cachedata{i}.cfg     = []; % does not seem to be used, so pleas remove
+              cachedata{i}.sampleinfo = zeros(0,2);
+          where the 2nd must be compatible with ft_datatype_raw?
+
+          To me this seems like a perfectly fine implementation.
+
+          Consider the following unusual test cases with caching
+
+          for i=1:10
+            % read from 10 sources which have one channel each
+            dat(i,:) = ft_read_data(dataset{i}, 'chanindx', 1);
+          end
+
+          for i=1:10
+            % read from 1 source which has 10 channels
+            dat(i,:) = ft_read_data(dataset, 'chanindx', i);
+          end
+
+          For me it is now clear how cache filename and cache data would look like. Please go ahead and implement like this.
+      - +@isprivate: "0"
+        commentid: "15020"
+        comment_count: "17"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-01-08 10:06:14 +0100
+        thetext: |-
+          alright, sounds like a good plan.
+
+          what about the nan problem? currently, if you ask for data that is already partly cached, the currently not chached part will be filled with nans. It could be filled by reading from the original dataset (which could sometimes fail). Should this be a user-choice?
+      - +@isprivate: "0"
+        commentid: "15021"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-08 10:09:24 +0100
+        thetext: "(In reply to Jörn M. Horschig from comment #17)\n\n(In reply to Jörn M. Horschig from comment #15)\n\nregarding the nan filling. I suggest to change\n\n  try\n      dat = ft_fetch_data(cachedata, 'begsample', begsample', 'endsample', endsample);\n      % fprintf('caching succeeded\\n');\n      return\n    catch\n      % fprintf('caching failed\\n');\n    end\n\ninto \n\n  try\n      dat = ft_fetch_data(cachedata, 'begsample', begsample', 'endsample', endsample);\n      assert(~any(isnan(dat(:)));\n      % fprintf('caching succeeded\\n');\n      return\n    catch\n      % fprintf('caching failed\\n');\n    end\n\nwhere the assert will error if there is a nan and subsequently a new read operation will be performed. Thie results in the most recent data being read. If that data still contains a nan (just like the cached data), then there is nothing we can do about it."

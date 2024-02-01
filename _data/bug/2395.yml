@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2395"
+    creation_ts: 2013-11-28 11:21:00 +0100
+    short_desc: lcmv beamformer gives wrong results when precomputed filter is supplied
+    delta_ts: 2014-01-29 13:28:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - haristz
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12085"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-28 11:21:00 +0100
+        thetext: |-
+          Following this post (and replies) on the general mailing list: http://mailman.science.ru.nl/pipermail/fieldtrip/2013-October/007108.html
+
+          Results for LCMV beamforming when a filter is precomputed, and then applied on other data, are wrong. I have confirmed Haris' error with my own data; the error is independent on whether keeptrials/rawtrial is used, it also applies to averaged data.
+
+          In the current revision of ft_sourceanalysis (8701), the code to blame is located between lines 790:842. Specifically, when I change this code:
+
+            if strcmp(cfg.method, 'lcmv') && ~isfield(grid, 'filter'),
+              for i=1:Nrepetitions
+                squeeze_avg=reshape(avg(i,:,:),[siz(2) siz(3)]);
+                fprintf('scanning repetition %d\n', i);
+                dip(i) = beamformer_lcmv(grid, sens, vol, squeeze_avg, squeeze(Cy(i,:,:)), optarg{:});
+              end
+            elseif strcmp(cfg.method, 'lcmv')
+
+          to this:
+
+            if strcmp(cfg.method, 'lcmv')% && ~isfield(grid, 'filter'),
+              for i=1:Nrepetitions
+                squeeze_avg=reshape(avg(i,:,:),[siz(2) siz(3)]);
+                fprintf('scanning repetition %d\n', i);
+                dip(i) = beamformer_lcmv(grid, sens, vol, squeeze_avg, squeeze(Cy(i,:,:)), optarg{:});
+              end
+            elseif 0 && strcmp(cfg.method, 'lcmv')
+
+          so in effect make sure that the function never tries to do the 'smart' reshaping of data, the results are as expected.
+      - +@isprivate: "0"
+        commentid: "12086"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-28 11:23:05 +0100
+        thetext: |-
+          (In reply to comment #0)
+          PS, just to be sure: the code cited above (after the 'if') is actually *correct*, everything that follows the 'elseif' is wrong.
+      - +@isprivate: "0"
+        commentid: "12151"
+        comment_count: "2"
+        who:
+          +content: haristz
+          +@name: Haris Tzagarakis
+        bug_when: 2013-11-29 23:47:08 +0100
+        thetext: |-
+          Thanks for confirming this Eelke.
+          Your description is exactly right.
+          Best,
+          Haris
+      - +@isprivate: "0"
+        commentid: "12496"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-15 14:22:01 +0100
+        thetext: |-
+          bash-4.1$ svn commit ft_sourceanalysis.m
+          Sending        ft_sourceanalysis.m
+          Transmitting file data .
+          Committed revision 9099.
+
+          Apologies for the slow follow up on this. The 'smart' reshaping is now disabled, so lcmv should work as expected (although slow in the case of rawtrial beamforming).
+      - +@isprivate: "0"
+        commentid: "12498"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-01-15 15:03:38 +0100
+        thetext: "Hi Eelke, \nI understand the reshaping in the \n\ntmpdat = reshape(permute(avg,[2 3 1]),[siz(2) siz(3)*siz(1)]);\n\nline of code was not working which is why you commented it out, but aren't there other necessary things going on in that 'if' section, with the setting of the .mom and .cov fields that you commented out, which occur only in the case of an existing grid.filter?  Or are those now happening inside beamformer_lcmv?  \n\nCheers,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "12501"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-15 15:16:00 +0100
+        thetext: |-
+          (In reply to Johanna from comment #4)
+          Hi Johanna!
+
+          Yes, beamformer_lcmv should now compute the single-trial mom and cov.
+      - +@isprivate: "0"
+        commentid: "12506"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-01-15 18:26:15 +0100
+        thetext: "Hi Eelke,\n\nI had a look in beamformer_lcmv and don't see any new changes.  \nI do see that .mom and .cov get computed in there.  However, I think there is something else going on in the commented out code, but I can't place my finger on it or come up with an example.  However, I have a feeling that if you compare the old to the new, you will not get the same answers (if the data is not a problem for the two different types of reshaping that is), for all possible combinations of either data being averaged or not, filter included or not, filter previously computed from averaged or unaveraged data, etc.....  \nBut if you're happy with the solution, then feel free to ignore me, I just recalled being caught out by the differences in that section of code a couple years ago.\n\nCheers,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "12507"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-15 18:44:36 +0100
+        thetext: |-
+          (In reply to Johanna from comment #6)
+          The commented out code does a reshape to make a single big data matrix for all the trials concatenated, then do the grid scan on that matrix, and then extracts the individual trial information from the beamformed big matrix. At least that's what it was supposed to do :)
+
+          So all the handling of .cov and .mom in the commented out stuff is just to try and get proper single-trial estimates of cov and mom based on what the beamformer returned for the big matrix. Since now the spatial filter is repeatedly called for each trial (the intuitively straightforward way of handling trials), the cov and mom that are returned by beamformer_lcmv already apply to the individual trials, thus no special handling afterwards is needed anymore.
+
+          At least that's how I understood it. The commented out code was written by JM (who is on cc for this bug); JM feel free to interrupt if I'm missing something.
+      - +@isprivate: "0"
+        commentid: "12653"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:34 +0100
+        thetext: changing lots of bugs from resolved to closed.

@@ -1,0 +1,60 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2535"
+    creation_ts: 2014-04-14 17:20:00 +0200
+    short_desc: 'Error in ft_apply_montage: gradiometer info not correctly selected?'
+    delta_ts: 2019-08-10 12:33:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.daume
+      +@name: Jonathan Daume
+    assigned_to: fieldtriptoolbox
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13324"
+        comment_count: "0"
+        who:
+          +content: j.daume
+          +@name: Jonathan Daume
+        bug_when: 2014-04-14 17:20:25 +0200
+        thetext: "Hi,\n\nI get a crash when calling ft_apply_montage with ft_megplanar (for several late FT versions). I guess this comes from calling incorrect gradiometer info from the ICA output during ft_apply_montage, but I am not sure.\n\nThis is what happens: \n\nThe following is the gradiometer info of my ft_preprocessing output before I call ft_componentanalysis:\n\ndata.grad = \n\n     balance: [1x1 struct]\n     chanori: [299x3 double]\n     chanpos: [299x3 double]\n    chantype: {299x1 cell}\n    chanunit: {299x1 cell}\n     coilori: [589x3 double]\n     coilpos: [589x3 double]\n    coordsys: 'ctf'\n       label: {299x1 cell}\n         tra: [299x589 double]\n        type: 'ctf275'\n        unit: 'cm'\n\nI add six EEG channels to the ICA causing changes in grad-info of the ICA-output comp:\n\ncomp.grad = \n\n       balance: [1x1 struct]\n       chanori: [305x3 double]\n       chanpos: [305x3 double]\n       coilori: [589x3 double]\n       coilpos: [589x3 double]\n      coordsys: 'ctf'\n         label: {305x1 cell}\n           tra: [305x589 double]\n          unit: 'cm'\n    chanposorg: [299x3 double]\n    chanoriorg: [299x3 double]\n      labelorg: {299x1 cell}\n\n\nAfter calling ft_rejectcomponent using the original data (data_rej = ft_rejectcomponent(cfg, comp, data)), the grad-info gets correctly updated:\n\ndata_rej.grad = \n\n       balance: [1x1 struct]\n       chanori: [305x3 double]\n       chanpos: [305x3 double]\n       coilori: [589x3 double]\n       coilpos: [589x3 double]\n      coordsys: 'ctf'\n         label: {305x1 cell}\n           tra: [305x589 double]\n          type: 'ctf275'\n          unit: 'cm'\n    chanposorg: [299x3 double]\n    chanoriorg: [299x3 double]\n      labelorg: {299x1 cell}\n\nSo far, so good. However, as soon as I call ft_megplanar (prior to ft_freqanalysis) there is a dimension mismatch during calculating sens.tra in ft_apply_montage:\n\n\n   Error using  * \n   Inner matrix dimensions must agree.\n\n   Error in ft_apply_montage (line 220)\n      sens.tra = montage.tra * sens.tra;\n\n   Error in ft_megplanar (line 309)\n  interp.grad = ft_apply_montage(sens, planarmontage, 'balancename', 'planar', 'keepunused', 'yes');\n\nIt seems that montage.tra (569x299 double) contains only the MEG channels, which are selected by ft_apply_montage (as wanted for ft_megplanar), whereas sens.tra (=data_rej.grad.tra,305x589 double) still contains information about the added six EEG channels causing a dimension mismatch during multiplying. I guess, in sens.tra only the MEG channels should be selected as well.\n\nI can circumvent this problem by overwriting data_rej.grad with data.grad (the gradiometer info prior to the ICA), however, shouldn't this also work with the actual output of ft_rejectcomponent? Or am I misunderstanding something?\n\nThanks a lot for your help!\n\nRegards,\nJonathan"
+      - +@isprivate: "0"
+        commentid: "18105"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:08:06 +0100
+        thetext: I am not sure whether this is still a problem. The code has probably significantly evolved since this has been first submitted, and nobody has followed up on this (including the person who filed the bug). For now, I suggest to close it, but feel free to reopen.
+      - +@isprivate: "0"
+        commentid: "20191"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:25 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

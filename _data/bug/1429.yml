@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1429"
+    creation_ts: 2012-04-17 12:02:00 +0200
+    short_desc: ft_componentanalysis returns slightly different results from the stored test results
+    delta_ts: 2013-11-03 19:57:00 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - j.herring
+      - j.schoffelen
+      - johanna.zumer
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5916"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-17 12:02:32 +0200
+        thetext: |-
+          While checking out test_ft_componentanalysis, I tracked its failing down to line 30:
+
+            assert(isequalwithequalnans(data, datanew));
+
+          It turns out that (at least) the .unmixing field is slightly different in the two versions. The difference is on the order of 10^-10, though, while the weights are in the order of 10^-1, so probably this is not a 'real' bug. I would not know how to fix it, though.
+      - +@isprivate: "0"
+        commentid: "5917"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-04-17 12:11:57 +0200
+        thetext: "Hi Eelke, for which 'k' does this occur?  \n\nI just did svn-update and my previous version (from last week) of test_ft_componentanalysis went through all the cfg.method options...does this new version also? (it seems only 'pca' is now tested).  I ask because I did make a change with the .unmixing specific to DSS method, about 2 months ago, but that shouldn't affect PCA."
+      - +@isprivate: "0"
+        commentid: "5918"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-17 12:16:11 +0200
+        thetext: |-
+          (In reply to comment #1)
+          The one I'm using indeed only checks PCA (which might be an issue in itself, of course: why not test every method?).
+          The assertion fails for k = 1,2,3 and probably also the rest (which I haven't checked).
+      - +@isprivate: "0"
+        commentid: "6136"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-16 14:01:09 +0200
+        thetext: |-
+          my suspicion is that this is related to the scaling of the data, that has been introduced a while ago. Before, the data entered the bss-algorithms unscaled, i.e. it could have values of 10e-12, whereas they are scaled to 10e0.
+
+          See whether temporarily commenting out the scaling line reproduces the problem.
+
+          If it indeed is a numerical accuracy issue, probably it is not a real bug and the reference data on disk should be updated with the most recent version of ft_componentanalysis
+      - +@isprivate: "0"
+        commentid: "7982"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-24 13:29:31 +0200
+        thetext: |-
+          this issue is related to test_ft_componentanalysis failing.
+
+          The general discussion in FT-meeting (24-Oct-2012) went into the direction of questioning the usefulness of comparing newly computed data against data stored on disk. The issue also applies to test_ft_timelockanalysis and test_ft_freqanalysis.
+          In general, users should be able to expect that the numerical output does not change (unless the earlier version had a bug in the algorithm); another discussion is whether the implementation of the algorithm is correct.
+          In the case of componentanalysis, it was questioned whether the reference data should be used at all for the second purpose. Better to use 'generated' data in this case.
+          The latter purpose suggests that many test-functions need to be extended as to also test the correctness of the implementation.
+      - +@isprivate: "0"
+        commentid: "11836"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-11-03 19:57:00 +0100
+        thetext: "In response to Robert's e-mail from 2-11-2013 on the recent regression related errors I had a look at test_ft_componentanalysis. It is now failing for k=12 due to slight differences between the calculated components and the data on disk. \n\nThe error does not appear when I comment out the scaling so I think the current failing of test_ft_componentanalysis is related to the discussion in this bug."

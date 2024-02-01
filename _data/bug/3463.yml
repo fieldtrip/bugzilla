@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3463"
+    creation_ts: 2018-10-26 12:31:00 +0200
+    short_desc: ft_sourcestatistics does FDR correction wrong
+    delta_ts: 2019-04-19 12:32:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ingeborghh
+      +@name: Ingeborg
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19519"
+        comment_count: "0"
+        who:
+          +content: ingeborghh
+          +@name: Ingeborg
+        bug_when: 2018-10-26 12:31:07 +0200
+        thetext: "Significances obtained with ft_sourcestatistics using permutation testing and FDR correction (using the default Yekuteli procedure) are no longer significant, when extracting the p-values from within the head and running FDR (Yekuteli) correction using the fdr_bh.m function provided by MathWorks. \n\nIt seems, that ft_sourcestatistics place very small p-values (1/(Nperm+1)) in gridpoints outside the head. These very small artificial p-values are included in the list of p-values, that go into the fdr.m function. As the artificial p-values are the smallest possible, they are subject to the lowest p-value thresholds leaving \"real\" p-values subject to thresholds that are higher than they would otherwise have been (Imagine 2 fake (smallest) p-values and 2 real p-values: the 1'st real p-value is significant when < 0.75* 0.05, while it would only be significant when < 0.5 * 0.05 without the fake p-values).\n\nI also observed significant findings after FDR-correction when erroneously using a lower amount of permutations than number of gridpoints. I still have not figured out, how this is even possible.  \n\n\nBest wishes,\nIngeborg"
+      - +@isprivate: "0"
+        commentid: "19541"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-01 10:21:02 +0100
+        thetext: |-
+          fdr_bh is not a mathworks provided function, but it seems to be a function from file exchange.
+
+          I think that the first thing you should do, is to write a test script to demonstrate that the basic implementation of the fdr correction is different, comparing fdr_bh with fdr (in fieldtrip/private). This may be best done with surrogate data.
+
+          Then, with respect to the outcome of the comparison, we should find out which of the implementations is the preferred one.
+
+          Irrespective of the outcome, from your description it seems that in your case 'outside' dipole positions are somehow included in the analysis, and depending on what type of mcp correction scheme is used) this may have a serious side effect on the inferential decision process.
+
+          In this case it is important now to check whether the inclusion of outside dipoles is generic code behavior these days, or whether users end up in this unwanted scenario due to how the data accidentally happens to have been handled in their case.
+      - +@isprivate: "0"
+        commentid: "19545"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-11-01 16:29:06 +0100
+        thetext: |-
+          I recall a discussion (with Thom Nichols?) that there are some subtle choices w.r.t. the FDR implementation. See e.g. https://www.graphpad.com/guides/prism/7/statistics/index.htm?stat_pros_and_cons_of_the_three_met.htm
+
+          When testing this, please make sure you are not comparing different versions.
+      - +@isprivate: "0"
+        commentid: "19556"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-05 13:34:41 +0100
+        thetext: any update here?
+      - +@isprivate: "0"
+        commentid: "19610"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-12-03 16:25:47 +0100
+        thetext: "OK, not much seems to be happening here with respect to the inside/outside issue, although I have not managed to reproduce the reported bug (i.e. in my version of fieldtrip the p-values are taken only for the dipole positions that are classified as 'inside'). So, please check (again) whether the fieldtrip version used was up-to-date.\n\nComparing the fieldtrip fdr with fdr_bh (using method 'dep') it seems to me that both functions behave the same.\n\nYet, the remark about the number of permutations (and the resulting granularity in p-values) in combination with the number of data points sparked my concern. Indeed, when investigating the fdr function, one would expect that uncorrected p-values should really be quite low (order of magnitude in the 1e-5 range) for even only 1000 data points. In that respect it is quite surprising indeed to find data points with null hypotheses rejected. \n\nI think that there indeed is a bug in the fieldtrip code, which leads to inappropriate fdr correction, but only when 'all' is used for cfg.numrandomization (so it occurs only in case a full permutation can be computed, so for instance typically in a situation with not too many subjects). In the of 'all', the stat.prob can occasionally become 0 (rather than 1/N), because the correction to the p-values is only done if numrandomization ~ 'all'. I am worried that this might explain why I quite occasionally observe report of significant results (using FDR correction), even when assuming that people indeed realize that the p-values returned by fieldtrip are uncorrected. All this happens around line 350 in ft_statistics_montecarlo. @Robert: I think that this should be discussed"
+      - +@isprivate: "0"
+        commentid: "19621"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-01-10 14:29:31 +0100
+        thetext: Ingeborg, would you like to pursue this further?
+      - +@isprivate: "0"
+        commentid: "19673"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-04-01 08:55:37 +0200
+        thetext: Too bad that Ingeborg has become unresponsive. I will not follow this up unless there is some additional effort and contribution from Denmark.

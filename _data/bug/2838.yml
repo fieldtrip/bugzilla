@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2838"
+    creation_ts: 2015-02-11 14:53:00 +0100
+    short_desc: Sourceanalysis using MNE doesn't use noise covariance
+    delta_ts: 2015-07-15 13:31:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: p.mostert
+      +@name: Pim Mostert
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15293"
+        comment_count: "0"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2015-02-11 14:53:36 +0100
+        thetext: |-
+          cfg = [];
+          cfg.method = 'mne';
+          cfg.grid = lf;
+          cfg.grid.pos = sourcespace.pnt;
+          cfg.vol = vol;
+          cfg.mne.lambda = 5;
+          cfg.mne.keepfilter = 'yes';
+          sourceDiff = ft_sourceanalysis(cfg, diff);
+
+          Where diff was obtained using ft_timelockanalysis and cfg.covariance = 'yes'.
+
+          The verbal output reports that the noise covariance is used. However, I tried changing the covariance matrix of diff in many different ways [even diff.cov = rand(size(diff.cov))], but the results are always the same. Also, changing cfg.mne.lambda doesn't make a change.
+
+          I took the liberty to look into the code, and it appears that in minimumnormestimate.m, lines 242-246, the noise covariance matrix indeed isn't used at all.
+
+          Thanks,
+          Pim
+      - +@isprivate: "0"
+        commentid: "15311"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 16:00:54 +0100
+        thetext: |-
+          You're absolutely right, I think!
+
+          It looks as if the code is only correct when you specify cfg.mne.prewhiten = 'yes', in which case the leadfields are prewhitened with C.
+
+          Note that the prewhitening operation essentially reduces the prewhitened noise covariance to an identity matrix, in which case the lambda parameter can assume a value irrespective of the units that are in the leadfields and the data.
+          (In other words, when you don't prewhiten (and provided the commented out code (line 232-238) is used) the relative scaling of C  versus A*R*A' determines the magnitude of meaningful lambda values.
+
+          I will adjust the code to run correctly when prewhiten is 'no'.
+
+          Thanks for noticing!
+      - +@isprivate: "0"
+        commentid: "15314"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 16:13:48 +0100
+        thetext: "[jansch@mentat003 inverse]$ svn diff minimumnormestimate.m\nIndex: minimumnormestimate.m\n===================================================================\n--- minimumnormestimate.m\t(revision 10204)\n+++ minimumnormestimate.m\t(working copy)\n@@ -228,26 +228,27 @@\n       lambda = trace(A * R * A')/(trace(C)*snr^2);\n     end\n     \n-    %% equation 5 from Lin et al 2004 (this implements Dale et al 2000, and Liu et al. 2002)\n-    %denom = (A*R*A'+(lambda^2)*C);\n-    %if cond(denom)<1e12\n-    %  w = R * A' / denom;\n-    %else\n-    %  fprintf('taking pseudo-inverse due to large condition number\\n');\n-    %  w = R * A' * pinv(denom);\n-    %end\n-    \n-    % as documented on MNE website, this is replacing the part of the code above, it gives\n-    % more stable results numerically.\n-    Rc      = chol(R, 'lower');\n-    [U,S,V] = svd(A * Rc, 'econ');\n-    s  = diag(S);\n-    ss = s ./ (s.^2 + lambda);\n-    w  = Rc * V * diag(ss) * U';\n-    \n-    % unwhiten the filters to bring them back into signal subspace\n-    if dowhiten\n+    if dowhiten,\n+      % as documented on MNE website, this is replacing the part of the code above, it gives\n+      % more stable results numerically.\n+      Rc      = chol(R, 'lower');\n+      [U,S,V] = svd(A * Rc, 'econ');\n+      s  = diag(S);\n+      ss = s ./ (s.^2 + lambda);\n+      w  = Rc * V * diag(ss) * U';\n+   \n+      % unwhiten the filters to bring them back into signal subspace\n       w = w*P;\n+   \n+    else\n+      %% equation 5 from Lin et al 2004 (this implements Dale et al 2000, and Liu et al. 2002)\n+      denom = (A*R*A'+(lambda^2)*C);\n+      if cond(denom)<1e12\n+        w = R * A' / denom;\n+      else\n+        fprintf('taking pseudo-inverse due to large condition number\\n');\n+        w = R * A' * pinv(denom);\n+      end\n     end\n     \n   end % if empty noisecov"
+      - +@isprivate: "0"
+        commentid: "15315"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 16:14:34 +0100
+        thetext: "[jansch@mentat003 inverse]$ svn commit -m \"bugfix - properly invert the leadfield when prewhiten is set to 'no'\" minimumnormestimate.m \nSending        minimumnormestimate.m\nTransmitting file data .\nCommitted revision 10207."
+      - +@isprivate: "0"
+        commentid: "15336"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-12 08:50:16 +0100
+        thetext: 'PS: Please do keep taking the liberty to look into the code :-)'

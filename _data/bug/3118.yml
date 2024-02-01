@@ -1,0 +1,192 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3118"
+    creation_ts: 2016-04-28 15:11:00 +0200
+    short_desc: ft_artifact_zvalue give an error with button press using mouse but keyboard works fine
+    delta_ts: 2016-06-17 15:56:33 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "2856"
+      - "2857"
+      - "2936"
+    everconfirmed: "1"
+    reporter:
+      +content: weiyong.w.xu
+      +@name: Weiyong Xu
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17260"
+        comment_count: "0"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-04-28 15:11:07 +0200
+        thetext: "Hi,\n\nThe ft_artifact_zvalue function gives an error whenever button press using mouse. I am using matlab2014a in windows7. \n\nthe error looks like:\n\nAttempt to reference field of non-structure array.\n\nError in ft_artifact_zvalue>keyboard_cb (line 710)\n    curKey=eventdata.Key;\n \nError using waitfor\nError while evaluating uicontrol Callback\n\nAttempt to reference field of non-structure array.\n\nError in ft_artifact_zvalue>keyboard_cb (line 710)\n    curKey=eventdata.Key;\n \nError using waitfor\nError while evaluating uicontrol Callback"
+      - +@isprivate: "0"
+        commentid: "17264"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-04-28 16:17:26 +0200
+        thetext: what is the cfg structure that you are giving as input to the function?
+      - +@isprivate: "0"
+        commentid: "17266"
+        comment_count: "2"
+        who:
+          +content: weiyong.w.xu
+          +@name: Weiyong Xu
+        bug_when: 2016-04-28 20:13:50 +0200
+        thetext: |-
+          The cfg structure is copied from tutorial:
+
+
+
+          % jump
+          cfg = [];
+          cfg.trl = trl;
+          cfg.datafile   = my_file;
+          cfg.headerfile = my_file;
+          cfg.continuous = 'yes';
+
+
+          % channel selection, cutoff and padding
+          cfg.artfctdef.zvalue.channel    = my_channel;
+          cfg.artfctdef.zvalue.cutoff     = 20;
+          cfg.artfctdef.zvalue.trlpadding = -0.2;
+          cfg.artfctdef.zvalue.fltpadding = 0.2;
+          cfg.artfctdef.zvalue.artpadding = 0;
+
+          % algorithmic parameters
+          cfg.artfctdef.zvalue.cumulative    = 'yes';
+          cfg.artfctdef.zvalue.medianfilter  = 'yes';
+          cfg.artfctdef.zvalue.medianfiltord = 9;
+          cfg.artfctdef.zvalue.absdiff       = 'yes';
+
+          % make the process interactive
+          cfg.artfctdef.zvalue.interactive = 'yes';
+
+          [cfg, artifact_jump] = ft_artifact_zvalue(cfg);
+      - +@isprivate: "0"
+        commentid: "17308"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-11 10:42:41 +0200
+        thetext: |-
+          I ran into this as well. ANNOYING!!!!
+
+          It seems the problem is the following lines in ft_artifact_zvalue
+
+          if isa(eventdata,'matlab.ui.eventdata.ActionData') % only the case when clicked with mouse
+            % determine the key that corresponds to the uicontrol element that was activated
+            tmpKey = get(h, 'userdata');
+            h = getparent(h); % otherwise h is empty if isa [...].ActionData
+          end
+
+          In particular, the if statement does not return 'true' when expected to do so (i.e. on a mouse click). Commenting out the if-end fixes it for the mouse clicks.
+
+          I checked on matlab2013b and matlab2012b, so it's not tied to a specific matlab version
+      - +@isprivate: "0"
+        commentid: "17309"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-11 10:53:28 +0200
+        thetext: |-
+          I found this in change in the history, which clearly doesn't work for me. I don't understand why nobody has complained, because this seems to have been introduced one year ago.
+
+          https://github.com/fieldtrip/fieldtrip/commit/9016bd7405e72f403d81ac0c992d7b3f3b2df35e
+      - +@isprivate: "0"
+        commentid: "17310"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-11 11:51:32 +0200
+        thetext: I have implemented a fix and 'pull requested' it. Pending Robert's approval... :o)
+      - +@isprivate: "0"
+        commentid: "17311"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-11 13:20:29 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+
+          I tried this in 2015b and 2012b and it worked fine. I also reviewed the code, looks good to me. I will merge.
+
+          ----
+
+          % jump
+          cfg = [];
+          cfg.dataset   = 'Subject01.ds';
+
+          cfg = ft_definetrial(cfg);
+          %%
+
+          cfg.continuous = 'yes';
+
+          % channel selection, cutoff and padding
+          cfg.artfctdef.zvalue.channel    = 'MEG';
+          cfg.artfctdef.zvalue.cutoff     = 20;
+          cfg.artfctdef.zvalue.trlpadding = -0.2;
+          cfg.artfctdef.zvalue.fltpadding = 0.2;
+          cfg.artfctdef.zvalue.artpadding = 0;
+
+          % algorithmic parameters
+          cfg.artfctdef.zvalue.cumulative    = 'yes';
+          cfg.artfctdef.zvalue.medianfilter  = 'yes';
+          cfg.artfctdef.zvalue.medianfiltord = 9;
+          cfg.artfctdef.zvalue.absdiff       = 'yes';
+
+          % make the process interactive
+          cfg.artfctdef.zvalue.interactive = 'yes';
+
+          [cfg, artifact_jump] = ft_artifact_zvalue(cfg);
+      - +@isprivate: "0"
+        commentid: "17312"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-11 13:21:05 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          I have merged https://github.com/fieldtrip/fieldtrip/pull/152 into the master
+
+          thanks
+          Robert

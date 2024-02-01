@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2685"
+    creation_ts: 2014-09-15 14:15:00 +0200
+    short_desc: ft_scalpcurrendensity blocks on combined MEG-EEG dataset
+    delta_ts: 2014-09-17 16:44:58 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2684"
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14348"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-15 14:15:19 +0200
+        thetext: |-
+          In light of the Stockholm workshop ft_scalpcurrentdensity is used on a combined MEG-EEG dataset stripped of the MEG data. The grad structure, however, still remains in the dataset. ft_scalpcurrentdensity does not allow datasets containing a grad structure:
+
+          115 | % check if the input data is valid for this function
+          116 | data = ft_checkdata(data, 'datatype', 'raw', 'feedback', 'yes', 'ismeg', 'no');
+
+          One possible solution is to replace the error with a warning. Users should be aware that this function should not be used on MEG data but in the end users are responsible for the correct input data.
+
+          Another solution would be to remove the grad field at the step where the EEG data is extracted and the MEG data removed. In this case using ft_preprocessing with cfg.channel = 'EEG';
+      - +@isprivate: "0"
+        commentid: "14353"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-15 14:33:53 +0200
+        thetext: "ft_checkdata should have both ismeg=yes/no/empty and iseeg=yes/no/empty. These are not mutually exclusive. \n\nNote that ismeg=no is only to be used when we know that an algorithm does not work for MEG. In general the common options for ismeg are 'yes' and [].\n\nThe error should remain as is."
+      - +@isprivate: "0"
+        commentid: "14354"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-15 14:34:32 +0200
+        thetext: oh, the specific bug is to be addressed by iseeg=yes, and ismeg=[] as requirements for  ft_scalpcurrendensity.
+      - +@isprivate: "0"
+        commentid: "14357"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-15 16:02:19 +0200
+        thetext: ok, that solves the main issue. ft_scalpcurrentdensity now crashes because ft_fetch_sens reads out the grad information, not the elec information. Unlike ft_read_sens, ft_fetch_sens does not have a senstype option. Should I implement such an option?
+      - +@isprivate: "0"
+        commentid: "14358"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-15 16:30:26 +0200
+        thetext: ft_fetch_sens doesn't even recognize it as having eeg data as ft_senstype, in an if-then statement, first looks for the presence of a grad field. Currently, ft_fetch_sens should throw an error if both a grad and elec field are present. This does not happen, however, as iseeg currently cannot be true in the presence of a grad field.
+      - +@isprivate: "0"
+        commentid: "14369"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-17 14:26:24 +0200
+        thetext: |-
+          Discussed in ft-meeting:
+          change ft_senstype to be non-mutually exclusive.
+
+          implement senstype in ft_fetch_sens as in ft_read_sens
+      - +@isprivate: "0"
+        commentid: "14371"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-17 16:44:58 +0200
+        thetext: "I've implemented senstype in ft_fetch_sens and I've made ft_scalpcurrentdensity ask for 'EEG' sensors. \n\nSending        ft_scalpcurrentdensity.m\nSending        private/ft_fetch_sens.m\nAdding         test/test_bug2685.m\nTransmitting file data ...\nCommitted revision 9810."

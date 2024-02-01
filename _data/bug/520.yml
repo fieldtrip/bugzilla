@@ -1,0 +1,259 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "520"
+    creation_ts: 2011-03-04 10:03:00 +0100
+    short_desc: Neighbourselection crashes when providing a layout and no neighbourdist
+    delta_ts: 2011-07-13 14:46:43 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1565"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-04 10:03:34 +0100
+        thetext: "cfg.neighbourdist is only set if 'sens' has a unit field. At least when using cfg.layout='EEG1010.lay', this is not the case. Here, cfg.neighbourdist is kept empty and then compneighbstructfromgradelec crashes.\n\nTwo ways to fix this:\n1) Throw an error in line 106 (at the moment, there is an empty else-clause)\n2) Come with a good way to estimate the neighbour dist from the unit-sphere (as the EEG1010 layout is a unit-sphere). Here, I see two ways: \n  - Take the same ratio as 4cm is to a real head (that would be around 0.1)\n  - Calculate the neighbourdistance using the average channel distance, maybe also take the total number of channels into account\n\nJust in case that cfg.layout should not be used with neighbourselection, then the documentation needs an update, preferably in the non-parametric statistics tutorial."
+      - +@isprivate: "0"
+        commentid: "1581"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-08 08:46:33 +0100
+        thetext: "I think this can easily be solved by forcing sens to have a unit-field.\n\nThis can be achieved with the function ft_convert_units. I believe that if the function is called as:\n\nsens=ft_convert_units(sens), it guesses the units based on the geometry. \n\nSo a call to ft_convert_units somewhere should do the trick. Isn't there a key-value pair 'hasunit' in ft_checkdata; this would even be cleaner, thus ft_checkdata(sens, 'hasunits', 'yes') or so.\n\nJorn could you have a look at this? Thanks"
+      - +@isprivate: "0"
+        commentid: "1587"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-09 10:16:44 +0100
+        thetext: "I fixed it for now, using the following approach:\n\n1) I use checkdata to force a unit-field into the sens-structure\n2) I added an if-clause that covers 'dm' as a unit, taking 0.4 as the default value (given that 4cm and 40mm is default as well)\n3) Throwing an error if the unit type is not 'dm', 'cm' or 'mm'\n\nI still have a problem with this. ft_checkdata estimates the sensor units to be 'dm' in case I provide an EEG-layout. Since the points of the sensor are actually all in the range between [-0.5; 0.5], a default of 0.4 would be a lot (meaning e.g. that Fpz is a neighbour Cz as well as 31 other channels:\n\nK>> neighbours{2}\n\nans = \n\n          label: 'Fpz'\n    neighblabel: {32x1 cell}\n\n\nSo, before I commit this, any suggestions? I think a fix of ft_convert_units or on ft_estimate_units would be appropriate"
+      - +@isprivate: "0"
+        commentid: "1589"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-09 11:13:42 +0100
+        thetext: |-
+          Update:
+
+          Implement neighbourselection using triangulation as an alternative method
+          Convert connectivity matrix to neighbour-label-structure
+      - +@isprivate: "0"
+        commentid: "1677"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-23 10:36:44 +0100
+        thetext: "MATLAB has a built-in function that calculates triangulation (DelaunayTri). I could use this to compute the triangular neighbours. This function, however, is object-oriented, which would diminish backwards compatibility. \nI could either write the (Delaunay) triangulation myself or search for an already open-source matlab function or ignore backward compatibility issues and use the built-in function.\n\nThe built-in MATLAB DelaunayTri uses an open library:\nhttp://www.cgal.org/\nWe could maybe add a function out of this library and mex it\n\nNeed feedback on this :)"
+      - +@isprivate: "0"
+        commentid: "1687"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-24 23:53:58 +0100
+        thetext: Probably that is an overkill. Did you look at fieldtrip/private/projecttri?
+      - +@isprivate: "0"
+        commentid: "1688"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-25 10:01:02 +0100
+        thetext: |-
+          The problem is that projecttri has two methods, one is using some convexhull approach, the other is using Delaunay (so the object-oriented approach). While the latter one constitutes the problems already described, the first one does not make a triangulation that we want it to be like.
+
+          Apart from that, projecttri projects the input points to a 2D plane, which is not necessary (anymore?) because Delaunay can handle 3D input as well (at least the OO function can do so)
+      - +@isprivate: "0"
+        commentid: "1689"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-25 13:30:37 +0100
+        thetext: is the delaunay method in projecttri object oriented? As far as I know this function far predates the support of objects by matlab
+      - +@isprivate: "0"
+        commentid: "1691"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-25 15:42:44 +0100
+        thetext: "projecttri calls the function 'delaunay' which again calls 'DelaunayTri'. DelaunayTri is the OO-function. \nIf it precedes the OO matlab times then it might be that 'delaunay' is working differently for newer versions? I would need an old Matlab version to check this, or I could just use that function then without checking for backward compatibility"
+      - +@isprivate: "0"
+        commentid: "1745"
+        comment_count: "9"
+        attachid: "36"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-31 14:58:36 +0200
+        thetext: |-
+          Created attachment 36
+          size of channels ~ # neighbours
+
+          The file shows a comparison between the current 'distance' metric for determinic neighbouring channels and a triangulation approach, based on the EEG1010 layout. The size of the channels is proportional to the number of neighbours(^2). Red lines connect neighbours.
+      - +@isprivate: "0"
+        commentid: "1746"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-31 15:01:10 +0200
+        thetext: |-
+          In the FT meeting, Robert confirmed that the delaunay function precedes OO Matlab, so I'll use that, however I need to make sure that it can only handle 2D cases (recently, it can handle 3D cases, but backwardscompatibility is the key phrase again).
+
+          Further, I would need a way to validate the method a bit better, so he explained that Hanneke plotting the size of the channel proportional to the number of neighbours, so I quickly wrote a script doing that as well. I'll keep testing with other layouts and datafiles to see whether the triangulation works as expected.
+      - +@isprivate: "0"
+        commentid: "1747"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-04-01 17:36:09 +0200
+        thetext: "beautiful results now - I'll do some more sanity checks and will present that on the next FT meeting. \n\ntwo more things, maybe also for discussion next wednesday:\n - do you think there would be a need to actually announce this as a change in order to let ppl know that this might(?) improve statistical testing (as the choice of neighbours makes more sense this way)\n\n - what about the megplanar stuff? neighbours are calculated like using a distance threshold - do you actually want the algorithms to work differently?"
+      - +@isprivate: "0"
+        commentid: "1748"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-04-01 18:32:08 +0200
+        thetext: |-
+          @announcement: probably announcing is OK, but we have to see whether the statistics improve. I don't see a straightforward way to test this by the way.
+
+          @megplanar: have to think about this. I guess a distance criterion makes sense here, because the computation of the spatial derivative should anyhow take the distance into account, as well was the relative location.
+      - +@isprivate: "0"
+        commentid: "1780"
+        comment_count: "13"
+        attachid: "38"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-04-07 17:17:30 +0200
+        thetext: "Created attachment 38\nMatlab figure of the three triangulation approach\n\nDear Robert & JM,\n\nI thought about improving the triangulation neighbourselection according to what we discussed. After thinking about more complicated approaches, I thought I'd try the simple thing that immediately popped to my mind, but sounded too simple to actually work. In the current version, I calculate three triangulations: First, the normal triangulation, second a triangulation with all x-coordinates halfed, third a triangulation with all y-coordinates halfed. Surprisingly, this works extremely well. I attached a .fig of the 2D EEG1010 layout. This also works for 3D head models, though looks weird for not symmetrically distributed sensors (like in the Yokogawa system) - but not in particular faulty. \nThe triangulation method does, however, not work properly for the bti248 system (that means, independently of applying this trick, a triangulation results in one sensor getting far more neighbours than all other sensors)\n\nActually, you can test it yourself, as I uploaded the file(s):\nft_neighbourplot - to be used similar as ft_neighbourselection (see also help ft_neighbourplot)\nft_neighbourselection - now can handle a cfg.method field. default value: 'dist' corresponds to the old way of selecting neighbour (distance thresholding). 'tri' or 'triangulation' uses the newly implemented triangulation approach.\n\nEasiest way to see how it works and to compare, just call it this way:\nft_neighbourplot([], data);\ncfg = [];\ncfg.method = 'tri';\nft_neighbourplot(cfg, data)\n\nbtw: all this text, because I am on vacation from Saturday on. Anyway, I tested the function thoroughly! See Bug 570 for situations where this method fails!"
+      - +@isprivate: "0"
+        commentid: "1939"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-04-29 13:19:56 +0200
+        thetext: "I tested the triangulation neighbourselection way on the tutorial data (I got no other reliable data to compare with). For the TFR statistics (CTF151 data), the 'triangulation' method either finds similar cluster, or no significant in contrast to the traditional 'distance' measure. \n\nI tracked this down, and it seems to be because the number of neighbours is actually bigger in the triangulation approach, and they seem to be not symmetrical, i.e. channels in the left hemisphere have more neighbours than for the channels on the right hemisphere. I guess this is due to the 2D projection of the 3D gradiometer structure. The CTF 151 neighbourplot looks messy to me using triangulation but pretty nice using the distance method. So for now, my conclusion seems to be that the user should compare the two methods and decide for the more appropriate (e.g. triangulation for 2D layout, distance for CTF).\n\nShould I try to improve the triangulation method or keep it thought it works suboptimally in some cases?"
+      - +@isprivate: "0"
+        commentid: "1977"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-04 13:54:14 +0200
+        thetext: 'todo: make templates and documentation'
+      - +@isprivate: "0"
+        commentid: "2152"
+        comment_count: "16"
+        attachid: "53"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-05-18 11:11:25 +0200
+        thetext: |-
+          Created attachment 53
+          Current neighbours using triangulation - what neighbours to add for templatE?
+
+          I attached a pic of ft_neighbourplot for CTF275 neighbours - in the upcoming meeting I intend to ask what additional neighbours to define, and to ask on what criteria neighbours should be defined.
+      - +@isprivate: "0"
+        commentid: "2539"
+        comment_count: "17"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-07-07 11:32:37 +0200
+        thetext: nneighbourselection does not crash anymore due to the given reason - will create a new bug about neighbourstructure templates
+      - +@isprivate: "0"
+        commentid: "2629"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:46:43 +0200
+        thetext: changed the status for a whole bunch of resolved bugs to CLOSED
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "1"
+        +@isprivate: "0"
+        attachid: "36"
+        date: 2011-03-31 14:58:00 +0200
+        delta_ts: 2011-03-31 14:58:36 +0200
+        desc: 'size of channels ~ # neighbours'
+        filename: Channelneighbours.jpg
+        type: text/plain
+        size: "188185"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "38"
+        date: 2011-04-07 17:17:00 +0200
+        delta_ts: 2011-04-07 17:17:30 +0200
+        desc: Matlab figure of the three triangulation approach
+        filename: tri-tri.fig
+        type: application/octet-stream
+        size: "38097"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "53"
+        date: 2011-05-18 11:11:00 +0200
+        delta_ts: 2011-05-18 11:11:25 +0200
+        desc: Current neighbours using triangulation - what neighbours to add for templatE?
+        filename: CTF275_neighb.png
+        type: image/png
+        size: "68326"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED

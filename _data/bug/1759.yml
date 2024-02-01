@@ -1,0 +1,105 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1759"
+    creation_ts: 2012-10-01 16:27:00 +0200
+    short_desc: 'ft_apply_montage: sparse matrix multiplication leads to different results than full matrix multiplication'
+    delta_ts: 2014-03-12 12:21:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7703"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-01 16:27:21 +0200
+        thetext: "I was looking whether there were some discrepancies between ft_megplanar and the way I am doing planar gradient transformation in the online neurofeedback experiment. I found some, and after a while figured that the sparse representation of the tra matrix is causing this.\n\nIn line 288 ff. of ft_apply_montage, it is doing something like:\n\n if isa(data.trial{i}, 'single')\n      % sparse matrices and single precision do not match\n      data.trial{i}   = full(montage.tra) * data.trial{i};\n    else\n      data.trial{i}   = montage.tra * data.trial{i};\n    end\n\n\n\nI found this:\n\n>> onlinedata{1} = sparse(planarmontage.tra)*data.trial{1}; \n>> onlinedata{2} = planarmontage.tra*data.trial{1}; \n>> sum(sqrt((onlinedata{1}(:)-onlinedata{2}(:)).^2))\n\nans =\n\n  1.0230e-024\n\nA reason to worry? It's still ~10 orders of magnitude smaller than the signal itself (e-14). I wonder which version is more correct?"
+      - +@isprivate: "0"
+        commentid: "7709"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 16:44:00 +0200
+        thetext: "(In reply to comment #0)\n\nBoth suffer from numerical inaccuracies. \n\nThem being different suggests that 0*x is not exactly 0 in the full representation. For the sparse representation the multiplication with 0 is not performed.\n\nI suggest you make a test script out of it (with the data in a small mat file). If you then check the size not as sum(...) but mean(...) and perhaps do abs instead of taking the square, we would have an impression if it is in the order of eps relative to the actual numbers."
+      - +@isprivate: "0"
+        commentid: "7713"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-01 17:06:21 +0200
+        thetext: |-
+          of course I checked the zero-elements, they are all fine. If I do (x!=0) - (y!=0), it's alright
+
+          but I'm gonna make a testscript to check. actually, the endresults (topos) look very similar, that's why I set this bug to 'minor'
+      - +@isprivate: "0"
+        commentid: "7714"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-01 17:06:41 +0200
+        thetext: |-
+          (In reply to comment #2)
+          ery similar = exactly the same
+      - +@isprivate: "0"
+        commentid: "7979"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-24 10:59:27 +0200
+        thetext: |-
+          K>> test_bug1759
+
+          ans =
+
+            1.3194e-030
+
+
+          which is mean(abs(...))
+
+          I guess this is a won't fix?
+      - +@isprivate: "0"
+        commentid: "8650"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:25:22 +0100
+        thetext: |-
+          using the identical function, I changed the testscript:
+          assert(identical(tmp{1}, tmp{2}, 'reltol', 0.0001));
+
+          A relative tolereance of 0.0001, meaning 0.1 promille should be conservative enough to verify that this is not an issue

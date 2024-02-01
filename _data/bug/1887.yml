@@ -1,0 +1,221 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1887"
+    creation_ts: 2012-12-12 17:26:00 +0100
+    short_desc: extend ft_connectivityanalysis with measures for time-domain and component data
+    delta_ts: 2014-05-21 22:00:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2518
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2559
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2539
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8679"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 17:26:27 +0100
+        thetext: |-
+          The following test scripts should be considered in all updates to the function
+
+          mac001> grep -l ft_connectivity *.m
+          test_bug1425.m
+          test_bug1677.m
+          test_bug46.m
+          test_bug538.m
+          test_ft_connectivity_powcorr_ortho.m
+          test_ft_connectivityanalysis.m
+          test_ft_topoplotER.m
+          test_tutorial_coherence.m
+          test_tutorial_connectivity.m
+          test_tutorial_connectivity2.m
+          test_tutorial_connectivity3.m
+      - +@isprivate: "0"
+        commentid: "8680"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 17:28:08 +0100
+        thetext: |-
+          I have cleaned up the whitespace in the function, this should not have any effect on the functionality.
+
+          mac001> svn commit ft_connectivityanalysis.m
+          Sending        ft_connectivityanalysis.m
+          Transmitting file data .
+          Committed revision 7158.
+      - +@isprivate: "0"
+        commentid: "8899"
+        comment_count: "2"
+        attachid: "398"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-10 18:24:08 +0100
+        thetext: |-
+          Created attachment 398
+          comp data type
+      - +@isprivate: "0"
+        commentid: "8900"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-10 18:24:56 +0100
+        thetext: "(In reply to comment #2)\n(In reply to comment #1)\nHi Robert,\n\nI think there's a bug in ft_checkdata but I'm not sure. For component data as this one:\n\ndata = \n\n           cfg: [1x1 struct]\n       fsample: 300\n         label: {274x1 cell}\n          time: {[1x1193 double]  [1x1244 double]  [1x1148 double]}\n         trial: {[274x1193 double]  [274x1244 double]  [274x1148 double]}\n     trialinfo: [3x11 double]\n      unmixing: [273x273 double]\n    sampleinfo: [3x2 double]\n          topo: [273x273 double]\n     topolabel: {273x1 cell}\n\nif you use ft_checkdata to evaluate specific data type: data = ft_checkdata(data, 'datatype', {'raw' 'timelock'}); the expected output should be data with raw structure as specified in ft_datatype_raw. However I got comp-like structures.\n\nLine 265 in ft_checkdata should be:\n if okflag (instead of if ~okflag) to allow data conversion. Even correcting it, the output is a data structure that combines raw and timelock subfields:\n\ndata = \n\n           cfg: [1x1 struct]\n       fsample: 300\n         label: {274x1 cell}\n          time: [1x1244 double]\n         trial: [3x274x1244 double]\n     trialinfo: [3x11 double]\n      unmixing: [273x273 double]\n    sampleinfo: [3x2 double]\n        dimord: 'rpt_chan_time'\n  \n\n- Cheap solution:\n\nMake specific data type calls in ft_checkdata; never combine datatypes as above {'raw' 'timelock'} because if you enter component data it will be flaged as iscomp=1; israw=1 and as a consequence there're 2 eleseif statements that make the raw and timelock subfields combination:\n\nline 304 elseif isequal(dtype(iCell), {'raw'}) && iscomp\nline 310 elseif isequal(dtype(iCell), {'timelock'}) && iscomp \n\nI attach you a comp data with 3 trials to play"
+      - +@isprivate: "0"
+        commentid: "8901"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-11 10:47:03 +0100
+        thetext: "I noticed that the data is all nan and that it is not a comp structure, since it contains no topo+unmixing+topolabel.\n\nBut I can do the following\n\n>> for i=1:10\ndata.trial{i} = randn(size(data.trial{i}));\nend\n\n>> cfg = [];\n>> cfg.method = 'pca';\n\n>> comp = ft_componentanalysis(cfg, data)\nthe input is raw data with 32 channels and 10 trials\nselecting 32 channels\nbaseline correcting data \nscaling data with 1 over 1.154641\nconcatenating data..........\nconcatenated data matrix size 32x10000\nstarting decomposition using pca\nthe call to \"ft_componentanalysis\" took 1 seconds and required the additional allocation of an estimated 6 MB\n\ncomp = \n\n       fsample: 1000\n          time: {[1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]}\n         trial: {1x10 cell}\n          topo: [32x32 double]\n      unmixing: [32x32 double]\n         label: {32x1 cell}\n     topolabel: {32x1 cell}\n    sampleinfo: [10x2 double]\n           cfg: [1x1 struct]\n\nand then I have \n\n>> ft_datatype(data)\nans =\nraw\n\n>> ft_datatype(comp)\nans =\ncomp"
+      - +@isprivate: "0"
+        commentid: "8902"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-11 10:48:08 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+          Ah, I notice that you mention a 3-trial comp structure, whereas the attached one is a 10-trial data structure. So I guess you just mixed them up. No worries.
+      - +@isprivate: "0"
+        commentid: "8903"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-11 10:50:07 +0100
+        thetext: |-
+          (In reply to comment #5)
+          Sorry I saved the wrong variable...
+      - +@isprivate: "0"
+        commentid: "8904"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-11 10:54:23 +0100
+        thetext: "From ft_datatype_comp:\n\n% The only difference to the raw data structure is that the comp structure\n% contains the additional fields unmixing, topo and topolabel. See\n% FT_DATATYPE_RAW for further details.\n\nSo a comp structure complies with the rules of FT_DATATYPE_RAW and FT_DATATYPE_COMP, it is both.\n\nBut the example you point to\n\n>> ft_checkdata(comp, 'datatype', {'timelock'})\nans = \n       fsample: 1000\n          time: [1x1000 double]\n         trial: [10x32x1000 double]\n      unmixing: [32x32 double]\n         label: {32x1 cell}\n    sampleinfo: [10x2 double]\n           cfg: [1x1 struct]\n          topo: [32x32 double]\n     topolabel: {32x1 cell}\n        dimord: 'rpt_chan_time'\n\nreturns a mixed representation of timelock (not raw!) and comp. This is a problem with the following\n\n>> ft_datatype(ft_checkdata(comp, 'datatype', {'timelock'}))\nans =\ncomp\n\nas it should have been timelock. We don't want comp and timelock (or freq) to get mixed. So in this case the topo+topolabel+unmixing should be stripped off."
+      - +@isprivate: "0"
+        commentid: "8905"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-11 11:16:15 +0100
+        thetext: "(In reply to comment #7)\n\n... the question is whether it should also be stripped off if you want to have raw data.\n\nRaw and comp data are processed the same way (i.e. data.trial and data.label are used in the computations) and if the output is again raw, it is desirable to keep the topo details.\n\ne.g. ft_resampledata(cfg, comp) should return a comp formatted structure, as the algorithmic operation on the timeseries does not change the topo/unmixing.\n\nSo the comp details should not be stripped of when converting comp->raw, but should be stripped of when converting comp->timelock.\n\nI changed it such that \n\n>> ft_checkdata(comp, 'datatype', 'raw')\n\nans = \n\n       fsample: 1000\n          time: {[1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]  [1x1000 double]}\n         trial: {1x10 cell}\n      unmixing: [32x32 double]\n         label: {32x1 cell}\n    sampleinfo: [10x2 double]\n           cfg: [1x1 struct]\n          topo: [32x32 double]\n     topolabel: {32x1 cell}\n\n>> ft_checkdata(comp, 'datatype', 'timelock')\n\nans = \n\n       fsample: 1000\n          time: [1x1000 double]\n         trial: [10x32x1000 double]\n         label: {32x1 cell}\n    sampleinfo: [10x2 double]\n           cfg: [1x1 struct]\n        dimord: 'rpt_chan_time'\n\n\nmac001> svn commit \nSending        utilities/ft_checkdata.m\nTransmitting file data .\nCommitted revision 7295."
+      - +@isprivate: "0"
+        commentid: "8906"
+        comment_count: "9"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-01-11 12:06:31 +0100
+        thetext: |-
+          (In reply to comment #8)
+           Following the logic, then we should delete the ft_checkdata subfunction comp2raw that is executed when the input data is comp and you want raw (line 312) given that it deletes topo and topolabel (don't know why it doesn't delete the unmixing subfield).
+
+          I think that with your implementation the following cases are irrelevant:
+
+          elseif isequal(dtype(iCell), {'raw'}) && iscomp (line 312)
+          elseif isequal(dtype(iCell), {'timelock'}) && iscomp (line 318)
+      - +@isprivate: "0"
+        commentid: "8908"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-11 15:38:13 +0100
+        thetext: "I have just added a test script.\n\nmac001> svn commit \nAdding         test/test_bug1887.m\nTransmitting file data .\nCommitted revision 7298.\n\n\n\nAnd in reply to comment #9:\n\nI now see that there is some double code that I overlooked. I fixed that, and added a comment to the code clarifying the similarity between comp and raw. \n\n\nmac001> svn commit utilities/\nSending        utilities/ft_checkdata.m\nTransmitting file data .\nCommitted revision 7299."
+      - +@isprivate: "0"
+        commentid: "13732"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 11:27:03 +0200
+        thetext: |-
+          this bug has migrated away from the initial purpose into "comp" handling. The comp aspects are somehow related to bug #2539 and were discussed in the FT meeting of 14 May 2014.
+
+
+          I have reorganised the implementation for structures that have a combination of comp with raw/timeloc/freq. There is now explicit handling of raw+comp, timelock+comp and freq+comp. In case datatype=comp, the timeseries fields are being removed by ft_checkdata. Idem, in case of datatype=raw/timelock/freq, the comp fields are being removed.
+
+          roboos@mentat001> svn commit
+          Sending        ft_databrowser.m
+          Sending        ft_examplefunction.m
+          Sending        ft_freqanalysis.m
+          Sending        ft_interpolatenan.m
+          Sending        ft_rejectcomponent.m
+          Sending        ft_timelockanalysis.m
+          Sending        ft_topoplotIC.m
+          Sending        private/topoplot_common.m
+          Sending        test/test_bug1887.m
+          Sending        utilities/ft_checkdata.m
+          Sending        utilities/ft_datatype.m
+          Sending        utilities/ft_datatype_comp.m
+          Sending        utilities/ft_selectdata_old.m
+          Transmitting file data .............
+          Committed revision 9564.
+
+          I suspect that there are now some functions that will not pass the comp details from the (raw) input to the processed output. I will follow this up.
+      - +@isprivate: "0"
+        commentid: "13743"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 17:24:53 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #11)\n\n> I suspect that there are now some functions that will not pass the comp details \n> from the (raw) input to the processed output. I will follow this up.\n\nA regression error was found with the script test_bug2518a in ft_resampledata precisely for this. I fixed it.\n\nmac011> svn commit ft_resampledata.m \nSending        ft_resampledata.m\nTransmitting file data .\nCommitted revision 9576."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "398"
+      date: 2013-01-10 18:24:00 +0100
+      delta_ts: 2013-01-10 18:24:08 +0100
+      desc: comp data type
+      filename: data.mat
+      type: application/octet-stream
+      size: "590068"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

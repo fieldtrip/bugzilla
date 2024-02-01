@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1382"
+    creation_ts: 2012-03-20 21:03:00 +0100
+    short_desc: saving buffer (recording app in realtime/utilities/playback) not saving all data
+    delta_ts: 2012-06-20 15:03:21 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P2
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.belitski
+      +@name: Andrei Belitski
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5599"
+        comment_count: "0"
+        who:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        bug_when: 2012-03-20 21:03:44 +0100
+        thetext: |-
+          Dear fieldtrip developers
+
+          I've compiled an acquisition program to record data from neurosky mindwave eeg device. This program  sends data to fieldtrip buffer. In my case I send data to the FT buffer recording app.
+
+          For testing purposes I have also implemented a saving routine inside the acquisition program. In that file no data is missing. The number of samples divided by acquisition time is 512, being the sampling rate of the device.
+
+          The file resulting from fieldtrip buffer recording app contains less samples and by plotting the two recorded signals against each other I can see that the missalignment becomes bigger with time (with the signal saved by fieldtrip buffer recording app lagging incrementally behind), meaning that some data gets dropped over the whole acqusition period not just at the beginning or cut off at the end.
+
+          By looking at the timing that is also saved from the fieldtrip buffer recording app, I can further see that there is no regularity in dropping data, at some random instants the time diff between consecutive packets is quite big (~0.5sec). I send the data in 32 sample packets and thus the average time diff should be 32/512 ~ 0.0625sec
+
+          For now I don't know how to narrow down the problem, do you have suggestions?
+
+          N.B. to implement the sending of data to the ft buffer I used an example from the buffer/test directory of some old FT distribution e.g. demo_sinewave.c, that directory has been removed in the new FT distribution, I can not find any similar C examples in the new distribution, was there a problem with those test files?
+
+          best,
+          Andrei
+      - +@isprivate: "0"
+        commentid: "5698"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-03-28 10:42:30 +0200
+        thetext: |-
+          Dear Andrei,
+
+          I think this problem might happen in (a combination of) the FieldTrip buffer, the recording application (recording.c), and maybe even in your acquisition program. It would be worthwhile to eliminate options here. Can you generate a artificial signal (sine wave, saw tooth or similar), so that you can track *where* data is lost, and perhaps how (predictable or random data omissions, specific types or values that are missing)? You mention gaps in timing; it would be interesting to know if this is also reflected in gaps in the signal being recorded.
+
+          I hope this helps. If not, please post additional details and we will figure something out.
+
+
+          With regards to the example file, it appears to still exist in the SVN repository [1]. Is this the file you referred to?
+
+
+          [1] http://code.google.com/p/fieldtrip/source/browse/trunk/realtime/buffer/test/demo_sinewave.c
+      - +@isprivate: "0"
+        commentid: "5755"
+        comment_count: "2"
+        attachid: "246"
+        who:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        bug_when: 2012-04-01 23:28:52 +0200
+        thetext: |-
+          Created attachment 246
+          a sinewave saved at acquisition side and and ft recording app side
+      - +@isprivate: "0"
+        commentid: "5756"
+        comment_count: "3"
+        attachid: "247"
+        who:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        bug_when: 2012-04-01 23:30:33 +0200
+        thetext: |-
+          Created attachment 247
+          time difference between packets of size 32 samples (512Hz)
+      - +@isprivate: "0"
+        commentid: "5757"
+        comment_count: "4"
+        attachid: "248"
+        who:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        bug_when: 2012-04-01 23:32:26 +0200
+        thetext: |-
+          Created attachment 248
+          acquisition generating a sinewave signal and connecting to an ft buffer
+      - +@isprivate: "0"
+        commentid: "5758"
+        comment_count: "5"
+        who:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        bug_when: 2012-04-01 23:35:21 +0200
+        thetext: "(In reply to comment #1)\nDear Boris,\n\nyes, this is the file demo_sinewave.c I used as an example\n\nI removed all device dependent code from the acquisition program and now generate a simple sine wave. The problem still persists. I'm saving the sinewave in the acquisition program and also in the ftbuffer recording application. I attach the output of the two recorded sinewaves as well as a plot  of timing difference between packets. the packet size is 32 samples so 32/512 (~0.0625sec) should be the usual timing difference. but there are some differences as big as ~0.28sec. \n\nI also attach the code I use to generate the sinewave (acquisition program)  \n\nthank you for help\n\nAndrei"
+      - +@isprivate: "0"
+        commentid: "5789"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-04-04 12:45:13 +0200
+        thetext: We debugged the problem together, and found a bug in Andrei's program. This bug is RESOLVED:INVALID.
+      - +@isprivate: "0"
+        commentid: "6451"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-20 15:03:21 +0200
+        thetext: Changed my resolved bugs to closed.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "246"
+        date: 2012-04-01 23:28:00 +0200
+        delta_ts: 2012-04-01 23:28:52 +0200
+        desc: a sinewave saved at acquisition side and and ft recording app side
+        filename: sinewave.pdf
+        type: application/pdf
+        size: "9510"
+        attacher:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "247"
+        date: 2012-04-01 23:30:00 +0200
+        delta_ts: 2012-04-01 23:30:33 +0200
+        desc: time difference between packets of size 32 samples (512Hz)
+        filename: timediff.pdf
+        type: application/pdf
+        size: "6977"
+        attacher:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "248"
+        date: 2012-04-01 23:32:00 +0200
+        delta_ts: 2012-04-01 23:32:26 +0200
+        desc: acquisition generating a sinewave signal and connecting to an ft buffer
+        filename: ftbufferclient.c
+        type: application/octet-stream
+        size: "8936"
+        attacher:
+          +content: a.belitski
+          +@name: Andrei Belitski
+        data: REMOVED

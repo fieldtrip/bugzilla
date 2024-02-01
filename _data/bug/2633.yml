@@ -1,0 +1,195 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2633"
+    creation_ts: 2014-07-04 10:22:00 +0200
+    short_desc: improve job status handling for qsubcellfun on SGE
+    delta_ts: 2015-02-11 10:40:11 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - bugzilla
+      - craig.richter
+      - n.a.kloosterman
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14015"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 10:22:08 +0200
+        thetext: "On 04 Jul 2014, at 09:49, Craig Richter wrote:\n\nI’m having trouble trying to get qsubcellfun working on the SGE here.  Unfortunately I have very limited help.  I’ve tracked one of my issues down to this:\n\nqsubget is waiting for the job to complete which will generate a 1 from qsublist once qsublist gets a match of ‘z’ from the call to qstat -s z, which will list the recently completed jobs.  What is odd is that all the jobs listed from qstat -s z have the status of qw, i.e. they are waiting to run, BUT, they are in fact complete, since I can see all the output data that was correctly generated, and the the *.o files all show successful runs.  So I simply changed the check from ‘z’ to ‘qw’, and then everything works, i.e. I get my output and normal termination messages in matlab.  \n\nWhat do you think they have setup incorrectly with SGE to have the finished jobs list themselves as ‘qw’?  It’s as if this is not being updated properly for qstat.  Am I correct to assume that when they finish, they enter the recently finished list that one gets with qstat -s z, and that they should have status of ‘z’?  The little snippet below suggests that they finish with ‘qw’, thus this may be an idiosyncrasy of SGE (maybe we’re out of date?):\n\nhttp://osdir.com/ml/clustering.gridengine.users/2007-01/msg00275.html\n\nSorry to bother you with something so in-depth, and what is clearly a mismanaged system, but my project depends on getting this to work, since I cannot compute it without the resources."
+      - +@isprivate: "0"
+        commentid: "14016"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 10:33:48 +0200
+        thetext: "Hi Craig,\n\nLet me post this to bugzilla and involve Gio. He used to have access to a SGE system, but now uses LSF.\n\n\nAs I understand it, it involves the section in qsublist.m around line 156\n\n% poll the job status to confirm that the job truely completed \nif isfile(logout) && isfile(logerr) && ~isempty(pbsid)\n% only perform the more expensive check once the log files exist \nswitch backend\ncase 'torque'\n[dum, jobstatus] = system(['qstat ' pbsid ' -f1 | grep job_state | grep -o \"= [A-Z]\" | grep -o [A-Z]']); retval = strcmp(strtrim(jobstatus) ,'C');\ncase 'lsf'\n[dum, jobstatus] = system(['bjobs ' pbsid ' | awk ''NR==2'' | awk ''{print $3}'' ']); retval = strcmp(strtrim(jobstatus), 'DONE');\ncase 'sge'\n[dum, jobstatus] = system(['qstat -s z | grep ' pbsid ' | awk ''{print $5}''']); retval = strcmp(strtrim(jobstatus), 'z');\n...\n\ncorrect? \n\nSo you say that \"qstat -s z\" returns \"qw\" rather than \"z\". Does this also happen for normal jobs, such as\n\necho hostname | qsub\n\nwhere you just ask the hostname command to be executed on an execution node? Or is it something with the way that qsubfeval submits the jobs? I know that on torque it is possible to indicate that jobs are \"rerunable\", which means that it is accepted to kill a job that is halfway through, in favour of another higher priority job, and then rerun the initial job at a later stage. \n\nThe link that you gave mentions qacct for completed jobs. Would that provide more info? See also http://www.cac.cornell.edu/Ranger/Environment/more_cmds.aspx and http://gridscheduler.sourceforge.net/htmlman/htmlman1/qacct.html."
+      - +@isprivate: "0"
+        commentid: "14017"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 10:34:44 +0200
+        thetext: oh, I should also add Craig in the CC of course...
+      - +@isprivate: "0"
+        commentid: "14018"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 10:40:52 +0200
+        thetext: let me also add Niels to the CC. He might also know a bit about SGE.
+      - +@isprivate: "0"
+        commentid: "14019"
+        comment_count: "4"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-07-04 10:56:16 +0200
+        thetext: "Hi Robert,\n\nYes, that was the problem section.  The status check doesn't work, since it seems the 'z' status doesn't happen, but rather 'qw'.\n\nYes, the hostname jobs also finishes with 'qw' status when listed with qstat -s z.  I think this is just how it works.  I've been running some big jobs after making the change and everything is running fine.  \n\nqacct may be an alternative option for determining when the jobs complete, but the current qstat -s z (checking for 'qw') setup is working nicely thus far so unless we determine a limitation it may be fine, but just weird.\n\nBest,\n\nC."
+      - +@isprivate: "0"
+        commentid: "14020"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 10:58:19 +0200
+        thetext: |-
+          (In reply to Craig Richter from comment #4)
+
+          Although editing the code and changing 'z' into 'qw' works for you, I would rather have one solution that works on all SGE installations. E.g. on the basis of the existing code in the release, it seems that "qw" will not work for the cluster in Amsterdam.
+      - +@isprivate: "0"
+        commentid: "14021"
+        comment_count: "6"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-07-04 11:06:08 +0200
+        thetext: I see, so we need to figure out how general this is and to what degree it may depend on version, setup, etc.  If they know what I can do to get 'z' instead of 'qw' I'm sure we can make the change on our side, as I would also like to stay synchronized with the current releases.
+      - +@isprivate: "0"
+        commentid: "14039"
+        comment_count: "7"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-07-04 16:15:41 +0200
+        thetext: |-
+          I'm not an expert on SGE myself but I'm wondering if your SGE is set up correctly.
+
+          Isn't it the normal case that the status goes:
+          qw (queue waiting) -> r (running) -> z (zombie)
+          This is how it works in Amsterdam.
+
+          What happens in your setup? qw -> r -> qw or does it stay in qw the whole time?
+          I don't know why it'd go back to "qw" once the job finished. But if it stays "qw" the whole time, than the state is not very informative and should not be trusted.
+
+          Unfortunately I don't know enough about SGE to help you out with the setup.
+
+          Yes, we could use qacct, but if I remember correctly, there is a significant delay between the end of a process and the time it appears in qacct (in the order of seconds), that's why we rely on qstat -s z at the moment (which is immediate)
+
+          Another alternative is to rely only on the output files. The qstat is only an additional check:
+          https://github.com/fieldtrip/fieldtrip/blob/master/qsub/qsublist.m#L155
+      - +@isprivate: "0"
+        commentid: "14040"
+        comment_count: "8"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-07-04 19:05:21 +0200
+        thetext: I'm very new to SGE, but empirically, when I watch qstat as a job progresses, it goes from qw to r, and then disappears.  When I then run qstat -s z, this is where I get a list of all the complete jobs, and they all have 'qw' status.  Seems like they don't go 'zomboid'.  What does the zombie state mean?  Perhaps I need to request that the jobs end in this state?
+      - +@isprivate: "0"
+        commentid: "14091"
+        comment_count: "9"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-07-09 15:28:38 +0200
+        thetext: |-
+          Sorry for not follow up on this.
+
+          My hunch is that there's something special in the SGE setup. When you type "qstat -s z" you're requesting to "Prints only jobs in the specified state,  any  combination  of  states is possible." [1]
+          Now instead of listing the jobs in state "z", it lists those in state "qw". Zombie simply means that a job has ended.
+
+          It appears that in some setups, instead of returning jobs that have ended with the state "z", it returns the "last known state" (relevant discussion at [2] and links). This is probably the case in your SGE.
+
+          Could you try to change this line [3] from:
+          retval = strcmp(strtrim(jobstatus), 'z');
+          to something like:
+          retval = strcmp(strtrim(jobstatus), 'z') | strcmp(strtrim(jobstatus), 'qw');
+
+          Or even changing into something that returns "retval" as true when the job is listed by "qstat -s z" (the job can be in any state, 'z', 'qw', 'r' or etc). You might want to clean up the bash line at line 166 in that case
+
+          Can you test in your setup and then add it to the FieldTrip code? If you have problems, I can look into it myself
+
+
+          [1] http://gridscheduler.sourceforge.net/htmlman/htmlman1/qstat.html
+          [2] http://arc.liv.ac.uk/pipermail/sge-discuss/2013-October/000513.html
+          [3] https://github.com/fieldtrip/fieldtrip/blob/master/qsub/qsublist.m#L167
+      - +@isprivate: "0"
+        commentid: "14093"
+        comment_count: "10"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-07-09 16:14:09 +0200
+        thetext: |-
+          Ok,
+
+          I've changed the line in qsublist.m to:
+
+          retval = strcmp(strtrim(jobstatus), 'z') | strcmp(strtrim(jobstatus), 'qw');
+
+          This seems like an easy fix.  It tested fine.
+
+          I will commit the change.
+      - +@isprivate: "0"
+        commentid: "14150"
+        comment_count: "11"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-07-16 15:15:14 +0200
+        thetext: |-
+          Thanks, Craig.
+
+          I tested on my SGE setup at the NIN, it works.
+      - +@isprivate: "0"
+        commentid: "15225"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:11 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

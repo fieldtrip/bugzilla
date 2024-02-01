@@ -1,0 +1,55 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "160"
+    creation_ts: 2010-09-17 16:25:00 +0200
+    short_desc: Bug in LCMV beamformer
+    delta_ts: 2011-01-06 09:16:08 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "323"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2010-09-17 16:25:58 +0200
+        thetext: "When specifying a grid with locations and orientations for each dipole I get a crash with:\n\ncreating dipole grid based on user specified dipole positions\n3 dipoles inside, 0 dipoles outside brain\ncomputing leadfield\ncomputing leadfield 1/3\ncomputing leadfield 2/3\ncomputing leadfield 3/3\nscanning repetition 1\nusing precomputed leadfields\nscanning grid\n??? Error using ==> mtimes\nInner matrix dimensions must agree.\n\nError in ==> beamformer_lcmv at 200\n    lf = dip.leadfield{i} * dip.mom(:,i);\n\nError in ==> ft_sourceanalysis at 795\n      dip(i) = beamformer_lcmv(grid, sens, vol, squeeze(avg(i,:,:)), squeeze(Cy(i,:,:)), optarg{:});\n\n\nIt looks like the leadfield that is computed in this case is already oriented and then the code tries to orient it again by multiplying with the moment. \n\nHere is the input to ft_sourceanalysis:\n\ncfg = \n\n       reducerank: 2\n             grid: [1x1 struct]\n             grad: [1x1 struct]\n      inwardshift: -30\n              vol: [1x1 struct]\n          channel: 'MEG'\n           method: 'lcmv'\n       keepfilter: 'yes'\n    keepleadfield: 'yes'\n           lambda: '0.01%'\n\nK>> cfg.grid\n\nans = \n\n    pos: [3x3 double]\n    mom: [3x3 double]"
+      - +@isprivate: "0"
+        commentid: "419"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-10 10:24:55 +0100
+        thetext: |-
+          I included a check in beamformer_* to not do an additional projection of the leadfield, if the leadfield is already scalar.
+          @Vladimir, could you check whether it works now?

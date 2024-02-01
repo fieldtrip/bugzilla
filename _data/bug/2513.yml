@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2513"
+    creation_ts: 2014-03-26 10:55:00 +0100
+    short_desc: check data field consistency through different data type structures
+    delta_ts: 2014-03-26 16:41:19 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1656
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1616
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1452
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2186
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - johanna.zumer
+      - n.lam
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13164"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-03-26 10:55:01 +0100
+        thetext: "Some fieldtrip functions have strong expectations on specific data type fields and each field should represent data in a specific way (i.e. rpt_chan_time). However, in some cases there're different field names for the same datatype with exactly the same data respresentation. The problem arises when in cases of same data representation but different field name, getting error because the strong expectations that the calling fucntion has on specific field name, not regarding data representation (dimord)\n\nExample:\nWe've different ft_append* functions for different datatypes:\n./ft_appendsource.m\n./ft_appendtimelock.m\n./ft_appenddata.m\n./ft_appendspike.m\n\nft_appendtimelock can append timelock structures that contain 'trial' or 'avg' fieldnames but not other fields (no cfg.parameter option):\n\ntimelock = [];\ntimelock.dimord = 'chan_time';\ntimelock.label = {'cz'};\ntimelock.avg = rand(1,600);\ntimelock.time = (1:600)./600;\ntimelock.var = rand(1,600);\n\n- append avg field:\nft_appendtimelock([],timelock,timelock)\nans = \n\n      time: [1x600 double]\n     label: {'cz'}\n     trial: [2x1x600 double]\n    dimord: 'rpt_chan_time'\n       cfg: [1x1 struct]\n\n- append trial field:\ntimelock.trial = rand(1,600);\nft_appendtimelock([],timelock,timelock)\nans = \n\n      time: [1x600 double]\n     label: {'cz'}\n     trial: [2x1x600 double]\n       avg: [1x600 double]\n       var: [1x600 double]\n    dimord: 'rpt_chan_time'\n       cfg: [1x1 struct]\n\n- append xxx field:\ntimelock = [];\ntimelock.dimord = 'chan_time';\ntimelock.label = {'cz'};\ntimelock.xxx = rand(1,600);\ntimelock.time = (1:600)./600;\ntimelock.var = rand(1,600);\n\nft_appendtimelock([],timelock,timelock)\nans = \n\n      time: [1x600 double]\n     label: {'cz'}\n    dimord: 'rpt_chan_time'\n       cfg: [1x1 struct]\n\nNeither \"var\" and xxx field were appended. Also, when you input \"avg\" field you get \"trial\" as output (see related bugs).\n\nAfter a long discussion with Robert, he made a test script (see attachment) to check about different fields that each datatype can contain through the historical preprocessed data. Here is the output of the test script:\n\ncollection = \n\n    timelock: {'avg'  'cfg'  'cov'  'dimord'  'dof'  'dofvec'  'elec'  'fsample'  'grad'  'label'  'numcovsamples'  'numsamples'  'time'  'trial'  'var'}\n        freq: {'cfg'  'crsspctrm'  'cumsumcnt'  'cumtapcnt'  'dimord'  'elec'  'foi'  'fourierspctrm'  'freq'  'grad'  'label'  'labelcmb'  'powspctrm'  'time'  'toi'}\n         raw: {'cfg'  'elec'  'fsample'  'grad'  'hdr'  'label'  'offset'  'sampleinfo'  'time'  'trial'  'trialdef'}\n        comp: {'cfg'  'fsample'  'grad'  'label'  'sampleinfo'  'time'  'topo'  'topolabel'  'trial'  'unmixing'}\n        grad: {'balance'  'chanori'  'chanpos'  'chantype'  'chanunit'  'coilori'  'coilpos'  'coordsys'  'label'  'labelorg'  'tra'  'type'  'unit'}\n        elec: {'chanpos'  'elecpos'  'label'  'unit'}\n      source: {'avg'  'cfg'  'cumtapcnt'  'df'  'dim'  'freq'  'frequency'  'inside'  'method'  'outside'  'pos'  'time'  'trial'  'vol'}\n      volume: {}\n     unknown: {}\n\nThere're all possible datatype fields that fieldtrip could provide (might be some fields are depreciated in recent versions). Now the challenge consist to check all ft_datatype_* functions to see if they're consistent with the preprocessed data."
+      - +@isprivate: "0"
+        commentid: "13165"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-03-26 11:03:24 +0100
+        thetext: |-
+          I recall I still have some open bugs on ft_appendtimelock.  Sorry they are low priority for me now, so if someone else is eager to fix them, feel free to reassign.
+          see bug 1013, bug 1014, and bug 2186
+      - +@isprivate: "0"
+        commentid: "13168"
+        comment_count: "2"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-03-26 13:56:31 +0100
+        thetext: |-
+          In order to keep it manageable, start with ft_functions that take timelock-structures, and check in those functions whether these have hard-coded assumptions related to expected data fields.
+          Take it from here.
+      - +@isprivate: "0"
+        commentid: "13169"
+        comment_count: "3"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-03-26 13:57:26 +0100
+        thetext: Also, add the output of the previous query to the respective ft_datatype_XXX functions.
+      - +@isprivate: "0"
+        commentid: "13172"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-03-26 16:41:19 +0100
+        thetext: |-
+          (In reply to n.lam from comment #3)
+          Test script and doc updated
+
+          Adding         test_bug2513.m
+          Transmitting file data .
+          Committed revision 9314.
+
+          Sending        ft_datatype_comp.m
+          Sending        ft_datatype_freq.m
+          Sending        ft_datatype_raw.m
+          Sending        ft_datatype_sens.m
+          Sending        ft_datatype_source.m
+          Sending        ft_datatype_timelock.m
+          Transmitting file data ......
+          Committed revision 9315.

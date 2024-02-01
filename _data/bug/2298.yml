@@ -1,0 +1,233 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2298"
+    creation_ts: 2013-09-24 15:46:00 +0200
+    short_desc: nanvar fails at offset of 1e8 in test_nanstat test script
+    delta_ts: 2014-01-29 13:28:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11409"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-09-24 15:46:52 +0200
+        thetext: |-
+          Output:
+          Testing type logical for nanvar & nanstd
+          Testing type char for nanvar & nanstd
+          Testing type single for nanvar & nanstd
+          Testing type double for nanvar & nanstd
+          Skipping type int8 for nanvar & nanstd
+          Skipping type uint8 for nanvar & nanstd
+          Skipping type int16 for nanvar & nanstd
+          Skipping type uint16 for nanvar & nanstd
+          Skipping type int32 for nanvar & nanstd
+          Skipping type uint32 for nanvar & nanstd
+          Testing type double for nanvar & nanstd
+          Testing type single for nanvar & nanstd
+          Skipping nanvar & nanstd for 0
+          Skipping nanvar & nanstd for inf
+          Skipping nanvar & nanstd for inf
+          Skipping nanvar & nanstd for inf
+          Adding offset 1e+08: var()=0.0812, nanvar()=-10.2503.
+          Error using test_nanstat (line 69)
+          Numerical imprecision detected in nanvar: -10.25 != 0.08118 at offset 1e+08.
+      - +@isprivate: "0"
+        commentid: "11628"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-22 16:12:10 +0200
+        thetext: |-
+          (adding JM as CC because he originally wrote the code :) )
+
+          This is a tricky one. Fortunately, after some two hours of digging, I found out that the problem is actually well-established: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
+          JM's algorithm was the simplest formulation of the 'Naïve algorithm', which suffers from numerical instability with big numbers.
+
+          I will try to incorporate one of the less naïve algorithms in the mex file.
+      - +@isprivate: "0"
+        commentid: "11629"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-22 16:40:52 +0200
+        thetext: |-
+          It turns out to be quite easy to implement the 'Online algorithm' as listed on the wikipedia article I linked.
+
+          This performs already much better than the naive implementation. However, in certain cases (depending on the order of the input data), there still is an inaccuracy:
+
+          >> x = rand(5,1)+1e15;
+
+          >> nanvar(x)
+          ans =
+                0.24609
+
+          >> var(x)
+          ans =
+                0.19922
+
+          This problem is easily fixed by first subtracting the mean from the data, as is done in matlab's own var(). However, computing the mean requires one of two things: (1) an additional loop over all data points, or (2) an additional full copy of the data (with one dimension squeezed). So, either nanvar becomes slower, or more memory intensive.
+
+          Adding Robert as CC as an executive decision is needed. Maybe to discuss tomorrow?
+      - +@isprivate: "0"
+        commentid: "11643"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-23 13:32:48 +0200
+        thetext: go for the accurate way, so compute the mean first
+      - +@isprivate: "0"
+        commentid: "11646"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-23 16:31:35 +0200
+        thetext: |-
+          Actually computing and subtracting the mean is far from trivial, given the current code structure. I will probably just go for implementing the 'naked' online algorithm, without prior mean-subtracting. This seems robust enough:
+
+          >> x = rand(5,1);
+
+          >> nanvar(x+1e15)
+          ans =
+                0.10547
+
+          >> var(x+1e15)
+          ans =
+                0.11328
+
+          >> nanvar(x+1e16)
+          ans =
+               0
+
+          >> var(x+1e16)
+          ans =
+               0
+
+          so it breaks down (only a little) just one order of magnitude (in difference between mean and variance) before var() does. Seems fine. If not, reopen and someone with mad C skills needs to look at it :) The source might need to be rewritten completely.
+      - +@isprivate: "0"
+        commentid: "11668"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-24 14:38:11 +0200
+        thetext: |-
+          Fixed in 8631.
+
+          Robert, could you compile nansum, nanvar, and nanstd for mac 32/64? And Jörn, for windows 32/64?
+      - +@isprivate: "0"
+        commentid: "11670"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-24 16:06:33 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+          I recompiled on both mac versions, test_nanstat does not complain about anything.
+
+          mbp> svn commit
+          Sending        fileio/@uint64/max.mexmaci64
+          Sending        fileio/@uint64/min.mexmaci64
+          Sending        fileio/@uint64/minus.mexmaci64
+          Sending        fileio/@uint64/rdivide.mexmaci64
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/ft_read_mri.m
+          Sending        fileio/private/ft_hastoolbox.m
+          Sending        ft_compile_mex.m
+          Sending        ft_databrowser.m
+          Sending        plotting/ft_plot_topo3d.m
+          Adding  (bin)  src/combineClusters.mexmaci
+          Adding  (bin)  src/combineClusters.mexmaci64
+          Sending        src/mtimes2x2.mexmaci64
+          Sending        src/nanstd.mexmaci
+          Sending        src/nanstd.mexmaci64
+          Sending        src/nansum.mexmaci
+          Sending        src/nansum.mexmaci64
+          Sending        src/nanvar.mexmaci
+          Sending        src/nanvar.mexmaci64
+          Sending        src/sandwich2x2.mexmaci64
+          Transmitting file data .....................
+          Committed revision 8636.
+      - +@isprivate: "0"
+        commentid: "11953"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-18 12:10:29 +0100
+        thetext: |-
+          508 $ svn ci nansum.mexw* nanvar.mexw* nanstd.mexw* -m "bugfix #2298 - recompiled for win32/64"
+          Sending        nanstd.mexw32
+          Sending        nanstd.mexw64
+          Sending        nansum.mexw32
+          Sending        nanvar.mexw32
+          Sending        nanvar.mexw64
+          Transmitting file data .....
+          Committed revision 8799.
+          jorhor@mentat001:~/FieldTrip/trunk/src
+          508 $ svn ci nansum.mexw* nanvar.mexw* nanstd.mexw* -m "bugfix #2298 - recompiled for win32/64"
+          Sending        nansum.mexw64
+          Transmitting file data .
+          Committed revision 8801.
+
+          testscripts run through on win32 and win64
+      - +@isprivate: "0"
+        commentid: "11960"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-18 14:12:27 +0100
+        thetext: fixed
+      - +@isprivate: "0"
+        commentid: "12648"
+        comment_count: "9"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:33 +0100
+        thetext: changing lots of bugs from resolved to closed.

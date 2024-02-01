@@ -1,0 +1,86 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1076"
+    creation_ts: 2011-10-26 15:05:00 +0200
+    short_desc: resolve the indx input argument that is used in ft_topoplotTFR
+    delta_ts: 2011-11-09 16:45:12 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3721"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-26 15:05:31 +0200
+        thetext: |-
+          ft_multiplotTFR has the following section
+
+          if Ndata>1 && ~isnumeric(varargin{end})
+            for k=1:Ndata
+
+              if k>1
+                % create a new figure for the additional input arguments
+                % ensure new figures are all in the same size/position
+                p = get(gcf, 'Position');
+                f = figure();
+                set(f, 'Position', p);
+              end
+              ft_topoplotTFR(cfg, varargin{1:Ndata}, indx);
+              indx = indx + 1;
+            end
+            return
+          end
+
+
+          This call with multiple inputs is done by ft_topoplotIC and recursively by ft_topoplotTFR itself
+      - +@isprivate: "0"
+        commentid: "3807"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-03 14:56:04 +0100
+        thetext: investigated and resolved with revision 4665. The recursive call is done to allow for multiple input arguments. This is achieved when ft_topoplotTFR is called from withing ft_singleplotER (interactive mode), when more than one data argument exists. To ensure correct behavior ft_topoplotTFR cannot be called from within a loop with just a single input data argument, because in the interactive mode the next function needs all data arguments again, and not only the one which is used for the plotting. I removed the FIXME statement with respect to the ft_checkdata call, because it seems to work fine now.
+      - +@isprivate: "0"
+        commentid: "3808"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-03 16:37:55 +0100
+        thetext: |-
+          thanks for the explanation, that makes it clear.
+
+          An alternative implementation would be to pass the index through the cfg instead through the last varargin. And yet another alternative would be to somehow add the varargin data to the figure with guidata or appdata or something similar.
+
+          But I suggest not to change it until a concrete need for that arises ;-)

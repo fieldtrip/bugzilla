@@ -1,0 +1,71 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2078"
+    creation_ts: 2013-03-26 11:19:00 +0100
+    short_desc: ft_singleplotTFR crashes with cfg.interactively='yes' and data cantains NaN
+    delta_ts: 2019-08-10 12:02:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9961"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-03-26 11:19:28 +0100
+        thetext: "I was testing the time-frequency analysis using Hanning window, multitapers and wavelets when I tried to interactively select a time window of a TFR with NaN. - Here a piece of code to reproduce the error\n\ndatadir = '/home/common/matlab/fieldtrip/data/ftp/tutorial/timefrequencyanalysis';\nload([datadir,filesep,'dataFIC.mat']);\n\ncfg              = [];\ncfg.output       = 'pow';\ncfg.channel      = 'MRC15';\ncfg.method       = 'mtmconvol';\ncfg.taper        = 'hanning';\ncfg.foi          = 2:1:30;\ncfg.t_ftimwin    = 7./cfg.foi;  % 7 cycles per time window\ncfg.toi          = -0.5:0.05:1.5;\nTFRhann7 = ft_freqanalysis(cfg, dataFIC);\n\ncfg              = [];\ncfg.baseline     = [-0.5 -0.1];\ncfg.baselinetype = 'absolute';\ncfg.maskstyle = 'saturation';\ncfg.zlim         = [-3e-27 3e-27];\ncfg.channel      = 'MRC15';\nfigure\nft_singleplotTFR(cfg, TFRhann7);\n\n\n- Here the error:\n\nthe input is freq data with 1 channels, 29 frequencybins and 41 timebins\nthe call to \"ft_freqbaseline\" took 0 seconds and required the additional allocation of an estimated 0 MB\nthe call to \"ft_singleplotTFR\" took 1 seconds and required the additional allocation of an estimated 0 MB\nselected cfg.xlim = [0.983333 1.250000]\nselected cfg.ylim = [15.279240 21.299708]\ncreating layout from data.grad\ncreating layout for ctf151 system\nthe call to \"ft_prepare_layout\" took 0 seconds and required the additional allocation of an estimated 0 MB\nthe input is freq data with 1 channels, 29 frequencybins and 41 timebins\nthe call to \"ft_freqbaseline\" took 0 seconds and required the additional allocation of an estimated 0 MB\nWarning: Some points fall outside the outline, please consider using another layout \n> In ft_plot_topo at 171\n  In fieldtrip-dev/private/topoplot_common at 704\n  In ft_topoplotTFR at 191\n  In ft_singleplotTFR>select_topoplotTFR at 575\n  In ft_select_range>evalCallback at 325\n  In ft_select_range at 159 \nError using builtin\nNo tolerance can be NaN.\n\nError in griddata>mergepoints2D (line 162)\n    xyv = builtin('_mergesimpts', [y, x, v], [myepsy, myepsx, Inf], 'average');\n\nError in griddata>gdatav4 (line 289)\n[x, y, v] = mergepoints2D(x,y,v);\n\nError in griddata (line 134)\n      vq = gdatav4(x,y,v,xq,yq);\n\nError in ft_plot_topo (line 218)\n[Xi,Yi,Zi] = griddata(chanX', chanY, dat, xi', yi, interpmethod); % interpolate the topographic data\n\nError in topoplot_common (line 704)\n  ft_plot_topo(chanX,chanY,datavector,'interpmethod',cfg.interpolation,...\n\nError in ft_topoplotTFR (line 191)\n[cfg] = topoplot_common(cfg, varargin{:});\n\nError in ft_singleplotTFR>select_topoplotTFR (line 575)\nft_topoplotTFR(cfg, varargin{:});\n\nError in ft_select_range>evalCallback (line 325)\n    feval(funhandle, funargs{:}, val, cmenulab);\n\nError in ft_select_range (line 159)\n          evalCallback(callback, userData.range);\n \nError while evaluating figure WindowButtonDownFcn"
+      - +@isprivate: "0"
+        commentid: "9962"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-03-26 13:46:26 +0100
+        thetext: "The error appears because the TFR was computed with only one sensor cfg.channel = 'MRC15', then in ft_topoplot_common line 326 ft_prepare_layout is called and the lay output is the following:\n\nlay = \n\n        pos: [NaN NaN]\n      width: Inf\n     height: Inf\n      label: {'MRC15'}\n    outline: {[101x2 double]  [3x2 double]  [10x2 double]  [10x2 double]}\n       mask: {[101x2 double]}\n        cfg: [1x1 struct]\n\ncausing then the crash. Recently, the cfg.interactive option was changes to 'yes' as a default. This changed induced me expectations that for this particular case were not true. As fieltrip toolkit is in few days, I?l change the tutorial a bit to select cfg.interactive='no'; to avoid confusion to the users.\n\nAs this is not a fieldtrip bug, I think that an error after around line 609 (see below) in ft_prepare_layout should be thrown if the channels number cfg.channel and the layout computed at fly using the grad info (see line 324 for example) have a \"reasonable\" mismatch number (is not very advisable to try to make a topoplot of 3 sensors in a CTF151 system for example).\n\nProposition: line 609 of ft_prepare_layout\n\n% throw an error if a topoplot is request with less that 50% of the sensors\nif length(cfg.channel) < length(setdiff(layout.label, {'COMNT', 'SCALE'}))*0.5\n\nIf you agreed, I can check the equivalent for elec"
+      - +@isprivate: "0"
+        commentid: "11422"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-09-24 17:15:47 +0200
+        thetext: |-
+          does not makes sense to use criteria like "no topoplot can be done if less than 50% of sensors"
+          feel free to reopened if you disagree
+      - +@isprivate: "0"
+        commentid: "19867"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:02:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

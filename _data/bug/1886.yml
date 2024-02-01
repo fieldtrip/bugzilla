@@ -1,0 +1,301 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1886"
+    creation_ts: 2012-12-12 15:00:00 +0100
+    short_desc: implement various performance enhancements
+    delta_ts: 2014-06-05 12:56:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - jorn
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8670"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-12 15:00:18 +0100
+        thetext: |-
+          Inspired by bug 1520, I am filing this bug as a placeholder for rather trivial stuff that I will try to optimise.
+
+          Already done:
+
+          Eelke Spaak 2012-12-12 10:16:22 CET
+          I just committed a change to ft_defaults where the bulk of the function body is
+          only executed once every session. This reduces the execution time of
+          ft_topoplotIC  by about 200ms, and should speed up other functions as well.
+
+          [reply] [-] Comment 5 Eelke Spaak 2012-12-12 10:58:22 CET
+          Another commit: ft_prepare_layout now only calls ft_checkdata in case data is
+          actually used. Speedup ~100ms.
+      - +@isprivate: "0"
+        commentid: "8676"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 16:51:33 +0100
+        thetext: |-
+          about the latter, doesn't it make more sense for ft_checkdata to return immediately if the input argument is empty?
+
+          for ft_defaults, I'm not quite sure, because it is also doing the path setting stuff, and in case people restore their default path, it is necessary to call ft_defaults again, right?
+
+          anyway, I'm off, happy holidays!
+      - +@isprivate: "0"
+        commentid: "8677"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-12 16:54:18 +0100
+        thetext: |-
+          (In reply to comment #1)
+          The issue in ft_prepare_layout was that the data argument often was *not* empty (though unused). Therefore, ft_checkdata was called with a non-empty data argument.
+          With regards to your second comment, I would say people who restoredefaultpath after running ft_defaults are on their own... We can't protect the users from themselves in everything ;) In any case, a matlab restart would fix the problem.
+      - +@isprivate: "0"
+        commentid: "8692"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-13 12:57:47 +0100
+        thetext: Just committed (rev 7174) a small change to ft_progress that restricts the actual updating of the console text to once every 100ms. This leads to a performance enhancement of 10s during test_tutorial_timefrequencyanalysis.
+      - +@isprivate: "0"
+        commentid: "8761"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-18 17:23:14 +0100
+        thetext: |-
+          Massive performance increase in ft_freqanalysis with powandcsd option. Replaced the following:
+
+          chancmbind = zeros(size(cfg.channelcmb));
+          for k=1:size(cfg.channelcmb,1)
+            chancmbind(k,1) = strmatch(cfg.channelcmb(k,1), data.label, 'exact');
+            chancmbind(k,2) = strmatch(cfg.channelcmb(k,2), data.label, 'exact');
+          end
+
+          with
+
+          [dummy,chancmbind(:,1)] = match_str(cfg.channelcmb(:,1), data.label);
+          [dummy,chancmbind(:,2)] = match_str(cfg.channelcmb(:,2), data.label);
+
+          Execution time reduced from 16s to 1s on the tutorial's 'dataFIC'. :)
+
+          Committed as rev 7233.
+      - +@isprivate: "0"
+        commentid: "9250"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-28 15:04:59 +0100
+        thetext: |-
+          significant performance improvement in ft_specest_mtmfft:
+
+          changed line 195 from
+
+          angletransform(ifreqoi) = angle(complex(coswav, sinwav));
+
+          to
+
+          angletransform(ifreqoi) = atan2(sinwav, coswav);
+      - +@isprivate: "0"
+        commentid: "9251"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-28 15:31:01 +0100
+        thetext: |-
+          How big of an improvement did that give you? A quick test with about 3000 requested frequencies gave me about 40ms per trial (the atan2/angle is done once per frequency, only scales with nfoi). I'm curious whether my testing procedure is way off on computation times (10 times in a for loop with tic/tocs around it)
+
+          Still though, that's 40ms forever lost in our lives ;)
+
+          (apart from that I totally agree atan2 is a nicer way to do it :))
+      - +@isprivate: "0"
+        commentid: "9253"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-28 15:44:34 +0100
+        thetext: |-
+          I always use the Profiler (menu Desktop -> Profiler). I am working on a script to compute spike-field coherence, requiring a power spectrum to be computed around each spike occurrence, so quite often :)
+
+          With my change in place, executing ft_specest_mtmfft 2480 times took 4.2s; without my change, executing it 1944 times (different number because of randomness) took 8.8s. So a >50% drop in execution time.
+      - +@isprivate: "0"
+        commentid: "9255"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-28 16:13:53 +0100
+        thetext: maybe we all should use the profiler more often while regularly working ;) I try to do that
+      - +@isprivate: "0"
+        commentid: "9256"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-28 16:17:01 +0100
+        thetext: "Oh wow, at that many function calls it indeed starts to make a big difference.\nIn that case, I 'bsxfunned' some of the repmats for another 15ms ;). I saw (one\nof my own) repmats taking time in the profiler. \nWhich, btw, is now my new way of checking computation time function-wise! :)\n(in case you were curious, it did show the roughly the same results as the\nrepeated tic/tocs)"
+      - +@isprivate: "0"
+        commentid: "9265"
+        comment_count: "10"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-29 12:37:26 +0100
+        thetext: 'another enhancement (thanks for the bsxfun tip Roemer :) ): mean is now removed by bsxfun in the low/high/bandpassfilter preproc functions, rather than with a loop over samples. (rev 7421)'
+      - +@isprivate: "0"
+        commentid: "10559"
+        comment_count: "11"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-28 14:50:21 +0200
+        thetext: |-
+          In the specest functions, a transpose if often done before and after fft:
+
+          dum = transpose(fft(transpose(ft_preproc_padding(bsxfun(@times,dat,tap(itap,:)), padtype, 0, postpad)))); % double explicit transpose to speedup fft
+
+          However, when I did some profiling, it seems that the trailing comment is false; i.e., the following is faster:
+
+          dum = fft(ft_preproc_padding(bsxfun(@times,dat,tap(itap,:)), padtype, 0, postpad),[],2);
+
+          so just pass the dim argument to fft.
+
+          I now changed and committed this only at this one place in the code (line 231 of ft_specest_mtmfft). Roemer, do you see any reasons why we should not replace all these double transposes (I guess in mtmfft and mtmconvol? other places?) with a dim argument?
+      - +@isprivate: "0"
+        commentid: "10560"
+        comment_count: "12"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-05-28 15:01:46 +0200
+        thetext: |-
+          Ah, good idea. I think I wanted to do this at some point but never bothered to do so. I agree, let's do this everywhere, it's equivalent. Functions that could be improved are mtmconvol, mtmfft, and wavelet. Silly thing, should have done it during development.
+
+          PS: the comment was referring to the old-way of doing it, which was a channel loop, probably there for historic reasons.
+      - +@isprivate: "0"
+        commentid: "10651"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-06 11:09:48 +0200
+        thetext: |-
+          (In reply to comment #11)
+          committed the change in r8200
+      - +@isprivate: "0"
+        commentid: "10656"
+        comment_count: "14"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-06 14:23:21 +0200
+        thetext: |-
+          In ft_apply_montage, the montage.tra was converted to sparse before the multiplications, but making it sparse only speeds up subsequent multiplications if the density is < 0.3 or so. I have now added a check, the montage.tra is kept full is density is >= 0.3;
+
+          Committed in r8213.
+      - +@isprivate: "0"
+        commentid: "10658"
+        comment_count: "15"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-06 14:40:11 +0200
+        thetext: "(In reply to comment #14)\nPS: Verify the speed increase by doing something like this (for dense matrices, full is about 5x faster than sparse):\n\n%%\ndat = cell(400,1);\nfor k = 1:400\n  dat{k} = randn(300,1000);\nend\n\n%%\n\nfor density = 0.1:0.1:1\n  tra = sprandn(300,300,density);\n  tstart = tic();\n  \n  datnew = cell(size(dat));\n  for k = 1:400\n    datnew{k} = tra * dat{k};\n  end\n  \n  fprintf('density = %g, sparse, t=%g s\\n', density, toc(tstart));\n  \n  tstart = tic();\n  tra = full(tra);\n  datnew = cell(size(dat));\n  for k = 1:400\n    datnew{k} = tra * dat{k};\n  end\n  \n  fprintf('density = %g, full  , t=%g s\\n', density, toc(tstart));\nend"
+      - +@isprivate: "0"
+        commentid: "12278"
+        comment_count: "16"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-12-09 09:26:17 +0100
+        thetext: Robert, I noticed you undid my performance enhancement in revision 8268 (see https://code.google.com/p/fieldtrip/source/diff?spec=svn8923&r=8268&format=side&path=/trunk/forward/ft_apply_montage.m&old_path=/trunk/forward/ft_apply_montage.m&old=8213). Was this accidental? In that case, I will restore it :) If not, let me know.
+      - +@isprivate: "0"
+        commentid: "12280"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-09 09:33:22 +0100
+        thetext: |-
+          (In reply to comment #16)
+
+          that must have been accidental. The ft_apply_montage file not properly autosynched everywhere and my fix must have caused the older version overwriting yours at another location. Please reinsert your speed enhancement, as it seems ok to me. Please also check that after svn update all copies are updated.
+      - +@isprivate: "0"
+        commentid: "12281"
+        comment_count: "18"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-12-09 10:29:47 +0100
+        thetext: |-
+          (In reply to comment #17)
+          I think everything went well with the autosync:
+
+          bash-4.1$ find . -name ft_apply_montage.m
+          ./plotting/private/ft_apply_montage.m
+          ./fileio/private/ft_apply_montage.m
+          ./forward/ft_apply_montage.m
+
+          bash-4.1$ svn commit forward/ft_apply_montage.m
+          Sending        forward/ft_apply_montage.m
+          Transmitting file data .
+          Committed revision 8986.
+
+          bash-4.1$ svn up
+          U    plotting/private/ft_apply_montage.m
+          U    fileio/private/ft_apply_montage.m
+          Updated to revision 8987.
+      - +@isprivate: "0"
+        commentid: "13809"
+        comment_count: "19"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-05 12:56:51 +0200
+        thetext: |-
+          enhancement: improving speed of ft_artifact_zvalue (ft_fetch_data can now be
+          instructed to *not* call ft_checkdata for its input data, this might be more generally applicable in case the caller of ft_fetch_data has already done an ft_checkdata step.)
+
+          bash-4.1$ svn commit ft_artifact_zvalue.m utilities/ft_fetch_data.m
+          Sending        ft_artifact_zvalue.m
+          Sending        utilities/ft_fetch_data.m
+          Transmitting file data ..
+          Committed revision 9604.

@@ -1,0 +1,367 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1431"
+    creation_ts: 2012-04-17 12:29:00 +0200
+    short_desc: ft_selectdata_old unexpected toilim behavior
+    delta_ts: 2015-02-18 17:13:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1734
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=498
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - craig.richter
+      - dlozanosoldevilla
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5921"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-04-17 12:29:08 +0200
+        thetext: |-
+          I entered a toilim of [-0.7 -0.3] for selecting time points of a 'freq' structure, which contained .time = [-0.6:.2:2.4].  The output included points [-0.6 -0.4 -0.2], because on line 526 'nearest' is used to find the boundaries of time points, and in this case, -0.2 must have been just a bit closer to -0.3 than -0.4 was.  However, since -0.2 is clearly outside the range of [-0.7 -0.3] (not within machine precision of the boundaries), I consider this unexpected behavior.
+
+          My data has the 'rpt' dim, thus ft_selectdata_new fails on line 84.
+      - +@isprivate: "0"
+        commentid: "6123"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-05-16 09:58:13 +0200
+        thetext: "It seems the fix to this already exists as commented-out line.  In r4101 by Robert, he 'reverted' the code from \nseltoi = find(data.time>=seltoi(1) & data.time<=seltoi(2));\nto \nseltoi = nearest(data.time, seltoi(1)):nearest(data.time, seltoi(2));\n\nGiven this history of code changes, I would like Robert's comments on why it was changed back to 'nearest' before I change it back again to the first option.\n\nAs a followup question, what is the desired behaviour if 'toilim' is outside the range of the data.time?   \nWith the first option, seltoi will be empty, and the output will be a data structure with size=0 in the time dimension.  (but not crash).\nAlternatively, with the second option,  seltoi will be a single number nearest the edge of data.time, either beginning or end, but could in principle be many seconds away from the values stated in 'toilim'."
+      - +@isprivate: "0"
+        commentid: "6695"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-04 14:56:30 +0200
+        thetext: |-
+          after discussion with Johanna and the FT team, this seems least bad
+
+          if numel(val)==2
+            % interpret this as a range specification like [minval maxval]
+            % see also http://bugzilla.fcdonders.nl/show_bug.cgi?id=1431
+            sel = find(array>val(1) & array<val(2));
+            indx(1) = sel(1);
+            indx(2) = sel(end);
+            return
+          end
+      - +@isprivate: "0"
+        commentid: "6697"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-04 14:59:22 +0200
+        thetext: 'note to self:  contact Craig (bug 498) and add changes to test_nearest.m'
+      - +@isprivate: "0"
+        commentid: "6713"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-04 17:44:58 +0200
+        thetext: "Hi Robert and Craig,\nHow about this slight addition to what Robert suggested (for this to be inserted into nearest.m)?\n\nif numel(val)==2\n  % interpret this as a range specification like [minval maxval]\n  % see also http://bugzilla.fcdonders.nl/show_bug.cgi?id=1431\n  intervaltol=eps;\n  sel = find(array>=val(1) & array<=val(2));\n  indx(1) = sel(1);\n  indx(2) = sel(end);  \n  if indx(1)>1 && abs(array(indx(1)-1)-val(1))<intervaltol\n    indx(1)=indx(1)-1;\n  end\n  if indx(2)<length(array) && abs(array(indx(2)+1)-val(2))<intervaltol\n    indx(2)=indx(2)+1;\n  end\n  return\nend\n\nThese two extra if-statements check if the value in array just below minval or the value in array just above maxval, are indeed within machine precision of the desired min/maxval, and if so, then use that instead.\n\nWithout this addition, I get:\n>> nearest(.1:.1:1.0,[.1 .3])\n\nans =\n\n     1     2\n\nBut with this addition I get:\n\n>> nearest(.1:.1:1.0,[.1 .3])\n\nans =\n\n     1     3\n\nwhich I think is the desired output.\n\nIn future, intervaltol can be changed to something other than eps, or user-specified cfg if needed.\n\nIf you are ok with this version, then I'll commit it, but then also make changes wherever nearest.m is called for the [minval maxval] pair. \n\nAlso, I will add these to test_nearest.m:\n\nassert(all(nearest(.1:.1:1.0,[.1 .3])==[1 3]))\nassert(all(nearest(.1:.1:1.0,[.11 .3])==[2 3]))\nassert(all(nearest(.1:.1:1.0,[.1 .29])==[1 2]))\nassert(all(nearest(.1:.1:1.0,[0 .3])==[1 3]))\nassert(all(nearest(.1:.1:1.0,[.11 .29])==[2 2]))\nassert(all(nearest(.1:.1:1.0,[-inf 1])==[1 10]))\nassert(all(nearest(.1:.1:1.0,[.79 inf])==[8 10]))\nassert(all(nearest(.1:.1:1.0,[.8 10])==[8 10]))\nassert(all(nearest(.1:.1:1.0,[-2 8])==[1 10]))\nassert(all(nearest(.1:.1:1.0,[.79 .99])==[8 9]))\nassert(all(nearest(.001:.001:.01,[.002 .003])==[2 3]))\nassert(all(nearest(.001:.001:.1,[0 1])==[1 100]))\n\n\nHowever, one final question that I asked in this bug already initially, but forgot to discuss with Robert today: what should happen when the [minval maxval] are both outside the range of array?  e.g.  nearest(.1:.1:1.0,[3 8]) ?  'nearest' before would have returned [10 10], but perhaps it should crash/error in an informative way telling the user they specified values outside the range in data."
+      - +@isprivate: "0"
+        commentid: "6719"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-04 18:56:40 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          If both are on the same side outside the array range, I would indeed find an error appropriate
+      - +@isprivate: "0"
+        commentid: "6720"
+        comment_count: "6"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2012-07-05 01:20:40 +0200
+        thetext: 'I agree with spawning an error.  Too much hand-holding can cause the user to end up in a place they don''t intend.  If the toi boundaries don''t make sense then a clear message as to why is probably the most helpful message that the program can respond with.  If we try to engineer things to do ''the most logical thing'', then the user will likely end up with something totally unintended but yet seems to ''work''.  This can make finding the ''bug'' in their code down the road nearly impossible.  I''m a puritan in this regard: if the software gets weird input then the best response is to generate an error message describing why rather than to make a best guess as to what on earth the user actually intended to do.'
+      - +@isprivate: "0"
+        commentid: "6730"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-05 11:42:32 +0200
+        thetext: |-
+          svn commit 6238 for nearest.m and test_nearest.m complete.
+          Still todo: make changes to functions that call nearest
+      - +@isprivate: "0"
+        commentid: "6736"
+        comment_count: "8"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-05 16:30:22 +0200
+        thetext: |-
+          svn commit 6240, so now ft_selectdata_old uses this new nearest for toilim (not foilim).  I thus consider this bug fixed.
+
+          However, from grep -R nearest *, I think the following could also be updated, based on having a pair of [beg end] in a time array.  But I think this would need to be assessed on a case by case basis.  Perhaps a new bug for these?
+
+
+          contrib/spike/private/preproc.m:    begsample = nearest(time, cfg.baselinewindow(1));
+          contrib/spike/private/preproc.m:    endsample = nearest(time, cfg.baselinewindow(2));
+          contrib/spike/ft_spikedensity.m:  begSample  = nearest(timeAxis, cfg.latency(1));
+          contrib/spike/ft_spike_jpsth.m:indx       = nearest(psth.time,cfg.latency(1)) : nearest(psth.time,cfg.latency(2));
+          fileio/private/ft_checkdata.m:      ix(i) = 1-nearest(tmptime, begtime(i));
+          fileio/private/ft_checkdata.m:      iy(i) = nearest(tmptime, endtime(i))-length(tmptime);
+          fileio/private/ft_checkdata.m:    begsmp(i) = nearest(time, data.time{i}(1));
+          fileio/private/ft_checkdata.m:    endsmp(i) = nearest(time, data.time{i}(end));
+          ft_combineplanar.m:  tbeg = nearest(data.time, cfg.baselinewindow(1));
+          ft_combineplanar.m:  tend = nearest(data.time, cfg.baselinewindow(2));
+          ft_databrowser.m:    opt.trlop   = nearest(begsamples, thissample);
+          ft_dipolefitting.m:  tbeg = nearest(data.time, cfg.latency(1));
+          ft_dipolefitting.m:  tend = nearest(data.time, cfg.latency(end));
+          ft_dipolefitting.m:  tbeg = nearest(data.time, cfg.latency(1));
+          ft_dipolefitting.m:  tend = nearest(data.time, cfg.latency(end));
+          ft_freqgrandaverage.m:      timesel = nearest(varargin{i}.time, tbeg):nearest(varargin{i}.time, tend);
+          ft_movieplotTFR.m:xbeg = nearest(xvalues, cfg.xlim(1));
+          ft_movieplotTFR.m:xend = nearest(xvalues, cfg.xlim(2));
+          ft_multiplotCC.m:    fbin = [nearest(xparam, cfg.xlim(1)) nearest(xparam, cfg.xlim(2))];
+          ft_multiplotER.m:  xidmin(i,1) = nearest(varargin{i}.(xparam), xmin);
+          ft_multiplotER.m:  xidmax(i,1) = nearest(varargin{i}.(xparam), xmax);
+          ft_multiplotTFR.m:  xmin = nearest(data.(xparam), xmin);
+          ft_multiplotTFR.m:  xmax = nearest(data.(xparam), xmax);
+          ft_multiplotTFR.m:  ymin = nearest(data.(yparam), ymin);
+          ft_multiplotTFR.m:  ymax = nearest(data.(yparam), ymax);
+          ft_mvaranalysis.m:    begsmp = nearest(data.time{k}, zwindow(1));
+          ft_mvaranalysis.m:    endsmp = nearest(data.time{k}, zwindow(2));
+          ft_mvaranalysis.m:  sample        = nearest(timeaxis, cfg.toi(j));
+          ft_redefinetrial.m:      begsample(i) = nearest(data.time{i}, cfg.toilim(1));
+          ft_redefinetrial.m:      endsample(i) = nearest(data.time{i}, cfg.toilim(2));
+          ft_singleplotER.m:  xidmin(i,1) = nearest(varargin{i}.(xparam), xmin);
+          ft_singleplotER.m:  xidmax(i,1) = nearest(varargin{i}.(xparam), xmax);
+          ft_singleplotTFR.m:  xmin = nearest(data.(xparam), xmin);
+          ft_singleplotTFR.m:  xmax = nearest(data.(xparam), xmax);
+          ft_singleplotTFR.m:  ymin = nearest(data.(yparam), ymin);
+          ft_singleplotTFR.m:  ymax = nearest(data.(yparam), ymax);
+          ft_sourcedescriptives.m:    begsmp = nearest(source.time, cfg.baselinewindow(1));
+          ft_sourcedescriptives.m:    endsmp = nearest(source.time, cfg.baselinewindow(2));
+          ft_sourcedescriptives.m:    begsmp = nearest(source.time, cfg.baselinewindow(1));
+          ft_sourcedescriptives.m:    endsmp = nearest(source.time, cfg.baselinewindow(2));
+          ft_sourcemovie.m:xbeg = nearest(xparam, xlim(1));
+          ft_sourcemovie.m:xend = nearest(xparam, xlim(2));
+          ft_timelockanalysis.m:begsampl = nearest(abstimvec, latency(1));
+          ft_timelockanalysis.m:endsampl = nearest(abstimvec, latency(2));
+          ft_timelockanalysis.m:    begsampl = nearest(data.time{i}, latency(1));
+          ft_timelockanalysis.m:    endsampl = nearest(data.time{i}, latency(2));
+          ft_timelockanalysis.m:    begsampl = nearest(data.time{i}, cfg.covariancewindow(1));
+          ft_timelockanalysis.m:    endsampl = nearest(data.time{i}, cfg.covariancewindow(2));
+          ft_timelockanalysis_new.m:        begsampl = nearest(data.time{ii}, cfg.covlatency(1));
+          ft_timelockanalysis_new.m:        endsampl = nearest(data.time{ii}, cfg.covlatency(2));
+          ft_timelockanalysis_new.m:  begsampl = nearest(abstimvec, cfg.latency(1));
+          ft_timelockanalysis_new.m:  endsampl = nearest(abstimvec, cfg.latency(2));
+          ft_timelockanalysis_new.m:      begsampl = nearest(data.time{ii}, cfg.latency(1));
+          ft_timelockanalysis_new.m:      endsampl = nearest(data.time{ii}, cfg.latency(2));
+          ft_timelockbaseline.m:  tbeg = nearest(timelock.time, cfg.baseline(1));
+          ft_timelockbaseline.m:  tend = nearest(timelock.time, cfg.baseline(2));
+          ft_timelockgrandaverage.m:idxs = nearest(varargin{1}.time, min(cfg.latency));
+          ft_timelockgrandaverage.m:idxe = nearest(varargin{1}.time, max(cfg.latency));
+          ft_topoplotTFR.m:  xmin = nearest(data.(xparam), xmin);
+          ft_topoplotTFR.m:  xmax = nearest(data.(xparam), xmax);
+          private/preproc.m:    begsample = nearest(time, cfg.baselinewindow(1));
+          private/preproc.m:    endsample = nearest(time, cfg.baselinewindow(2));
+          private/rejectvisual_summary.m:  begsample = nearest(data.time{i}, cfg.latency(1));
+          private/rejectvisual_summary.m:  endsample = nearest(data.time{i}, cfg.latency(2));
+          private/rejectvisual_channel.m:  begsample = nearest(data.time{i}, cfg.latency(1));
+          private/rejectvisual_channel.m:  endsample = nearest(data.time{i}, cfg.latency(2));
+          private/rejectvisual_trial.m:  begsample = nearest(data.time{i}, cfg.latency(1));
+          private/rejectvisual_trial.m:  endsample = nearest(data.time{i}, cfg.latency(2));
+          private/prepare_timefreq_data.m:  timesel = nearest(remember{1}.time, cfg.latency(1)):nearest(remember{1}.time, cfg.latency(2));
+          private/prepare_timefreq_data.m:    timesel = nearest(varargin{c}.time, cfg.latency(1)):nearest(varargin{c}.time, cfg.latency(2));
+          utilities/ft_checkdata.m:      ix(i) = 1-nearest(tmptime, begtime(i));
+          utilities/ft_checkdata.m:      iy(i) = nearest(tmptime, endtime(i))-length(tmptime);
+          utilities/ft_checkdata.m:  time(nearest(time, max(endtime))+1:end) = [];
+          utilities/ft_checkdata.m:    begsmp(i) = nearest(time, data.time{i}(1));
+          utilities/ft_checkdata.m:    endsmp(i) = nearest(time, data.time{i}(end));
+          utilities/ft_selectdata_new.m:    tbeg = nearest(data.time, cfg.latency(1), false, false);
+          utilities/ft_selectdata_new.m:    tend = nearest(data.time, cfg.latency(2), false, false);
+          utilities/ft_selectdata_new.m:    tbin(1) = nearest(data.time, cfg.toilim(1), false, false);
+          utilities/ft_selectdata_new.m:    tbin(2) = nearest(data.time, cfg.toilim(2), false, false);
+          utilities/ft_selectdata_new.m:      fbeg = nearest(data.freq, cfg.latency(1), false, false);
+          utilities/ft_selectdata_new.m:      fend = nearest(data.freq, cfg.latency(2), false, false);
+      - +@isprivate: "0"
+        commentid: "8002"
+        comment_count: "9"
+        attachid: "353"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-26 13:21:49 +0200
+        thetext: |-
+          Created attachment 353
+          toy meg data 1 channel x 1 trial
+      - +@isprivate: "0"
+        commentid: "8003"
+        comment_count: "10"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-26 13:22:33 +0200
+        thetext: "(In reply to comment #8)\n\nHi,\n\nNow nearest function does accurate job when selecting specific time of interest data (ft_redefinetrial, ft_selectdata). However, if one select data before time-freq analysis, we obtain one sample more that we need that mess the expected frequency resolution that one expect. Here and example (load the attachment):\n\n\nmeg is a one meg channel data x 1 trial whose time length whose define as:\n\ncfg.trialdef.prestim  = 2; % in seconds\ncfg.trialdef.poststim = 4.1; % in seconds\ncfg                   = ft_definetrial(cfg);\n\n%In my cfg.trialfun the samples are defined as at the tutorial see http://fieldtrip.fcdonders.nl/tutorial/preprocessing\n\nbegsample = event(selectevents(i)).sample - cfg.trialdef.prestim*hdr.Fs;\nendsample  = event(selectevents(i)).sample + cfg.trialdef.poststim*hdr.Fs - 1;\n\nThe \"- 1\" sample at the end is used to avoid sample repetitions (I asumed but might be I'm wrong!!!) Then the \"real\" piece of data selected is [-2  4.0983] not 4.1 because my sampling rate is 600hz \n\nIf one select a temporal piece of the data:\n\ncfg         = [];\ncfg.toilim  = [-1 3];\nmeg2        = ft_redefinetrial(cfg, meg);\n\n>> meg2.time{1,1}(1,1)\n\nans =\n\n    -1\n\n>> meg2.time{1,1}(1,end)\n\nans =\n\n     3\n\n%Number of samples\n>> size(meg2.time{1,1})\n\nans =\n\n           1        2401\n\nAnd here the problem because when you compute ft_freqanalysis the frequency resolution is not what you'd expect:\n\ncfg                 = [];\ncfg.output          = 'pow';\ncfg.method          = 'mtmconvol';\ncfg.taper           = 'dpss';\ncfg.foi             = 40:2.5:100;\ncfg.toi             = [-1:0.05:3];\ncfg.trials          = 1;\ncfg.t_ftimwin       = ones(length(cfg.foi),1).*0.4;\ncfg.tapsmofrq       = 5;           \ncfg.keeptrials      = 'yes';\nfreq1                = ft_freqanalysis(cfg, meg2);\n\ntrial 1, frequency 25 (99.96 Hz), 3 tapers\nfreq1.freq\n\nans =\n\n  Columns 1 through 15\n\n   39.9833   42.4823   44.9813   47.4802   49.9792   52.4781   54.9771   57.4761   59.9750   62.4740   64.9729   67.4719   69.9708   72.4698   74.9688\n\n  Columns 16 through 25\n\n   77.4677   79.9667   82.4656   84.9646   87.4636   89.9625   92.4615   94.9604   97.4594   99.9584\n\n\nWithout using the extra sample:\n\ncfg         = [];\ncfg.latency = [-1 3-(1/600)];\ncfg.trials  = 1;\nmeg3        = ft_selectdata_new(cfg,meg);\n\ncfg                 = [];\ncfg.output          = 'pow';\ncfg.method          = 'mtmconvol';\ncfg.taper           = 'dpss';\ncfg.foi             = 40:2.5:100;\ncfg.toi             = [-1:0.05:3];\ncfg.trials          = 1;\ncfg.t_ftimwin       = ones(length(cfg.foi),1).*0.4;\ncfg.tapsmofrq       = 5;           \ncfg.keeptrials      = 'yes';\nfreq3       = ft_freqanalysis(cfg, meg3);\n\n>> freq3.freq\n\nans =\n\n  Columns 1 through 15\n\n   40.0000   42.5000   45.0000   47.5000   50.0000   52.5000   55.0000   57.5000   60.0000   62.5000   65.0000   67.5000   70.0000   72.5000   75.0000\n\n  Columns 16 through 25\n\n   77.5000   80.0000   82.5000   85.0000   87.5000   90.0000   92.5000   95.0000   97.5000  100.0000\n\n\nShould be a convention about the use or not of this extra sample because could have undesirable consequences for future analysis time-dependent. The easy solution is to subtract a sample after nearest.m at the endsample but not sure about the consequences/arbitrariness:\n\nIn ft_redefinetrial, line 146;\nendsample(i) = nearest(data.time{i}, cfg.toilim(2));"
+      - +@isprivate: "0"
+        commentid: "8005"
+        comment_count: "11"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-26 14:42:56 +0200
+        thetext: |-
+          Hi Diego,
+          Let's discuss in next FT meeting.  My opinion is that the code behaves as expected (i.e. user calls for [-1 3] and gets this).  The concept is the same as realizing that there are 2401 samples in the vector 0:1:2400.  If you want 2400 samples, then using 1:2400 or 0:2399 are both valid, but lead to slightly different results.
+      - +@isprivate: "0"
+        commentid: "8072"
+        comment_count: "12"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-31 15:04:06 +0100
+        thetext: "Discussed in FT meeting: behavior of ft_redefinetrial is as expected.  However, Diego raises good point of some seeming inconsistencies or confusions regarding when the last sample is automatically dropped or not in different stages of processing.   \nFor ft_redefinetrial, please see options cfg.length and cfg.overlap for different ways of redefining other than via toilim.\n\nAlso a discussion of whether trialfun_general needed to be changed due to an automatic subtraction of 1 sample, but we agreed no change needed.\n\nAction point: create FAQ on how/when specification of limits in varying functions work.  See exsiting http://fieldtrip.fcdonders.nl/faq/how_can_i_process_continuous_data_without_triggers   Diego will take the lead on creating this FAQ."
+      - +@isprivate: "0"
+        commentid: "8079"
+        comment_count: "13"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-31 17:45:59 +0100
+        thetext: |-
+          (In reply to comment #12)
+          First FAQ draft created http://fieldtrip.fcdonders.nl/faq/how_to_specify_inclusive_or_exclusive_time_and/or_frequency_interval_limits_in_fieldtrip
+
+          I've not included the cfg.overlap option yet because I don't get what's doing... when I do:
+
+          cfg=[];
+          cfg.length=1;
+          cfg.overlap=0;
+          meg=ft_redefinetrial(cfg,dataFIC);% 300samples are selected
+
+
+          cfg=[];
+          cfg.length=1;
+          cfg.overlap=1;
+          meg=ft_redefinetrial(cfg,dataFIC);% all samples that dataFIC contain are selected!!
+
+
+          Diego
+      - +@isprivate: "0"
+        commentid: "8081"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-31 21:50:43 +0100
+        thetext: "(In reply to comment #13)\n\nI suggest to name it after the question, not after the answer. E.g. before today, you were not aware of teh relevance of inclusive/exclusive.\n\nSo something like \nWhy do I get 1001 samples instead of 1000?\nor \nWhy do I not get exact integer frequencies?"
+      - +@isprivate: "0"
+        commentid: "8082"
+        comment_count: "15"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-11-01 09:37:32 +0100
+        thetext: |-
+          (In reply to comment #14)
+          Agreed. Indeed I like both so I combined them
+          Diego
+      - +@isprivate: "0"
+        commentid: "13335"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-15 18:55:53 +0200
+        thetext: |-
+          Hi Diego,
+
+          could you have a look at this?
+
+          thanks,
+          R
+      - +@isprivate: "0"
+        commentid: "13384"
+        comment_count: "17"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-04-17 11:38:54 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #16)
+
+          Hi Robert,
+
+          I created the following FAQ to clarify the inclusive/exclusive interval selection:
+
+          http://fieldtrip.fcdonders.nl/faq/why_am_i_not_getting_exact_integer_frequencies_i.e._1001_samples_instead_of_1000
+
+          Let me know if it makes sense to you
+      - +@isprivate: "0"
+        commentid: "15391"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-18 15:41:49 +0100
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #17)\n\nHi Diego,\n\nI rewrote it a bit and renamed it to \nhttp://fieldtrip.fcdonders.nl/faq/why_am_i_not_getting_exact_integer_frequencies\n\nThanks for documenting this. If I read it I find the actual implementation logical, but   I also realise that the consequences can be non-logical for people that are not aware of the consequence of presence or absence of this last sample."
+      - +@isprivate: "0"
+        commentid: "15392"
+        comment_count: "19"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2015-02-18 17:13:47 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #18)
+          thank you Robert! It's more logical now
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "353"
+      date: 2012-10-26 13:21:00 +0200
+      delta_ts: 2012-10-26 13:21:49 +0200
+      desc: toy meg data 1 channel x 1 trial
+      filename: meg.mat
+      type: application/octet-stream
+      size: "19587961"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

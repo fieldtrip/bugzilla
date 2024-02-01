@@ -1,0 +1,5 @@
+---
+title: multivariate
+---
+
+{% include component %}

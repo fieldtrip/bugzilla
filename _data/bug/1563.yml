@@ -1,0 +1,91 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1563"
+    creation_ts: 2012-06-27 16:38:00 +0200
+    short_desc: ft_sourceinterpolate using 'spline' interpolation crashes on win64/Matlab 2010b
+    delta_ts: 2012-08-23 14:02:03 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6583"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-27 16:38:39 +0200
+        thetext: "I dunno why, the exact same code, same data (loaded from disk) works on the mentats and e.g. 'cubic' interpolation works under windows...\n\nerror:\n\n??? Index exceeds matrix dimensions.\n\nError in ==> interpn>splinen at 739\n  xxi{i} = xi{i}(ind{:});\n\nError in ==> interpn at 254\n  vi = splinen(x,v,y,ExtrapVal);\n\nError in ==> ft_sourceinterpolate>my_interpn at 481\n  av(sel) = interpn(fv, ax(sel), ay(sel), az(sel), interpmethod);\n\nError in ==> ft_sourceinterpolate at 385\n          av( sel) = my_interpn(fv, ax(sel), ay(sel), az(sel), cfg.interpmethod, cfg.feedback);\n \n\n>> which interpn\nC:\\Program Files\\MATLAB\\R2010b\\toolbox\\matlab\\polyfun\\interpn.m\n\nunder linux:\n>> which interpn\n/opt/matlab2009b/toolbox/matlab/polyfun/interpn.m\n\nBut under linux I also observed to real differences between the different interpolation methods..."
+      - +@isprivate: "0"
+        commentid: "6861"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 15:27:30 +0200
+        thetext: |-
+          hm, interesting:
+
+          same data, loaded from disk:
+
+          matlab, win32
+          selecting subvolume of 67.6%
+
+          matlab win64
+          selecting subvolume of 67.4%
+
+          gonna continue looking for the cause
+      - +@isprivate: "0"
+        commentid: "6862"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 15:52:00 +0200
+        thetext: |-
+          okeee, I give up why the subvolume difference is there... apparently the / operation gives different output going from matlab 2009b to matlab 2010b, maybe the algorithm got changed
+
+          anyway, apart from this peculiarity, the error was simply that the interpolation in chunks was wrongly programmed. It was checked whether the last sample/index is strictly bigger than the total amount. In my particular example of data, it was just an even match, which should suffice for the loop to stop. However, it tried one last iteration with no data, which failed of course
+
+          Thus, instead of checking for sel(end)>num, the check needs to be sel(end)>=num
+
+          svn ci ft_sourceinterpolate.m -m "bugfix-#1563-interpolation chunk management fixed when #indices divisible by 20 without remainder"
+          Sending        ft_sourceinterpolate.m
+          Transmitting file data .
+          Committed revision 6289.
+      - +@isprivate: "0"
+        commentid: "7180"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:03 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

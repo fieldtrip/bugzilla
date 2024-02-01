@@ -1,0 +1,90 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1773"
+    creation_ts: 2012-10-09 20:55:00 +0200
+    short_desc: ft_read_header should be made faster
+    delta_ts: 2012-10-29 13:44:58 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "738"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - J.Farquhar
+      - philipvandenbroek
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7862"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-09 20:55:56 +0200
+        thetext: |-
+          I am simulating a localhost data stream with sine2ft and a stand-alone buffer. It writes 16 channels at 2000Hz with a blocksize of 512 samples (so ~4x PUT_DAT per second).
+
+          Then to get a reference measurement I do the following in MATLAB
+
+          >> tic; for i=1:1000, ft_read_header('buffer://localhost:1972'); end; toc
+          Elapsed time is 8.863868 seconds.
+
+          So it takes ~8 ms per read operation.
+      - +@isprivate: "0"
+        commentid: "7863"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-09 21:02:04 +0200
+        thetext: "with \"profile on, running the code, profile report\", I see that line 101 in ft_read_header takes a considerable amount of time\n\nWhen I change that from\n\nif ~exist(filename, 'file') && ~strcmp(ft_filetype(filename), 'fcdc_buffer') && ~strcmp(ft_filetype(filename), 'ctf_shm') && ~strcmp(ft_filetype(filename), 'fcdc_mysql')\n\ninto\n\nif  ~strcmp(ft_filetype(filename), 'fcdc_buffer') && ~strcmp(ft_filetype(filename), 'ctf_shm') && ~strcmp(ft_filetype(filename), 'fcdc_mysql') && ~exist(filename, 'file')\n\nSo I moved the exist call to the end and the check on fcdc_buffer to the begin (using the short-circuited \"&&\" in the test). Then I try again and get \n\n>> tic; for i=1:1000, ft_read_header('buffer://localhost:1972'); end; toc\nElapsed time is 1.783376 seconds.\n\nso ~2ms per call. \n\nI presume this is fast enough for BCI applications.\n\nThe profiler is really easy to use, so please give it a try next time."
+      - +@isprivate: "0"
+        commentid: "7864"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-09 21:02:52 +0200
+        thetext: "mbp> svn commit ft_read_header.m \nSending        ft_read_header.m\nTransmitting file data .\nCommitted revision 6712."
+      - +@isprivate: "0"
+        commentid: "7865"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-09 21:06:41 +0200
+        thetext: "I have made the same change to ft_read_data\n\nmbp> svn commit ft_read_data.m \nSending        ft_read_data.m\nTransmitting file data .\nCommitted revision 6713."
+      - +@isprivate: "0"
+        commentid: "8021"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:44:58 +0100
+        thetext: changed the status of several bugs that were RESOLVED some time ago to CLOSED

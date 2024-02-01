@@ -1,0 +1,139 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3137"
+    creation_ts: 2016-06-07 00:56:00 +0200
+    short_desc: 'ft_databrowser: upper and lower channels outside of plotting area when cfg.viewmode=''vertical'''
+    delta_ts: 2019-08-10 12:33:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17408"
+        comment_count: "0"
+        attachid: "794"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-07 00:56:10 +0200
+        thetext: "Created attachment 794\nproblem\n\nThis has been bugging me for a while, time to fix.\n\nSee the picture attached. The upper and lower channels are no longer visible. Only when flatlining the scale do they become visible. When using very few channels (say, 10) the problem is somewhat less, but it's still very easy to cause the channels to 'clip'. \n\nOf course, this is not intended. The primary purpose of using the databrowser is to see the data, not not-see the data ;). So, an improvement is warranted. \n\nHowever, I'm unsure where to fix this and what the final behavior should be. So I'm also creating this bug partly as a discussion."
+      - +@isprivate: "0"
+        commentid: "17409"
+        comment_count: "1"
+        attachid: "795"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-07 00:57:04 +0200
+        thetext: |-
+          Created attachment 795
+          how a solution could look like
+      - +@isprivate: "0"
+        commentid: "17410"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-07 01:03:25 +0200
+        thetext: "I attached another figure, showing what a solution could look like. (Hacked by adding 5 NaN channels at the top and 5 at the bottom).\n\nThe only way to keep the top and bottom channels visible, is to give them more space. \n\nThe amount of white space added should:\n1) depend on the number of channels\n2) depend on the current ylim? (i.e., white space not necessary with small ylim)\n3) not depend on figure window size (just saying)\n4) not depend on the scale of the data (too variable)\n\nAny input?"
+      - +@isprivate: "0"
+        commentid: "17411"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-07 01:45:11 +0200
+        thetext: "Currently, my best guess for a spot to fix this is adding white space to the 'local axis limits'. It's unpredictable however, how all the other operations of the monster are affected. At least, so far so good. \n\nIf anyone would like to try it out, the following adds white space dependent on the number of channels being plotted.\n\nOn line 1734, I changed this:\n% determine the total extent of all virtual axes relative to the real axes\nax(1) = min(opt.laytime.pos(:,1) - opt.laytime.width/2);\nax(2) = max(opt.laytime.pos(:,1) + opt.laytime.width/2);\nax(3) = min(opt.laytime.pos(:,2) - opt.laytime.height/2);\nax(4) = max(opt.laytime.pos(:,2) + opt.laytime.height/2);\naxis(ax)\n\nTo this:\n% determine the total extent of all virtual axes relative to the real axes\nax(1) = min(opt.laytime.pos(:,1) - opt.laytime.width/2);\nax(2) = max(opt.laytime.pos(:,1) + opt.laytime.width/2);\nax(3) = min(opt.laytime.pos(:,2) - opt.laytime.height/2);\nax(4) = max(opt.laytime.pos(:,2) + opt.laytime.height/2);\n% add white space to bottom and top so channels are not out-of-axis for the majority\nif strcmp(cfg.viewmode,'vertical') % might also be use for viewmode = component!\n  nchan = numel(cfg.channel);\n  % add an equivalent of 2.5% of channel space to top, and to bottom\n  wsfac = (nchan*0.025) * abs(mean(diff(opt.laytime.pos(:,2))));\n  ax(3) = ax(3) - wsfac;\n  ax(4) = ax(4) + wsfac;\nend\naxis(ax)\n\n\nWith 2.5% of 'channel space' added as white space, it seems the top and bottom channels are in the axis most of the time (depending on their particular variance obviously), and it scales appropriately with the number of channels on the screen."
+      - +@isprivate: "0"
+        commentid: "17412"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-07 09:29:26 +0200
+        thetext: "I don't think that you'll ever come up with something that always works. Imagine displaying a trigger channel (which happens a lot with me, containing values of 1-1024) as part of the channels, it always is much larger than any other channel (which is 10^-12).\n\nI agree that some padding at the edges is desired. Let me try to come up with heuristics.\n\n- if a single channel, no padding.\n- if less than 10 channels, also no padding.\n- if 10 channels, 0.5 Nan-channel on each side\n- if 20 channels or more , 1 Nan-channel on each side\n\nI don't think there should be the reason to do ever more padding by default.\n\nImagine the option \n\ncfg.verticalpadding = number, can be 'auto'.\n\nthe padding would be specified in fractions/multiples of the layout height. It should be realized by changing the axes, not by adding something invisible to the figure (like nan channels)."
+      - +@isprivate: "0"
+        commentid: "17421"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-07 21:43:42 +0200
+        thetext: "Thanks!\n\nGood idea to do it via an option and dependent on cfg.channel. \n\nI did the following: \n- added cfg.verticalpadding, default = auto \n- padding is applied to viewmode = vertical, and component\n- padding is specified in proportion of the axis height \n- when padding = auto, the padding depends on nchan as follows:\n  <=6     - no padding (the same cutoff as special axis ticks\n  >6 <=10 - 1% of height to top, 1% to bottom\n  >10     - 2%\n\nThe 6 is convenient because it will add padding to viewmode = component, which defaults at 10 components per window. From the past, I remember I wanted some padding here as well. \n\nI didn't make it dependent on ylim. I think having consistent channel positions isin general more useful while scaling up and down. \n\n\nI've set the default to auto. Initially I was thinking of setting the default to 0 to gain some more experience, but I'm pretty satisfied with the way it works now. It's almost always helpful, and not unnatural/obtrusive when not required.\n\nPull requested"
+      - +@isprivate: "0"
+        commentid: "17422"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-08 09:10:08 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #5)
+
+          thanks, I merged it.
+      - +@isprivate: "0"
+        commentid: "20176"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:10 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "794"
+        date: 2016-06-07 00:56:00 +0200
+        delta_ts: 2016-06-07 00:56:10 +0200
+        desc: problem
+        filename: Screen Shot 2016-06-06 at 15.47.36.png
+        type: image/png
+        size: "877533"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "795"
+        date: 2016-06-07 00:57:00 +0200
+        delta_ts: 2016-06-07 00:57:04 +0200
+        desc: how a solution could look like
+        filename: Screen Shot 2016-06-06 at 15.47.39.png
+        type: image/png
+        size: "822841"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED

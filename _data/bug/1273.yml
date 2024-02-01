@@ -1,0 +1,167 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1273"
+    creation_ts: 2012-01-20 16:50:00 +0100
+    short_desc: Error in qsubcompile when nodename has "-" in it
+    delta_ts: 2012-04-11 16:48:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: All
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.a.kloosterman
+      +@name: Niels Kloosterman
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4892"
+        comment_count: "0"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-01-20 16:50:27 +0100
+        thetext: "compiledfun = qsubcompile('rand');\nqsubcellfun(compiledfun, {1, 2, 3}, 'memreq', 1024^3, 'timreq', 60, 'stack', 1)\ncompiling rand into niels_gb-r33n26_p22694_b1\n??? Error using ==> mcc\nIllegal output name: 'niels_gb-r33n26_p22694_b1'\n (standalone and shared library target output names must begin with a letter or '_' and contain only alpha-numeric characters or\n '_')\n\nError in ==> qsubcompile at 76\nmcc('-N', '-R', '-nodisplay', '-o', batchid, '-m', 'qsubexec', 'cellfun', fname);\n\n\nWhen I run this from a login node (named for example \"login4\") the script runs, but when I run it from a node I am logged into via ssh -X, it crashes due to the minus sign in the nodenames (nodes are named \n\"gb-rXXnXX\" where the X-es are numbers)."
+      - +@isprivate: "0"
+        commentid: "5504"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:30:57 +0100
+        thetext: |-
+          added a fixname function (which was already used as subfunction elsewhere) that converts all inappropriate characters in the job id string into '_'
+
+
+          mbp> svn commit
+          Adding         private/fixname.m
+          Sending        private/generatejobid.m
+          Transmitting file data ..
+          Committed revision 5430.
+      - +@isprivate: "0"
+        commentid: "5505"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:34:40 +0100
+        thetext: "instead of keeping it a subfunction (inside the main m file) I made a separate function out of it.\n\nthere are some other places where the function is used\n\nmbp> grep function.*fixname `find . -name \\*.m`\n./connectivity/private/warning_once.m:function out = fixname(toolbox)\n./engine/private/warning_once.m:function out = fixname(toolbox)\n./fileio/ft_read_header.m:function out = fixname(str)\n./fileio/private/ft_hastoolbox.m:function out = fixname(toolbox)\n./fileio/private/warning_once.m:function out = fixname(toolbox)\n./forward/private/ft_hastoolbox.m:function out = fixname(toolbox)\n./forward/private/warning_once.m:function out = fixname(toolbox)\n./inverse/private/ft_hastoolbox.m:function out = fixname(toolbox)\n./plotting/private/warning_once.m:function out = fixname(toolbox)\n./private/warning_once.m:function out = fixname(toolbox)\n./qsub/private/fixname.m:function str = fixname(str)\n./qsub/private/warning_once.m:function out = fixname(toolbox)\n./specest/private/warning_once.m:function out = fixname(toolbox)\n./statfun/private/warning_once.m:function out = fixname(toolbox)\n./utilities/ft_hastoolbox.m:function out = fixname(toolbox)\n./utilities/private/warning_once.m:function out = fixname(toolbox)\n\nTODO replace it in \n  warning_once ft_hastoolbox ft_read_header \nand svn copy it to the private of \n  connectivity engine fileio forward inverse plotting main specest statfun utilities"
+      - +@isprivate: "0"
+        commentid: "5506"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:45:13 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          I replaced it with a common implementation of fixname and fused all scattered functionality into this one.
+
+          mbp> svn commit
+          Adding         trunk/connectivity/private/fixname.m
+          Adding         trunk/engine/private/fixname.m
+          Sending        trunk/fileio/ft_read_header.m
+          Adding         trunk/fileio/private/fixname.m
+          Adding         trunk/forward/private/fixname.m
+          Adding         trunk/inverse/private/fixname.m
+          Adding         trunk/plotting/private/fixname.m
+          Adding         trunk/private/fixname.m
+          Sending        trunk/qsub/private/fixname.m
+          Adding         trunk/specest/private/fixname.m
+          Adding         trunk/statfun/private/fixname.m
+          Sending        trunk/utilities/ft_hastoolbox.m
+          Sending        trunk/utilities/private/warning_once.m
+          Transmitting file data .............
+          Committed revision 5431.
+
+          do an update to check that all autosynched versions are updated
+
+          mbp> svn update
+          U    engine/private/warning_once.m
+          U    inverse/private/ft_hastoolbox.m
+          U    plotting/private/warning_once.m
+          U    connectivity/private/warning_once.m
+          U    specest/private/warning_once.m
+          U    qsub/private/warning_once.m
+          U    fileio/private/warning_once.m
+          U    fileio/private/ft_hastoolbox.m
+          U    private/warning_once.m
+          U    statfun/private/warning_once.m
+          U    forward/private/warning_once.m
+          U    forward/private/ft_hastoolbox.m
+
+          looks fine.
+      - +@isprivate: "0"
+        commentid: "5574"
+        comment_count: "4"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2012-03-14 15:44:19 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          it almost works. Apparently fixname is still not called in qsubcompile. I added the following line after getting the batchid with ft_getopt to get rid of the '-' in the batchid:
+
+          batchid = fixname(batchid); % Get rid of '-'
+
+          Then indeed only underscores are left in the id and the compiling works.
+
+          The matlab toolbox adding works nicely!
+
+          Best,
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "5575"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-14 16:38:53 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+          it was indeed not in batchid, only in jobid. Sorry about that. I now made it as
+
+          private/generatebatchid.m:id = fixname(id);
+          private/generatejobid.m:id = fixname(id);
+
+          manzana> svn commit
+          Sending        qsub/private/generatebatchid.m
+          Transmitting file data .
+          Committed revision 5465.
+      - +@isprivate: "0"
+        commentid: "5854"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:36 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

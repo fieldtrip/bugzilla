@@ -1,0 +1,111 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "89"
+    creation_ts: 2010-06-09 13:37:00 +0200
+    short_desc: use bwlabeln from spm8 as alternative to image processing toolbox
+    delta_ts: 2011-02-23 13:51:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "165"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-06-09 13:37:16 +0200
+        thetext: see email from Andrea on mailing list
+      - +@isprivate: "0"
+        commentid: "170"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-06-09 16:24:13 +0200
+        thetext: "Mail from Andrea:\n************\nDear Fieldtrip team,\n\nIf I understand the notes on the development page right, you have switched\nfrom SPM2 to SPM8 and are currently working on the integration with\nFieldtrip. \nCould you perhaps add an entry in the to-do list? I believe that if you\nallowed for the use of spm_bwlabel instead of bwlabeln if the latter is not\navailable, one could use some of your statistics options even without the\nMATLAB Statistics toolbox. (For my purposes, for example, a few\nmodifications in findcluster and clusterstat would be sufficient.)\n\nA nice day to all of you!\nAll the best\n\nAndrea\n************"
+      - +@isprivate: "0"
+        commentid: "175"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-06-22 12:11:16 +0200
+        thetext: "A follow up e-mail from Andrea with some helpful suggestions. \n\n\n\n************\nDear Roemer,\n\nThanks a lot. I discussed this topic some months ago with Robert and he\nsuggested that he/the Fieldtrip team could modify the code along the\nfollowing lines (I copy this from his e-mail because I think he will not\nmind this)\n- - - - - \nI suggest to modify the low level code into two helper functions\n(findcluster_chanlevel and findcluster_sourcelevel), which both should check\nlike this\n\n\nif hastoolbox('image', 1)\n  % using image processing toolbox\n  my_bwlabeln = @bwlabeln;\nelseif hastoolbox('spm8', 1)\n  % using spm8 version\n my_bwlabeln = @spm8_bwlabeln;\nelse \n  error(...)\nend\n- - - - \n\nI have got SPM8 on my Matlab path and whenever I download a new Fieldtrip\nversion, I have to edit clusterstat and findcluster because it is (or was)\nnot sufficient to simply replace bwlabeln by spm_bwlabel. What I did is\nprobably rather inelegant but I left it that way since it works:\n\nIn findcluster:\nBefore:\n%  [labelmat(spatdimlev, :, :), num] = bwlabeln(reshape(onoff(spatdimlev, :,\n:), nfreq, ntime), 4);\nAfter:\ninput_for_spm_bwlabel = reshape(onoff(spatdimlev, :, :), nfreq, ntime);\ninput_for_spm_bwlabel = +input_for_spm_bwlabel; %convert from logical\n[labelmat(spatdimlev, :, :), num] = spm_bwlabel(input_for_spm_bwlabel , 6);\n\nIn clusterstat:\nBefore:\n%!!!posclusobs = bwlabeln(tmp, conndef(length(cfg.dim),'min'));\nAfter:\n[posclusobs,L] = spm_bwlabel(tmp, 6);\n\nAll the best\nAndrea\n************"
+      - +@isprivate: "0"
+        commentid: "508"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-01 16:09:12 +0100
+        thetext: this is on the request list for a long time and a good suggestion. It requires carefull checking of the (hopefully) drop-in replacement.
+      - +@isprivate: "0"
+        commentid: "1362"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2011-02-02 15:25:30 +0100
+        thetext: "Private/clusterstat calls bwlabeln 4 times and private/findcluster calls it once. Clusterstat calls findcluster.\n\nto do:\n- split findcluster into findcluster_chanlevel and findcluster_sourcelevel\n\n- insert in these functions the following check\nif hastoolbox('image', 1)\n  % using image processing toolbox\n  my_bwlabeln = @bwlabeln;\nelseif hastoolbox('spm8', 1)\n  % using spm8 version\n  my_bwlabeln = @spm_bwlabel;\nelse \n  error(...)\nend\n\n- replace bwlabeln calls with my_bwlabeln\n\n- Additional mismatch that needs to be checked:\nFindcluster is supposed to return clusters with a connectivity of 6. But in the code parameter '4' is given bwlabeln."
+      - +@isprivate: "0"
+        commentid: "1407"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2011-02-10 12:32:44 +0100
+        thetext: |-
+          So the implementation is now as follows. The function has yet not been teared apart into two separate function for source and sensor level. Rather the calls to bwlabeln have been removed where possible (<4 dimensions) and been replaced by spm_bwlabel to reduce usage of the image toolbox.
+
+          clusterstat (sourcelevel):
+          if length(cfg.dim) == 3
+             [output1, output2] = spm_bwlabel(tmp, 6)
+          else
+             output1 = bwlabeln (tmp, something)
+          end
+
+          This used to be the lower call incl bwlabeln only.
+
+          findcluster(sensorlevel):
+
+          [output1, output2 = spm_bwlabel(double(input), 6);
+
+          This used to be:
+          [output1, output2 = spm_bwlabel(input, 4);
+      - +@isprivate: "0"
+        commentid: "1484"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-02-23 13:51:06 +0100
+        thetext: I closed all bugs that were in the RESOLVED/FIXED or otherwise RESOLVED state.

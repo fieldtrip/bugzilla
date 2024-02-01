@@ -1,0 +1,202 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2654"
+    creation_ts: 2014-07-16 18:13:00 +0200
+    short_desc: ft_sourceplot functional image scaling trouble
+    delta_ts: 2015-02-11 10:40:45 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14157"
+        comment_count: "0"
+        attachid: "654"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-07-16 18:13:34 +0200
+        thetext: |-
+          Created attachment 654
+          plot example with strangely scaled saggital plane
+
+          Dear ft developers,
+          we just updated our ft version this morning and encountered a strange issue when plotting with ft_sourceplot and using the ortho functionality.
+
+          as you can see in the screenshot I appended the functional data in one of the three planes (this seems kind of random) is scaled strangely.
+          in my example this did not happen, when i used cfg.location = 'min' (another strange thing...)
+
+          we will for now just move back to the ft version before (i think that was from last week or so).
+
+          as I saw that there were a couple of changes in ft_sourceplot, i figured, those who implemented them might be faster in spotting the underlying problem (also I can currently not make it my priority).
+
+          best
+          p
+      - +@isprivate: "0"
+        commentid: "14158"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 08:28:52 +0200
+        thetext: |-
+          Hi Philipp,
+
+          A change that I recently made in ft_plot_slice affects the 3D position of the slice that is plotted with respect to an intersection of a (cortical) mesh. That is in https://code.google.com/p/fieldtrip/source/detail?r=9710 and some of the commits just before it (it starts with 9706).
+
+          I recall MATLAB inconsistencies (over versions and platforms) with regards to how something is displayed if it is plotted on exactly the same place in 3D space. Here the  anatomical slice and functional slice are in 3D space and you happen to be looking at them from a specific angle. Could you recreate the figure, toggle on the "3d rotate" option, and rotate the upper right subplot? That might reveal that the missing data is displayed just behind anatomical slice.
+
+          It would help to have the data that you are plotting. Or (if that is too large) the *.fig file.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "14166"
+        comment_count: "2"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-07-17 09:47:57 +0200
+        thetext: |-
+          Dear Robert,
+          find the source structure here
+          https://dl.dropboxusercontent.com/u/3970306/source.mat
+          and the fig here
+          https://dl.dropboxusercontent.com/u/3970306/source.fig
+
+
+          by using
+
+          cfg = [];
+          cfg.method='ortho';
+          cfg.funparameter='powspctrm_avg';
+          cfg.funcolorlim = [-.1 .1];
+          ft_sourceplot(cfg, source)
+
+
+          i can recreate the problem on our linux server (running Matlab2012a)
+
+          on my Mac (running Matlab2013a) I cannot recreate the issue... the image looks fine
+
+          also on the linux server, others had the issue but it seemed to randomly affect different planes.
+
+          I tried the rotating and did not find any points behind the anatomy.
+          to me it still looks like a scaling thing and not an overlay issue (if you look at my original example you see that the cross-hair moved from one end of the blue blob to the other one)
+
+          cheers
+          philipp
+      - +@isprivate: "0"
+        commentid: "14167"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 10:00:45 +0200
+        thetext: 'for reference: I copied the files to /home/common/matlab/fieldtrip/data/test/bug2654.'
+      - +@isprivate: "0"
+        commentid: "14169"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 10:21:54 +0200
+        thetext: "I can reproduce the problem on my macbook pro with matlab2014a. \n\ncfg.location = [] and navigating to the center gives incomplete coverage in the sagittal slice.\n\ncfg.location = [0 -19 0] jumps to the center immediately and has good coverage.\n\nWhat surprises me is that in the 2nd case (starting from a specified location) that subsequent clicking around does not result in incomplete coverage."
+      - +@isprivate: "0"
+        commentid: "14170"
+        comment_count: "5"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-07-17 10:32:41 +0200
+        thetext: "very interesting indeed.\n\ni also thought the first image was okay when giving no location but then i noticed that the selected spot was on the side of the head so even the bad coverage appeared complete... although when i now think about it it is strange because there should be nothing in the saggital image there. \n\nand yeah, that's why I couldn't reproduce at first what the others saw, because somehow the location leads to full coverage.\nthanks for looking into it\np"
+      - +@isprivate: "0"
+        commentid: "14172"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 10:42:19 +0200
+        thetext: |-
+          if I comment out this section in ft_plot_slice around line 234
+
+          % if all(isnan(V(:)))
+          %   % the projection plane lies completely outside the box spanned by the data
+          % else
+          %   % trim the edges of the projection plane
+          %   [sel1, sel2] = tight(V);
+          %   V  = V (sel1,sel2);
+          %   Xi = Xi(sel1,sel2);
+          %   Yi = Yi(sel1,sel2);
+          %   Zi = Zi(sel1,sel2);
+          % end
+
+          it does display correctly. So it is not a 3D rendering problem, but an issue with the mask updating. I don't really understand yet how the functional data and mask relate...
+      - +@isprivate: "0"
+        commentid: "14173"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 10:56:52 +0200
+        thetext: "it is not the trimming, but further down. There was a section where the Cdata was being updated, but the X/Y/Zdata (the location of the patches) were not updated correspondingly. \n\nthis commit fixes it.\n\nmac011> svn commit plotting/ft_plot_slice.m\nSending        plotting/ft_plot_slice.m\nTransmitting file data .\nCommitted revision 9740."
+      - +@isprivate: "0"
+        commentid: "14174"
+        comment_count: "8"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-07-17 11:01:28 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+          awesome
+      - +@isprivate: "0"
+        commentid: "15246"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:45 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "654"
+      date: 2014-07-16 18:13:00 +0200
+      delta_ts: 2014-07-16 18:13:34 +0200
+      desc: plot example with strangely scaled saggital plane
+      filename: Screen Shot 2014-07-16 at 18.03.06.png
+      type: image/png
+      size: "689235"
+      attacher:
+        +content: philipp.ruhnau
+        +@name: Philipp Ruhnau
+      data: REMOVED

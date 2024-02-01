@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1746"
+    creation_ts: 2012-09-26 17:15:00 +0200
+    short_desc: grid.leadfield (and filter) should be accompanied by a label field
+    delta_ts: 2016-05-09 09:00:15 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked:
+      - "2270"
+      - "2639"
+      - "3078"
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - dlozanosoldevilla
+      - j.schoffelen
+      - marc.lalancette
+      - philipp.ruhnau
+      - r.oostenveld
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7620"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-26 17:15:23 +0200
+        thetext: "In ft_sourceanalysis, first cfg.channel and sens.label and data.label are matched in prepare_headmodel.m.  Then this updated list is compared again with data.label to extract required channels for computing Cf in prepare_freq_matrices.  But in the final call to beamformer_XXX, if grid.filter or grid.leadfield was supplied by the user, it is assumed that the order (and size) of filter or leadfield matches the final order (and size) of channels made by the output (Cf) of prepare_freq_matrices. \n\nOne example of it failing is calling cfg.grid.leadfield=size 100 channels, but then ft_sourceanalsys cfg.channel=99 channels.  This currently would be classed as user-error and that they should recompute grid.leadfield/filter to match the data and cfg.channel request."
+      - +@isprivate: "0"
+        commentid: "7625"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-27 08:45:41 +0200
+        thetext: This is a recurring discussion. I have argued in favour of this. So far, Robert opposed. Perhaps if we gain a critical mass it will finally change for the better. Perhaps a bug on the same topic already exists somewhere...
+      - +@isprivate: "0"
+        commentid: "13397"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-22 15:31:39 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          with the new source structure I agree that we should add source.label as Nx1 cell-array in case source.leadfield or source.filter is present. The ft_selectdata can make use of it (using getdimord) and make subselections in the channel dimension for the appropriate fields
+      - +@isprivate: "0"
+        commentid: "14303"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-04 10:40:46 +0200
+        thetext: "OK, let's get this over with. In order to be very explicit about the order of the channels in leadfields and filter, I will build in a label field as output to ft_prepare_leadfield. \nIn the high-level inverse modelling functions: ft_sourceanalysis and ft_dipolefitting, an explicit check then can be performed to match the order of the channels in the leadfield with the order of the channels in the data."
+      - +@isprivate: "0"
+        commentid: "14696"
+        comment_count: "4"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-10-27 20:33:09 +0100
+        thetext: "I also ran into this today.  Creating a lead field with mostly defaults (from CTF MEG data), keeps reference channels as well as MEG sensors (184):\n    ...\n    cfg.grad = ft_read_sens(Dataset, 'fileformat', 'ctf_ds');\n    Forward = ft_prepare_leadfield(cfg); \nThen I prepare the data covariance and average on sensors only (151):\n    ...\n    cfg.covariance = 'yes';\n    Evoked = ft_timelockanalysis(cfg, data);\nBut then ft_sourceanalysis -> beamformer_lcmv doesn't match channels and tries to use the 184-channel lead field and 151-channel covariance matrix to compute weights resulting in an error.\n    ...\n    cfg.method = 'lcmv';\n    cfg.grid = Forward;\n    cfg.grad = Forward.cfg.grad;\n    cfg.vol = Forward.cfg.vol; \n    % ... Further tweak vol to avoid errors and unnecessary re-computations.\n    Inverse = ft_sourceanalysis(cfg, Evoked);\n\nHas worked started on this?  I found channel names for the lead field in the structure: Forward.cfg.channel, so I'd be happy to write something to match channels in ft_sourceanalysis, but being new to the code I'm assuming there is a channel matching function somewhere already I should be using?"
+      - +@isprivate: "0"
+        commentid: "14697"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-27 20:41:27 +0100
+        thetext: "Hi Marc,\nThis is still on the to-do list. \n\nIf you intend not to do any funky stuff that for example involves higher order gradient balancing (either with fixed or adaptive weights), or project-out any spatial topographies (e.g. with ICA, followed by a backprojection of the components  with the artifactual components removed), pre-computation of the leadfields can usually be safely done assuming a fixed order in the channels, and by specifying cfg.channel = 'MEG' in the cfg to ft_prepare_leadfield. This should result in a 151x3 leadfield matrix per location in your case, provided none of the gradiometers has been switched off upon acquisition."
+      - +@isprivate: "0"
+        commentid: "14832"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 20:56:26 +0100
+        thetext: |-
+          Started working on this.
+
+          I added (still to be committed) a label to the output of ft_prpare_leadfield and ensured that this information is passed on in ft_prepare_sourcemodel. I have started working on ft_sourceanalysis, but will first make a test script before committing.
+      - +@isprivate: "0"
+        commentid: "15397"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-19 14:49:15 +0100
+        thetext: |-
+          Hi Jan-Mathijs,
+          I've just run into this issue again.  I've noticed my precomputed lf has a .label field.  Great!
+          I've noticed however that in line 357 of ft_prepare_sourcemodel a bunch of subfields are kept, but 'label' is not explicitly mentioned.   May I add it? (and commit the change?)  Just asking as I don't want to interfere with ongoing changes you're making.
+
+          Cheers,
+          JZ
+
+          p.s. unfortunately ft_sourceanalysis still doesn't know what to do with the ordering. (comment 10 of bug 2639)
+      - +@isprivate: "0"
+        commentid: "15398"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-19 15:23:16 +0100
+        thetext: "(In reply to Johanna from comment #7)\n\nYes, please feel free to add it to be kept.\n\n@changes in ft_sourceanalysis: indeed there's no functionality in place (in the release version) that does explicit checking. Reason: it proved more complicated than anticipated :-). In particular with respect to where the appropriate checks need to be done and with respect to backward compatibility, and which data has priority (data or leadfields).\nTo lift a tip of the veil, the checks need to accommodate the following scenarios:\n-precomputed leadfields with nchan > nchan in data -> (will become fishy in EEG, and probably requires explicit re-averagereferencing for leadfields)\n-precomputed leadfields with nchan < nchan in data -> here it should anticipate the possibility of dics with refchan, where the channels in the leadfields should not determine solely the subsection of channels from the data.\n-precomputed leadfields, but cfg.channel ~= 'all' \n\nand possibly some other exotic combinations..."
+      - +@isprivate: "0"
+        commentid: "15399"
+        comment_count: "9"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-19 15:36:15 +0100
+        thetext: "zumerj@psychl-132432-1:~/home/fieldtrip_svn$ svn commit ft_prepare_sourcemodel.m \nSending        ft_prepare_sourcemodel.m\nTransmitting file data .\nCommitted revision 10241.\n\n\nEek, you're right it's complicated.  I've made a small fix/hack in my own code.  But I suggest an informative error message for now, rather than running through and allowing the user to think they have a good filter computed. (I'll comment more in bug 2639)."
+      - +@isprivate: "0"
+        commentid: "17077"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 11:46:00 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #8)
+
+          I have now included some code in my own branch bug3078 on github.com/schoffelen/fieldtrip
+
+          that outputs a label, and does some checking of channel order/count.
+
+          I moved the check to a different location in the code (closer to where it's actually passed to the lower-level inverse routine), so I guess that any issues with respect to refchans etc are not an issue anymore.
+
+          I suppose we just have to deal with possible balancing/reref issues and leave that to the user. Note that before we could also pass balanced/unbalanced leadfields to unbalanced/balanced data
+      - +@isprivate: "0"
+        commentid: "17278"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-05 09:59:04 +0200
+        thetext: resolved for now.
+      - +@isprivate: "0"
+        commentid: "17297"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-09 09:00:15 +0200
+        thetext: |-
+          Adding label to the source model may result in the source structure having 'label' and 'time'. This caused ft_datatype to incorrectly detect it as timelock (reported by Giorgos).
+
+          A few days back I therefore fixed this in https://github.com/fieldtrip/fieldtrip/commit/98c4d4059677d10084a6e354cda073a3ce9173b2
+
+          Please be advices that other cases like this may happen due to data structures getting more complex.

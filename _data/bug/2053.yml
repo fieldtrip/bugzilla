@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2053"
+    creation_ts: 2013-03-13 15:48:00 +0100
+    short_desc: implement roi selection in ft_selectdata
+    delta_ts: 2017-12-15 09:59:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2625
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "3391"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9805"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 15:48:26 +0100
+        thetext: "ft_sourcestatistics currently can do\n\n% You can restrict the statistical analysis to regions of interest (ROIs)\n% or to the average value inside ROIs using the following options:\n%   cfg.atlas        = filename of the atlas\n%   cfg.roi          = string or cell of strings, region(s) of interest from anatomical atlas\n%   cfg.avgoverroi   = 'yes' or 'no' (default = 'no')\n%   cfg.hemisphere   = 'left', 'right', 'both', 'combined', specifying this is\n%                      required when averaging over regions\n%   cfg.inputcoord   = 'mni' or 'tal', the coordinate system in which your source \n%                      reconstruction is expressed\n\nwhereas ft_selectdata cannot."
+      - +@isprivate: "0"
+        commentid: "9806"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 15:49:50 +0100
+        thetext: "actually, ft_selectdata_new cannot do anything with a source structure yet. \n\nFor bug 2051 (which I thought was a quicky), I am now implementing rudimentary support for source in ft_selectdata_new"
+      - +@isprivate: "0"
+        commentid: "9807"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 17:35:25 +0100
+        thetext: I just committed r7661 mentioning this bug in the log message. It should have been bug 2051 instead
+      - +@isprivate: "0"
+        commentid: "15475"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-27 13:24:59 +0100
+        thetext: "Hi Robert,\n\nI just needed this for my own use, and so added the functionality to the existing framework.  I noticed you recently assigned this to yourself.\n\nBelow is the output of 'svn diff utilities/ft_selectdata.m'.   Is it ok with you that I commit this change, or would you prefer it implemented another way?\n\n\nIndex: utilities/ft_selectdata.m\n===================================================================\n--- utilities/ft_selectdata.m\t(revision 10263)\n+++ utilities/ft_selectdata.m\t(working copy)\n@@ -32,6 +32,11 @@\n %   cfg.frequency   = [beg end]\n %   cfg.avgoverfreq = string, can be 'yes' or 'no' (default = 'no')\n %\n+% For data with a pos dimension you can specify\n+%   cfg.coordinate = 'all'  (default)\n+%   cfg.coordinate = Nx3 coordinate list, in same dimension/space as data.pos\n+%   cfg.avgoverpos = string, can be 'yes' or 'no' (default = 'no')\n+%\n % If multiple input arguments are provided, FT_SELECTDATA will adjust the individual inputs\n % such that either the intersection across inputs is retained (i.e. only the channel, time,\n % and frequency points that are shared across all input arguments), or that the union across\n@@ -140,6 +145,7 @@\n \n cfg.channel = ft_getopt(cfg, 'channel', 'all', 1);\n cfg.trials  = ft_getopt(cfg, 'trials',  'all', 1);\n+cfg.coordinate  = ft_getopt(cfg, 'coordinate',  'all', 1);\n \n if length(varargin)>1 && ~isequal(cfg.trials, 'all')\n   error('it is ambiguous to make a subselection of trials while at the same time concatenating multiple data structures')\n@@ -1130,7 +1136,13 @@\n end\n \n for i=1:ndata\n-  posindx{i} = nan;    % the nan return value specifies that no selection was specified\n+  if isequal(cfg.coordinate, 'all')\n+    posindx{i} = nan;    % the nan return value specifies that no selection was specified\n+  elseif size(cfg.coordinate,2)==3\n+    posindx{i} = dsearchn(varargin{i}.pos,cfg.coordinate);\n+  else\n+    error('incorrectly specified cfg.coordinate');\n+  end\n end\n end % function getselection_pos"
+      - +@isprivate: "0"
+        commentid: "16629"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-15 13:36:04 +0100
+        thetext: |-
+          (In reply to Johanna from comment #3)
+          Hi Robert,
+
+          I'm just going through all my uncommited changes in my local copy and found this one.  Shall I commit the change as in my previous post or do you have an alternative suggestion?
+
+          Thank you,
+          JOhanna

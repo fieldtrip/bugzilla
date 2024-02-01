@@ -1,0 +1,188 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2114"
+    creation_ts: 2013-04-16 11:10:00 +0200
+    short_desc: make coordsys and coordinates consistent
+    delta_ts: 2013-10-26 18:00:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - isheftel
+      - j.schoffelen
+      - johanna.zumer
+      - litvak.vladimir
+      - moddaser
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10091"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-16 11:10:24 +0200
+        thetext: "I noticed the inconsistent naming of options in ft_read_header and ft_read_headshape:\n\nmac001> grep ft_getopt.*coord *.m\nft_read_header.m:coordsys     = ft_getopt(varargin, 'coordsys', 'head'); \nft_read_headshape.m:coordinates = ft_getopt(varargin, 'coordinates', 'head');\n\nThese should be made consistent. Also check where other fieldtrip functions make use of this!\n\nIt would also make sense to build in the coordsys/coordinates option into ft_read_sens."
+      - +@isprivate: "0"
+        commentid: "10092"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-04-16 11:36:46 +0200
+        thetext: A student at the toolkit pointed out to me that ft_volumenormalise used cfg.coordinates in the help-section comments, but in fact in the code, cfg.coordsys was used (and 'coordinates' was correspondingly checked as deprecated).  I changed the comments to reflect coordsys, which I presume is the current/best way to call this variable.  (coordsys makes more intuitive sense to me than coordinates for this option)
+      - +@isprivate: "0"
+        commentid: "10095"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-16 12:42:58 +0200
+        thetext: then I suggest to use coordsys consistently throughout fieldtrip for the naming of options.
+      - +@isprivate: "0"
+        commentid: "10096"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-16 12:50:37 +0200
+        thetext: |-
+          I fixed it in github, branch bug2114 on oostenveld/fieldtrip, which I subsequently pulled into fieldtrip/master.
+
+
+          mac001> git pull fieldtrip master
+          Warning: untrusted X11 forwarding setup failed: xauth key data not generated
+          Warning: No xauth data; using fake authentication data for X11 forwarding.
+          remote: Counting objects: 1, done.
+          remote: Total 1 (delta 0), reused 1 (delta 0)
+          Unpacking objects: 100% (1/1), done.
+          From github.com:fieldtrip/fieldtrip
+           * branch            master     -> FETCH_HEAD
+          Updating 47da992..ca437ca
+          Fast-forward
+           fileio/ft_read_headshape.m                      |   15 +++++++++++----
+           realtime/online_meg/ft_realtime_headlocalizer.m |    2 +-
+           2 files changed, 12 insertions(+), 5 deletions(-)
+      - +@isprivate: "0"
+        commentid: "10190"
+        comment_count: "4"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-04-22 10:59:00 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+
+          There is still a bug here, it cannot load the headshape from a fif file and gives this error:
+
+
+          ??? SWITCH expression must be a scalar or string constant.
+
+          Error in ==> ft_read_headshape at 306
+              switch coordinates
+
+
+          I think you need to change:
+
+          'coordinates' to 'coordsys' in lines 164 and 306
+      - +@isprivate: "0"
+        commentid: "10909"
+        comment_count: "5"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-07-17 11:01:13 +0200
+        thetext: |-
+          There is a bug here after the modification, I get this error:
+
+          ??? SWITCH expression must be a scalar or string constant.
+
+          Error in ==> ft_read_headshape at 446
+                switch coordinates
+
+
+          I guess at the beginning of the file (lines 92, 93 and 98-104), we should swap 'coordsys' and 'coordiantes'?
+      - +@isprivate: "0"
+        commentid: "10912"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-07-18 14:03:44 +0200
+        thetext: |-
+          (In reply to comment #5)
+          There is something weird happening with this function. I fixed this bug in rev #8071 and now it reappeared again. Looking at the log I see that in rev #8193 irisim made extensive changes to the function and reinstated the old code. Judging from the accompanying comment I doubt it was intentional. It looks like this user accidentally checked in a much older version of the code and overwrote the more recent one. Then there were some more changes so I think someone should carefully go through the logs and sort this mess out. Also I would recommend reminding the developers to do SVN update and making sure the differences between their working version and the repository version are just what was intended before checking in any code.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "10913"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-18 15:26:02 +0200
+        thetext: "svn commit -m \"bugfix - re-fixed some resurfaced issue related to the coordinates vs coordsys naming\" ft_read_headshape.m\nSending        ft_read_headshape.m\nTransmitting file data .\nCommitted revision 8324.\n\nI changed the 'coordinates' in the switch statements into 'coordsys'. \nWould it really be that simple?\n\n@Vladimir/Hamid: could you svn update and check whether all is in order again?"
+      - +@isprivate: "0"
+        commentid: "10914"
+        comment_count: "8"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-07-18 15:29:11 +0200
+        thetext: |-
+          (In reply to comment #7)
+          I don't think it's that simple, that's why I didn't do it myself. I don't know what other changes where overwritten in that commit #8193. It looks like the differences were all over the place.
+      - +@isprivate: "0"
+        commentid: "10915"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-18 15:41:26 +0200
+        thetext: I think it is not as bad as it looks. Irina's changes were related to dealing with cortical sheets represented in more than one file (freesurfer/caret style). In the googlecode diff it seems that a lot of 'difference' was just shifting line numbers etc. The reverted change causing the crash was really only the coordsys changing back into coordinates in the switch statements.
+      - +@isprivate: "0"
+        commentid: "10916"
+        comment_count: "10"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-07-18 15:45:02 +0200
+        thetext: OK. If you checked then I'm happy. Still explaining the developers the checks that need to be done before checking something in might be a good idea.
+      - +@isprivate: "0"
+        commentid: "10917"
+        comment_count: "11"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-07-18 15:53:24 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          As far as I am concern it is fine now.

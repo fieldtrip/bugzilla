@@ -1,0 +1,158 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "993"
+    creation_ts: 2011-09-28 12:30:00 +0200
+    short_desc: the different coordinate systems should be better documented in headcoordinates.m and the documentation to ft_volumerealign should be improved
+    delta_ts: 2011-10-05 15:08:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - BelluscB
+      - ekanal
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3335"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-28 12:30:14 +0200
+        thetext: |-
+          I am going to do this. @ Elli: could you check whether the changes in the documentation
+
+          (help ft_volumerealign and help private/headcoordinates) make thins a bit less confusing?
+      - +@isprivate: "0"
+        commentid: "3338"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-28 13:29:05 +0200
+        thetext: |-
+          Hi Elli and Beth,
+
+          I updated some code and documentation in ft_volumerealign and some documentation in private/headcoordinates. Could you check whether it makes sense to you guys?
+          Beth, for this you probably need to have look at the code in our google code repository (http://code.google.com/p/fieldtrip), or check out a fresh version of fieldtrip which will become available next night (CET).
+
+          Thanks.
+      - +@isprivate: "0"
+        commentid: "3344"
+        comment_count: "2"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-28 18:42:22 +0200
+        thetext: "The code for the source reconstruction is pretty complicated, so I'm having a hard time reviewing it, but it looks like there's still a problem (code from Rev 4311):\n\n...\n446 if basedonfid\n447   % the fiducial locations are now specified in voxels, convert them to head\n448   % coordinates according to the existing transform matrix\n449   nas_head = warp_apply(mri.transform, cfg.fiducial.nas);\n450   lpa_head = warp_apply(mri.transform, cfg.fiducial.lpa);\n451   rpa_head = warp_apply(mri.transform, cfg.fiducial.rpa);\n452 \n453   % compute the homogenous transformation matrix describing the new coordinate system\n454   [realign, coordsys] = headcoordinates(nas_head, lpa_head, rpa_head, cfg.coordsys);\n455 \n456 elseif basedonmrk\n457   % the fiducial locations are now specified in voxels, convert them to head\n458   % coordinates according to the existing transform matrix\n459   ac     = warp_apply(mri.transform, cfg.landmark.ac);\n460   pc     = warp_apply(mri.transform, cfg.landmark.pc);\n461   xzpoint= warp_apply(mri.transform, cfg.landmark.xzpoint);\n462 \n463   % compute the homogenous transformation matrix describing the new coordinate system\n464   [realign, coordsys] = headcoordinates(ac, pc, xzpoint, 'spm');  ## PROBLEM HERE?\n465 \n466 else\n...\n\nIf I understand this correctly, if markers are being used, then the realignment is hardcoded to be relative to the 'spm' system (line 464). That should probably be `cfg.coordsys` like the fiducial case. I imagine that may be why it was ignoring my specified cfg.coordsys."
+      - +@isprivate: "0"
+        commentid: "3345"
+        comment_count: "3"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-28 18:44:53 +0200
+        thetext: |-
+          (different point, different comment)
+
+          Regarding the documentation, I like the update. The only improvement I can suggest is to specifically mention that the cfg.coordsys refers to the MEG coordinate system (since the output structure of ft_read_mri also has it's own coordsys... maybe I'm an idiot, but I found the cfg.coordsys one confusing).
+      - +@isprivate: "0"
+        commentid: "3355"
+        comment_count: "4"
+        who:
+          +content: BelluscB
+          +@name: Beth Belluscio
+        bug_when: 2011-09-29 20:30:12 +0200
+        thetext: |-
+          Hi Jan-Mathijs,
+           I'm sorry, I could not find the ft_volumerealign code in the google repository.  At the moment at the NIH we are not allowed to do our own updates, so I need to wait on someone else to upload the newest version.  I have asked for permission to do this myself, but it hasn't happened yet.  I will look at it as soon as I can.  Sorry for the delay!
+          Beth.
+      - +@isprivate: "0"
+        commentid: "3356"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-29 21:08:24 +0200
+        thetext: |-
+          @ Beth: no problem
+
+          @ Elli: yes, good point about the hard coded 'spm'. As a matter of fact, once the coordinate system should be based on the landmarks, i.e. ant.comm etc. the only system I can come up with is the spm/tal coordinate system. So as such there's no need to replace it by cfg.coordsys, because that's imposed earlier in the code. Yet, for readability I may change it.
+
+          BW,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "3357"
+        comment_count: "6"
+        who:
+          +content: BelluscB
+          +@name: Beth Belluscio
+        bug_when: 2011-09-29 21:46:15 +0200
+        thetext: "JM-\n  I looked at the implementation of the current version (20110928) of ft_volumerealign.  I did not look at the code, but I think what I found confusing when I first used it was the instructions that are printed as part of its implementation.  This does not look different to me and perhaps you did not intend to change this.  However, if you are interested, here is a suggestion for what is printed when the function is called: \n\n1. To change the slice viewed in one plane, either\na.  click (left mouse) in the image on a different plane.   Eg, to view a more superior slice in the horizontal plane, click on a superior position in the coronal plane, or\nb. use the arrow keys to increase or decrease the slice number by one\n2. To mark an anatomical position, do BOTH\n\ta. select the position by clicking on it in any slice with the right mouse button\n\tb. identify it by pressing either n/l/r for fiducials, or a/p/z for anatomical landmark\n3. To unmark or remark a location\n\ta. click with the middle mouse button to unmark last position\n\tb. select new position with right mouse button and identify it using the keyboard\n4. To change the display\n\ta. press c or C on keyboard to show/hide crosshair\n\tb. press m or M on keyboard to show/hide marked positions\n5. To finalize markers and quit interactive mode, press q on keyboard\n6. Close figure\n\n\nThis may be too much, or may assume less intelligence than the average user, but it would have helped me.  I didn't quite understand that I needed to both mark the position with the crosshair AND indicate the identity with the keyboard. \n\nBeth."
+      - +@isprivate: "0"
+        commentid: "3374"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-03 14:54:28 +0200
+        thetext: |-
+          Hi Beth,
+
+          I indeed did not consider changing the output text to the screen. But I like your suggestion! I modified it a bit and built it into the function. Thanks for the suggestions.
+      - +@isprivate: "0"
+        commentid: "3379"
+        comment_count: "8"
+        who:
+          +content: BelluscB
+          +@name: Beth Belluscio
+        bug_when: 2011-10-03 15:02:32 +0200
+        thetext: |-
+          OK, thanks.  I'm probably most helpful at this stage with regard to how a naive user reads the tutorials and other documentation.  Hopefully as time goes on I'll be able to give input on code, but I'm not there yet!
+          Beth.
+      - +@isprivate: "0"
+        commentid: "3380"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-03 15:08:08 +0200
+        thetext: |-
+          Hi Beth,
+
+          Thanks, no problem. I also updated the text which appears on the screen when typing 'help ft_volumerealign'. I was hinting at this text to see whether it makes sense.
+      - +@isprivate: "0"
+        commentid: "3382"
+        comment_count: "10"
+        who:
+          +content: BelluscB
+          +@name: Beth Belluscio
+        bug_when: 2011-10-03 16:30:19 +0200
+        thetext: "JM-\n  The help screen does make sense.  You might want to consider, though, moving the instructions for specifying the position of the fiducials (cfg.fiducial.nas etc) in the same section as the description of the 'fiducial' method.  Likewise for the 'landmark' method.  Then, in the section for 'interactive' you may want to expand slightly to describe that this method allows one to click on the image of the brain to identify either fiducials or anatomical landmarks without having to know their coordinates.  I think this arrangement would make it most clear that these are 3 different approaches, with different input requirements. \n  This point is obvious if you are following a tutorial that instructs you to use the interactive mode, but may not be obvious to someone who encounters the volumerealign function for the first time through the help menu.  \nBeth."

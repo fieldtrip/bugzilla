@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2672"
+    creation_ts: 2014-08-07 17:58:00 +0200
+    short_desc: Neuromag EEG layout for distribution / documentation
+    delta_ts: 2014-09-24 13:36:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14251"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-08-07 17:58:42 +0200
+        thetext: "The neuromag system can also record EEG but there is no existing layout in FT. Also, electrode labels are named numerically ('EEG0111') and therefore do not correspond to the existing elec1005.lay, although our (Easy)caps follow the 5% system.\n\nI've therefor created neuromag128eeg.lay (attached). It is as little bit idiosyncratic becasue T9 and T10 are shifted 2.5% to the front or else they would be at the ear-slits:\n\n EEG029 i.e. T9'(X)  = -cos(9/180*pi);\n EEG029 i.e. T9'(Y)  = sin(9/180*pi);\n EEG039 i.e. T10'(X) = cos(9/180*pi);\n EEG039 i.e. T10'(Y) = sin(9/180*pi);\n\nThe layout works both for our 128 and out 74 electrode layout (75-128 are called EEG075 to EEG128, and the earlier ones are at the same location).\n\nObviously other labs might have other layouts so the question is whether this layout should be distributed. I would suggest so, calling it neuromag128eeg_natmeg.lay, because we have recordings at our lab that are analyzed elsewhere using FieldTrip. I would be happy to then document the layout on the FT wiki.\n\nOfcourse, I could also distribute the layout via our own site. Please let me know what you think.\n\nAlternatively, I could make a FAQ of the following code with which I made the layout.\n\nLet me know what you think (But please send a note to stephen.whitmarsh@gmail.com when you do, since I still don't get responses...)\n\nBest wishes,\nStephen\n\n--------------------------------\n\n% load EEG label names according to specifications from easycap\n\nnr2labels = tdfread('/home/stephen/Analysis/128EEG.txt');\n\n% load high density EEG layout to which variable names were added in first\n% row\n\nlayout = tdfread('/home/stephen/Analysis/elec1005_varnames.lay',' ')\n\nclear new\ninew = 0;\nfor itemplate = 1:size(layout.label,1);\n    for icap = 1:size(nr2labels.label,1);\n        if strcmp(nr2labels.label(icap,:), layout.label(itemplate,:))\n            inew = inew + 1;\n            new.nr(inew) = icap;\n            new.label(inew,:) = sprintf('%s%03d','EEG',nr2labels.nr(icap,:));\n            new.label_old(inew,:) = layout.label(itemplate,:);\n            new.x(inew) = layout.x(itemplate);\n            new.y(inew) = layout.y(itemplate);\n            new.h(inew) = layout.h(itemplate);\n            new.b(inew) = layout.b(itemplate);\n        end   \n        \n    end\nend\nnew.nr = new.nr';\n\n% sort according to channelnumber\n[a b] = sort(new.nr);\nnew.nr(:,:) = new.nr(b,:) ;\nnew.label(:,:) = new.label(b,:) ;\nnew.label_old(:,:) = new.label_old(b,:) ;\n\nnew.x = new.x(b); new.x = new.x';\nnew.y = new.y(b); new.y = new.y';\nnew.h = new.h(b); new.h = new.h';\nnew.b = new.b(b); new.b = new.b';\n\nfor i = 1 : size(new.x,1)\n    if strcmp(new.label_old(i,:), 'T9    ')\n        new.x(i) = -cos(9/180*pi);\n        new.y(i) = sin(9/180*pi);\n        disp(num2str(i));\n    end\n    if strcmp(new.label_old(i,:), 'T10   ')\n        new.x(i) = cos(9/180*pi);\n        new.y(i) = sin(9/180*pi);\n        disp(num2str(i));\n    end\nend\n\nfid = fopen('neuromag128eeg.lay','w');\nfor i = 1:size(new.nr,1)\n    fprintf(fid,'%d %f %f %1.2f %1.2f %s\\n', new.nr(i), new.x(i), new.y(i), new.h(i), new.b(i), new.label(i,:));\nend\nfclose(fid);\n\ncfg = [];\ncfg.layout = 'neuromag128eeg';\nlay = ft_prepare_layout(cfg);\n\nfigure; ft_plot_lay(lay);"
+      - +@isprivate: "0"
+        commentid: "14252"
+        comment_count: "1"
+        attachid: "659"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-08-07 18:00:58 +0200
+        thetext: |-
+          Created attachment 659
+          layout of natmeg's 74-128 EEG
+      - +@isprivate: "0"
+        commentid: "14253"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-08-07 19:30:49 +0200
+        thetext: |-
+          "Obviously other labs might have other layouts so the question is whether this layout should be distributed"
+
+          Is this indeed the case? If so, is there perhaps another name we could think of that fits the combination of neuromag and that specific layout better than adding _natmeg? (In principle you could in the future also use a different layout at NatMeg).
+
+          For instance, 'neuromag128-1005.lay', assuming that T9 and T10 are always shifted forward when using the 1005 layout in combination with a Neuromag system.
+      - +@isprivate: "0"
+        commentid: "14254"
+        comment_count: "3"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-08-08 09:09:41 +0200
+        thetext: |-
+          Yes I think that is the case, indeed. For instance, one can have an equidistant layout, and, now I think of it, a totally different manufacturer of the caps. In fact, we use Easycap instead of the cap that Elekta themselves can supply.
+
+          My major concern is that because of the ambiguous channel labels (e.g. EEG011) it is not in any way clear what the layout might be. What I did not know, however, was that there is a place to describe them:
+
+          http://fieldtrip.fcdonders.nl/template/layout
+
+          So shall we call it neuromag128EEG_easycap and make a note of T9' T10' on that page?
+
+          Cheers,
+          Stephen
+      - +@isprivate: "0"
+        commentid: "14255"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-08-08 09:57:19 +0200
+        thetext: I would prefer neuromag128EEG_1005, or something to make it clear that it follows the 5% system. Easycap also supplies equidistant caps so 'neuromag128EEG_easycap' is ambiguous with respect to the type of layout.
+      - +@isprivate: "0"
+        commentid: "14256"
+        comment_count: "5"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-08-08 10:58:55 +0200
+        thetext: Fair enough
+      - +@isprivate: "0"
+        commentid: "14257"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-08-12 12:09:10 +0200
+        thetext: |-
+          Adding         neuromag306eeg1005.lay
+          Transmitting file data .
+          Committed revision 9771.
+      - +@isprivate: "0"
+        commentid: "14308"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-10 13:50:02 +0200
+        thetext: 'Discussed in FT-meeting: the ''neuromag'' in the name is too generic, because the cap may be site-specific. Please rename the layout and add it to the documentation fieldtrip/template/layout'
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "659"
+      date: 2014-08-07 18:00:00 +0200
+      delta_ts: 2014-08-07 18:00:58 +0200
+      desc: layout of natmeg's 74-128 EEG
+      filename: neuromag128eeg.lay
+      type: text/plain
+      size: "5011"
+      attacher:
+        +content: stephen.whitmarsh
+        +@name: Stephen Whitmarsh
+      data: REMOVED

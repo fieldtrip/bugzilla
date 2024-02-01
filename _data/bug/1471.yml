@@ -1,0 +1,125 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1471"
+    creation_ts: 2012-05-11 11:18:00 +0200
+    short_desc: providing dataset without full path can lead to unexpected behaviour -> propose warning in ft_filetype
+    delta_ts: 2012-05-30 11:54:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - m.severens
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6082"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-11 11:18:33 +0200
+        thetext: "I noticed that many people in the Toolkit cd'd to their data directory and supplied the local filename/dirname as input to ft_definetrial/preprocessing. \n\nThis can lead to unexpected behavior, such as the following example: a low-level read function read_bdf_16 (can't remember exact name) throwing an error of 'not enough input arguments'. I happen to saw that the input dataset was a local filename, the Tookit attendant changed it to a full path, and the issue disappeared. \n\nThese bugs are very difficult for end-users to track down, and can largely be prevented with a simple warning.\n\n\nI propose to add the following check to the top of ft_filetype.m\n% check\nif isempty(strfind(filename,'/')) && isempty(strfind(filename,'\\'))\n   warning_once('It appears you specified a local filename/directory, this can lead to unexpected behavior! You should specify to full path including all (sub-)directories.')\nend"
+      - +@isprivate: "0"
+        commentid: "6088"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-11 16:27:47 +0200
+        thetext: |-
+          The disadvantage of having full paths in scripts is that scripts are not portable between computers (desktops and laptops and linux etc). And you also cannot rename a higher level directory without having to edit many scripts. So as such I would not recommend it.
+
+          If there is an issue with the file not being found, then I suggest that we improve the checking on the presence of the file. Note that ft_filetype is also used to check the filetype of files that do not yet exist (i.e. to determine the output format).
+
+          It might be more something for the dataset2files function, or at least somewhere around there in ft_checkconfig. That would cause the check to be performed in high-level functions, but not in low-level functions.
+
+          But to be honest I think that the actual error needs to be tracked down and understood in more detail. The function is probably read_24bit.mex (the m file in in fieldtrip/src) which is used for bdf data.
+      - +@isprivate: "0"
+        commentid: "6091"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-11 17:26:05 +0200
+        thetext: "The downside of not having full scripts would be that you can only use unique names for every data-file you have, I guess that's matter of preference.\n\nCan we be sure that nowhere in the code (including stuff in external) a cd is performed? I was thinking that the thing I ran into was only of many possible errors (I always work with full paths and thought that was pretty common). \n\nOn the function that was generating the error, the only thing I am still certain about that it started with 'read', and had '16' in the name. Looking at fileio/private, the only one that could cause the error would be read_16bit, which is a mex-file. The guy was working on a laptop, but I can't remember whether it was a linux, mac or windows machine (and didn't ask whether it was a 32 or 64 bits). \n\nLooking at the source of the mex, I remember seeing the following error:\n  if (nrhs != 3)\n    mexErrMsgTxt (\"Invalid number of input arguments\");\nCould it be such that when this mex-function get's an empty [], it is not counted as an input argument? \n\nAfter doing a grep on read_16bit:\n./fileio/private/read_biosemi_bdf.m:  % buf = read_16bit(filename, offset, numwords);\n./fileio/private/read_edf.m:  buf = read_16bit(filename, offset, numwords);\n\nOnly the last one is still calling read_16 (biosemi has it uncommented), but I see no issues with the call whatsoever. Maybe the error from read_16bit indicates an issue related to a bad filename? \nPuzzle puzzle puzzle :)"
+      - +@isprivate: "0"
+        commentid: "6130"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-16 13:18:22 +0200
+        thetext: '*** Bug 1256 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "6135"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-16 13:47:53 +0200
+        thetext: '*** Bug 1341 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "6205"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-30 11:52:27 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+
+          after careful deliberation with Roemer on the phone, we determined that the edf/bdf problem is due to the low-level c-code mex implementation not including the full MATLAB search path when determining the actual location of the file, whereas the m-code other functions (such as ft_filetype) do include the MATLAB search path. Consequently the error message in ft_read_header line 92-93 was not triggered, and the error surfaced later in the mex file.
+
+          The agreed upon solution for mex file readers is that they should be consistent with non-mex implementations, which means that they should allow for the user specifying a string pointing to a file that is not in the pwd but somewhere else on the MATLAB search path.
+
+          I will craft a test script, based on that the specific solution can be implemented. After that, we'll have to check whether that deals with the complete reported and/or perceived problem.
+      - +@isprivate: "0"
+        commentid: "6206"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-30 11:54:41 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+          Note to self: this applies to th efollowing three functions
+
+          manzana> pwd
+          /Volumes/Data/roboos/matlab/fieldtrip/fileio/private
+
+          manzana> grep read_16bit\( *.m
+          read_biosemi_bdf.m:  % buf = read_16bit(filename, offset, numwords);
+          read_edf.m:  buf = read_16bit(filename, offset, numwords);
+
+          manzana> grep read_24bit\( *.m
+          read_biosemi_bdf.m:  buf = read_24bit(filename, offset, numwords);

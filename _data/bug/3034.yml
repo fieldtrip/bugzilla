@@ -1,0 +1,74 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3034"
+    creation_ts: 2016-01-07 22:33:00 +0100
+    short_desc: ft_selectdata does not take nanmean avgoverdims
+    delta_ts: 2016-01-14 21:25:07 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16572"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-07 22:33:31 +0100
+        thetext: "If there a reason for not having ft_selectdata use nanmean? \n\nSee line 543:\ndata.(datfield) = mean(data.(datfield), seldim);\n\nAnd also line 1269:\nfunction x = cellmatmean(x, seldim)\nif iscell(x)\n  if seldim==1\n    for i=2:numel(x)\n      x{1} = x{1} + x{i};\n    end\n    x = {x{1}/numel(x)};\n  else\n    for i=1:numel(x)\n      x{i} = mean(x{i}, seldim-1);\n    end % for\n  end\nelse\n  x = mean(x, seldim);\nend"
+      - +@isprivate: "0"
+        commentid: "16573"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-08 08:54:14 +0100
+        thetext: "I think the reason is that on default we want to be on the safe side, which means that chan-time-freq points with missing values (which is usually meant with \"nan\") are retained as missing in the output. \n\nBut I can imagine the use of nanmean. Should we consider implementing it as\n\ncfg.avgoverxxx = yes/no\ncfg.nanmen = yes/no\n\nand then add a line such as \n\nif strcmp(cfg.nanmean, 'yes')\n  average = @nanmean;\nelse\n  average = @mean;\nend \n\nand then inside the functions replace all calls to the mean() function by calls to average().\n\nAre mean and nanmean compatible with respect to input arguments?"
+      - +@isprivate: "0"
+        commentid: "16574"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-08 09:00:12 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          I see. Yes, I believe they're interchangeable (unlike std and nanstd). Sounds like a useful option to me. For instance, when you have timelock data with a trial field, and unequally sized trial lengths (thus nan-padded for shorter trials, courtesy of cfg.vartrllength = 2), avgovertime results in nothing but nans.
+      - +@isprivate: "0"
+        commentid: "16588"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-09 07:17:30 +0100
+        thetext: "As discussed above:\n\narjens-MacBook-Pro:utilities arjsto$ svn commit ft_selectdata.m -m 'ENH: cfg.nanmean'\narjsto@svn.fcdonders.nl's password: \nSending        ft_selectdata.m\nTransmitting file data .\nCommitted revision 11048."

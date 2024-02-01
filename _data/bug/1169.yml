@@ -1,0 +1,209 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1169"
+    creation_ts: 2011-11-18 10:31:00 +0100
+    short_desc: can low-level fileio know how to read only requested channels?
+    delta_ts: 2012-04-11 16:48:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4127"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-11-18 10:31:28 +0100
+        thetext: |-
+          In ft_read_data, some data types have 'chanindx' as input to the low-level function (e.g. read_biosig_data), where as others do not (e.g. read_brainvision_eeg).   However, even within read_biosig_data, it seems all the data is read in first, then the subset of channels selected, thus it's really no different in either case.   (i.e. In both cases, all channels are read in first, then sub-selected later).
+
+          Sarang Dalal reported this, as he wants to read in only 1-2 channels of overnight sleep day (8 hours of recording) at once.  Thus for memory reasons, it does not work the way the code exists, by first reading in all channels then immediately subselecting.
+
+          Thus: can low-level fileio be modified to read only requested channels?
+      - +@isprivate: "0"
+        commentid: "4130"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-18 11:03:39 +0100
+        thetext: |-
+          depending on the low-level format selecting channels is feasible or not. E.g. in a multiplexed file representation the overall reading speed does not benefit from reading one sample, doing an fseek, reading one sample, doing an fseek...
+
+          Another reason is that some low-level readers don't support it and I did not bother implementing it in the low-level code.
+
+          The point about the memory is well taken and has been previously identified. For some formats you should be able to recognize a code structure like
+
+          for i=1:nblocks
+            tmp = read_block_with_all_channels
+            dat(:,sampleselection) = tmp(chanselection,:);
+          end
+
+          which reads short snippets with all channels and only accumulates the selected channels.
+
+          This particular issue is general for multiple file formats, therefore preferably we would make a general solution (just like the general solution that is in place for those low-level readers returning the the data with a dimord that is not chan_time).
+      - +@isprivate: "0"
+        commentid: "4131"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-11-18 11:11:10 +0100
+        thetext: I have requested Sarang to get a bugzilla account, and mentioned your suggestion to him.  I also suggested to him something similar, to be called at the higher level, e.g. call ft_preprocesing for smaller time windows (e.g. 30 mins), then use ft_appenddata.
+      - +@isprivate: "0"
+        commentid: "4141"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-18 15:17:14 +0100
+        thetext: Changed bug to UNCONFIRMED since it has not been assigned to someone yet. Then, due to my nasty new bug lifecycle, I'll change it to NEW.
+      - +@isprivate: "0"
+        commentid: "4142"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-18 15:17:35 +0100
+        thetext: And NEW it is (confirmed by Robert).
+      - +@isprivate: "0"
+        commentid: "4477"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-08 17:10:09 +0100
+        thetext: "I have merged the sections for the int16, int32 and float32  using something like this\n\nif strcmpi(hdr.DataFormat, 'binary') && strcmpi(hdr.DataOrientation, 'multiplexed') && any(strcmpi(hdr.BinaryFormat, {'int_16', 'int_32', 'ieee_float_32'}))\n  \n  switch lower(hdr.BinaryFormat)\n    case 'int_16'\n      sampletype = 'int16';\n      samplesize = 2;\n    case 'int_32'\n      sampletype = 'int32';\n      samplesize = 4;\n    case 'ieee_float_32'\n      sampletype = 'float32';\n      samplesize = 4;\n  end % case\n...\n\nans used a variant of the code Sarang sent me to read only the selected channels.\n\n--------------------------------------------------------\n\nmanzana> svn commit\nSending        fileio/ft_read_data.m\nSending        fileio/private/read_brainvision_eeg.m\nTransmitting file data ..\nCommitted revision 4958."
+      - +@isprivate: "0"
+        commentid: "4478"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-08 17:16:17 +0100
+        thetext: "@Sarang: in the commit I just made I have not changed the sparse. It works like this for me (matlab2010b on OS X) and I have never heard of anyone else having problems with it.\n\nThe reason for using \"sparse\" is that it makes the multiplication with the diagonal matrix much faster, because MATLAB knows that only each row needs to be multiplied by each diagonal element. The normal non-sparse multiplication would also involve many multiplication s with zero (which don't have an effect, but do take time). \n\n>> dat = randn(1000,100000);\n>> a = eye(1000);\n>> s = sparse(a);\n\n>> tic; a*dat; toc\nElapsed time is 6.023062 seconds.\n\n>> tic; s*dat; toc\nElapsed time is 1.354644 seconds.\n \nIn either case the result of the multiplication is a non-sparse double matrix.\n\nLet me know if you have a problem with it."
+      - +@isprivate: "0"
+        commentid: "4514"
+        comment_count: "7"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2011-12-12 16:38:37 +0100
+        thetext: |-
+          In fact, the problem with the "sparse" call occurs when exactly one channel is selected, e.g.:
+          cfg.channel = {'Cz'};
+
+          This results in a sparse matrix being inserted into the trial{1} field, resulting in incompatibility with many common matlab functions...
+
+          (I have tried on Matlab R2007b and R2011b on Mac.)
+
+          When 2 or more channels are selected, the resulting data appears to be a regular "full" matrix.
+      - +@isprivate: "0"
+        commentid: "4516"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-12 18:14:41 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          good to know, should indeed be fixed. In case of nchan=1, having a sparse multiplication would also not have any computational advantage (and memory wise it is disadvantageous).
+      - +@isprivate: "0"
+        commentid: "4540"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-14 10:58:54 +0100
+        thetext: |-
+          (In reply to comment #8)
+          All occurrences should be fixed, not only the one for brainvision. Sparse multiplications for data calibration are done here
+
+          manzana> grep -l sparse *.m private/*.m
+          ft_read_data.m
+          ft_read_sens.m
+          private/ama2vol.m
+          private/bti2grad.m
+          private/ft_apply_montage.m
+          private/ft_checkdata.m
+          private/ft_datatype_spike.m
+          private/ft_datatype_spikeraw.m
+          private/ft_datatype_sts.m
+          private/openbdf.m
+          private/read_biosemi_bdf.m
+          private/read_brainvision_eeg.m
+          private/read_edf.m
+          private/read_shm_data.m
+          private/undobalancing.m
+          private/yokogawa2grad.m
+          private/yokogawa2grad_new.m
+      - +@isprivate: "0"
+        commentid: "4541"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-14 11:48:09 +0100
+        thetext: |-
+          manzana> svn commit
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_sens.m
+          Sending        fileio/private/ama2vol.m
+          Sending        fileio/private/bti2grad.m
+          Sending        fileio/private/ft_apply_montage.m
+          Sending        fileio/private/read_biosemi_bdf.m
+          Sending        fileio/private/read_brainvision_eeg.m
+          Sending        fileio/private/read_edf.m
+          Sending        fileio/private/read_shm_data.m
+          Sending        fileio/private/undobalancing.m
+          Sending        fileio/private/yokogawa2grad.m
+          Sending        fileio/private/yokogawa2grad_new.m
+          Sending        forward/ft_prepare_vol_sens.m
+          Transmitting file data .............
+          Committed revision 5035.
+      - +@isprivate: "0"
+        commentid: "5835"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:27 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

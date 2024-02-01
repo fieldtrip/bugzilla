@@ -1,0 +1,174 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3298"
+    creation_ts: 2017-05-23 10:25:00 +0200
+    short_desc: Correspondence channels-coils in HCP files
+    delta_ts: 2018-01-26 09:50:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: francois.tadel
+      +@name: François Tadel
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18690"
+        comment_count: "0"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-05-23 10:25:09 +0200
+        thetext: "Hello,\n\nI tried on the mailing list, but didn't get any reply: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-May/011546.html\n\nI wrote a FieldTrip>Brainstorm import function based on Elekta files, \nand I was using the .tra matrix to get the correspondence between the \nchannels and the coils:\nhttps://github.com/brainstorm-tools/brainstorm3/blob/master/toolbox/io/in_data_fieldtrip.m#L107\n\nI based this code on your description of the .tra field: \"NxM matrix \nwith the weight of each coil into each channel\":\nhttp://www.fieldtriptoolbox.org/faq/how_are_electrodes_magnetometers_or_gradiometers_described\n\nThis doesn't work with the processed 4D recordings from the HCP dataset \nbecause the .tra matrix is dense.\nIs this because the 4D compensation matrix is integrated in this .tra \nmatrix? Or because there is some additional PCA/ICA projection done \nduring the preprocessing?\nHow do I recover the sparse .tra information that simply contains the \nweights channels-coils from the HCP processed files?\n\nThanks,\nFrançois"
+      - +@isprivate: "0"
+        commentid: "18691"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-23 11:40:43 +0200
+        thetext: how about ft_read_sens (or ft_read_header) on the original 4D files?
+      - +@isprivate: "0"
+        commentid: "18692"
+        comment_count: "2"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-05-23 13:38:47 +0200
+        thetext: |-
+          Yes, I guess we could read directly the positions of the coils and noise compensation matrix from the original file.
+          But this is a completely different processing pipeline, and we lose the possible ICA/SSP projectors that were applied (which we would like apply on the forward model as well).
+
+          What I was primarily trying to write here is a conversion function from FieldTrip to Brainstorm. Is there any way to recover the sparse channels-coils weight matrix from a saved FieldTrip structure (such as the ones distributed in the HCP)?
+      - +@isprivate: "0"
+        commentid: "18752"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-06-17 18:05:22 +0200
+        thetext: you could try ft_apply_montage while specifying 'inverse','yes' as a key-value pair, with the appropriate sequence of transformations applied to the tra-matrix (in reverse order).
+      - +@isprivate: "0"
+        commentid: "18846"
+        comment_count: "4"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-08-19 15:22:19 +0200
+        thetext: |-
+          Hi Jan-Mathijs,
+
+          Sorry I'm getting back to this topic only now.
+          I'm not sure I understand what you mean. Is there a history of the modifications of the .tra matrix saved in the .mat files?
+
+          Could you give a precise sequence of Matlab/FieldTrip commands I could use to get the sparse coil-channel correspondence matrix from the pre-processed MEG recordings in the HCP database?
+          If I could get the two other matrices (4D noise compensation matrix, SSP/ICA projectors) separately, this would be even better.
+
+          Thanks
+          Francois
+      - +@isprivate: "0"
+        commentid: "18878"
+        comment_count: "5"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-08-24 18:23:24 +0200
+        thetext: "Looking again at the pre-processed HCP files, I got what you meant. The balance field contains the history of all the transformations, and could think about inverting them one after the other.\n\nI was hoping to get something like this to work:\n    % Get the list of montages to undo\n    montageList = {grad.balance.current};\n    if ~isempty(grad.balance.previous)\n        montageList = cat(2, montageList, grad.balance.previous{:});\n    end\n\n    % Undo montages one by one\n    for iMontage = 1:length(montageList)\n        % Make sure the montage is defined in the structure\n        mont = montageList{iMontage};\n        if ~isfield(grad.balance, mont)\n            continue;\n        end\n        % Reverse transformation\n        grad = ft_apply_montage(grad, grad.balance.(mont), 'inverse', 'yes');\n    end\n\n    % Remove small values (to keep only the ones) \n    grad.tra(abs(grad.tra) < 0.1) = 0;\n\n    for i = 1:nChannels\n        % Find channel index\n        ichan = find(strcmpi(ftMat.label{i}, grad.label));\n        % Find corresponding coils\n        icoils = find(grad.tra(ichan,:));\n        [...]\n    end\n\n\nI have many problems though:\n1) The output channel units in \"pca\" are set to \"unknown\".\nError in ft_scalingfactor (line 181)\n  ft_error('cannot convert %s to %s', old, new);\n\n(And it looks like some montages include the field \"chanunitorg\", and others the field \"chanunitold\").\n\nSo in my loop I added the following code:\n        % Fix units and types\n        if isfield(grad.balance.(mont), 'chanunitnew') && strcmpi(grad.balance.(mont).chanunitnew{1}, 'unknown')\n            if isfield(grad.balance.(mont), 'chanunitorg')\n                grad.balance.(mont).chanunitnew = grad.balance.(mont).chanunitorg;\n            elseif isfield(grad.balance.(mont), 'chanunitold')\n                grad.balance.(mont).chanunitnew = grad.balance.(mont).chanunitold;\n            end\n        end\n        if isfield(grad.balance.(mont), 'chantypenew') && strcmpi(grad.balance.(mont).chantypenew{1}, 'unknown')\n            if isfield(grad.balance.(mont), 'chantypeorg')\n                grad.balance.(mont).chantypenew = grad.balance.(mont).chantypeorg;\n            elseif isfield(grad.balance.(mont), 'chantypeold')\n                grad.balance.(mont).chantypenew = grad.balance.(mont).chantypeold;\n            end\n        end\n\n2) The channel types across the various transformations do not match. In some the sensors are called \"meg\", in others \"megmag\". \nError in ft_apply_montage (line 333)\n  ft_error('inconsistent chantype in data and montage');\n\nHow am I supposed to fix these inconsistencies?\n\n\nTo reproduce these errors: my current test dataset is from the HCP-MEG release, subject 891667, MEG/Restin/rmegpreproc/891667_MEG_3-Restin_rmegpreproc.mat\n\nCould you please help me with this?"
+      - +@isprivate: "0"
+        commentid: "18879"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-08-24 21:59:26 +0200
+        thetext: |-
+          Typically, such glitches might be dealt with properly by calling:
+
+          grad = ft_datatype_sens(grad), prior to start the inverse balancing procedure.
+
+          This should at least deal with the old/org inconsistentcies at the highest level of the grad, but I am not sure whether this will solve it recursively in the balance structures. It's worth a shot though.
+
+          As a side note, I'd use ft_apply_montage with the key-value pair 'keepunused', 'yes'. Although I don't think that this is causing you problems.
+      - +@isprivate: "0"
+        commentid: "18891"
+        comment_count: "7"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-08-27 11:14:25 +0200
+        thetext: |-
+          Thanks, but these two suggestions do not help.
+          The function ft_datatype_sens do not fix the structures in the .balance field.
+
+          If this is not too complicated to do, could you add it to this function? Given the inconsistencies in the structures of the HCP pre-processed files, it sounds like an interesting feature.
+          Or do you have any alternative to suggest?
+
+          (I'm trying to address requests from people who contacted me because they are trying to re-use these files for various purposes)
+      - +@isprivate: "0"
+        commentid: "18892"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-08-27 20:40:09 +0200
+        thetext: |-
+          Hi Francois,
+
+          Unfortunately, I don't have time to solve this for you right now. If you want a speedy resolution, I suggest that you make a proposal for some code improvement through github:
+
+          github.com/fieldtrip/fieldtrip.git
+
+
+          The following link:
+
+          http://www.fieldtriptoolbox.org/development/git
+
+          explains a relatively painfree way to contribute code. If you want me to look and think along, it would help if you upload an example of such a faulty grad structure. This would save me a couple of hours to lay my hands on some HCP data myself, of which, surprisingly, I don't have a copy lying around.
+      - +@isprivate: "0"
+        commentid: "18894"
+        comment_count: "9"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2017-08-28 16:03:44 +0200
+        thetext: |-
+          I posted an example as a github issue (easier to handle than bugzilla):
+          https://github.com/fieldtrip/fieldtrip/issues/507
+
+          You just have to download the .zip, run the .m file, and tell me what is wrong with the structure of the HCP files, so I can fix it in my code.
+
+          Thanks
+      - +@isprivate: "0"
+        commentid: "19106"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-28 12:15:54 +0100
+        thetext: I believe that this has been addressed

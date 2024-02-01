@@ -1,0 +1,176 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1939"
+    creation_ts: 2013-01-18 14:17:00 +0100
+    short_desc: should ft_selectdata_new modify the output.cfg?
+    delta_ts: 2014-03-12 12:21:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - dlozanosoldevilla
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9067"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-18 14:17:34 +0100
+        thetext: |-
+          If I do something like:
+          cfg=[];
+          cfg.avgoverfreq='yes';
+          freqfa=ft_selectdata_new(cfg,freq);
+
+          then isequal(freq.cfg,freqfa.cfg) is true.
+          I would prefer to see the cfg of freqfa reflect the fact that ft_selectdata_new was called and with what cfg options.
+
+          Ideally this could also be for ft_selectdata_old but I guess not possible with the key-value pair way of doing the options.
+      - +@isprivate: "0"
+        commentid: "9068"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-18 16:12:39 +0100
+        thetext: |-
+          the output cfg should reflect what was used. So cfg.toilim = [-inf inf] should be replaced by finite numbers that match the time axis.
+
+          Last week in the FT meeting we decided that in the future we will add the user specified input-cfg to the provenance info as well, next to the used-cfg. That first requires that the used-cfg is trimmed down a bit, otherwise it gets too heavy. And we have to consider how to deal with ft functions that call other ft functions (like ft_freqstats calling ft_selectdata or ft_volumerealign calling ft_volumedownsample). So or the moment we should stick to the used-cfgs in the outputs.
+      - +@isprivate: "0"
+        commentid: "9070"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-18 16:18:13 +0100
+        thetext: |-
+          Ok. To clarify, I'm not disagreeing with what was decided in last week's meeting.  I just am questioning if in the example I gave, should freqfa.cfg should reflect the used-cfg from ft_freqanalysis (how freq was created) or the used-cfg from ft_selectdata_new?
+          So I guess this falls under your question of how to deal with ft_functions calling other ft_functions.  (Except in my case, I was calling ft_selectdata_new directly).
+      - +@isprivate: "0"
+        commentid: "9071"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-19 15:01:04 +0100
+        thetext: I agree with Johanna, the cfg passed to ft_selectdata should be the one which is put in the dataout.cfg, with dataout.cfg.previous being the one used for ft_freqanalysis (in this example). This also ensures ft_selectdata is compatible with the whole provenance/pipeline thingy.
+      - +@isprivate: "0"
+        commentid: "9073"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-21 11:58:31 +0100
+        thetext: "(In reply to comment #2)\n\n\nin\n\ncfg=[];\ncfg.avgoverfreq='yes';\nfreqfa=ft_selectdata_new(cfg,freq);\n\nfreqa.cfg should indeed be from ft_selectdata_new. It is something the user did. But if you do\n\ncfg=[];\ncfg.avgoverfreq='yes';\nstat=fr_freqstatistics(cfg,freq);\n\nthen stat.cfg should be the used-cfg from fr_freqstatistics. That fr_freqstatistics is using ft_selectdata_new internally should not be visible to the user. But if the user explicitly does\n\ncfg=[];\ncfg.avgoverfreq='yes';\nfreqfa=ft_selectdata_new(cfg,freq);\ncfg = [];\nstat=fr_freqstatistics(cfg,freq);\n\nthen stat.cfg should the used-cfg from fr_freqstatistics and stat.cfg.previous the used cfg-from \nft_selectdata_new."
+      - +@isprivate: "0"
+        commentid: "9752"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-12 10:55:33 +0100
+        thetext: I guess it is safe to assume that only ft_ prefixed functions calling ft_selectdata should end up in the .cfg?
+      - +@isprivate: "0"
+        commentid: "9753"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 11:28:31 +0100
+        thetext: "(In reply to comment #5)\n\nno.\n\nWhen you give it N inputs, the output contains N+1 fields with the last one being the updated cfg. Items such as cfg.channel, cfg.toi, etc should be updated according to the actual selection of the data.\n\nE.g. think of its (intended/projected) use in \n\nft_freqgrandaverage(cfg, subj1, subj2, ...)\n\nwhich starts with ft_selectdata, which does the following\n\nfor all subjects\n  make the same selection\n\nand subsequently in the remainder of ft_freqgrandaverage you just add the matrices, knowing that they match. So the ft_freqgrandaverage delegates the responsibility for data selection, but the user still needs to know what cfg settings were actually used."
+      - +@isprivate: "0"
+        commentid: "9756"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-12 11:41:50 +0100
+        thetext: |-
+          sorry, I was distracted while writing ;) What I wanted to ask was the following:
+          Should ft_selectdata only end up in data.cfg if it is called by an ft_ prefixed function, or is there a case in which a not ft-prefixed function calls ft_selectdata and the .cfg should still be updated?
+      - +@isprivate: "0"
+        commentid: "9757"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-12 11:49:37 +0100
+        thetext: |-
+          (In reply to comment #7)
+          I think the idea is that ft_selectdata_new does NOT end up in the cfg whenever it is being called by a fieldtrip function, and DOES end up in the cfg when it is called by a non-fieldtrip function (i.e. user's own scripts/functions). So, kind of the other way around from what I understand from your question :)
+
+          Would there be cases where fieldtrip code calls ft_selectdata from a non-ft_-prefixed function? E.g. from a /private/ function? If so, maybe do a check on the caller's path instead, if that's possible. (Note that ft_version can return the FT path as second output argument, if I recall correctly.)
+      - +@isprivate: "0"
+        commentid: "9760"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 13:26:23 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          > Would there be cases where fieldtrip code calls ft_selectdata from a
+          > non-ft_-prefixed function?
+
+          No, I don't think so. Or even more specific: I don't expect ft_selectdata to be called from low- and intermediate-level functions, but only high-level(*) functions.
+
+          *) High-level is here defined as being part of the list fieldtrip/*.m and having a cfg as first input argument. Medium and low is the rest
+      - +@isprivate: "0"
+        commentid: "9761"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 13:30:07 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          > I think the idea is that ft_selectdata_new does NOT end up in the cfg whenever
+          > it is being called by a fieldtrip function, and DOES end up in the cfg when it
+          > is called by a non-fieldtrip function (i.e. user's own scripts/functions).
+
+          I think it should show up when being called by a ft_function. Otherwise the user cannot see the defaults that were imposed by ft_selectdata_new (e.g. cfg.channel=all, which then translates to the whole list).
+
+          To the end user it should not matter whether ft_timelockgrandaverage is doing the bookkeeping itself (now), or whether it delegates the bookkeeping to ft_selectdata (future).
+      - +@isprivate: "0"
+        commentid: "9926"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 15:00:17 +0100
+        thetext: |-
+          I guess this one has been fixed by Robert:
+          http://code.google.com/p/fieldtrip/source/detail?spec=svn7661&r=7661

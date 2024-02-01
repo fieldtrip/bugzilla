@@ -1,0 +1,86 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1333"
+    creation_ts: 2012-02-16 12:09:00 +0100
+    short_desc: Scaling using cfg.chanscale crashes ft_databrowser if more than one channel selected
+    delta_ts: 2012-08-23 10:35:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: Tilmann.Sander-Thoemmes
+      +@name: Tilmann Sander-Thommes
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: eelke.spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5312"
+        comment_count: "0"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2012-02-16 12:09:39 +0100
+        thetext: "line 1203 ff in ft_databrowser.m reads\n\n...\nif ~isempty(cfg.chanscale)\n  chansel = match_str(lab, ft_channelselection(cfg.channel, lab));\n  dat(chansel,:) = dat(chansel,:) .* repmat(cfg.chanscale,1,size(dat,2));\nend\n...\n\nIf cfg.chanscale has more than one entry then code crashes due to matrix\ndimension mismatch,code works if cfg.chanscale is transposed to read \n\n...\n  dat(chansel,:) = dat(chansel,:) .* repmat(cfg.chanscale',1,size(dat,2));\n...\n\nThe error was produced by\n\n% read complete Yokogawa data file and then\n\ncfg.channel = {'AG087'; 'EEG129';};\ncfg.chanscale = [1.0e11 1.0];\ncfg.viewmode = 'vertical';\ninspect = ft_databrowser(cfg, data);\n\nPlease confirm error and solution and I can fix it if solution approved.\n\nTill"
+      - +@isprivate: "0"
+        commentid: "5557"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-03-14 11:32:57 +0100
+        thetext: |-
+          Hi Till,
+
+          Thanks for your report. Actually, the error was in your calling code :) The documentation for ft_databrowser reads:
+
+          % cfg.chanscale = Nx1 vector with scaling factors, one per channel specified in cfg.channel
+
+          and you provided a 1xN (=row) vector, rather than a Nx1 (=column) vector.
+
+          Your proposed 'fix' only changes the problem so that now people entering a column vector will get the error (so the documentation would then have to be changed to read 1xN). However, you do raise a point that it would be convenient to be able to enter in a vector of arbitrary row/column shape. So, I will implement a check that converts a row to column vector, if necessary.
+
+          Best,
+          Eelke
+      - +@isprivate: "0"
+        commentid: "5558"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-03-14 11:36:02 +0100
+        thetext: |-
+          bash-3.2$ svn commit ft_databrowser.m
+          Sending        ft_databrowser.m
+          Transmitting file data .
+          Committed revision 5460.
+      - +@isprivate: "0"
+        commentid: "7137"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-08-23 10:35:12 +0200
+        thetext: closing my bugs

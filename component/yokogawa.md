@@ -1,0 +1,5 @@
+---
+title: yokogawa
+---
+
+{% include component %}

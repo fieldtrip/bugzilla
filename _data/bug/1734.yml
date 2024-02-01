@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1734"
+    creation_ts: 2012-09-21 15:26:00 +0200
+    short_desc: redefining indentical trials resulting in different number of samples
+    delta_ts: 2019-08-10 11:55:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ayelet.landau
+      +@name: Ayelet N. Landau
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7522"
+        comment_count: "0"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2012-09-21 15:26:43 +0200
+        thetext: "When I run redefinetrial as following:\n \n    winlen = 0.5\n    cfg = [];\n    cfg.toilim    = [-0.50 0]; \n    cfg.minlength = winlen; \n    data1 = ft_redefinetrial(cfg, data);\n\nwhere data has data.Fs = 100\nI get an output with mostly 51 samples per trial. Strangely and scarcely there will be an occasional trial that will have a different number of samples (i.e. 50).\nThis generates problems later when I try to append data along the channel dimension.\n\nI was able to redeem this problem by asking for a winlen of 0.501"
+      - +@isprivate: "0"
+        commentid: "7523"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-21 15:31:21 +0200
+        thetext: |-
+          Hi Ayelet,
+
+          I am not sure, but ft_redefinetrial either uses toilim or uses minlength. I don't know which one has precedence.
+
+          Note that for the toilim functionality, the edges are inclusive, i.e. it will generally lead to the requested number of samples + 1. In you case it seems as if there are rounding issues for some of the trials, which yield the expected 50 samples in your case.
+
+          If the documentation of the function can be made more clear, please feel free to suggest improvements. The more explicit they are spelled out, the more likely they will be incorporated in the help...
+      - +@isprivate: "0"
+        commentid: "7524"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-21 15:35:19 +0200
+        thetext: |-
+          Oops. Forget about my previous statement with respect to minlength and toilim: I confused minlength with the length option.
+
+          Your issue indeed boils own to the inclusive-edges issue, in combination with slight rounding issues in the individual trials' time axes.
+
+          I'd consider specifying cfg.toilim to be [-0.5 -0.01], and cfg.minlength 0.499 ;-)
+      - +@isprivate: "0"
+        commentid: "7525"
+        comment_count: "3"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2012-09-21 16:23:12 +0200
+        thetext: "I don't have a problem with having 51 samples. That is absolutely fine by me. The reason I report this as a bug is that I would think its a bit problematic that the same data produce different outputs. I realize that there are ways around this. But I wonder whether an additional \"tolerance\" or \"number of samples\" parameter could be added so that precision issues won't generate this inconsistency (which will cause trouble later in the analysis pipeline. \nI hope this is clearer and apologies if the purpose of my bug report previously wasn't. \nAyelet"
+      - +@isprivate: "0"
+        commentid: "7531"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-22 14:08:45 +0200
+        thetext: |-
+          I agree that it is to be expected that although random rounding-off errors in the sample time can happen,  they should be consistent over trials. We have a piece of code somewhere that aligns sample time points, but apparently that does not yet solve it for this specific issue.
+
+          Can you attach a test file to reproduce the bug, preferably a small one? Perhaps you can take the one you have and just remove all but one channel.
+
+          I will look  up the old bug reports on this issue.
+      - +@isprivate: "0"
+        commentid: "7532"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-22 14:10:40 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          related are bug 976 and probably also bug 1228.
+      - +@isprivate: "0"
+        commentid: "8162"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-07 13:40:50 +0100
+        thetext: |-
+          Hi Ayelet,
+
+          Is this still a problem for you? We did not see a test file, so we assume it to be OK for now. Without some additional info we cannot tackle this one and we will close the bug. Agreed?
+
+          Feel free to re-open it.
+      - +@isprivate: "0"
+        commentid: "19726"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:51:45 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "19770"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:55:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

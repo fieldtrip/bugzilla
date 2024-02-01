@@ -1,0 +1,214 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3460"
+    creation_ts: 2018-10-22 14:50:00 +0200
+    short_desc: Parcellated network analysis cannot be plotted
+    delta_ts: 2019-08-10 12:36:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to: fieldtriptoolbox
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19507"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-22 14:50:15 +0200
+        thetext: "When following the network analysis tutorial (http://www.fieldtriptoolbox.org/tutorial/networkanalysis) the results cannot be plotted if an atlas other than atlas_MMP1.0_4k atlas is used. Find example code and further explanations below.\n\n\n% --------------------------------------\n\n% load some data from \n% ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/tutorial/networkanalysis\nload hdm \nload standard_sourcemodel3d2cm\nload dataica\n\ncfg             = [];\ncfg.grid        = sourcemodel;\ncfg.headmodel   = hdm;\ncfg.channel     = {'MEG'};\nlf              = ft_prepare_leadfield(cfg, dataica);\n\ncfg            = [];\ncfg.method     = 'mtmfft';\ncfg.output     = 'fourier';\ncfg.keeptrials = 'yes';\ncfg.tapsmofrq  = 1;\ncfg.foi        = 10;\nfreq           = ft_freqanalysis(cfg, dataica);\n\ncfg                   = [];\ncfg.frequency         = freq.freq;\ncfg.method            = 'pcc';\ncfg.grid              = lf;\ncfg.headmodel         = hdm;\ncfg.keeptrials        = 'yes';\ncfg.pcc.lambda        = '10%';\ncfg.pcc.projectnoise  = 'yes';\ncfg.pcc.fixedori      = 'yes';\nsource = ft_sourceanalysis(cfg, freq);\nsource = ft_sourcedescriptives([], source); % to get the neural-activity-index\n\ncfg         = [];\ncfg.method  ='coh';\ncfg.complex = 'absimag';\nsource_conn = ft_connectivityanalysis(cfg, source);\n\natlas = ft_read_atlas('/template/atlas/aal/ROI_MNI_V4.nii');\n\n% also this interpolation step does not have to be done with the 4k atlas\natlas = ft_convert_units(atlas,'cm');\ncfg\t\t\t= []; \ncfg.interpmethod\t= 'nearest'; \ncfg.parameter\t\t= 'tissue'; \natlas_int\t\t= ft_sourceinterpolate(cfg, atlas, sourcemodel);\natlas_int.pos\t\t= sourcemodel.pos;\n\ncfg\t\t\t= [];\ncfg.parcellation\t= 'tissue';\ncfg.parameter\t\t= 'cohspctrm';\nparc_conn\t\t= ft_sourceparcellate(cfg, source_conn, atlas_int);\n\ncfg\t\t= [];\ncfg.method\t= 'degrees';\ncfg.parameter\t= 'cohspctrm';\ncfg.threshold\t= .1;\nnetwork_parc\t= ft_networkanalysis(cfg, parc_conn);\n\ncfg               = [];\ncfg.method        = 'surface';\ncfg.funparameter  = 'degrees';\ncfg.funcolormap   = 'jet';\nft_sourceplot(cfg, network_parc);\n\n% Here, ft_sourceplots produces an error:\n% Subscript indices must either be real positive integers or logicals.\n% \n% Error in fixsegmentation (line 23)\n%           indexlabel{indexval(j)} = sprintf('tissue %d', indexval(j));\n% \n% Error in ft_datatype_parcellation (line 159)\n%       parcellation = fixsegmentation(parcellation, fn(indexed), 'indexed');\n% \n% Error in ft_checkdata (line 276)\n%   data = ft_datatype_parcellation(data, 'parcellationstyle', parcellationstyle);\n% \n% Error in ft_selectdata (line 123)\n%     varargin{i} = ft_checkdata(varargin{i});\n% \n% Error in ft_sourceplot (line 325)\n%   functional = ft_selectdata(tmpcfg, functional);\n\n% The problem is that ft_checkdata tries to convert the tissue\n% representation to the source point representation (in this case in the\n% field 'degrees') and for source points not belonging to a tissue this\n% results in a NaN. The 4k atlas used in the tutorial provides a 1-to-1\n% mapping of tissues and source points so that does not happen. It does so\n% however for the brainnetome and the AAL atlas.\n\n% This can be prevented by manually calling ft_checkdata and replacing NaNs\n% by zeros:\nnetwork_parc_corr = ft_checkdata(network_parc, 'datatype', {'source', 'volume'}, 'feedback', 'yes', 'hasunit', 'yes');\nnetwork_parc_corr.degrees(isnan(network_parc_corr.degrees)) = 0;\nft_sourceplot(cfg, network_parc_corr); % now the plot works\n\n% --------------------------------------\n\nPossible solutions would be to change the atlases so that they do not produce unassigned grid points (in the 4k atlas that is done using a L_? tissue). Alternatively (and less invasively), ft_checkdata could make sure no NaNs are produced during tissue - grid point conversion.\n\nGreetings,\nJens"
+      - +@isprivate: "0"
+        commentid: "19514"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-24 13:27:57 +0200
+        thetext: |-
+          Thanks Jens, also for the in depth diagnostics
+
+          Would it also work if in fixsegmentation line 13 is replaced by indexval = indexval(indexval~=0 & isfinite(indexval)); ?
+      - +@isprivate: "0"
+        commentid: "19515"
+        comment_count: "2"
+        attachid: "880"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-24 16:49:16 +0200
+        thetext: |-
+          Created attachment 880
+          ft_sourceplot without (top) and with (bottom) NaNs
+      - +@isprivate: "0"
+        commentid: "19516"
+        comment_count: "3"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-24 16:50:11 +0200
+        thetext: |-
+          Hey Jan-Mathijs,
+          with that change ft_sourceplot will execute without error but since there are still NaNs in the functional data these datapoints will not be plotted at all leading to wholes in the surface plot.
+
+          I uploaded plots with NaNs replaced by 0s (top) and with your fix (bottom).
+
+          Best,
+          Jens
+      - +@isprivate: "0"
+        commentid: "19517"
+        comment_count: "4"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-24 16:51:35 +0200
+        thetext: '*holes'
+      - +@isprivate: "0"
+        commentid: "19518"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-24 19:04:25 +0200
+        thetext: Ah, I see. I'd say that the holes are a feature, not a bug. What I don't understand, is why the cortex is not plotted in grey underneath. At least, that's what I would expect.
+      - +@isprivate: "0"
+        commentid: "19520"
+        comment_count: "6"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-28 22:56:28 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+          Mmmh yeah that's what you'd expect and what usually happens when you have NaNs in your data. Not sure where the brain went. Did I forget something during the preparation of the source reconstruction? Is it because there is no volume normalization step (I did not do that because the brain positions are already in MNI space)?
+      - +@isprivate: "0"
+        commentid: "19522"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-29 13:05:03 +0100
+        thetext: Ich weiss es nicht. Kannst du ein bisschen Data hochladen?
+      - +@isprivate: "0"
+        commentid: "19523"
+        comment_count: "8"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-30 15:53:15 +0100
+        thetext: "Mmh, the code example should actually be self-contained. I tried to interpolate network_parc to the standard mri (single_subj_T1_1mm.nii). That successfully adds anatomy to the structure but does not change the surface plot (slice plot is possible but functional data looks weird).\n\nThat's the additional code (using fixsegmentation with your proposed fix):\nload('single_subj_T1_1mm.nii')\n\ncfg_int               = [];\ncfg_int.downsample    = 1;           \ncfg_int.parameter     = 'degrees';\nnetwork_parc_int      = ft_sourceinterpolate(cfg_int, network_parc, mri);\n\ncfg\t\t\t= [];\ncfg.method\t\t= 'surface';\ncfg.funparameter\t= 'degrees';\ncfg.funcolormap\t\t= 'jet';\nft_sourceplot(cfg, network_parc_int); % works but still has holes\n\ncfg.method\t\t= 'slice';\nft_sourceplot(cfg, network_parc_int); % works and has anatomy but functional data looks awkward\n\n--------------------------\n\nThe same problems persist when I use my own data (subject-specific mni-aligned grids), s. new attachment. I parcellated that data using an atlas that I interpolated into the used standard 10 mm sourcemodel. I plotted it using above code after doing the networkanalysis like this:\n\ncfg\t\t\t= [];\ncfg.method\t\t= 'degrees';\ncfg.parameter\t\t= 'powcorrspctrm'; \ncfg.threshold\t\t= .05;\nnetwork_parc            = ft_networkanalysis(cfg, data_parc);\n\n% Sieht nicht gut aus :/"
+      - +@isprivate: "0"
+        commentid: "19524"
+        comment_count: "9"
+        attachid: "881"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-10-30 15:54:56 +0100
+        thetext: |-
+          Created attachment 881
+          Own parcellated connectivity data
+      - +@isprivate: "0"
+        commentid: "19529"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-31 16:03:41 +0100
+        thetext: I have now updated the plotting and on-the-fly interpolation code such that the gray background appears again at the locations in which the data are NaN. This still leads to ugly plot, but as I mentioned before, I think that this should be a feature. Alternatively, we might consider adding an option to ft_sourceinterpolate's cfg.interpmethod to be 'nearsest_finite' or so. This might lead to unexpected effects as well, so I'd rather not do that.
+      - +@isprivate: "0"
+        commentid: "19550"
+        comment_count: "11"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-11-05 10:52:47 +0100
+        thetext: "OK, thanks, sounds like a reasonable solution. \n\nMaybe throw a warning so that users know they got NaNs in their inside-labeled data?"
+      - +@isprivate: "0"
+        commentid: "19552"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-05 13:02:51 +0100
+        thetext: 'Fine with me: can you make a suggestion through a PR on github?'
+      - +@isprivate: "0"
+        commentid: "19560"
+        comment_count: "13"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2018-11-06 10:54:45 +0100
+        thetext: |-
+          Mmh, like this? #869
+          https://github.com/fieldtrip/fieldtrip/pull/869
+      - +@isprivate: "0"
+        commentid: "19561"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-06 11:50:24 +0100
+        thetext: Ja sicher!
+      - +@isprivate: "0"
+        commentid: "20343"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:36:51 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "880"
+        date: 2018-10-24 16:49:00 +0200
+        delta_ts: 2018-10-24 16:49:16 +0200
+        desc: ft_sourceplot without (top) and with (bottom) NaNs
+        filename: 1.PNG
+        type: image/png
+        size: "236207"
+        attacher:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "881"
+        date: 2018-10-30 15:54:00 +0100
+        delta_ts: 2018-10-30 15:54:56 +0100
+        desc: Own parcellated connectivity data
+        filename: own_sourceconn_parcellated.mat
+        type: text/plain
+        size: "647614"
+        attacher:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        data: REMOVED

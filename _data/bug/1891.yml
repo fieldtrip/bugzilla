@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1891"
+    creation_ts: 2012-12-13 17:49:00 +0100
+    short_desc: it would be nice if qsubcellfun could evaluate private private functions
+    delta_ts: 2015-02-11 10:40:45 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: t.vanmourik
+      +@name: Tim van Mourik
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8695"
+        comment_count: "0"
+        who:
+          +content: t.vanmourik
+          +@name: Tim van Mourik
+        bug_when: 2012-12-13 17:49:57 +0100
+        thetext: "e.g. \n  boundaryRegistration\ndoes either\n  [w, p] = cellfun(@recursiveRegistration, ...)\nor\n  [w, p] = qsubcellfun(@recursiveRegistration, ...)\n\nwhere \n \nboundaryRegistration is in /home/common/matlab/BoundaryRegistration and \nrecursiveRegistration is in /home/common/matlab/BoundaryRegistration/private.\n\nIt works for cellfun, but not for qsubcellfun."
+      - +@isprivate: "0"
+        commentid: "8732"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 13:00:58 +0100
+        thetext: "I created \n  somepath/mainfunction.m\n  somepath/private/subfunction.m\nand can do\n\n>> cd somepath\n>> a = mainfunction({1, 2})\n\na = \n    [0.8615]    [2x2 double]\n\nbut the following results in an error\n\n>> cd /tmp\n>> a = mainfunction({1, 2})\nstacking 2 matlab jobs in each qsub job\nsubmitting job roboos_dccn_c012_p1291_b20_j001... qstat job id 1463561.dccn-l014.dccn.nl\n\njob roboos_dccn_c012_p1291_b20_j001 returned, it required NaN seconds and NaN GB\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n% an error was detected inside MATLAB, the diary output of the remote execution follows \n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n??? Error using ==> cellfun\nUndefined function handle.\n\nError in ==> fexec at 154\n    [argout{:}] = feval(fname, argin{:});\n\nError in ==> qsubexec at 56\n  [argout, optout] = fexec(argin, optin);"
+      - +@isprivate: "0"
+        commentid: "8733"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 13:01:42 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          note that in the second case I also did
+            addpath ~/somepath
+      - +@isprivate: "0"
+        commentid: "8734"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 14:13:55 +0100
+        thetext: |-
+          I have made the function handling smarter, it now passes the full filename. This allows the function handle to be updated on the fly if it is invalid.
+
+          roboos@mentat002> svn commit
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubexec.m
+          Sending        qsub/qsubfeval.m
+          Transmitting file data ...
+          Committed revision 7213.
+
+          @Tim: can you please give it a try?
+      - +@isprivate: "0"
+        commentid: "8736"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 19:25:12 +0100
+        thetext: "enhancement - allow stacking in combination with a private function.\n\nroboos@mentat001> svn commit \nSending        qsub/qsubcellfun.m\nSending        qsub/qsubexec.m\nTransmitting file data ..\nCommitted revision 7214."
+      - +@isprivate: "0"
+        commentid: "8737"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 20:51:07 +0100
+        thetext: |-
+          the recent changes cause a regression error in fieldtrip/test/test_qsubcellfun3, which is a test function that  uses a subfunction. Hmm...
+
+          When reverting svn to revision 7208, the problem does not happen and the test script runs through.
+      - +@isprivate: "0"
+        commentid: "8738"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 20:59:17 +0100
+        thetext: |-
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Transmitting file data .
+          Committed revision 7218.
+
+          bugfix - the handling of private functions caused a regression in the case a subfunction was being evaluated with qsubcellfun. Fixed it by being less strict on the construction of whichfunction. See also bug 1891.
+
+          This resolves the problem with test_qsubcellfun3, while remaining compatible with the evaluation of private functions.
+      - +@isprivate: "0"
+        commentid: "8739"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-17 21:16:51 +0100
+        thetext: "(In reply to comment #6)\n\nI have made a test script specifically for this. \nSee fieldtrip/test/test_qsubcellfun4.m \nand /home/common/matlab/fieldtrip/data/test/bug1891/somepath\n\nroboos@mentat001> svn add test/test_qsubcellfun4.m \nA         test/test_qsubcellfun4.m\n\nroboos@mentat001> svn commit test/test_qsubcellfun4.m \nAdding         test/test_qsubcellfun4.m\nTransmitting file data .\nCommitted revision 7219."
+      - +@isprivate: "0"
+        commentid: "14581"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 15:55:34 +0200
+        thetext: Given the low priority of this, I will not spend further time on it.
+      - +@isprivate: "0"
+        commentid: "15247"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:45 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

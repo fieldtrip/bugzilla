@@ -1,0 +1,201 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2231"
+    creation_ts: 2013-08-01 16:06:00 +0200
+    short_desc: old md4 approach for reading 4D data fails
+    delta_ts: 2014-01-15 14:45:22 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: Christian.Wienbruch
+      +@name: Christian Wienbruch
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10994"
+        comment_count: "0"
+        who:
+          +content: Christian.Wienbruch
+          +@name: Christian Wienbruch
+        bug_when: 2013-08-01 16:06:36 +0200
+        thetext: "On 1 Aug 2013, at 15:58, Christian Wienbruch wrote in an email to Robert:\n\nI have a problem with the old m4d approach to read data into fieldtrip. It \nseems since the config file approach from Glasgow (which by the way is a pretty \ndangerous way to read 4D data because the sequence of channels might be \nchanged by various 4D MSI programs and therefore onyl works reliable for the \nunprocessed data file) that the old appraoch does not work any longer. The \nerror is produced by the ChannelGain in hdr.orig if you try to read data the \nold way.\n\nIs it possible to add an easy fix like that the ChannelGain is 1 in case old \nm4d files a read?"
+      - +@isprivate: "0"
+        commentid: "10995"
+        comment_count: "1"
+        who:
+          +content: Christian.Wienbruch
+          +@name: Christian Wienbruch
+        bug_when: 2013-08-01 16:09:45 +0200
+        thetext: |-
+          Hi Christian
+
+          Could you share a (possibly small) dataset with us that would allow us to reproduce the problem? Then we can make a test script (line the ones here http://code.google.com/p/fieldtrip/source/browse/#svn%2Ftrunk%2Ftest) and add it to our testing framework at http://fieldtrip.fcdonders.nl/development/dashboard
+
+          See http://fieldtrip.fcdonders.nl/faq/how_should_i_send_example_data_to_the_developers for some possible ways of sending us the data.
+
+          thanks
+          Robert
+      - +@isprivate: "0"
+        commentid: "10996"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-01 16:11:35 +0200
+        thetext: "(In reply to comment #1)\n\nHmm, I just replied while still impersonating Christian rather than as myself. Consequently the email was sent to the wrong people. \n\n@Christian, please check the previous comment on the bugzilla server."
+      - +@isprivate: "0"
+        commentid: "11007"
+        comment_count: "3"
+        attachid: "499"
+        who:
+          +content: Christian.Wienbruch
+          +@name: Christian Wienbruch
+        bug_when: 2013-08-02 16:18:09 +0200
+        thetext: "Created attachment 499\nFiles concerning BUG 2231\n\nTried reading these files with \nc,rfhp0.1Hz,o,ccfbp10-40Hz-678-2,cag,c,n,fbp10-40Hz-678-2,s.m4d\n\n>> hdr = ft_read_header('c,rfhp0.1Hz,o,ccfbp10-40Hz-678-2,cag,c,n,fbp10-40Hz-678-2,s.m4d')\nError using read_bti_m4d (line 128)\nunknown gradiometer design\n\nError in ft_read_header (line 211)\n    orig            = read_bti_m4d(filename);\n\nFiles *.refloc and *.eeglog are obsolete\n\nThanks for your help\n\nChristian"
+      - +@isprivate: "0"
+        commentid: "11010"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-03 15:13:50 +0200
+        thetext: |-
+          Bug confirmed.
+
+          It's not a problem that is related to the preferred way of reading the data from the raw data file + config (through read_4d_hdr). It rather seems that the m4d file has a format that read_bti_m4d cannot deal with.
+
+          In short, the empty Eeg_Position_Information block causes the crash.
+
+          I will fix this. Interesting that this has not occurred before; the function read_bti_m4d has not essentially changed since it was first written, I guess that this was around 2007.
+
+          NOTE: it seems that the gradiometer references are not correctly dealt with as it is right now (in the grad-field). In FieldTrip the two coils belonging to a single gradiometer are grouped, reading the positions with read_bti_m4d seems to treat each coil as a single 'channel'. The hdr.label seems to be correct, though.
+
+          In general I would eventually like to push everybody into reading the header information directly from the raw-files. If you have some inside information with respect to the config/datafile discrepancy, which can make this way of dealing with the data more robust, please don't hesitate to share this with us (In Glasgow, Gavin and I more or less reverse engineered most of the stuff, with the help of Eugene Kronberg's code). I'd prefer developing the code along these lines, because it does not need intermediate conversion of the data.
+      - +@isprivate: "0"
+        commentid: "11011"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-03 15:28:16 +0200
+        thetext: I did not see an error related to the ChannelGain (reported in your description). Is this an issue related to the error described in comment 3?
+      - +@isprivate: "0"
+        commentid: "11012"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-03 15:30:23 +0200
+        thetext: |-
+          svn commit -m "bugfix - 2231: addressed issue related to reading m4d files" fileio/private/read_bti_m4d.m test/test_bug2231.m
+          Sending        fileio/private/read_bti_m4d.m
+          Adding         test/test_bug2231.m
+          Transmitting file data ..
+          Committed revision 8378.
+      - +@isprivate: "0"
+        commentid: "11013"
+        comment_count: "7"
+        who:
+          +content: Christian.Wienbruch
+          +@name: Christian Wienbruch
+        bug_when: 2013-08-03 22:35:18 +0200
+        thetext: "Thanks for your quick look into the problem. \n\nJust a few comments. \nReading the run config file works for the first processed data file (pdf), cause that is related to the acquisition setup. As various 4D MSI software tools do nasty things like changing the channel sequencce or creating new channels, the run config won't help you much reading these files. Therefore it is dangerous to use it with all pdfs.\n\nThe true header information is written in a trailer at the end of each pdf. This is done by multiple 4D libraries, depending on what is written in the pdf. Unfortunately there is no easy way to read that trailer. There is is no single program, that can read it. Since 1991 I work around this trailer cause I have no information about another way to do it. So the only safe way to read all kind of 4D data is to generate an additional file like the m4d file that contains all the information needed. This is designed to be an extendable format. So if I need some more information I simply add a key followd by the information I want. That's what York did to get the data in their database. And this open format is also related to the problem with the empty EEG position. I think a added thie EEG channel position block after you've implemented that into fieldtrip. People in Konstanz did not use this possibility until recent needs mad them to come back to it. Therefor the problem has not been adressed before.\n\nTo check on the described bug you can delete the piece of information from the m4d file which is related to the EEG positions and you will find the problem with the channel gains to show up, which I believe is related to what I described earlier. Sorry that I did not mention this earlier. \n\nThanks for your continuous help"
+      - +@isprivate: "0"
+        commentid: "11014"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-03 23:03:02 +0200
+        thetext: |-
+          Hi Christian,
+
+          As it stands read_4d_hdr uses a combination of the trailer of the data file, and stuff from the config file. I have always found this a bit confusing, but somehow never got it to work using information from the trailer alone. I had noticed the channel order issue on several occasions, and will investigate the code once more to see how 'unrobust' the present code is. Do you by any chance have any raw data files to share in order to test it on?
+
+          How can I check for the channel gain issue? Wouldn't I need the raw data as well? (so not only the converted pdf?
+
+          Cheers,
+          JM
+      - +@isprivate: "0"
+        commentid: "11038"
+        comment_count: "9"
+        who:
+          +content: Christian.Wienbruch
+          +@name: Christian Wienbruch
+        bug_when: 2013-08-06 14:17:29 +0200
+        thetext: "(In reply to comment #8)\nThe trailer keeps information about the data format\ncan be \n(\n short int\n long int\n float\n double\n)\nThis is of course found in the m4D file. To give you an example.\nThe acquired pdf is written to disk in short ints (16 bit) and converted to amplitude using channel gain and scale values.\n\nAs soon as you process the data it will usually be stored as float (32 bit) but in the libraries there are also possibilities for long int (32 bit ) and double (64 bit).\n\nAlso found in the trailer is the sequence of channels, channel names and labels and so on. This is also in the m4d file.\n\nSo the only way to find out about the structure of the pdf is to read the trailer and use that information to read the pdf data section. Usually this is multiplexed (channel (changes fastest) x time).\n\nYou definitely need to make use of the 4D librariers to read the trailer section. There is no other way to consider all possible variations of the data format.\n\nTherefore I would prefer to use something like the m4D file with the relevant information but then I simply copy the pdf (with all the trailer information) to actually read the data.\n\nI need an m4d file for every pdf\n\nDoes this answer your question?\n\nGreetings\n\nChristian"
+      - +@isprivate: "0"
+        commentid: "11046"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-07 08:59:12 +0200
+        thetext: "Hi Christian,\n\nWhen I do this:\n\n>> hdr=ft_read_header('c,rfhp0.1Hz,o,ccfbp10-40Hz-678-2,cag,c,n,fbp10-40Hz-678-2,s.m4d') \n\nhdr = \n\n             Fs: 678.1700\n         nChans: 170\n       nSamples: 6783\n    nSamplesPre: 0\n        nTrials: 1\n          label: {170x1 cell}\n           grad: [1x1 struct]\n           orig: [1x1 struct]\n       chantype: {170x1 cell}\n       chanunit: {170x1 cell}\n\n>> gain=hdr.orig.ChannelGain;\n>> unique(gain)\n\nans =\n\n     1    32\n\nSo apart from channel 'X1', all ChannelGain values are 1, which is what it should be, right?\n\nThen, looking into ft_read_data, from line 247 it says:\n\ngain       = hdr.orig.ChannelGain;\nif isfield(hdr.orig, 'ChannelUnitsPerBit')\n  upb = hdr.orig.ChannelUnitsPerBit;\nelse\n  warning('cannot determine ChannelUnitsPerBit');\n  upb = 1;\nend\n\n  and from line 276 it says:\n\nswitch sampletype\n  case {'short', 'long'}\n    % include both the gain values and the integer-to-double conversion in the calibration\n    calib = diag(gain(chanindx) .* upb(chanindx));\n  case {'float', 'double'}\n    % only include the gain values in the calibration\n    calib = diag(gain(chanindx));\n  otherwise\n    error('unsupported data format');\nend\n\nFrom the code and from the example data I don't see what may go wrong here. But perhaps I misunderstood the problem."
+      - +@isprivate: "0"
+        commentid: "11050"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-07 10:33:50 +0200
+        thetext: "Hi Christian,\n\nWhen I do this:\n\n>> hdr=ft_read_header('c,rfhp0.1Hz,o,ccfbp10-40Hz-678-2,cag,c,n,fbp10-40Hz-678-2,s.m4d') \n\nhdr = \n\n             Fs: 678.1700\n         nChans: 170\n       nSamples: 6783\n    nSamplesPre: 0\n        nTrials: 1\n          label: {170x1 cell}\n           grad: [1x1 struct]\n           orig: [1x1 struct]\n       chantype: {170x1 cell}\n       chanunit: {170x1 cell}\n\n>> gain=hdr.orig.ChannelGain;\n>> unique(gain)\n\nans =\n\n     1    32\n\nSo apart from channel 'X1', all ChannelGain values are 1, which is what it should be, right?\n\nThen, looking into ft_read_data, from line 247 it says:\n\ngain       = hdr.orig.ChannelGain;\nif isfield(hdr.orig, 'ChannelUnitsPerBit')\n  upb = hdr.orig.ChannelUnitsPerBit;\nelse\n  warning('cannot determine ChannelUnitsPerBit');\n  upb = 1;\nend\n\n  and from line 276 it says:\n\nswitch sampletype\n  case {'short', 'long'}\n    % include both the gain values and the integer-to-double conversion in the calibration\n    calib = diag(gain(chanindx) .* upb(chanindx));\n  case {'float', 'double'}\n    % only include the gain values in the calibration\n    calib = diag(gain(chanindx));\n  otherwise\n    error('unsupported data format');\nend\n\nFrom the code and from the example data I don't see what may go wrong here. But perhaps I misunderstood the problem."
+      - +@isprivate: "0"
+        commentid: "11529"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-09 16:46:20 +0200
+        thetext: Is this still an issue?
+      - +@isprivate: "0"
+        commentid: "11536"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-10 09:15:44 +0200
+        thetext: "Christian replied:\n\nI solved the problem with a new MATLAB \nprogram, that converts our data into a donders matlab format which does the \ntrick.\nAs triggers are read from the binary processed data format files (the 4D pdf) I \ndon't see a way to teach fieldtrip how to get along with both, the glasgow and \nthe m4d approach. So I gave up on that.\nThough, I assume it is still an issue. Probably not worth to put any more \neffort into it as the 4D software will no longer be of any  use. We got a \ndifferent solution now. \nThanks anyway.\nChristian\n \n%%%%%%%\n\nClosing for now."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "499"
+      date: 2013-08-02 16:18:00 +0200
+      delta_ts: 2013-08-02 16:18:09 +0200
+      desc: Files concerning BUG 2231
+      filename: FIELDTRIP_BUG_FILES.zip
+      type: application/octet-stream
+      size: "4268212"
+      attacher:
+        +content: Christian.Wienbruch
+        +@name: Christian Wienbruch
+      data: REMOVED

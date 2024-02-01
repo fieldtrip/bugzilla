@@ -1,0 +1,301 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1525"
+    creation_ts: 2012-06-13 09:16:00 +0200
+    short_desc: misalignment of sample number between event and data
+    delta_ts: 2012-08-23 10:40:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: yasuda
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc:
+      - a.belitski
+      - b.reuderink
+      - philipvandenbroek
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6380"
+        comment_count: "0"
+        who:
+          +content: yasuda
+          +@name: ""
+        bug_when: 2012-06-13 09:16:09 +0200
+        thetext: |-
+          When I used biosemi2ft.exe to collect data, I found the sample number of event is different from that of data sometimes.
+          Now I found that it happens when you do not have enough data to send to buffer, i.e. when your down sample number is high.
+          I read through the source code and found that the value 'numThisTime' in 'handleStreaming' function of 'OnlineDataManager.h' becomes zero in that case.
+          However, you call 'clientrequest' function anyway, so the sample number of data becomes bigger than that of event.
+
+          I think all I have to do is just changing the code to check the vale 'numThisTime' and do not call 'clientrequest' function if it is zero.
+
+          Please let me know if this works.
+
+
+          Thank you in advance.
+          Wataru Yasuda
+      - +@isprivate: "0"
+        commentid: "6414"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-14 15:20:50 +0200
+        thetext: |-
+          Dear Wataru Yasuda,
+
+          Thank you for your suggestion. I quickly glanced over the fragment in OnlineDataManger, and see what you mean.
+
+          The fix sound straight forward indeed, but before I proceed I like to have a more complete overview.
+
+          Could you perhaps elaborate on what you mean with the sample number of the event and the sample number of the data? I can think of several interpretations ( especially due to downsampling and client/server views).
+
+          Thanks,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "6419"
+        comment_count: "2"
+        who:
+          +content: yasuda
+          +@name: ""
+        bug_when: 2012-06-15 16:53:05 +0200
+        thetext: "Dear Boris,\n\nThank you for your comment.\n\nI run biosemi2ft.exe with the configuration file which include the line below.\n\ndownsample 8\n\nThis means I would like to get data at 256Hz through the buffer, i.e. biosemi2ft.exe sends the data to the buffer at 256Hz.\nAlso, I set the stride value for LabVIEW_DLL.dll of biosemi to 1. It means the dll send data at maximum speed.\nIn my environment, dll send 3 or 4 data at a time.\n(Note, biosemi ActiveTwo system run at 2048Hz.)\n \nThen I use the matlab command below to get a header.\n\nhdr_r = ft_read_header('buffer://localhost:1972');\nendptr = hdr_r.nSamples;\n\nThis 'endptr' value becomes bigger and bigger compared with the value I got for continuous event by the matlab command below.\n\nevent_all = ft_read_event('buffer://localhost:1972', 'header', hdr_r);\nevent_time = event_all(end).sample;\n\nI'm not sure if this explanation answers to your question.\nPlease do not hesitate to ask more if you need more information.\n\n\nThank you.\nWataru Yasuda"
+      - +@isprivate: "0"
+        commentid: "6427"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-18 15:50:29 +0200
+        thetext: |-
+          Dear Wataru,
+
+          Thank you for your elaboration, it is very helpful. My understanding is that:
+
+          - 'ft_read_header' returns the nsamples from buffer,
+          - 'ft_read_event' returns events that contain a sample number.
+
+          How often do you send an event (trigger)? Could it be the case that 'event_time' contains the sample number of your last trigger, and that 'endptr' contains the sample number of the last EEG sample? This would explain the increasing difference between the two numbers.
+
+          Best,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "6432"
+        comment_count: "4"
+        who:
+          +content: yasuda
+          +@name: ""
+        bug_when: 2012-06-19 03:21:40 +0200
+        thetext: |-
+          Dear Boris,
+
+          I understood your comment, however, the frequency of a trigger doesn't make any change for this problem.
+          In my case, the trigger occurs approximately once a second.
+          Still the difference increases continuously.
+
+          The point is that the difference increases continuously.
+          And when I set 'downsample' value of configuration file to 8 from 4, the increasing ratio increased.
+          I noticed that it was equivalent to the rate of occurrence that numThisTime becomes zero.
+
+          So I tried to fix it by writing just one line below in handleStreaming().
+
+           if(numThisTime == 0) return true;
+
+          I wrote it just before the line below in handleStreaming().
+
+           err = clientrequest(ftSocket, sampleBlock->asRequest(), resp.in());
+
+          Then, I checked the data and found the difference dissapeared.
+          I am not sure if this doesn't bother other functions.
+          So it would be appreciated if you could help me.
+
+
+          Thanks,
+          Wataru Yasuda
+      - +@isprivate: "0"
+        commentid: "6433"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-19 10:13:03 +0200
+        thetext: "Dear Wataru, \n\nThe problem is clear, I'll investigate if your solution does not have side effects and fix then this bug. Thank you for reporting this issue :).\n\nBest,\n\nBoris"
+      - +@isprivate: "0"
+        commentid: "6443"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-20 13:47:21 +0200
+        thetext: |-
+          Some extra info: If 'numThisTime == 0', then the call sampleBlock->getMatrix on line 613 in [1] returns a NULL pointer, see [2]. So, this would mean that besides the sample problem, *data is also written to uninitialized memory*. C++ has undefined behaviour in this case --- thus the program might continue to run without a sign.
+
+          This NULL pointer suggests that the call to clientrequest in 644 of [1] would contain a NULL pointer as well, but instead, *the old content of FtSampleBlock* is used, and sent to the buffer. Indeed, too many samples are copied to the FieldTrip buffer.
+
+
+          [1] http://code.google.com/p/fieldtrip/source/browse/trunk/realtime/buffer/cpp/OnlineDataManager.h
+
+          [2] http://code.google.com/p/fieldtrip/source/browse/trunk/realtime/buffer/cpp/FtBuffer.h#535
+      - +@isprivate: "0"
+        commentid: "6488"
+        comment_count: "7"
+        who:
+          +content: yasuda
+          +@name: ""
+        bug_when: 2012-06-21 02:47:20 +0200
+        thetext: |-
+          Dear Boris,
+
+          I am very happy to see that you have found the mechanism of the problem.
+
+          Actually, 'skipSamples' of line 634 doesn't become 0 when 'numThisTime' is 0.
+          That is why this program did not crash even 'dest' of line 613 was NULL pointer, I think.
+
+
+          Thanks,
+          Wataru Yasuda
+      - +@isprivate: "0"
+        commentid: "6493"
+        comment_count: "8"
+        attachid: "279"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-21 11:20:35 +0200
+        thetext: |-
+          Created attachment 279
+          Fixed biosemi2ft executable for Windows.
+      - +@isprivate: "0"
+        commentid: "6494"
+        comment_count: "9"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-21 11:26:16 +0200
+        thetext: "Dear Wataru,\n\nI have made the changes listed below, and recompiled biosemi2ft.exe. Could you tell me whether the new executable does no longer contain this bug? If you find you don't have all the DLLs, you can get them from [1].\n\n[1] https://github.com/breuderink/fieldtrip/tree/bug1525-sample-count/realtime/bin/win32\n\nBest regards,\n\nBoris\n\n\ndiff --git a/realtime/src/buffer/cpp/FtBuffer.h b/realtime/src/buffer/cpp/FtBuff\nindex 5e18885..751f525 100644\n--- a/realtime/src/buffer/cpp/FtBuffer.h\n+++ b/realtime/src/buffer/cpp/FtBuffer.h\n@@ -532,8 +532,6 @@ class FtSampleBlock {\n        void *getMatrix(int numChannels, int numSamples) {\n                unsigned int newSize = sizeof(datadef_t) + numChannels*numSample\n                \n-               if (newSize <= sizeof(datadef_t)) return NULL;\n-               \n                if (newSize > sizeAlloc) {\n                        if (ddef!=NULL) free(ddef);\n                        ddef = (datadef_t *) malloc(newSize);\ndiff --git a/realtime/src/buffer/cpp/OnlineDataManager.h b/realtime/src/buffer/c\nindex 271a7c4..1c16156 100644\n--- a/realtime/src/buffer/cpp/OnlineDataManager.h\n+++ b/realtime/src/buffer/cpp/OnlineDataManager.h\n@@ -612,7 +612,7 @@ class OnlineDataManager : public StringRequestHandler {\n        \n                Ts *dest = (Ts *) sampleBlock->getMatrix(nStream, numThisTime);\n                        \n-               if (lpFilter != 0) {\n+               if (lpFilter) {\n                        for (int j=0;j<nThisBlock;j++) {\n                                To *src = pBlock + nStatus + j*stride;\n                                for (int i=0;i<nStream;i++) {\n@@ -641,11 +641,14 @@ class OnlineDataManager : public StringRequestHandler {\n                                if (--skipSamples < 0) skipSamples = deci-1;\n                        }\n                }\n-               err = clientrequest(ftSocket, sampleBlock->asRequest(), resp.in(\n-               if (err || !resp.checkPut()) {\n-                       fprintf(stderr, \"Could not write samples to FieldTrip bu\n-                       return false;\n-               }\n+\n+    if (numThisTime > 0) { // only send packet if there is actual data.\n+      err = clientrequest(ftSocket, sampleBlock->asRequest(), resp.in());\n+      if (err || !resp.checkPut()) {\n+        fprintf(stderr, \"Could not write samples to FieldTrip buffer.\\n\");\n+        return false;\n+      }\n+    }\n                return true;\n        }"
+      - +@isprivate: "0"
+        commentid: "6541"
+        comment_count: "10"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2012-06-25 11:30:13 +0200
+        thetext: |-
+          I think more interfacing software need a recompile (for example tmsi2ft.exe) after this bug is fixed.
+
+          Philip
+      - +@isprivate: "0"
+        commentid: "6542"
+        comment_count: "11"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-25 11:34:04 +0200
+        thetext: Agreed. After testing, I'll recompile all executables for acquisition.
+      - +@isprivate: "0"
+        commentid: "6553"
+        comment_count: "12"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-25 16:26:58 +0200
+        thetext: |-
+          Dear Wataru,
+
+          We just finished reorganizing the realtime dir, and we would like to announce this on the FieldTrip mailing list. It would be very nice if we could fix this bug before this announcement.
+
+          Could you give an indication when you would be able to test if our fix indeed fixes this bug? That would allow us to coordinate the changes and announcements.
+
+          Best regards,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "6558"
+        comment_count: "13"
+        who:
+          +content: yasuda
+          +@name: ""
+        bug_when: 2012-06-26 04:01:32 +0200
+        thetext: |-
+          Dear Boris,
+
+          I tested your biosemi2ft.exe today.
+          As far as I saw, it worked properly.
+
+          Thank you for all the effort you put into  this problem.
+
+
+          Best regards,
+          Wataru Yasuda
+      - +@isprivate: "0"
+        commentid: "6561"
+        comment_count: "14"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-26 09:16:35 +0200
+        thetext: "Great, thank you for your help. It was a pleasure to resolve this so quickly.\nPlease don't hesitate to contact us if you find other issues.\n\nI have added the changes to our main SVN repository:\nhttp://code.google.com/p/fieldtrip/source/detail?r=6153 . \n\nTODO:\n- Recompile all acquisition software on Linux (DONE: SVN revision r6154),\n- recompile all acquisition software on OSX,\n- recompile all acquisition software on Windows."
+      - +@isprivate: "0"
+        commentid: "6562"
+        comment_count: "15"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-26 09:50:43 +0200
+        thetext: |-
+          Recompiled on OSX.
+
+          Done:
+          - Recompile all acquisition software on Linux (DONE: SVN revision r6154),
+          - recompile all acquisition software on OSX (DONE: SVN revision r6157),
+
+          TODO:
+          - recompile all acquisition software on Windows.
+      - +@isprivate: "0"
+        commentid: "6635"
+        comment_count: "16"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-07-02 15:08:00 +0200
+        thetext: All files have been recompiled. Tomorrow, they should be in the new FieldTrip release on the FTP. I mark this bug as RESOLVED:FIXED.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "279"
+      date: 2012-06-21 11:20:00 +0200
+      delta_ts: 2012-06-21 11:20:35 +0200
+      desc: Fixed biosemi2ft executable for Windows.
+      filename: biosemi2ft.exe
+      type: application/x-ms-dos-executable
+      size: "664168"
+      attacher:
+        +content: b.reuderink
+        +@name: Boris Reuderink
+      data: REMOVED

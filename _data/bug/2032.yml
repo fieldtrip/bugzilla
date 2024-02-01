@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2032"
+    creation_ts: 2013-03-06 14:46:00 +0100
+    short_desc: 'ft_sourceplot: build in check for matching coordsys when using method = ''surface'''
+    delta_ts: 2017-03-14 12:49:28 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "3142"
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9686"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 14:46:16 +0100
+        thetext:
+      - +@isprivate: "0"
+        commentid: "9687"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 14:47:41 +0100
+        thetext: |-
+          Right now ft_sourceplot assumes the source level data to be in the same coordinate system as the surface.
+          Typically, the surface from the template directory is used, which is in SPM-based coordinates. Combining it with CTF based source level data leads to a 90 degree rotation
+      - +@isprivate: "0"
+        commentid: "13930"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-23 14:08:46 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - moved functionality of on-the-fly interpolation to a cortical sheet to a more appropriate location" ft_sourceplot.m ft_sourceinterpolate.m private/interp_gridded.m private/interp_ungridded.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourceplot.m
+          Sending        private/interp_gridded.m
+          Sending        private/interp_ungridded.m
+          Transmitting file data ....
+          Committed revision 9673.
+
+          Although not directly related to the named bug, I just moved the functionality of on-the-fly interpolation to a cortical surface to ft_sourceinterpolate. This involved moving the projection code contributed by Joachim to interp_gridded as a new method.
+
+          NOTE: this projection method seems sub-optimal to me, since it takes [0,0,0] as the centre of the projection.
+      - +@isprivate: "0"
+        commentid: "18365"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-07 11:37:49 +0100
+        thetext: |-
+          I just encountered a similar (but not identical) issue related to the functional data and the atlas.
+
+          I added this in the section that prepares the atlas
+
+            % ensure that the coordinate systems match
+            assert(isequal(functional.coordsys, atlas.coordsys), 'coordinate systems do not match');
+            % ensure that the units are consistent, the atlas will be converted if required
+            atlas = ft_convert_units(atlas, functional.unit);
+
+
+          mac011> git commit -am "ENH - ensure that the atlas coordsys and units are consistent with the functional data"
+          [master 4c1c689] ENH - ensure that the atlas coordsys and units are consistent with the functional data
+           1 file changed, 4 insertions(+)
+
+          The atlas I tested with was AAL from template. I have not checked the other template atlases.
+      - +@isprivate: "0"
+        commentid: "18366"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-07 12:08:20 +0100
+        thetext: |-
+          lets do this slightly more formal. I cerated a branch bug2032-coordsys and made these changes:
+
+          [bug2032-coordsys fd9c540] ENH - improved reading of atlas from mat files, added coordsys to brainweb templates, created test script for http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2032 which is currently failing. The surfaces in fieldtrip/template/anatomy do not specify the coordsys.
+           5 files changed, 169 insertions(+), 103 deletions(-)
+           rewrite template/atlas/brainweb/brainweb_discrete.mat (78%)
+           create mode 100644 test/failed_bug2032.m
+      - +@isprivate: "0"
+        commentid: "18367"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-07 12:10:05 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+          I created this PR
+          https://github.com/fieldtrip/fieldtrip/pull/320
+      - +@isprivate: "0"
+        commentid: "18370"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-07 15:28:00 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          I have made further updates. The PR can be merged after successful testing.
+      - +@isprivate: "0"
+        commentid: "18378"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 10:41:37 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #6)\n\nthere are some bugs which I am now squashing. One is that 'mni' is not equal to 'spm'. \n\nmac011> git commit -a\n[bug2032-coordsys 2f5fea6] FIX - the coordsys mni and spm should be recognized as identical. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2032\n 2 files changed, 42 insertions(+), 1 deletion(-)\n create mode 100644 private/fixcoordsys.m"
+      - +@isprivate: "0"
+        commentid: "18387"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 22:38:07 +0100
+        thetext: I have tested and merged the changes. See https://github.com/fieldtrip/fieldtrip/pull/320

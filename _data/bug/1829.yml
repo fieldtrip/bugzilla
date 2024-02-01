@@ -1,0 +1,83 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1829"
+    creation_ts: 2012-11-12 14:31:00 +0100
+    short_desc: rank deficient warning in beamformer_* and Maxfilter data
+    delta_ts: 2013-01-16 15:05:29 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8246"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-11-12 14:31:25 +0100
+        thetext: |-
+          I received a further email from Hyojin Park off-list via Ole, still with questions on the need of regularization with SSS Maxfilter data, and regarding the warning of rank-deficient data.
+
+          1) Currently the warning of rank deficiency is given regardless of lambda. Perhaps this is misleading, since the actual value being inverted in pinv to create InvCy may not be rank-deficient, depending on lambda.  Perhaps the warning should only be given if the matrix being inverted is rank-deficient?   Ole suggests this modification, as then it would allow a person to titrate a lambda value to just big enough to give a full rank, but not any larger.
+
+          2) My impression is that lambda is not needed even if the matrix is not full rank, as FT uses pinv, which only inverts the 'rank rich' components of the matrix.  Is this correct?       A quick test I did with random data showed that using 5% lambda versus the minimal needed to make full rank gave roughly the same result (just a magnitude differnce but not spatial difference) whereas the output of pinv alone on a rank-deficient matrix showed quick a different pattern.
+      - +@isprivate: "0"
+        commentid: "8247"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-12 15:43:24 +0100
+        thetext: we could just remove the warning altogether.
+      - +@isprivate: "0"
+        commentid: "8248"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-11-12 16:06:32 +0100
+        thetext: I guess what I meant to ask related to part (2) is, how to determine which is the 'better' inversion result for a rank-deficient matrix?
+      - +@isprivate: "0"
+        commentid: "8249"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-12 16:36:44 +0100
+        thetext: "the present implementation uses a truncated SVD to do the inversion for numerical reasons.\n\nThe regularization with the labmda is not meant to solve the limited rank (as it does not need to be solved), but to improve the noise estimate in the data covariance. It results in more robust spatial filters in the case of a noisy noise estimate. It also causes the source reconstructions to be more blurred (assuming you scan over a 3D grid). That can be an advantage, either when the noise estimate is poor, or for group statistics.\n\nI think if you remove the warning, the question would not have arisen. \n\nThe question \"what is a good regularization parameter?\" is not a bug and should not be discussed here."
+      - +@isprivate: "0"
+        commentid: "8250"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-11-12 17:58:47 +0100
+        thetext: "svn commit 6909, removed warning from all 4 beamformer_*.m functions.  \n\nThank you for the extra comments. I have indeed already told Hyojin that a greater lambda will help against noisy data, and that it will lead to spatially blurrier source localization results (siminar to min-norm)."

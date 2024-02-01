@@ -1,0 +1,78 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "820"
+    creation_ts: 2011-07-17 21:26:00 +0200
+    short_desc: cfg.vol should not be required input to ft_sourceanalysis
+    delta_ts: 2020-09-18 14:09:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - j.schoffelen
+      - marc.lalancette
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2687"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-17 21:26:17 +0200
+        thetext: |-
+          Is cfg.vol needed as input to ft_sourceanalysis, if grid.leadfield, .pos, .inside and .outside, as well as grad, are given?  (For example, if leadfield is computed outside of FT and a vol was never generated).
+
+          Other useful things (e.g. channel selection/matching) do go on in prepare_headmodel and ft_prepare_vol_sens, but if you give a fake vol.o and vol.r, the code is appeased.
+      - +@isprivate: "0"
+        commentid: "2688"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-07-18 09:25:40 +0200
+        thetext: |-
+          @1: well, only if no additional leadfield computation is required within the function, e.g. for cfg.method='dics' with cfg.refdip = [x y z]
+
+          @2: ?
+      - +@isprivate: "0"
+        commentid: "14699"
+        comment_count: "2"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-10-27 22:05:41 +0100
+        thetext: "I'm wondering if line 291:\n[vol, sens, cfg] = prepare_headmodel(cfg, data); \ncould be completely bypassed under certain conditions, namely having the lead field and other required info (as Johanna suggested).  Otherwise, ft_sourceanalysis does some unnecessary work; it seems to recompute some volume conduction model steps (surface normals, etc.), and gives various errors on number of channel mismatch when supplying \"partially cleaned\" vol and grad structures, e.g. because 'grad.tra' was emptied.  \n\nWould it make sense generally to have this bypassed if for example:\n  isfield(cfg.grid, 'leadfield') && isfield(cfg, 'vol') && any( isfield(cfg, {'grad', 'elec'}) ) , or reuse cfg.grid.cfg.vol, cfg.grid.cfg.grad if like I did: cfg.grid = ft_prepare_leadfield?\n\nFor LCMV at least it seems vol is only needed to get \"inside\" points, and then vol and sens only if the lead field is not provided.\n\nAs for \"appeasing\" the code while avoiding unnecessary computations, it was not obvious with \"singleshell\" (I didn't want to start \"lying\" by selecting a different method than really used).  I had to do: \n  vol.bnd.pnt = zeros(1, 3); % instead of \"emptied by trackconfig\"\n  vol.bnd.tri = zeros(0, 3); % instead of \"emptied by trackconfig\"\n  vol.bnd.nrm = []; % if field absent, recomputed.\n  vol.forwpar = []; % if field absent, recomputed."
+      - +@isprivate: "0"
+        commentid: "20565"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-07-02 08:55:06 +0200
+        thetext: Indeed it shouldn't. With current overhaul of the code, this is indeed not a requirement anymore, provided the input sourcemodel contains the leadfields already

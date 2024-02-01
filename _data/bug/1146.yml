@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1146"
+    creation_ts: 2011-11-12 14:54:00 +0100
+    short_desc: ft_selectdata with no selected trials
+    delta_ts: 2014-01-15 14:42:18 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    blocked: "1021"
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3985"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2011-11-12 14:54:41 +0100
+        thetext: "Hi,\n\nI'm analyzing some data with reaction times in there (stored in the data.trialinfo field). I want to split the data, into two datasets, one with reaction times shorter than 500 ms and one longer. \n\nHowever, if there are NO trials with reaction times shorter than 500 ms, ft_selectdata selects ALL the trials. \n\nExample:\n\n% Create some data\nnchan = 10;\nntrl = 20;\ndata = [];\ndata.label = cellfun(@(x) ['E' num2str(x)], num2cell(1:nchan), 'uni', 0);\ndata.fsample = 100;\ndata.trial = repmat({rand(nchan,100)}, 1, ntrl);\ndata.time = repmat({1/data.fsample:1/data.fsample:1}, 1, ntrl);\ndata.trialinfo(:,1) = 1:ntrl; % reaction times, for simplicity between 1 and 20\n\n%-select some trials\nseltrl = data.trialinfo > 10; % or seltrl = find(data.trialinfo > 10);\ndatasel = ft_selectdata(data, 'rpt', seltrl) % <- expected behavior\n\n%-select no trials\nseltrl = data.trialinfo < 1; % none selected\ndatasel = ft_selectdata(data, 'rpt', seltrl) % <- unexpected behavior, no warning\nIt selects all the trials without warning, which in my case does not make sense (it returns all the trials, with low and high reaction times).\n\nPossible fixes:\nI'm not sure if this is the expected behavior (WONTFIX) or a bug. There are two possible inputs: seltrl is logical or it is find(LOGICAL). Both show the unexpected behavior. \n\nIf seltrl is find(LOGICAL), that is [], then ft_selectdata \n\nselrpt       = ft_getopt(varargin, 'rpt',          []); selectrpt  = ~isempty(selrpt);\n\ndoes not compute any selection on the trials at all, and selectrpt = FALSE. This might be the expected behavior though.\n\nIf seltrl is LOGICAL, all FALSE, then the relevant part is:\n  if islogical(selrpt),\n    selrpt = find(selrpt);\n  elseif isempty(selrpt),\n    warning('you request all repetitions to be thrown away');\n  end\nIn this case, I'd change the elseif into if:\n  if islogical(selrpt),\n    selrpt = find(selrpt);\n  end\n  if isempty(selrpt),\n    warning('you request all repetitions to be thrown away');\n  end\nSo, at least it throws a warning. Even after the warning, it returns ALL the trials (because of private/selfromraw.m, if ~isempty(selrpt) ). At this point, it gets pretty complicated.\n\nMy preference would be for an error, or a warning but the output has no trials.\nPlease, let me know what the intended behavior is and if it makes sense to throw an error instead of a warning.\n\nCheers,\n\nGio"
+      - +@isprivate: "0"
+        commentid: "4017"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-15 20:54:53 +0100
+        thetext: |-
+          @ Craig, I found where I encountered your issue before...
+
+          @ Gio: thanks for your input and the suggested fix. I think there should not be a fundamental objection against the " 'rpt', [] " returning no trials.
+
+          My suggestion would be to change the default assignment (by the call to ft_getopt) into 'all', and to set the selectrpt-flag to true if ischar(selrpt) && ~strcmp(selrpt, 'all'). then we need implement this change also in seloverdim/selfromraw, and ensure that they behave correctly when the 'sel'-vector is empty. I made this suggestion to Craig, along with the request to give it a go implementing it...
+          Could you team up and get it fixed?
+
+          Thanks,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "4247"
+        comment_count: "2"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-11-24 01:01:09 +0100
+        thetext: working on it...
+      - +@isprivate: "0"
+        commentid: "4525"
+        comment_count: "3"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-13 13:33:23 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          JM,
+
+          I'm not sure I understand the approach.  If the default is all, how does the empty matrix, i.e. data = ft_selectdata(data','rpt',[]) cause the selection of none of the trials rather than all of them?
+      - +@isprivate: "0"
+        commentid: "4526"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-12-13 14:03:25 +0100
+        thetext: "right now the code reads\n\nselrpt = ft_getopt(varargin, 'rpt', []); selectrpt = ~isempty(selrpt);\n\nIn other words, selectrpt is set to TRUE only if the selrpt variable is not empty. Only when selectrpt is TRUE the subselection of trials is done. So currently there will never be a selection of NO trials if selrpt = empty.\n\nI suggested:\n\nselrpt = ft_getopt(varargin, 'rpt', 'all'); selectrpt = ~ischar(selrpt) || ~strcmp(selrpt,'all'); \n\nThis causes selectrpt to be set to TRUE if selrpt is either empty, or is a vector with trial indices, i.e. in this case the trial selection will take place. If the code that is doing the actual trial selection knows how to deal with the empty selrpt (i.e. throwing away all trials) then we are set, correct?"
+      - +@isprivate: "0"
+        commentid: "4529"
+        comment_count: "5"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-13 16:14:07 +0100
+        thetext: But if rpt is [], then ft_getopt sets selrpt to 'all', the default, rather than to [], so this is a problem.
+      - +@isprivate: "0"
+        commentid: "4530"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-12-13 16:56:33 +0100
+        thetext: |-
+          I don't understand this. ft_getopt should return [] if there is a key-value pair stating  " 'rpt', [] "
+
+          If it's your purpose to select no trials at all, you should call
+
+          ft_selectdata(data, 'rpt', []). Or am I missing something?
+      - +@isprivate: "0"
+        commentid: "4531"
+        comment_count: "7"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2011-12-13 17:06:00 +0100
+        thetext: Oddly, it is giving me 'all', when I specify [].  It confused me too.  When I give an empty input ([]) ft_getopt gives me the default value.  I guess we need to change this, but the file is a mex.
+      - +@isprivate: "0"
+        commentid: "4533"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-12-13 17:24:28 +0100
+        thetext: confirmed. I don't know why this is the case, and what should be appropriate behavior. I'll check with the boss.
+      - +@isprivate: "0"
+        commentid: "11753"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-29 14:20:13 +0100
+        thetext: |-
+          Working on ft_selectdata_new, I implemented the following behavior:
+
+          default:
+          cfg.trials    = 'all';
+          cfg.channel   = 'all';
+          cfg.latency   = 'all';
+          cfg.frequency = 'all';
+
+          behavior in this case is to select all, i.e. do not select.
+
+          If the user specifies any of these to be empty, nothing will be selected, i.e. the result will be an empty matrix.
+
+          At the moment, this behavior is tested for frequency data and raw data in test_ft_selectdata. I will extend this test also to timelock data (not yet to source data, this pertains to a different bug), and if all works as expected I will change the status of this bug. Agreed?
+      - +@isprivate: "0"
+        commentid: "12082"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-28 09:53:44 +0100
+        thetext: "Since all is awfully quiet in this bug, I assume that everybody agrees.\nI have added the same functionality as mentioned in comment 9 for timelock data, and included it in the regression test (r8871). \nChanging status to fixed."

@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2344"
+    creation_ts: 2013-10-29 11:54:00 +0100
+    short_desc: Non-Linear axis in ft_singleplotTFR
+    delta_ts: 2014-01-29 13:28:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: aya
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11744"
+        comment_count: "0"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-29 11:54:47 +0100
+        thetext: |-
+          Hello,
+
+          When I plot a multiplotTFR with a logarithmic scale on the Y axis, I've got the following warning : "Warning: (one of the) axis is/are not evenly spaced, but plots are made as if axis are linear"
+
+          The warning doesn't appear when I use singleplotTFR however I think it should.
+      - +@isprivate: "0"
+        commentid: "11745"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-29 11:59:40 +0100
+        thetext: |-
+          Hi Aya,
+
+          Is this warning a problem? In other words: do you expect the axes to be plotted with logarithmic spacing as well? I think it makes more sense to plot it linearly (so e.g. distance between 4 and 8 Hz the same as between 8 and 16 Hz, with a log base of 2). The warning is there just to alert users to this fact.
+      - +@isprivate: "0"
+        commentid: "11751"
+        comment_count: "2"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-29 14:05:55 +0100
+        thetext: |-
+          (In reply to comment #1)
+          I don't understand. If there is a logarithmic spacing, doesn't it mean that it's not linear ?
+
+          I do logarithmic spacing as you said
+          data.freq = log2(data.freq);
+          Then I plot my TFR
+          ft_singleplotTFR(cfg,data);
+          set(gca, 'YTickLabel', power(2,get(gca, 'YTick')));
+
+
+          However I obtain strange results for the frequency axis, and I assumed it was due to the fact that I didn't use a linear spacing.
+          By strange results I mean that when something is observed at 20Hz and the I resize the plot, the axis doesn't scale the same way as the TFR and so the something is then observed at another frequency (30Hz).
+      - +@isprivate: "0"
+        commentid: "11752"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-29 14:09:54 +0100
+        thetext: |-
+          (In reply to comment #2)
+          The axis (in memory) can be logarithmically spaced, so freq.freq = [2 4 8 16...], and also the ticks on the Y-axis in the plot can be logarithmically spaced. FieldTrip does not space the ticks logarithmically, but can handle logarithmically spaced frequency axes (in memory).
+
+          What happens when you do not do set(gca, 'YTickLabel', power(2,get(gca, 'YTick'))) after your call to ft_singleplotTFR? I suspect this explicit change of the tick labels is what is causing the problem.
+      - +@isprivate: "0"
+        commentid: "11754"
+        comment_count: "4"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-29 14:49:34 +0100
+        thetext: |-
+          (In reply to comment #3)
+          If I remove this line : "set(gca, 'YTickLabel', power(2,get(gca,
+          'YTick')))", instead of having the real value of the frequencies, I have the log2 of their values (e.g. instead of 32Hz, I have 5).
+      - +@isprivate: "0"
+        commentid: "11768"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 13:37:55 +0100
+        thetext: |-
+          Could you try to also explicitly set YTick, so:
+
+          set(gca, 'ytick', data.freq)
+
+          ? Or whatever location you want the ticks to appear at?
+
+          This would prevent the default Matlab behaviour of redetermining the tick locations upon resize. In general, you should always also set ytick/xtick if you are setting yticklabel/xticklabel.
+
+          - Eelke (logged in as Robert)
+      - +@isprivate: "0"
+        commentid: "11771"
+        comment_count: "6"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-30 15:23:00 +0100
+        thetext: |-
+          (In reply to comment #5)
+          I just tried it, it works perfectly ! thanks !
+
+          I think I understand where was the problem, when I re-sized the plot, some ticks disappeared but matlab continued to display the smaller value. For example, if I had 8Hz 16Hz and 32Hz, and then I reduce the plot, matlab would remove the intermediate tick thus keeping 8Hz and 32Hz but with the smaller labels (8Hz and 16Hz).
+
+          So if I understand the warning in my first message : "Warning: (one of the) axis is/are not evenly spaced, but plots are made as if axis are linear"
+          It applies only to ft_multiplotTFR and the problem I had with singleplot had nothing to with it.
+      - +@isprivate: "0"
+        commentid: "11772"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-10-30 15:24:35 +0100
+        thetext: |-
+          (In reply to comment #6)
+          Great, good to hear :) Will close this now.
+      - +@isprivate: "0"
+        commentid: "12641"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:31 +0100
+        thetext: changing lots of bugs from resolved to closed.

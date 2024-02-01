@@ -1,0 +1,100 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3392"
+    creation_ts: 2017-12-18 22:28:00 +0100
+    short_desc: ft_preproc_padding index exceeds dimensions in padend
+    delta_ts: 2018-03-02 15:05:52 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: nick.ketz
+      +@name: Nick Ketz
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19146"
+        comment_count: "0"
+        who:
+          +content: nick.ketz
+          +@name: Nick Ketz
+        bug_when: 2017-12-18 22:28:26 +0100
+        thetext: |-
+          ran and issue with mirror padding when the padlength is 1 less than 2*number of samples. e.g.:
+
+          n = 100;
+          ft_preproc_padding(1:n,'mirror',2*n-1)
+          Index exceeds matrix dimensions.
+
+          Error in ft_preproc_padding (line 91)
+              dat       = [dat(:, padbeg) dat dat(:, padend)];
+
+
+
+
+          looks like changing line 79 from:
+              while postpadlength > begsample % this will be a linear piecewise function consisting of two pieces taking turns
+
+          to:
+              while postpadlength >= begsample % this will be a linear piecewise function consisting of two pieces taking turns
+
+          resolves it.  Looks like this change should also be added to line 64 as indexing is broken in the same case, although no error is thrown.
+      - +@isprivate: "0"
+        commentid: "19159"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-05 13:53:22 +0100
+        thetext: |-
+          Thanks for reporting, Nick.
+
+          I looked into this in quite some detail, and found that the behavior is rather unpredictable. Indeed, it throws an error with your example, but not when doing the padding with 2*n+1, or with 2*n. Either way, different values for the padding, yield differences at the edges, which to me seems as if the clunky code is not working super robustly.
+
+          I took the liberty of reimplementing the mirror padding completely, and pushed the latest changes into our github repository.
+
+          I realized that the old behaviour did not use the first and last sample twice when performing the mirroring operation, which seems a bit odd to me. That is, it is at least defendible to take the edge samples into account as well (I actually think, that this is the way it should be done.
+
+          This means that the current version outputs (as per your example):
+
+          [(2:100) (100:-1:1) (1:100) ... etc], rather than [3 2 (1:99) (100:-1:1) (2:100) etc];
+      - +@isprivate: "0"
+        commentid: "19176"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-01-09 11:35:16 +0100
+        thetext: closing.
+      - +@isprivate: "0"
+        commentid: "19289"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-02 15:05:52 +0100
+        thetext: .

@@ -1,0 +1,233 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2404"
+    creation_ts: 2013-12-03 10:29:00 +0100
+    short_desc: ft_channelrepair returns a grad field which was not present before
+    delta_ts: 2019-04-06 13:03:05 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2403
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2405"
+    blocked: "2331"
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - matt.mollison
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12183"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 10:29:47 +0100
+        thetext: "After running ft_channelrepair on an EEG dataset using the 'nearest' method, the structure contains a grad field which was not present before. \n\nI think the problem occurs because in line 104-106 and 197-201:\n\n\"% determine the type of data\niseeg = ft_senstype(data, 'eeg');\nismeg = ft_senstype(data, 'meg');\"\n\nthe data is not recognized as being eeg data nor as being meg data. \n\nFurther in the code (197-201) you can see that if iseeg is not 1, a grad field is added, regardless of the type:\n\n\"if iseeg\n    interp.elec  = sens;\n  else\n    interp.grad  = sens;\nend\""
+      - +@isprivate: "0"
+        commentid: "12185"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 11:11:39 +0100
+        thetext: "If I try the following test script\n\n\ndata = [];\ndata.label = {'1', '2', '3'};\ndata.time{1} = (1:1000)/1000;\ndata.trial{1} = randn(3,1000);\ndata.trial{1}(2,:) = 0; % broken channel\n\ncfg = [];\ncfg.channel = '2';\ncfg.neighbours(1).label = '2';\ncfg.neighbours(1).neighblabel = {'1', '3'};\nfixed = ft_channelrepair(cfg, data);\n\nit fails with \n\nError using ft_fetch_sens (line 179)\nno electrodes or gradiometers specified.\n\nError in ft_channelrepair (line 112)\n  sens = ft_fetch_sens(cfg, data);\n\nI am surprised that the function cannot simply compute the average over the neighbours any more. It now uses a distance-weighted average, which required the sens.\n\nWell. that is not something to fix now."
+      - +@isprivate: "0"
+        commentid: "12186"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 11:31:24 +0100
+        thetext: |-
+          I have made some changes that might fix it for you
+
+          mac001> svn commit ft_channelrepair.m test/test_bug2404.m
+          Sending        ft_channelrepair.m
+          Adding         test/test_bug2404.m
+          Transmitting file data ..
+          Committed revision 8942.
+
+          However, the test script reveals some other problems. I will make a linked bug out of it.
+      - +@isprivate: "0"
+        commentid: "12187"
+        comment_count: "3"
+        attachid: "567"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 11:32:52 +0100
+        thetext: |-
+          Created attachment 567
+          test script producing the problem
+      - +@isprivate: "0"
+        commentid: "12189"
+        comment_count: "4"
+        attachid: "568"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 11:33:14 +0100
+        thetext: |-
+          Created attachment 568
+          sample data
+      - +@isprivate: "0"
+        commentid: "12190"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-12-03 11:35:31 +0100
+        thetext: Ahh, I just added a script and sample of data reproducing the problem. I'll check if your fix solves the problem for the sample I just uploaded.
+      - +@isprivate: "0"
+        commentid: "12275"
+        comment_count: "6"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-12-06 21:17:23 +0100
+        thetext: "I downloaded fieldtrip-20131204 and ended up receiving a new version of ft_channelrepair. I have a workflow that passes data from ft_preprocessing to ft_channelrepair if a channel needed interpolating, but the new output of ft_channelrepair has changed and fields that I relied on are no longer included. To be specific, hdr, fsample, and cfg are missing, and I used fsample to determine the max frequency for subsequent filtering during artifact checking. I could probably work around it, but I thought I'd see whether this was done for a good reason or if it's an oversight/bug.\n\nHere is what I pass into the new ft_channelrepair:\ndata = \n           hdr: [1x1 struct]\n         label: {128x1 cell}\n       fsample: 250\n         trial: {1x1736 cell}\n          time: {1x1736 cell}\n     trialinfo: [1736x20 double]\n    sampleinfo: [1736x2 double]\n           cfg: [1x1 struct]\n\nand here is what I get out:\ndata = \n         label: {128x1 cell}\n          time: {1x1736 cell}\n         trial: {1x1736 cell}\n    sampleinfo: [1736x2 double]\n     trialinfo: [1736x20 double]\n          elec: [1x1 struct]\n\nAs I said earlier, there are missing fields, which I can see were deleted using this URL (lines 193 and 340) https://code.google.com/p/fieldtrip/source/diff?spec=svn8985&r=8942&format=side&path=/trunk/ft_channelrepair.m&old_path=/trunk/ft_channelrepair.m&old=8384\n\nMaybe they (or at least fsample, as data.cfg and data.hdr do not look like they were included in the previous version) should be added at line 336 with the other fields (e.g., trialinfo)?"
+      - +@isprivate: "0"
+        commentid: "12276"
+        comment_count: "7"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2013-12-06 21:32:33 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          Oh sorry, there is a cfg field when it actually returns to the parent function. In my prior post I was investigating the fields at a break point at the end of ft_channelrepair where data = interp;
+      - +@isprivate: "0"
+        commentid: "12287"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-09 11:40:10 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          Hi Matt
+
+          Please see the documentation in utilities/ft_datatype_raw:
+
+          % Required fields:
+          %   - time, trial, label
+          %
+          % Optional fields:
+          %   - sampleinfo, trialinfo, grad, elec, hdr, cfg
+          %
+          % Deprecated fields:
+          %   - fsample
+          %
+          % Obsoleted fields:
+          %   - offset
+
+          We are trying to move away from having fsample in the raw data, as it is redundant with the time axis and potentially conflicting (i.e. which one is correct if they differ?). There are some FT functions that still use it, hence it is still added by ft_checkdata at the start of the FT function. But in the output of FT functions it preferably should not be present.
+
+          hdr should only be present immediately after reading it, not after other steps on the data. It is also largely redundant, as the raw data should describe itself. FT functions never have used data.hdr. The risk in hdr is that labels might be renamed (with an EEG montage), channel subsets are made, balancing is applied to MEG gradiometers, data is resampled. All of those steps would invalidate the information in hdr, that is why it should not be in the output.
+
+          We have had (and probably still have) functions that work like this
+
+          function data = dosomething(cfg, data)
+          data.field = updatedfield;
+
+          but that is a risky programming style, since there might be other fields in the data that now get copied to the output without properly being updated. The safer style of FT functions is
+
+          function datanew = dosomething(cfg, datanew)
+          datanew.field = updatedfield;
+          datanew.something1 = dataold.something1; % explicitly knowing that it still is valid
+          datanew.something2 = dataold.something2; % explicitly knowing that it still is valid
+          datanew.something3 = dataold.something3; % explicitly knowing that it still is valid
+
+          I suspect that ft_channelrepair changed from the first (leaving stuff in place, only updating fields) to the new style (copying fields according to explicit design). That, linked with the ft_datatype_raw documentation, results in fewer output fields being present than there were in the past.
+      - +@isprivate: "0"
+        commentid: "12375"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-17 14:30:42 +0100
+        thetext: |-
+          Hey guys,
+
+          you bugged ft_channelrepair in revision 8942 by not updating the label-field appropriately if missing channels are added in the end
+          http://code.google.com/p/fieldtrip/source/detail?spec=svn9038&r=8942
+
+          I fixed that
+          svn ci ft_channelrepair.m -m "bugfix - correct labels added after rev. 8942 juggled things around"
+          Sending        ft_channelrepair.m
+          Transmitting file data .
+          Committed revision 9039.
+
+          I'll keep an eye on whether the order of the labels is still in accordance with the data ;)
+      - +@isprivate: "0"
+        commentid: "12378"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-17 15:00:02 +0100
+        thetext: |-
+          all fine now, testscript extended
+
+          svn ci test/test_ft_channelrepair.m -m "enhancement - testscript covers unordered labels and is more robust now"
+          Sending        test/test_ft_channelrepair.m
+          Transmitting file data .
+          Committed revision 9043.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "567"
+        date: 2013-12-03 11:32:00 +0100
+        delta_ts: 2013-12-03 11:32:52 +0100
+        desc: test script producing the problem
+        filename: test_bug2404.m
+        type: text/plain
+        size: "308"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "568"
+        date: 2013-12-03 11:33:00 +0100
+        delta_ts: 2013-12-03 11:33:14 +0100
+        desc: sample data
+        filename: bug2404.mat
+        type: application/octet-stream
+        size: "8863377"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED

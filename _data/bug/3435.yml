@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3435"
+    creation_ts: 2018-07-02 21:27:00 +0200
+    short_desc: Syntax error using vol2mesh
+    delta_ts: 2019-08-10 12:37:18 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jiamingc
+      +@name: Jiaming
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - jiamingc
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19369"
+        comment_count: "0"
+        who:
+          +content: jiamingc
+          +@name: Jiaming
+        bug_when: 2018-07-02 21:27:27 +0200
+        thetext: |-
+          Line 73 of prepare_mesh_tetrahedral.m
+
+          It seems that the code tries to feed an isovalue (which is defined in Line 72) to vol2mesh. If my understanding is correct, the use of vol2mesh
+          [node, elem, face] = vol2mesh(seg, 1:mri.dim(1), 1:mri.dim(2), 1:mri.dim(3), 2, 2, isovalue);
+          is incorrect, according to the documentation fo vol2mesh.
+
+          I'd suggest changing the line to:
+          [node, elem, face] = vol2mesh(seg, 1:mri.dim(1), 1:mri.dim(2), 1:mri.dim(3), 2, 2,1,'cgalsurf', isovalue);
+      - +@isprivate: "0"
+        commentid: "19603"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-21 15:30:56 +0100
+        thetext: Hi Simon, could you look into this? Thanks, JM
+      - +@isprivate: "0"
+        commentid: "19604"
+        comment_count: "2"
+        who:
+          +content: s.homolle
+          +@name: Simon
+        bug_when: 2018-11-21 17:23:12 +0100
+        thetext: "So investigated prepare_mesh_tetrahedral line 72. Indeed i found an incorrect usage of vol2mesh. \n\nIt is used as followed:\nisovalue = 0.5;\n[node, elem, face] = vol2mesh(seg, 1:mri.dim(1), 1:mri.dim(2), 1:mri.dim(3), 2, 2, isovalue);\n\nHowever, looking into vol2mesh i found this usage:\nvol2mesh(img,ix,iy,iz,opt,maxvol,dofix,method,isovalues)\n\nAccording to the code we parsed the value 0.5 into dofix, and method and isovalues is left empty. However, dofix is a binary.\n\nSo I looked into vol2mesh. In line 60 an IF starts. Here is were the incorrect usage of vol2mesh is dealt with, with nargin=7 we end in line 65.\n\n\nSo I propose to change line 72, to make the behaviour more explicit, and consistent with the documentation. This will not change the output of prepare_mesh_tetrahedral.\n\nPull request is coming!"
+      - +@isprivate: "0"
+        commentid: "19606"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-22 17:06:48 +0100
+        thetext: |-
+          Thanks Simon! I have approved the PR, will close this for now.
+          Jiaming feel free to reopen if the problem persists.
+      - +@isprivate: "0"
+        commentid: "20375"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:37:18 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

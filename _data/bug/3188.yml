@@ -1,0 +1,80 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3188"
+    creation_ts: 2016-10-22 16:26:00 +0200
+    short_desc: ft_connectivityanalysis inconsistent output for powcorr_ortho
+    delta_ts: 2016-11-29 09:00:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17841"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-22 16:26:37 +0200
+        thetext: "When calling ft_connectivityanalysis with method = 'powcorr_ortho' the output is different in many ways from the output when using 'coh' or 'plv' (I didnt test any other methods). This leads to problems when analyzing the output further, for example because getdimord does not recognize the output's dimensions ('unknown_unknown') when calling ft_sourceparcellate.\n\nExample output for methods coh, plv, and powcorr_ortho:\n\nsource_coh = \n\n          dim: [18 21 18]\n       inside: [3294x1 double]\n          pos: [6804x3 double]\n      outside: [3510x1 double]\n    cohspctrm: [6804x6804 double]\n       dimord: 'pos_pos_freq'\n         freq: 7.9828\n          cfg: [1x1 struct]\n\nsource_plv = \n\n          dim: [18 21 18]\n       inside: [3294x1 double]\n          pos: [6804x3 double]\n      outside: [3510x1 double]\n    plvspctrm: [6804x6804 double]\n       dimord: 'pos_pos_freq'\n         freq: 7.9828\n          cfg: [1x1 struct]\n\nsource_pco = \n\n              dim: [18 21 18]\n           inside: [6804x1 logical]\n              pos: [6804x3 double]\n    powcorrspctrm: [3294x3294 double]\n           dimord: '{pos}_ori'\n              cfg: [1x1 struct]\n\n\nNote that the dimord and the inside/outside description is different as well as a missing freq field. Also the spectrum is given for all locations in the first two cases and only for inside locations in the last case.\nThe inside description should probably be logical in all cases.\n\nThe actual structures, the data used to produce them, and the code for the connectivityanalysis is here: https://www.dropbox.com/sh/vegxg2hzqtf2ua6/AADdpopVtoXnfQ8WkxF_L_3Ya?dl=0\n\ncfg\t\t\t= [];\ncfg.method\t\t= 'coh';\ncfg.complex\t\t= 'absimag';\nsource_coh\t\t= ft_connectivityanalysis(cfg, source);\n\ncfg\t\t\t= [];\ncfg.method\t\t= 'plv';\nsource_plv\t\t= ft_connectivityanalysis(cfg, source);\n\ncfg\t\t\t= [];\ncfg.method\t\t= 'powcorr_ortho';\nsource_pco\t\t= ft_connectivityanalysis(cfg, source);"
+      - +@isprivate: "0"
+        commentid: "17842"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-24 10:35:34 +0200
+        thetext: |-
+          I have created some test data (based on the source.mat variable only, to keep the file size manageable on /home/common/fieldtrip/data/test/bug3188.mat).
+
+          With a reduced number of inside voxels, I could reproduce:
+          -the old-style inside/outside indexing for the 'coh' method
+          -the inconsistent data representation for 'powcorr_ortho'
+
+          I fixed this issues in a separate branch and will initiate a pull request shortly.
+      - +@isprivate: "0"
+        commentid: "17845"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-24 13:50:17 +0200
+        thetext: I pull requested the changes. All seems to work fine regarding this issue
+      - +@isprivate: "0"
+        commentid: "17846"
+        comment_count: "3"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-24 14:16:27 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #2)
+
+          Perfect, also ft_sourceparcellate deals with the output properly now. Thanks!

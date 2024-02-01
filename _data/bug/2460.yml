@@ -1,0 +1,200 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2460"
+    creation_ts: 2014-01-29 13:30:00 +0100
+    short_desc: ft_datatype error with two (logical) mask fields
+    delta_ts: 2015-07-15 13:31:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12696"
+        comment_count: "0"
+        attachid: "586"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-01-29 13:30:58 +0100
+        thetext: "Created attachment 586\nerror producing pseudo source\n\nDear ft developers,\nI recently stumbled into this problem when I tried to interpolate source statistics for plotting and I (pretentiously perhaps) wanted to interpolate two different masks (one for statistics, one for a roi). The error is that I do end up in fixsegmentation and the label field (which is also not the right one) contains something different than positive integers/logicals.\n\nAnyhow, I did some debugging and found out that it is actually ft_checkdata creating the problem as it recognizes my data as being parcellated (via ft_datatype), which they are not and thus they end up in the wrong 'loop' (ft_datatype_parcellated; fixsegmentation). \n\nin fact, the problem stems from line 195 in ft_datatype where it says:\n>>\n% the presence of multiple logical arrays suggests it is a parcellation\n  res = true;\n<<\none can of course avoid that issue by not having more than one logical field, yet I find this inconvenient (also it is nowhere stated that one should not).\n\nas stated above the error only occurs when one also has a field containing 'label' as in negclusterslabelmat (i.e. if one did cluster statistics as I did...). then this field is used in fixsegmentation where it finally crashes.\n\nto make things clear i attached a snippet that produces the error.\n\nI am not sure if this is absolutely necessary to be resolved but it took me quite some time to figure out what the problem was so maybe this could at least be documented (in ft_sourceinterpolate?). furthermore, the behavior is inconsistent (e.g., you don't run into problems when you do not have a label field, yet I don't know if the data is treated right, as it is recognized as something it is not, in short I'm having trust issues here). \ni checked with the most recent ft version.\n\nbest wishes\nphilipp"
+      - +@isprivate: "0"
+        commentid: "12699"
+        comment_count: "1"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-01-29 13:33:53 +0100
+        thetext: 'btw: I forgot, it does not matter whether one wants to interpolate the second mask or not.'
+      - +@isprivate: "0"
+        commentid: "12750"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-29 16:29:22 +0100
+        thetext: "Hi Philipp, \nSorry about this.\nSo to be really clear: your problem is twofold:\nif there's a field called xxx.yyylabelmat there's a crash in checkdata\nif there's two logical masks it also doesn't work?\n\n(I reproduce the error with your snippet of code, but am not sure whether this addresses the overall bug)"
+      - +@isprivate: "0"
+        commentid: "12752"
+        comment_count: "3"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-01-29 16:45:22 +0100
+        thetext: |-
+          Hey JM,
+          sorry, i wasn't clear enough I guess.
+          it indeed seems to depend on both, so
+
+          1) two logical fields create a misclassification (then its classified as parcellation)
+          2) an error is only occurring when an yylabelxx field is present (ft_checkdata crash)
+
+          thus, 1) is happening in any case (if you have two logical fields) but you don't recognize it unless 2)
+
+          hope that makes things clearer
+          philipp
+      - +@isprivate: "0"
+        commentid: "12753"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-29 16:53:37 +0100
+        thetext: OK, the explicit error is due to the negclusterslabelmat in the example containing NaNs.
+      - +@isprivate: "0"
+        commentid: "12754"
+        comment_count: "5"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-01-29 16:58:15 +0100
+        thetext: |-
+          exactly
+          nans are set for outside points in my data...
+          I thought I wrote that somewhere but I guess that was in my head ;)
+      - +@isprivate: "0"
+        commentid: "12872"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-20 16:13:59 +0100
+        thetext: |-
+          Hi Philipp, sorry for only getting back to you about this now.
+          Actually it's an interesting issue. I added Robert to the cc of this bug.
+          To get him up to speed, here's the problem:
+
+          problem 1: a source structure that contains more than data-field defined as logical is identified as a parcellation and automatically fixed. That is: the logical fields are changed such that there is no overlap between the logical masks.
+
+          problem 2: a source structure that contains neg/posclusterslabelmat as a field is identified as a segmentation (due to the field containing integers only, I think). this is strictly speaking correct (because the clusters are a segmentation), but it leads to a crash when ft_checkdata tries to convert such a source structure into a volume structure.
+
+          @problem 1 I am not sure about the best way to solve this.
+
+          @problem 2 we could build in an exception for the labelmat fields (just as it is done in the code for the anatomy field (in check_segmentationstyle)), but the question is whether this is OK, because the labelmat matrices are strictly speaking segmentations.
+      - +@isprivate: "0"
+        commentid: "12873"
+        comment_count: "7"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-02-20 16:55:52 +0100
+        thetext: "Hey Jan-Matijs & Robert\nthanks for getting back to me. \njust one thing that got me confused, you write\n\"a source structure that contains neg/posclusterslabelmat as a field is identified as a segmentation\"\n\nI don't know whether that's true, actually I don't think so. the thing is, that the two logical fields lead to the classification 'segmentation' and then a 'label' field is used (for what i don't remember), yet the neg/posclusterlabelmat have the wrong format (I think it was something about the NaNs) which leads to the crash.\nIf it was about the NaNs that could also be an option for a fix.\nsorry for not recalling this more detailed \n\nfor now I keep only one logical field and pass the other mask (if I really desperately want it) on as a double. that usually works well without errors, but I'm not so sure if the interpolation makes so much sense then...although I can easily convert it back to logical afterwards\nthanks again\nphilipp"
+      - +@isprivate: "0"
+        commentid: "12874"
+        comment_count: "8"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-02-20 16:56:32 +0100
+        thetext: sorry, forgot an 'h' :)
+      - +@isprivate: "0"
+        commentid: "12881"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-21 18:26:50 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #6)\n\nIndeed an interesting problem.\n\nTechnically I can see the reason for it being detected as segmentation or parcellation (* see below), although I had never thought of it like this.\n\n(*) The only difference between a segmentation and parcellation is that a segmentation is based on a \"volume\" (dim/transform) structure and a parcellation is based on a \"source\" (organized or unorganized pos) structure. Overall data handling for segmentation and parcellation is largely the same (or should largely be the same), the difference is in how positions are represented and the number of dimensions in the data that is represented on the positions.\n\nThere are three possibilities for data in a segmentation/parcellation defined in ft_datatype_segmentation: \n1) with integer values that map onto separate labels \n2) with logical values, fieldnames are the labels\n3) with numerical values between 0 and 1, fieldnames are the labels\n\n2 can be seen as a special case of 3.\n\nLooking at the example code, data.negclusterslabelmat is interpreted as \"1\", data.mask is interpreted as \"2\", and is interpreted as \"3\".\n\nThat is confusing (for the code).\n\nFurthermore, there is the assumption in the code that \"1\" and \"2\" can be converted in each other. The representation \"1\" has the restriction that a position can only have one label (a restriction that technically does not apply to \"2\").\n\nI'll have to ponder a little bit more on this. I suspect the fundamental problem is in the code assuming that the three representations are supposed to be exclusive, although the example output of ft_sourcestatistics is a clear case against this assumption."
+      - +@isprivate: "0"
+        commentid: "12882"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-21 18:28:22 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #9)
+
+          Sorry, there is a missing section in the comment above. It should read:
+
+          Looking at the example code, data.negclusterslabelmat is interpreted as "1", data.mask is interpreted as "2", and is data.prob interpreted as "3".
+      - +@isprivate: "0"
+        commentid: "15309"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:50:41 +0100
+        thetext: |-
+          Hi Philipp,
+          Is this still something that needs follow up?
+      - +@isprivate: "0"
+        commentid: "15310"
+        comment_count: "12"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2015-02-11 15:59:53 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #11)\n\nahem, i just tested my code from way back then and there seems to be no error. \nso I guess it has been solved somehow during the last year. yet, as stated above, I got accustomed to just having one boolean field and that always worked... \n\nso my take on this: close it, as nobody else ran into this problem slash it maybe is solved anyway?!\n\ncheers\np\n\np.s.: I think I haven't filed a single bug since the BioMag, that should count for something, right :)"
+      - +@isprivate: "0"
+        commentid: "15335"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-12 08:49:13 +0100
+        thetext: Good lad :-)
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "586"
+      date: 2014-01-29 13:30:00 +0100
+      delta_ts: 2014-01-29 13:30:58 +0100
+      desc: error producing pseudo source
+      filename: snippet_check.m
+      type: text/x-matlab
+      size: "674"
+      attacher:
+        +content: philipp.ruhnau
+        +@name: Philipp Ruhnau
+      data: REMOVED

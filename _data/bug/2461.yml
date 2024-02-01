@@ -1,0 +1,471 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2461"
+    creation_ts: 2014-01-29 14:58:00 +0100
+    short_desc: 2014b, Handle Graphics 2 and FieldTrip
+    delta_ts: 2015-07-15 13:46:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc: http://www.mathworks.nl/products/matlab/matlab-graphics/index.html
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    dependson:
+      - "2759"
+      - "2760"
+    blocked: "2930"
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - eelke.spaak
+      - j.herring
+      - jorn
+      - koreykam
+      - luca.fornia
+      - nick.peatfield
+      - r.oostenveld
+      - Tilmann.Sander-Thoemmes
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12726"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 14:58:20 +0100
+        thetext: |-
+          This is somewhat speculative and pre-emptive, but Matlab has been developing the next generation of graphics systems called handle graphics 2. Testing FT using HG2 most plots seems to initiate except the databrowser, but lots of plots error out before completion due to a simple bug caused by the following use of gcf:
+
+          set(gcf, 'Name', sprintf('%d: %s: %s', gcf, funcname, dataname));
+
+          gcf now returns an object which sprintf chokes on. You can use:
+
+          cf=gcf;
+          set(gcf, 'Name', sprintf('%d: %s: %s', num, funcname, dataname));
+
+          and
+
+          if strcmpi(class(gcf),'double')
+
+          to check if gcf returns a HG1 (true) or HG2 (false) object.
+
+          To run HG2 matlab use:
+
+          > matlab -hgVersion 2 &
+
+          http://undocumentedmatlab.com/blog/hg2-update/
+      - +@isprivate: "0"
+        commentid: "12728"
+        comment_count: "1"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 15:00:08 +0100
+        thetext: |-
+          sorry:
+
+          cf=gcf;
+          set(gcf, 'Name', sprintf('%d: %s: %s', cf.Number, funcname, dataname));
+      - +@isprivate: "0"
+        commentid: "12740"
+        comment_count: "2"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 15:34:45 +0100
+        thetext: |-
+          A more elegant way is to cast the object to a double, works for HG1 or HG2 without issue:
+
+          set(gcf, 'Name', sprintf('%d: %s: %s', double(gcf), funcname, dataname));
+      - +@isprivate: "0"
+        commentid: "13965"
+        comment_count: "3"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-06-27 15:27:01 +0200
+        thetext: Matlab 2014b will set HG2 as the default (about time!!!), this is a significant change but FT still seems to work OK with the changes I made here (I don't use the GUIs that much). There is a GUI migration tool I can try with the fieldtrip directory.
+      - +@isprivate: "0"
+        commentid: "13970"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-06-30 09:42:27 +0200
+        thetext: |-
+          Hi Ian,
+
+          thanks for letting us know. I'll bring this up in the next FT meeting so that we can discuss this in more detail with our development team.
+      - +@isprivate: "0"
+        commentid: "13981"
+        comment_count: "5"
+        attachid: "645"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-07-01 14:55:46 +0200
+        thetext: |-
+          Created attachment 645
+          HTML Matlab report
+
+          This is the report from the Matlab graphics updater run on my fieldtrip folder (that already contains the double(gcf) fixes), there are 132 issues, 38 of which are deemed "high impact". Some of these will be in contributed code, not FT directly...
+      - +@isprivate: "0"
+        commentid: "13982"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-01 15:09:23 +0200
+        thetext: |-
+          thanks a lot, that makes life a lot easier for us. Seems like we need to add some version checking for various things, but nothing dramatic. Most crucially we need to take care to not treat figure handles as numbers anymore. And some functionality is actually finally like I would have wanted/expected it anyway (e.g. uipanel behaviour or getframe).
+          Now, I need to find out whether we got some Matlab14b flying around in our institute...
+      - +@isprivate: "0"
+        commentid: "14147"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-07-16 14:01:24 +0200
+        thetext: |-
+          I added some text to the code guidelines to remind future-us of this:
+          http://fieldtrip.fcdonders.nl/development/guidelines/code?&#figure_handles_and_handle_graphics_2
+
+          Most importantly, I wrote down that all issues and fixes that we encounter in light of this bug will be posted to above linked code guidelines. We should not forget to do so.
+      - +@isprivate: "0"
+        commentid: "14293"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-09-03 14:24:12 +0200
+        thetext: |-
+          I checked the proposed fixes by the matlab report. Unfortunately, the substitutes (e.g. initiating a graphics handles as gobject instead of []) is not backwards compatible with older matlab version. Thus, we require fallback functions in case the matlab version predates 2014b.
+
+          The most important change is indeed the change of graphic handles from being doubles to objects, thus we are not allowed to set a handle to 0 or 1 anymore. Apart from that, the report states mostly things concerning user interfaces (i.e. we need to check that they look alright, e.g. uipanels are now independent of axes and can stretch into nearby subplots). In the meanwhile, I will fix the 'Name' issue now by casting gcf to a double, which Ian reported to be compatible.
+      - +@isprivate: "0"
+        commentid: "14297"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-09-03 15:59:08 +0200
+        thetext: |-
+          svn ci ft_layoutplot.m ft_multiplot*.m ft_singleplot*.m ft_topoplotCC.m private/topoplot_common.m ft_databrowser.m -m "bugfix #2461 - figure handles for naming are now cast to double do be HG2 compatible"
+          Sending        ft_databrowser.m
+          Sending        ft_layoutplot.m
+          Sending        ft_multiplotER.m
+          Sending        ft_multiplotTFR.m
+          Sending        ft_singleplotER.m
+          Sending        ft_singleplotTFR.m
+          Sending        ft_topoplotCC.m
+          Sending        private/topoplot_common.m
+          Transmitting file data ........
+          Committed revision 9778.
+      - +@isprivate: "0"
+        commentid: "14647"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-16 12:16:52 +0200
+        thetext: |-
+          FYI, matlab2014b just arrived at the Donders. I installed it on my local (mac) machine, and soon we'll also get it on windows and linux.
+
+          at startup, it states: "MATLAB R2014b introduces a new MATLAB graphics system. New default colors, fonts, and styles make your data easier to interpret. ... Some existing graphics-related code may need to be revised to work in R2014b."
+
+          looking forward to revising FT plotting functions :-(
+      - +@isprivate: "0"
+        commentid: "14663"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-17 14:49:14 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          I noticed test_bug2096 failing due to ft_sourceplot/ft_plot_ortho dealing with handles as numbers, whereas in matlab2014a they are objects.
+
+          This is a partial fix, there is more to be done.
+
+          mac011> svn commit plotting/ft_plot_ortho.m
+          Sending        plotting/ft_plot_ortho.m
+          Transmitting file data .
+          Committed revision 9909.
+      - +@isprivate: "0"
+        commentid: "14668"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-18 18:02:23 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #11)\n\nFurther with test_bug2096, I made some changes in ft_sourceplot. \n\nmac011> svn commit ft_sourceplot.m\nSending        ft_sourceplot.m\nTransmitting file data .\nCommitted revision 9914.\n\nThe underlying functions are still not fully compatible with hg2, which can be noticed if you click in an ortho and it tries to update."
+      - +@isprivate: "0"
+        commentid: "14676"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-10-20 09:20:32 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #12)
+
+          /trunk/ft_sourceplot.m   r9914   line 1324:
+
+          ft_plot_ortho(opt.ana, 'transform', eye(4), 'location', opt.ijk, 'style', 'subplot', 'parents', tmph, 'doscale', false, 'clim', opt.clim);
+
+          This variable tmph is undefined, and so ft_sourceplot breaks since this commit. Can I replace it with [h1 h2 h3].*opt.update?
+      - +@isprivate: "0"
+        commentid: "14677"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-20 09:42:09 +0200
+        thetext: "(In reply to Eelke Spaak from comment #13)\n\nNo, you should not replace it with [h1 h2 h3].*opt.update, as that is precisely what broke in HG2/2014b. Figure handles are no numbers any more, so mathematical operations do not apply.\n\nThere should have been a section\n  \n    tmph  = [h1 h2 h3];\n    tmph(~opt.update) = 0;\n\nwhich I forgot to add for the ana case.\n\nmac011> svn commit ft_sourceplot.m \nSending        ft_sourceplot.m\nTransmitting file data .\nCommitted revision 9920."
+      - +@isprivate: "0"
+        commentid: "14679"
+        comment_count: "15"
+        who:
+          +content: nick.peatfield
+          +@name: Nicholas Peatfield
+        bug_when: 2014-10-21 13:14:35 +0200
+        thetext: I think this is directly related to the HG2 issue "bug" so I thought i'd post it here. The cfg.interactive = "yes" when using any of the plotting functions option no longer works for me (2014b 10.10 OSX). With the latest ft all the plotting functions seem to work fine.
+      - +@isprivate: "0"
+        commentid: "14722"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-30 16:52:17 +0100
+        thetext: |-
+          Thanks for reporting the specific bug.
+
+          There have been significant changes in the graphics in matlab2014b, which we are aware of. It will take time to resolve these issues. I hope that you can revert to matlab2014a for the time being.
+
+          See also bug 2750.
+
+          *** This bug has been marked as a duplicate of bug 2750 ***
+      - +@isprivate: "0"
+        commentid: "14724"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-30 16:54:01 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #16)
+
+          Bummer, I meant to post that as comment to bug 2750 and revert it to this one. Sorry, let me try again.
+      - +@isprivate: "0"
+        commentid: "14726"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-30 16:55:00 +0100
+        thetext: '*** Bug 2750 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "14752"
+        comment_count: "19"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2014-10-31 15:50:34 +0100
+        thetext: |-
+          R2014b: I had it in topoplot_common as "abs not defined for matlab.graphics.axis.Axes"
+
+          I do not understand, why Mathworks did not provide a compatibility switch to
+          make a smooth transition. One should tell them that. I gues SPM community will
+          be delighted too :-((
+
+          Cheers, Till
+      - +@isprivate: "0"
+        commentid: "14786"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-12 13:56:06 +0100
+        thetext: "(In reply to Tilmann Sander-Thommes from comment #19)\n\nThe specific pattern causing a problem is\n\n  dataname = num2str(gca);\n  dotpos   = findstr(dataname,'.');\n  dataname = ['DATA' dataname(1:dotpos-1) 'DOT' dataname(dotpos+1:end)];\n  setappdata(gcf,dataname,varargin(1:Ndata));\n\nwhich happens multiple times in \n\n189-145> grep -l DATA.*dot *.m */*.m\nft_singleplotER.m\nft_singleplotTFR.m\nprivate/topoplot_common.m\n\nThis change is a first attempt of Jim to deal with it\n\nU    ft_singleplotTFR.m\nUpdated to revision 9944."
+      - +@isprivate: "0"
+        commentid: "14795"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-12 14:52:32 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #20)\n\nI changed the three functions, and just now also added the reverse mapping. \n\n189-145> svn commit ft_singleplotER.m ft_singleplotTFR.m private/topoplot_common.m\nSending        ft_singleplotER.m\nSending        ft_singleplotTFR.m\nSending        private/topoplot_common.m\nTransmitting file data ...\nCommitted revision 9951."
+      - +@isprivate: "0"
+        commentid: "14796"
+        comment_count: "22"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-12 14:53:18 +0100
+        thetext: |-
+          made a fix to the databrowser so that buttons do work again:
+          Sending        ft_select_range.m
+          Transmitting file data .
+          Committed revision 9949.
+      - +@isprivate: "0"
+        commentid: "14798"
+        comment_count: "23"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-12 15:11:50 +0100
+        thetext: |-
+          svn ci rejectvisual_summary.m -m 'made rejectvisual summary mode working in matlab2014b'
+          Sending        rejectvisual_summary.m
+          Transmitting file data .
+          Committed revision 9953.
+      - +@isprivate: "0"
+        commentid: "14805"
+        comment_count: "24"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-12 15:57:09 +0100
+        thetext: |-
+          databrowser fix 2:
+          svn ci ft_databrowser.m -m 'bugfix - databrowser fixed for matlab 2014b'
+          Sending        ft_databrowser.m
+          Transmitting file data .
+          Committed revision 9957.
+      - +@isprivate: "0"
+        commentid: "14813"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-12 16:57:05 +0100
+        thetext: |-
+          We addressed this issue in our bug binge. Various people have been testing different sections of the code, with a focus on whether there is an error (i.e. crash in the code)
+
+          It seems that most functions now do not result in errors any more. However, the interaction (selection of electrodes and time/frequency/channel windows) is not fully working yet. So we cannot close the bug yet.
+
+          roboos ft_topoplotCC.m -> DONE
+          arjsto ft_layoutplot.m -> DONE
+          jorhor ft_rejectvisual.m -> partially done (summary)
+          jorhor ft_databrowser.m -> DONE
+          jimher ft_multiplotTFR.m -> DONE
+          jorhor ft_neighbourplot.m -> works partially, but there is still an issue with the callbacks
+          nielam ft_movieplotTFR.m -> DONE
+          nielam ft_movieplotER.m -> DONE
+          nielam ft_multiplotER.m -> DONE
+          tzvpop ft_multiplotCC.m -> DONE
+          tzvpop ft_topoplotIC.m -> DONE
+          tzvpop ft_connectivityplot.m -> DONE
+          jansch ft_sourceplot.m -> DONE
+          roboos ft_singleplotTFR.m -> DONE
+          roboos ft_singleplotER.m -> DONE
+          roboos ft_topoplotER.m -> topoplot_common.m -> DONE
+          arjsto ft_topoplotTFR.m -> DONE
+          roboos ft_clusterplot.m -> DONE
+      - +@isprivate: "0"
+        commentid: "14830"
+        comment_count: "26"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-12 20:32:30 +0100
+        thetext: ft_rejectvisual surprisingly works in the other modes as well without further adjustments
+      - +@isprivate: "0"
+        commentid: "14831"
+        comment_count: "27"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-12 20:36:54 +0100
+        thetext: |-
+          btw, sure that the interactive selection does not work? I thought I fixed that when fixing ft_select_range. I quickly checked with some TFR data and it works fine. Not sure about source data/plotting though.
+          I will work with 2014b from now on to see if there are more issues popping up. Maybe others can do the same and report back in detail on what is still not functioning.
+      - +@isprivate: "0"
+        commentid: "14847"
+        comment_count: "28"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-13 15:48:19 +0100
+        thetext: fixed a small bug related to using colormap('default') in ft_sourceplot. With all other colormaps you can assign colormap(COLORMAP) to a variable, but not when COLORMAP is 'default'. I changed it so that first the colormap is updated and then the current colormap is assigned to a variable.
+      - +@isprivate: "0"
+        commentid: "14873"
+        comment_count: "29"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-11-20 16:24:38 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #7)
+          we should remind ourselves to update the guidelines with all the decisions we made during the bug binge!
+      - +@isprivate: "0"
+        commentid: "14887"
+        comment_count: "30"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-27 12:08:46 +0100
+        thetext: "Using ft_rejectartifact with cfg.artfctdef.zvalue.interactive = 'yes' produces the following error when pressing the buttons in the gui:\n\nNo appropriate method, property, or field Key for class matlab.ui.eventdata.ActionData.\n\nError in ft_artifact_zvalue>parseKeyboardEvent (line 1079)\nkey = eventdata.Key;\n\nError in ft_artifact_zvalue>keyboard_cb (line 680)\n  key = parseKeyboardEvent(eventdata);\n \nError using waitfor\nError while evaluating UIControl Callback"
+      - +@isprivate: "0"
+        commentid: "15473"
+        comment_count: "31"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-27 08:57:08 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #30)
+
+          the problem with cfg.artfctdef.zvalue.interactive has been resolved as part of bug 2857.
+      - +@isprivate: "0"
+        commentid: "15474"
+        comment_count: "32"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-27 09:07:37 +0100
+        thetext: |-
+          mac011> svn commit external/fileexchange/arrow.m
+          Sending        external/fileexchange/arrow.m
+          Transmitting file data .
+          Committed revision 10262.
+
+          The arrow function and therefore ft_analysispipeline are working again.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "645"
+      date: 2014-07-01 14:55:00 +0200
+      delta_ts: 2014-07-01 14:55:46 +0200
+      desc: HTML Matlab report
+      filename: Report.zip
+      type: application/zip
+      size: "20729"
+      attacher:
+        +content: i.andolina
+        +@name: Ian Andolina
+      data: REMOVED

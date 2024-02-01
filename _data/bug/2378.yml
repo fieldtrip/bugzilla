@@ -1,0 +1,113 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2378"
+    creation_ts: 2013-11-15 12:22:00 +0100
+    short_desc: 'ft_redefinetrial: does not seem to copy over the last columns of a trl matrix into data.trialinfo'
+    delta_ts: 2018-03-10 21:34:45 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to: n.lam
+    cc:
+      - n.lam
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11946"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-15 12:22:16 +0100
+        thetext: check and fix.
+      - +@isprivate: "0"
+        commentid: "11948"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-15 13:50:41 +0100
+        thetext: 'This is probably a false alarm: user was using an FT-version dated may 2012...'
+      - +@isprivate: "0"
+        commentid: "11986"
+        comment_count: "2"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-19 19:21:49 +0100
+        thetext: "I just tried this out with my own data on matlab2011b.\nThe trialinfo field is missing. The code used is as follows. \n\nprestim =0.2, poststim = 0.5;\nfilename    = mous_db_getfilename(subjectname, 'meg_ds_task');\n[trl]    = mous_defineTrial(filename{1}, prestim, poststim, trialfun);\ntrl = trl(1:10,:);\n\ncfg.dataset: filename;\ncfg.trl: [10x8 double]  % trl = 8 columns, so trialinfo should have 5 columns\ncfg.continuous: 'yes'\ncfg.lpfilter: 'yes'\ncfg.lpfreq: 40;\ndata     =  ft_preprocessing(cfg)\n\ncfg2 = []; \ncfg2.toilim = [0.2 0.4];\ndataRD  =  ft_redefine(cfg,data);\n\n\ndataRD = \n\n           hdr: [1x1 struct]\n         label: {356x1 cell}\n          time: {1x10 cell}\n         trial: {1x10 cell}\n       fsample: 1200\n    sampleinfo: [10x2 double]\n          grad: [1x1 struct]\n           cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "11987"
+        comment_count: "3"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-19 19:30:02 +0100
+        thetext: oh, and just to be clear the 'trialinfo' field is present when using ft_definetrial.
+      - +@isprivate: "0"
+        commentid: "11988"
+        comment_count: "4"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-19 20:15:02 +0100
+        thetext: "the code for creating data.trialinfo is located within the if-loop for  <if ~isempty(cfg.trl)> when calling ft_redefinetrial(cfg,data). \n\nThe start of this function has a <cfg.trl = ft_getopt(cfg, 'trl', [])>. So, by default cfg.trl = [] \n\nIf the goal is to keep the code as similar as possible prior to change, and that we should reconstruct 'data' (as mentioned in the comment of line 208), then I think we should only change line 213 <trl = cfg.trl>. This line should read <trl = dataold.cfg.trl>;  \n\nIn this way:\n(1) when we get to line 236: if size(cfg.trl,2)>3 will apply, and then subsequent creation of data.trialinfo can take place.\n(2)  the user does not have to explicitly make cfg.trl = data.trl, before calling ft_redefine(cfg,data), which is important because ft_redefinetrial can be used multiple ways, and cfg.trl need not always to be configured prior to calling ft_redefine.\n\nCould someone please check whether this is reasonable?"
+      - +@isprivate: "0"
+        commentid: "11989"
+        comment_count: "5"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-19 20:40:31 +0100
+        thetext: Actually, maybe it's nothing after all. I double checked and the problem seems to be gone. I'll check tomorrow again...
+      - +@isprivate: "0"
+        commentid: "11994"
+        comment_count: "6"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-20 19:25:59 +0100
+        thetext: |-
+          Sat down with JM - learned to go about this in a more logical way.
+
+          Created a test_bug2378 to test if ft_redefinetrial was working. Everything is in order. Closing bug.
+      - +@isprivate: "0"
+        commentid: "11995"
+        comment_count: "7"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-11-20 19:27:22 +0100
+        thetext: 'Should be more clear: There was no problem in the bug to begin with. As suspected, the missing trialinfo was probably due to the user using and old FT-version.'
+      - +@isprivate: "0"
+        commentid: "13306"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-11 19:22:46 +0200
+        thetext: "I recently increased the memory of this one from 500mb to 1gb, causing the script to start running to the end. Subsequently it became clear that there was an error at the end of the script. The variable mytrl did not exist. I fixed it and tested it manually, all is fine now. \n\nroboos@mentat001> svn commit test_bug2378.m \nSending        test_bug2378.m\nTransmitting file data .\nCommitted revision 9398."

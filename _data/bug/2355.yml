@@ -1,0 +1,102 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2355"
+    creation_ts: 2013-10-31 15:52:00 +0100
+    short_desc: get rid of the cfg.sourceunits option
+    delta_ts: 2014-02-24 10:56:20 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1794"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11801"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 15:52:08 +0100
+        thetext: "related to preparing spm12 the geometrical units have to be dealt with more consistently.\n\nAfter discussion with JM, we decided that the cfg.sourceunits has to be removed from the code. It seems primarily to be used in ft_prepare_sourcemodel.m and functions that rely on ft_prepare_sourcemodel.m. \n\nFor spm12 support (and consistent leadfield units etc) we have decided that the output of ft_prepare_headmodel should from now on be in SI units, i.e. in meter, and that units of vol are not to be changed afterwards.\n\nAffected functions include\n\nmac001> grep cfg.sourceunit *.m\nft_dipolefitting.m:  try, tmpcfg.sourceunits = cfg.sourceunits;  end\nft_megrealign.m:try, tmpcfg.sourceunits = cfg.sourceunits;  end\nft_prepare_headmodel.m:cfg.sourceunits     = ft_getopt(cfg, 'sourceunits');\nft_prepare_leadfield.m:% cfg.sourceunits  = ft_getopt(cfg, 'sourceunits');           % the default for this is set inside prepare_headmodel\nft_prepare_leadfield.m:try, tmpcfg.sourceunits = cfg.sourceunits;  end\nft_prepare_localspheres.m:if ~isfield(cfg, 'sourceunits'),   cfg.sourceunits = 'cm';  end\nft_prepare_sourcemodel.m:%   cfg.sourceunits     = 'auto' (in which case the sourceunits default to the unit in the\nft_prepare_sourcemodel.m:%   cfg.sourceunits     = 'auto'(in which case the sourceunits default to the unit in the\nft_prepare_sourcemodel.m:%   cfg.sourceunits   = 'auto' (in which case the sourceunits default to the unit in the\nft_prepare_sourcemodel.m:% cfg.sourceunits\nft_prepare_sourcemodel.m:  cfg.sourceunits = ft_getopt(cfg,      'sourceunits', 'auto');\nft_prepare_sourcemodel.m:  cfg.sourceunits = ft_getopt(cfg,      'sourceunits', 'auto');\nft_prepare_sourcemodel.m:  cfg.sourceunits = ft_getopt(cfg,      'sourceunits',     'auto');\nft_prepare_sourcemodel.m:  cfg.sourceunits    = ft_getopt(cfg,      'sourceunits', 'auto');\nft_prepare_sourcemodel.m:% ensure cfg.sourceunits to have a value and/or enforce the units in the sensors\nft_prepare_sourcemodel.m:  if strcmp(cfg.sourceunits, 'auto') && ~isfield(sens, 'unit')\nft_prepare_sourcemodel.m:    cfg.sourceunits = sens.unit;\nft_prepare_sourcemodel.m:  elseif strcmp(cfg.sourceunits, 'auto') && isfield(sens, 'unit')\nft_prepare_sourcemodel.m:    cfg.sourceunits = sens.unit;\nft_prepare_sourcemodel.m:  elseif ~strcmp(cfg.sourceunits, 'auto')\nft_prepare_sourcemodel.m:    sens      = ft_convert_units(sens, cfg.sourceunits);\nft_prepare_sourcemodel.m:  if strcmp(cfg.sourceunits, 'auto')\nft_prepare_sourcemodel.m:    cfg.sourceunits = 'cm';\nft_prepare_sourcemodel.m:% ensure the vol to have the same units as cfg.sourceunits\nft_prepare_sourcemodel.m:  vol = ft_convert_units(vol, cfg.sourceunits);\nft_prepare_sourcemodel.m:    grid = ft_convert_units(grid, cfg.sourceunits);\nft_prepare_sourcemodel.m:    switch cfg.sourceunits\nft_prepare_sourcemodel.m:  scale = scalingfactor(cfg.sourceunits, mri.unit);\nft_prepare_sourcemodel.m:  grid.unit           = cfg.sourceunits;\nft_prepare_sourcemodel.m:  grid         = ft_convert_units(grid, cfg.sourceunits);\nft_sourceanalysis.m:  try, tmpcfg.sourceunits = cfg.sourceunits;  end"
+      - +@isprivate: "0"
+        commentid: "11805"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 16:33:51 +0100
+        thetext: any function that calls ft_compute_leadfield(pos, vol, sens) has to ensure that grid.pos (which is the 1st input argument) and grid.unit are consistent with sens.unit and pos.unit.
+      - +@isprivate: "0"
+        commentid: "11820"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-01 12:31:40 +0100
+        thetext: |-
+          The following test scripts exist that are to be considered in updating the code:
+
+          mac001> grep -l ft_prepare_sourcemodel *.m
+          test_bug1040.m
+          test_bug1794.m
+          test_bug1832.m
+          test_bug1901.m
+          test_bug1956.m
+          test_bug2355.m
+          test_ft_prepare_sourcemodel.m
+          test_headmodel_simbio.m
+          test_tutorial_beamforming_extended.m
+      - +@isprivate: "0"
+        commentid: "11823"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-01 14:25:29 +0100
+        thetext: "I replaced cfg.sourceunits by cfg.grid.unit in ft_prepare_sourcemodel\n\nmac001> svn commit test/test_bug2355.m ft_prepare_sourcemodel.m \nSending        ft_prepare_sourcemodel.m\nAdding         test/test_bug2355.m\nTransmitting file data ..\nCommitted revision 8691.\n\nmac001> svn commit utilities/ft_checkconfig.m \nSending        utilities/ft_checkconfig.m\nTransmitting file data .\nCommitted revision 8692."
+      - +@isprivate: "0"
+        commentid: "11826"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-01 14:31:28 +0100
+        thetext: "together with\n\nmac001> svn commit \nSending        fileio/ft_read_header.m\nSending        forward/ft_compute_leadfield.m\nSending        forward/ft_convert_units.m\nSending        ft_prepare_headmodel.m\nSending        ft_prepare_leadfield.m\nSending        ft_prepare_mesh.m\nSending        ft_volumerealign.m\nSending        private/bounding_mesh.m\nSending        private/prepare_headmodel.m\nSending        test/test_bug1956.m\nSending        utilities/ft_datatype_sens.m\nTransmitting file data ...........\nCommitted revision 8695.\n\n\nwhich pertains to a collection of SPM12 related changes, I think that it now should be resolved. There is a test script for backward compatibility testing."
+      - +@isprivate: "0"
+        commentid: "12899"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:20 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

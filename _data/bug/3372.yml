@@ -1,0 +1,75 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3372"
+    creation_ts: 2017-11-17 13:18:00 +0100
+    short_desc: ft_scalpcurrentdensity returns error with eeg data
+    delta_ts: 2018-01-26 09:51:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: t.minarik
+      +@name: Tamas Minarik
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19064"
+        comment_count: "0"
+        who:
+          +content: t.minarik
+          +@name: Tamas Minarik
+        bug_when: 2017-11-17 13:18:18 +0100
+        thetext: "I am using ft_scalpcurrentdensity on an eeg dataset, but it returns an error \"This function requires EEG data with an ''elec'' field\". The debugging indicates this is because of the part added to ft_checkdata (line 572):\n\n\nif ~isempty(iseeg)\n  if isequal(iseeg, 'yes')\n    okflag = isfield(data, 'grad');\n  elseif isequal(iseeg, 'no')\n    okflag = ~isfield(data, 'grad');\n  end\n  \n  if ~okflag && isequal(iseeg, 'yes')\n    ft_error('This function requires EEG data with an ''elec'' field');\n  elseif ~okflag && isequal(iseeg, 'no')\n    ft_error('This function should not be given EEG data with an ''elec'' field');\n  end % if okflag\nend\n\nThere is no grad field in the data structure given that it is eeg data. Please also note that the EEG data used in ft_scalcurrentdensity would not normally have an 'elec' field either at this stage.\n\nPrevious version of Fieldtrip without this part of the ft_checkdata runs without problem."
+      - +@isprivate: "0"
+        commentid: "19073"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-20 15:04:05 +0100
+        thetext: |-
+          Thanks for reporting: I suspect that there's a typo in the latest commit to ft_checkdata. My suspicion is that in the lines you quote from ft_checkdata 'grad' should be replaced with 'elec'.
+
+          Upon Robert's confirmation I will fix this.
+      - +@isprivate: "0"
+        commentid: "19077"
+        comment_count: "2"
+        who:
+          +content: t.minarik
+          +@name: Tamas Minarik
+        bug_when: 2017-11-20 17:33:59 +0100
+        thetext: Thanks for looking into this. The only thing is that changing to 'grad' to 'elec' would solve the problem only if there is an elec field in the data structure, which is not always the case. For instance, if CSD is applied to attenuate the effect of volume conduction at a relatively early stage of the processing pipeline, the data structure prior to the CSD may not have an elec field and so ft_checkdata may still return an error. The error occurs even if cfg.elec is specified within the cfg structure of the ft_scalpcurrentdensity.
+      - +@isprivate: "0"
+        commentid: "19081"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-21 09:38:23 +0100
+        thetext: I fixed it with the latest pull request (#585).

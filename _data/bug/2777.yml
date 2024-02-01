@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2777"
+    creation_ts: 2014-12-11 20:15:00 +0100
+    short_desc: freq2timelock / timelock2freq
+    delta_ts: 2015-01-14 15:27:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: gopalar.ccf
+      +@name: Raghavan Gopalakrishnan
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - Tilmann.Sander-Thoemmes
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14939"
+        comment_count: "0"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-12-11 20:15:41 +0100
+        thetext: |-
+          It appears that the functions freq2timelock and timelock2freq needs some update
+
+          First, freq2timelock
+          1. The function puts a restriction cdim to be 2 and fdim to be 3, however such a dim is possible only when the data has the following dimord 'rpt_ch_freq_time'. But the function is supposed to take data with simord 'ch_freq_time'
+          2. If data with simord 'rpt_ch_freq_time' is given, line 42 dimindex command would not work. More over, transpose on line 42 is not needed. Only then spctrm on line 48 will be ch x time for a specific frequency given by cfg.frequency
+          3. Line 46 channelselection should be ft_channelselection
+          4. If noise covariance matrix is given along with the data data.cov is no longer carried on beyond freq2timelock function, since timelock.cov=freq.cov is not a part of the code
+
+          Second, timelock2freq
+          1. mom is mostly always a cell matrix, the function does not take cell input.
+
+          Thanks for your help
+
+          Raghavan
+      - +@isprivate: "0"
+        commentid: "14940"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-12 08:57:54 +0100
+        thetext: |-
+          Hi Raghavan
+
+          Thanks for noticing. Those functions have indeed not been revisited for quite some time, and nowadays there will indeed be other use cases that were not considered when implementing them.
+
+          I will write a test function that goes through the different options and keep you posted through bugzilla.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15059"
+        comment_count: "2"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2015-01-14 14:21:55 +0100
+        thetext: |-
+          Similar to the initial remark in line 53 the prefix ft_ is missing:
+
+          cfg.channel = channelselection(cfg.channel, freq.label);
+
+          Best, Till
+      - +@isprivate: "0"
+        commentid: "15060"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-14 15:27:30 +0100
+        thetext: |-
+          (In reply to Tilmann Sander-Thommes from comment #2)
+
+          thanks, this solves the prefix and removes an obsolete function
+
+          mac011> svn commit private/translate_channel_list.m private/fourier2crsspctrm.m private/freq2timelock.m
+          Sending        private/fourier2crsspctrm.m
+          Sending        private/freq2timelock.m
+          Deleting       private/translate_channel_list.m
+          Transmitting file data ..
+          Committed revision 10099.

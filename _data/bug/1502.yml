@@ -1,0 +1,119 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1502"
+    creation_ts: 2012-06-03 10:38:00 +0200
+    short_desc: forbid fields in cfg that are not used
+    delta_ts: 2012-10-24 10:43:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: martinvinck
+      +@name: Martin Vinck
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - jorn
+      - martinvinck
+      - r.oostenveld
+      - saskia.haegens
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6230"
+        comment_count: "0"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-03 10:38:01 +0200
+        thetext: |-
+          It sometimes occurs that a user mistypes a field name and that a default is used without the user knowing it.
+
+          Perhaps in checkconfig we should have a sentence like
+
+          cfg = ft_checkconfig(cfg,keyname,{'field1', 'field2', 'field3'})
+          where any cfg.field that is not in {'field1', 'field2', 'field3'} is rejected with an error.
+
+          there's already allowed so perhaps you have a suggestion for keyname
+      - +@isprivate: "0"
+        commentid: "6232"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-03 12:22:59 +0200
+        thetext: "there is already the option 'forbidden', see\nhttp://code.google.com/p/fieldtrip/source/browse/trunk/utilities/ft_checkconfig.m#37\n\nYour suggestion is more like \"forbid all fields except those that are explicitly allowed'.\n\nI suggest we add \ncfg = ft_checkconfig(cfg,'allowed',{'field1', 'field2', 'field3'})\nto forbid all fields except the three listed."
+      - +@isprivate: "0"
+        commentid: "6233"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-03 12:43:50 +0200
+        thetext: "I have implemented the 'allowed' option and a test script. Please have a look.\n\nmbp> svn commit utilities/ft_checkconfig.m test/test_bug1502.m \nAdding         test/test_bug1502.m\nSending        utilities/ft_checkconfig.m\nTransmitting file data ..\nCommitted revision 5840.\n\nPotential problems might be expected because of merging the global ft_default into the present cfg. \n\nAlso non-trivial is the order of processing the various allowed/renamed/required options, although I think at the moment it is ok."
+      - +@isprivate: "0"
+        commentid: "6234"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-03 13:22:10 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          The implemented change works indeed.
+
+          Indeed, the order of calling ft_checkconfig needs to be carefully checked then.
+      - +@isprivate: "0"
+        commentid: "7109"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-23 10:33:51 +0200
+        thetext: closed multiple bugs that have been resolved for some time
+      - +@isprivate: "0"
+        commentid: "7916"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-15 17:35:33 +0200
+        thetext: |-
+          with the new ft_version handling this bug appears on the dashboard again.
+
+          It goes wrong in line 202 ft_checkconfig, where the new fields 'trackcallinfo','trackdatainfo', and 'trackparaminfo' don't survive the check of being allowed.
+
+          Suggested fix is to allow those fields starting from line 198.
+
+          @Robert: if not agreed then this change should be undone.
+      - +@isprivate: "0"
+        commentid: "7917"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-15 17:37:30 +0200
+        thetext: "bash-3.2$ pwd\n/home/language/jansch\nbash-3.2$ cd matlab/fieldtrip/utilities/\nbash-3.2$ svn diff ft_checkconfig.m \nIndex: ft_checkconfig.m\n===================================================================\n--- ft_checkconfig.m    (revision 6755)\n+++ ft_checkconfig.m    (working copy)\n@@ -195,6 +195,9 @@\n     'checkconfig'\n     'checksize'\n     'showcallinfo'\n+    'trackcallinfo'\n+    'trackdatainfo'\n+    'trackparaminfo'\n     });\n   fieldsused = fieldnames(cfg);\n   [c, i] = setdiff(fieldsused, allowed);\nbash-3.2$ svn commit ft_checkconfig.m -m 'bugfix - explicitly allow fields that relate to provenance tracking'\nSending        ft_checkconfig.m\nTransmitting file data .\nCommitted revision 6759.\nbash-3.2$"

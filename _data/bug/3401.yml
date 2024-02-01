@@ -1,0 +1,82 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3401"
+    creation_ts: 2018-01-16 07:39:00 +0100
+    short_desc: ft_regressconfound produces p-values between 0 and 2
+    delta_ts: 2018-01-16 07:43:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: e.maris
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19191"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-16 07:39:42 +0100
+        thetext: |-
+          This function's main goal was never to compute statistics on the regression weights, but to remove variance attributed to a confound(s). However, there is an undocumented option cfg.statistics that allows calculating the statistical significance of each regressor. Yet, as title of this bug indicates, the output probabilities are typically between 0 and 2, instead of 0 and 1. @Eric, do you know what is wrong in this formulation?
+
+          dfe        = nrpt - nconf;                                              % degrees of freedom
+                err        = dat - regr * beta;                                         % err = Y - X * B
+                mse        = sum((err).^2)/dfe;                                         % mean squared error
+                covar      = diag(regr'*regr)';                                         % regressor covariance
+                bvar       = repmat(mse',1,size(covar,2))./repmat(covar,size(mse,2),1); % beta variance
+                tval       = (beta'./sqrt(bvar))';                                      % betas -> t-values
+                prob       = (1-tcdf(tval,dfe))*2;                                      % p-values
+
+
+          TEST CODE:
+          freq2 = [];
+          freq2.label = {'1' '2'};
+          freq2.freq  = 1:10;
+          freq2.time  = 1:5;
+          freq2.dimord = 'rpt_chan_freq_time';
+          freq2.powspctrm = randn(20,2,10,5);
+
+          cfg = [];
+          cfg.confound = randn(20,3);
+          cfg.output = 'beta';
+          cfg.reject = [1:3];
+          cfg.statistics = 'yes';
+          freq2_out = ft_regressconfound(cfg, freq2);
+
+          min(freq2_out.prob(:))
+          max(freq2_out.prob(:))
+      - +@isprivate: "0"
+        commentid: "19192"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-16 07:43:32 +0100
+        thetext: "For comparison, ft_regressconfound:\n\ndfe        = nrpt - nconf; % degrees of freedom\nerr        = dat - regr * beta; % err = Y - X * B\nmse        = sum((err).^2)/dfe; % mean squared error\ncovar      = diag(regr'*regr)'; % regressor covariance\nbvar       = repmat(mse',1,size(covar,2))./repmat(covar,size(mse,2),1); % beta variance\ntval       = (beta'./sqrt(bvar))'; % betas -> t-values\nprob       = (1-tcdf(tval,dfe))*2; % p-values\n\n\nft_statfun_indepsamplesregrT:\n\ncpmat = designmat'*designmat;\ninvcpmat = inv(cpmat);\nprojmat = invcpmat*designmat';\nB = dat*projmat'; % B is a matrix of order Nsamples x (nblocks+1)\nres = dat - B*designmat';\nresvar = zeros(nsmpl,1);\nfor indx=1:nsmpl\n resvar(indx)=res(indx,:)*res(indx,:)';\nend\nresvar=resvar/df;\n    \nse=sqrt(invcpmat(nblocks+1,nblocks+1)*resvar);\ns.stat=B(:,nblocks+1)./se;\n\nif strcmp(cfg.computeprob,'yes')\n  % also compute the p-values\n  s.df      = df;\n  if cfg.tail==-1\n    s.prob = tcdf(s.stat,s.df);\n  elseif  cfg.tail==0\n    s.prob = 2*tcdf(-abs(s.stat),s.df);\n  elseif cfg.tail==1\n    s.prob = 1-tcdf(s.stat,s.df);\n  end\nend"

@@ -1,0 +1,182 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2556"
+    creation_ts: 2014-05-01 23:27:00 +0200
+    short_desc: ft_sourceparcellate
+    delta_ts: 2014-06-27 18:39:29 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2579
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: gopalar.ccf
+      +@name: Raghavan Gopalakrishnan
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13461"
+        comment_count: "0"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-05-01 23:27:52 +0200
+        thetext: "I used the following function to read the AAL parcellation\n\naal = ft_read_atlas('/Users/gopalar/Documents/MATLAB/fieldtrip-20140430/template/atlas/aal/ROI_MNI_V4.nii');\n\naal = \n\n            dim: [91 109 91]\n            hdr: [1x1 struct]\n      transform: [4x4 double]\n           unit: 'mm'\n         tissue: [91x109x91 double]\n    tissuelabel: {1x116 cell}\n       coordsys: 'mni'\n\nI suppose 'aal' should be consisent with the format as given in ft_datatype_parcellation. But, looks different. According to definition, I should be able to use output of ft_read_atlas in ft_sourcepacellate as a parcellation.\n\nThen, I tried using the aal to generate parcels for my source structure\n\ncfg.method       = 'mean';\ncfg.parcellation = 'tissue';\ncfg.parameter    ={'pow'};\nparcel = ft_sourceparcellate(cfg, source , aal);\n\nFirst problem, ft_sourceparcellate does not recognize aal as a datatype parcellation (at line 77)\n\nSecond, line 177 required source.inside to be a non-empty matrix. Otherwise, gives an error\n\nNot sure if there is a bug or mistake in my understanding."
+      - +@isprivate: "0"
+        commentid: "13465"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-02 09:48:54 +0200
+        thetext: "Hi Raghavan,\n\n> I suppose 'aal' should be consisent with the format as given in ft_datatype_parcellation.\n\nThe output of ft_read_atlas should be consistent with either the description in ft_datatype_parcellate (surface), or with ft_datatype_segmentation (volume). In this case it should be the latter, as AAL is a volumetric atlas. \n\n> Then, I tried using the aal to generate parcels for my source structure\n\nthat is indeed how it is supposed to work. Note that the function is rather new and has not been used/tested very much yet.\n\nI can confirm the first error for line 77\n\nError using ft_checkdata (line 368)\nThis function requires parcellation data as input.\n\nI will work on this. \n\nFor the second error I would expect that line 78 would have added a non-empty boolean inside vector. Could you check this?"
+      - +@isprivate: "0"
+        commentid: "13466"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-02 09:52:27 +0200
+        thetext: |-
+          A small correction to my previous comment. A segmentation must be a volume, i.e. ft_datatype_segmentation is a special class of ft_datatype_volume (which is always a regular 3d grid). A parcellation however is not necessarily a surface. In general ft_datatype_parcellation is a structure according to ft_datatype_source, which can describe a regular or irregular geometry, such as a surface, but also a volume.
+
+          The source structure is more flexible in the anatomical description, and allows more dimensions (such as time) to be represented as well.
+      - +@isprivate: "0"
+        commentid: "13467"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-02 10:00:15 +0200
+        thetext: "I fixed the problem on line 77, it was a simple omission in ft_checkdata.\n\nmac011> svn commit test utilities/\nAdding         test/test_bug2556.m\nSending        utilities/ft_checkdata.m\nTransmitting file data ..\nCommitted revision 9464.\n\n\n>> aal = ft_read_atlas(filename)\nRescaling NIFTI: slope = 1, intercept = 0\n\naal = \n\n            dim: [91 109 91]\n            hdr: [1x1 struct]\n      transform: [4x4 double]\n           unit: 'mm'\n         tissue: [91x109x91 double]\n    tissuelabel: {1x116 cell}\n       coordsys: 'mni'\n\n>> aal = ft_checkdata(aal, 'datatype', 'parcellation', 'parcellationstyle', 'indexed')\n\naal = \n\n            dim: [91 109 91]\n            hdr: [1x1 struct]\n           unit: 'mm'\n         tissue: [91x109x91 double]\n    tissuelabel: {1x116 cell}\n       coordsys: 'mni'\n            pos: [902629x3 double]"
+      - +@isprivate: "0"
+        commentid: "13485"
+        comment_count: "4"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-05-05 18:30:59 +0200
+        thetext: "Robert,\n\nLine 77 problem is now eliminated\nLine 79 adds a boolean vector.\n\nMy source looks like this  \n\n       time: [1x1500 double]\n        pos: [8196x3 double]\n     inside: [8196x1 double]\n    outside: [1x0 double]\n     method: 'average'\n        avg: [1x1 struct]\n        cfg: [1x1 struct]\n\nWhen, I try to parcellate, there seems to be multiple problems,\nFirst one at line 177, then at 289.\n\nThe parcellation is much bigger than number of sources available (I am using a cortical sheet, I think I sent you some example source structure before). \n\nPlease help\n\nThanks,\nRaghavan"
+      - +@isprivate: "0"
+        commentid: "13498"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 15:07:47 +0200
+        thetext: "(In reply to Raghavan Gopalakrishnan from comment #4)\n\nYou will indeed have problems, because the source and parcellation are not anatomically consistent. Better would be to start with the same anatomical model for the source reconstruction as you want to use for the parcellation. See http://fieldtrip.fcdonders.nl/example/create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space, except that here you would want to start with dipoles defined according to the voxel locations in the AAL atlas. \n\n\nI added the following around line 81\n\n% ensure that the source and the parcellation are anatomically consistent\nif ~isequal(source.pos, parcellation.pos)\n  error('the source positions are not consistent with the parcellation, please use FT_SOURCEINTERPOLATE');\nend"
+      - +@isprivate: "0"
+        commentid: "13499"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 15:09:50 +0200
+        thetext: "Sorry, I should have added this:\n\nit should be possible to do \n\nsourceAAL = ft_sourceinterpolate(cfg, source, aal)\n\nto interpolate the source reconstruction results on the AAL atlas. Note that this does require them to be coregistered, i.e. the source model (sheet) should be expressed in MNI space, like the AAL atlas."
+      - +@isprivate: "0"
+        commentid: "13719"
+        comment_count: "7"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-05-19 20:55:32 +0200
+        thetext: "ft_sourceparcellate still looks for avg.pow structure. The output of sourcegrandaverage no longer has avg.pow field, instead it has only pow field\n\nWhen I used the following structure \n\natlassource_timelock_stim = \n\n        time: [1x1500 double]\n         pow: [902629x1500 double]\n         pos: [902629x3 double]\n         dim: [91 109 91]\n      inside: [1x902629 double]\n     outside: [1x0 double]\n    coordsys: 'mni'\n        unit: 'mm'\n         cfg: [1x1 struct]\n\ngave the following error\n\nWarning: the input does not contain an avg or trial field \n> In ft_checkdata>fixsource at 1327\n  In ft_checkdata at 715\n  In ft_sourceparcellate at 79 \nWarning:\nparameter \"pow\" cannot be parcellated \n> In ft_sourceparcellate at 149 \nError using ft_sourceparcellate (line 162)\nthere are no source parameters that can be parcellated\n\n\nWhen the structure had pow given as 'avg.pow' it works."
+      - +@isprivate: "0"
+        commentid: "13720"
+        comment_count: "8"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-05-19 21:02:33 +0200
+        thetext: The output of ft_sourceanalysis has the pow field inside avg. So, currently, ft_sourceparcellate is compatible with output of ft_sourceanalysis, but not the output of ft_sourcegrandaverage. Can pow field have a standard location either inside of outside avg?
+      - +@isprivate: "0"
+        commentid: "13726"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-20 19:11:29 +0200
+        thetext: "(In reply to Raghavan Gopalakrishnan from comment #8)\n\nthe future standard is source.pow, the old standard is source.avg.pow. Migrating all code and documentation and in that process trying to maintain compatibility with users' scripts cannot be done on the flick of a switch.\n\nAfter trying out various things, I managed to reproduce the problem you describe. It appears that specifying cfg.parameter='pow' in ft_sourceparcellate does not work as expected.\n\nI have made some changes, please also see the second part of the test function test/test_bug2556.m and try to come with similar small sections of code if it still fails for you. It is a lot of work to pinpoint the specific problem based on a general statement of something not working. A specific example allows me to reproduce it more quickly and understand the specific issue.\n\nmac011> svn commit private/getdimord.m ft_sourceparcellate.m test/test_bug2556.m \nSending        ft_sourceparcellate.m\nSending        private/getdimord.m\nSending        test/test_bug2556.m\nTransmitting file data ...\nCommitted revision 9557."
+      - +@isprivate: "0"
+        commentid: "13951"
+        comment_count: "10"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-06-25 23:16:50 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          Robert,
+          You mentioned that source should be expressed in mni space inorder to use ft_sourceinterpolate since aal is in mni space. My sources are in neuromag space, and I am not sure how to convert coordsys at this stage. Using ft_convert_coordsys on sources does not seem to work since there is no transform matrix associated that defines neuromag to mni space. Is there a easy way to tackle this problem?
+
+          On another note, is 'spm' the same as 'mni' space?
+
+          Thanks,
+          Raghavan
+      - +@isprivate: "0"
+        commentid: "13954"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-26 10:46:07 +0200
+        thetext: "(In reply to Raghavan Gopalakrishnan from comment #10)\n\nspm and min are indeed the same. \n\nft_volumenormalize can be used to determine the spatial deformation between some anatomical MRI and apply that transformation to the anatomical, and to any functional data that is in coregister with the anatomy. That means that the transformation is done  volumetrically after source estimation. \n\nWe consider it more optimal (and more flexible) to make a source grid that is expressed in single subject MEG space, but where each source location maps directly into MNI space. \n\nhttp://fieldtrip.fcdonders.nl/example/create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space\n\nThis allows you to update the source positions from MEG to MNI, keeping the source estimates as they are (i.e. no interpolation).\n\nThere is also this example script that was provided by a Neuromag user: \n\nhttp://fieldtrip.fcdonders.nl/example/read_neuromag_mri_and_create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space"
+      - +@isprivate: "0"
+        commentid: "13967"
+        comment_count: "12"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-06-27 18:39:29 +0200
+        thetext: |-
+          Robert,
+          Thank you vey much. I require a new functionality in ft_sourceparcellate (or may be ft_sourcedescriptives or another function). I understand ft_sourcedescriptives with cfg.projectmom='yes' constraints the sources in the direction of largest eigenvector. And when the results are used with ft_sourceparcellate, I can compute mean (or some function) of the constrained sources with in each parcel.
+
+          In addition, I would like to sign flip each of the source inside a parcel to align with its dominant direction, before taking the mean (or some another function). Is is possible to implement this in FT? Or may be its already possible to do it and am not sure how to?
+
+          I am including a bit of code here of what I need.
+
+          % find direction of largest eigen
+          [Up,Sp,Vp]=svd(GridOrient,'econ');
+
+          % compute MNE
+          [U,S,V] = svd(Leadfields,'econ');
+          s=diag(S);
+          ss = s ./ (s.^2 + lambda);
+
+          for par=1: N % number of parcels
+
+          vtx= % vertices (index) of dipoles in that parcel
+          mne_parcel = V(vtx,:)*(diag(ss) * U' * dat; % mne for that parcel
+          mne_parcel_sign_flip=mean(diag(sign(Up(vtx,1))*mne_parcel,1);
+
+          end
+
+          Please advise.
+
+          Thanks,
+          Raghavan

@@ -1,0 +1,91 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2814"
+    creation_ts: 2015-01-23 11:53:00 +0100
+    short_desc: mne tutorial does double realignment and segmentation
+    delta_ts: 2016-05-09 08:47:14 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - jorn
+      - lilla.magyari
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15078"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-01-23 11:53:51 +0100
+        thetext: |-
+          (Lilla, I'm adding you as CC since you made the tutorial I think, but I don't know if you still want to be involved. Feel free to un-cc yourself if not :) )
+
+          The MNE tutorial (http://fieldtrip.fcdonders.nl/tutorial/minimumnormestimate) contains the following steps for creating the source and volume conduction models:
+
+          0. Start with MRI aligned in CTF space
+          1. ft_volumesegment with cfg.output = {'skullstrip' 'brain'}
+          2. Interactively realign to Talairach space
+          3. Save original and skull-stripped version to disk as .mgz
+          4. mri_convert the saved files to other .mgz files
+          5. Freesurfer volumetric stuff
+          6. Freesurfer surface-based stuff
+          7. MNE suite downsampling of surface
+          8. Read in the surface
+          9. Read in the .mgz file created in step (4) and interactively realign to CTF
+          10. Apply the obtained transformation (mri_nom_ctf.transform / mri_nom_ctf.transformorig) to the surface
+          11. ft_volumesegment with cfg.output = {'brain'} on the .mgz file created in (4) and also used in (9)
+          12. ft_prepare_headmodel on the segmentation
+          13. transform the head model using the matrix described in (10)
+
+          While I don't know a lot about Freesurfer or MNE, this pipeline seems to me to include double work, in two instances. If we start with a CTF-space MRI, and know how to transform it to Talairach (step 2), why do we need to interactively realign another MRI to CTF again in step 9? Can't we just use the inverse transformation? I don't know what step (4) is doing exactly, does this change the coordinate system in some unspecified way?
+
+          Also, does the segmentation in step 11 give us something fundamentally different from the segmentation in step 1? Again it seems that we could just use the same segmentation, especially since step 11-13 use a segmentation in Talairach space, create a headmodel, and then transform the result to CTF. (While the segmentation in step 1 is already in CTF anyway.)
+      - +@isprivate: "0"
+        commentid: "15123"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-02 13:38:56 +0100
+        thetext: |-
+          Discussed at meeting:
+
+          - Point 0 is redundant, the later realign to ctf is needed because freesurfer does its own transform (which we don't exactly know)
+          - Let's keep the redundancy in ft_volumesegment, but remove the 'brain' output from step 1.
+      - +@isprivate: "0"
+        commentid: "16899"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 09:04:56 +0100
+        thetext: The tutorial is in the process of being restructured. The redundant stuff will be taken out in the process. Closing this one.

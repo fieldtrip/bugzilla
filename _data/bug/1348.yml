@@ -1,0 +1,139 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1348"
+    creation_ts: 2012-02-28 19:53:00 +0100
+    short_desc: ft_read_header error while reading .cnt file in version 20120222
+    delta_ts: 2012-04-11 16:48:32 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    blocked: "1359"
+    everconfirmed: "1"
+    reporter:
+      +content: anahita.mehta.09
+      +@name: Anahita Mehta
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5372"
+        comment_count: "0"
+        attachid: "233"
+        who:
+          +content: anahita.mehta.09
+          +@name: Anahita Mehta
+        bug_when: 2012-02-28 19:53:06 +0100
+        thetext: |-
+          Created attachment 233
+          matlab script to read .cnt file
+
+          a recurrent error occurs when i try to use the attached script to read in EEG data in the form of a .cnt file (neuroscan). the error is as follows:
+          Error in ft_read_header (line 1361)
+              hdr.nSamples    = orig.header.nums;
+          the script works fine in an older version fieldtrip-20111029.
+      - +@isprivate: "0"
+        commentid: "5375"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-28 23:01:23 +0100
+        thetext: |-
+          I suspect this to be related to the recent change to the low-level loadcnt in #1311
+
+          Could you upload a cnt test file (if possible a small one) that has the problem?
+
+          See http://fieldtrip.fcdonders.nl/contact for large-file upload instructions.
+      - +@isprivate: "0"
+        commentid: "5380"
+        comment_count: "2"
+        who:
+          +content: anahita.mehta.09
+          +@name: Anahita Mehta
+        bug_when: 2012-02-29 13:14:04 +0100
+        thetext: |-
+          (In reply to comment #1)
+          there is a (relatively) small .cnt file in the dropbox link below:
+          http://dl.dropbox.com/u/15215625/E3a.cnt.zip
+          thank you
+      - +@isprivate: "0"
+        commentid: "5441"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-02 17:08:42 +0100
+        thetext: "Thanks. I added the file the test repository and made a test script. I am able to reproduce the problem:\n\n============================================\n\n>> filename = '/home/common/matlab/fieldtrip/data/test/bug1348/E3a.cnt';\n>> hdr = ft_read_header(filename);\n\nLoading file /home/common/matlab/fieldtrip/data/test/bug1348/E3a.cnt ...\n\nr = \n\n    ldnsamples: 1\n            t1: 0\n       sample1: []\n         lddur: []\n         scale: 'on'\n     blockread: []\n    dataformat: 'int32'\n    memmapfile: ''\n\nReading data .....\nScaling data .....\nReading Event Table...\n??? Reference to non-existent field 'nums'.\n\nError in ==> ft_read_header at 1361\n    hdr.nSamples    = orig.header.nums;\n \n============================================\n\nAfter a small change (nums->numsamples) it again seems to work.\n\n>> hdr = ft_read_header(filename);\nLoading file /home/common/matlab/fieldtrip/data/test/bug1348/E3a.cnt ...\n\nr = \n\n    ldnsamples: 1\n            t1: 0\n       sample1: []\n         lddur: []\n         scale: 'on'\n     blockread: []\n    dataformat: 'int32'\n    memmapfile: ''\n\nReading data .....\nScaling data .....\nReading Event Table...\n\n>> hdr\n\nhdr = \n\n             Fs: 1000\n         nChans: 38\n       nSamples: 625120\n    nSamplesPre: 0\n        nTrials: 1\n          label: {38x1 cell}\n           orig: [1x1 struct]\n       chantype: {38x1 cell}\n       chanunit: {38x1 cell}\n\n============================================\n\nalso in ft_databroswer the EEG data in the file looks fine."
+      - +@isprivate: "0"
+        commentid: "5442"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-02 17:09:28 +0100
+        thetext: |-
+          bugfix - resolved a problem with the number of samples in a neuroscan cnt file, also added ";" to the end of a line in loadcnt and added a test script. See http://bugzilla.fcdonders.nl/show_bug.cgi?id=1348
+
+          --This line, and those below, will be ignored--
+
+          M    fileio/ft_read_header.m
+          M    fileio/private/loadcnt.m
+          AM   test/test_bug1348.m
+
+
+          manzana> svn commit fileio/ft_read_*m fileio/private/loadcnt.m test/test_bug1348.m
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/private/loadcnt.m
+          Adding         test/test_bug1348.m
+          Transmitting file data ...
+          Committed revision 5380.
+
+          The fixed version will be included in the fieldtrip release this evening.
+      - +@isprivate: "0"
+        commentid: "5846"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:32 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "233"
+      date: 2012-02-28 19:53:00 +0100
+      delta_ts: 2012-02-28 19:53:06 +0100
+      desc: matlab script to read .cnt file
+      filename: ReadEEG.m
+      type: application/octet-stream
+      size: "2104"
+      attacher:
+        +content: anahita.mehta.09
+        +@name: Anahita Mehta
+      data: REMOVED

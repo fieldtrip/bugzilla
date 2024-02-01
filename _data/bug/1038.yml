@@ -1,0 +1,171 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1038"
+    creation_ts: 2011-10-12 16:46:00 +0200
+    short_desc: the reading functions can support tgz and zip datasets, unzip on the fly
+    delta_ts: 2019-08-10 12:29:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1747
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - b.reuderink
+      - eelke.spaak
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3517"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-12 16:46:41 +0200
+        thetext: this requires unpacking in a temporary directory and a unique way of assigning a tmp-identifierTODO
+      - +@isprivate: "0"
+        commentid: "4051"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:39 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4669"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 14:38:29 +0100
+        thetext: Confirmed (enhancement by Robert). Changed status to NEW.
+      - +@isprivate: "0"
+        commentid: "5131"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 12:04:16 +0100
+        thetext: |-
+          Maybe some ideas can be borrowed from Python's DataSource:
+          http://docs.scipy.org/doc/numpy/reference/generated/numpy.DataSource.html
+
+          It implements caching and opening from URLs on top of Robert's proposal.
+      - +@isprivate: "0"
+        commentid: "5135"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-03 15:33:02 +0100
+        thetext: |-
+          Jan-Mathijs,
+
+          Could this download-and-cache-on-the-fly be of relevance for the HCP?
+
+          Do you know how the mgz format is dealt with?  I suspect it to be compressed.
+      - +@isprivate: "0"
+        commentid: "5138"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-03 16:34:28 +0100
+        thetext: |-
+          Yes, the mgz format is compressed.
+
+          It is compressed/uncompressed on the fly, using unix('....gzip etc') for compression, and platform-dependent unix('...gunzip etc') or unix('...zcat ...') for decompression. Doesn't seem to work for windows
+      - +@isprivate: "0"
+        commentid: "5394"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-02-29 14:47:01 +0100
+        thetext: |-
+          Proposal for implementing:
+
+          - Change ft_filetype to detect .zip, .tgz, .tar.gz, .gz file extensions, and return that as the filetype.
+
+          - Change ft_read_header and ft_read_data to check whether filetype equals one of the compressed types, and if so, extract the file to a temporary directory, and recursively call ft_read_header/ft_read_data on the extracted file set.
+
+          Am I missing something why this would not work? (Don't have any experience with these reading functions or data formats other than CTF.)
+      - +@isprivate: "0"
+        commentid: "5399"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-02-29 15:07:52 +0100
+        thetext: JM thinks it's a good idea, working on it.
+      - +@isprivate: "0"
+        commentid: "5444"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-02 17:25:52 +0100
+        thetext: "(In reply to comment #7)\n\nindeed good idea. I suggest the test scenario to include at least these cases:\n\n1) ctf_ds, i.e. *.ds directory, where the directory would be zipped.\n2) simple one-file EEG format, e.g. biosemi_bdf or ns_cnt, where the file is zipped\n3) brainvision triplet of vhdr+vmrk+eeg files. These are normally not in a directory. \n\ncase 1 also applies to neuralynx_sdma, also egi_mff would be a good test case\n\ncase 2 applies to a lot of formats, and is simple. No additional testing needs to be done. But it raises the question: how do ft_filetype and ft_read_xxx interact with each other? Should ft_filetype already unzip? How to avoid multiple unzip actions? Should there be a \"zipcache\" function in fileio/private with a persistent list/struct-array with the original zipped filename and the alternative unzipped filename?\n\ncase 3 also applies to a set of dicom images (ft_read_mri), or to an analyze hdr+img anatomical file. In case 3, should it support both a \"flat\" zipfile and one with a subdir in it?"
+      - +@isprivate: "0"
+        commentid: "7623"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-26 22:34:45 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          I moved the URL idea to the separate bug 1747
+      - +@isprivate: "0"
+        commentid: "12727"
+        comment_count: "10"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 14:59:52 +0100
+        thetext: |-
+          bash-4.1$ svn commit test/test_readcompresseddata.m fileio
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/ft_read_mri.m
+          Adding         fileio/private/inflate_file.m
+          Adding         test/test_readcompresseddata.m
+          Transmitting file data .....
+          Committed revision 9149.
+      - +@isprivate: "0"
+        commentid: "20025"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:19 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,300 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3119"
+    creation_ts: 2016-04-29 17:22:00 +0200
+    short_desc: fitting 2 moving dipoles with constr.sequential = 1 probably wrong
+    delta_ts: 2016-06-02 16:00:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17267"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-04-29 17:22:46 +0200
+        thetext: |-
+          I simulate EEG data to fit two symmetric moving dipoles for every time point of a time interval of interest. I used the constr.sequential = 1 to explore for what might be useful (no documentation and hard to get from the code) and I notice an inconsistency in /inverse/dipole_fit.m. Withing lines 318-330 the sequential thing happens but the 'framesel' variable will be always 0.5, yielding a moment zero because data selection gives and empty matrix:
+          line 329: pinv(lf(:,dipsel))*dat(:,framesel);
+
+          The thing is that the fitting is done sample-by-sample (ft_dipolefitting.m line 506) so previous line of code should be: pinv(lf(:,dipsel))*dat;
+
+          However, what I don't understand is that later in ft_dipolefitting.m line 567, the dipole moment is recomputed ignoring the sequential constrain
+          dip(t).mom = pinv(lf)*Vdata(:,t);
+
+          Looking forward to know how the sequential constrain should behave (fitting one dipole in one frame and another in the next?) and why this second computation of the dipole moment.
+
+
+          SUGESTION: would it make sense to add a dipole option on where one can fit two dipoles in a given sample without symmetry constraints. It could be possible by selecting the two lowest error values in the grid.error (around ft_dipolefitting.m line 421)
+
+
+          Below you can reproduce the problem using the attached data.
+
+
+          % load template mri
+          ftdir = fileparts(which('ft_defaults'));
+          mri = ft_read_mri(fullfile(ftdir,'template','headmodel','standard_mri.mat'));
+
+          % used later to plot dipoles
+          cfg = [];
+          cfg.resolution = 1;
+          cfg.xrange = [-100 100];
+          cfg.yrange = [-140 140];
+          cfg.zrange = [-80 120];
+          mris = ft_volumereslice(cfg, mri);
+          mris = ft_convert_units(mris, 'cm');
+
+          % load template segmented mri and rearrange fields
+          seg = ft_read_mri(fullfile(ftdir,'template','headmodel','standard_seg.mat'));
+
+          brain = zeros(size(seg.seg));
+          bri = find(seg.seg==3);
+          brain(bri)=1; clear bri;
+          skull = zeros(size(seg.seg));
+          ski = find(seg.seg==2);
+          skull(ski)=1; clear ski;
+          scalp = zeros(size(seg.seg));
+          sci = find(seg.seg==1);
+          scalp(sci)=1; clear sci;
+
+          seg.brain = brain; clear brain;
+          seg.scalp = scalp; clear scalp;
+          seg.skull = skull; clear skull;
+          seg = rmfield(seg,'seg');
+
+          vol = ft_read_vol(fullfile(ftdir,'template','headmodel','standard_bem.mat'));
+
+
+          figure;
+          ft_plot_mesh(vol.bnd(1),'edgecolor', 'none', 'facecolor', 'r'); % scalp
+          ft_plot_mesh(vol.bnd(2),'edgecolor', 'none', 'facecolor', 'g'); % skull
+          ft_plot_mesh(vol.bnd(3),'edgecolor', 'none', 'facecolor', 'b'); % brain
+          alpha 0.3;
+          view(132, 14)
+
+
+          % get custom electrodes
+          label={'Fp1';'AF7';'AF3';'F1';'TP9';'F5h';'F7';'FT7';'FC5h';'PO9';'FC1';'C1';'C3';'C5';'T7';'TP7';'CP5';'CP3';'CP1';'P1';'I1';'P5h';'P7';'P9';'PO7';'PO3';'O1';'Iz';'Oz';'POz';'Pz';'CPz';'Fpz';'Fp2';'AF8';'AF4';'AFz';'Fz';'F2';'TP10';'F6h';'F8';'FT8';'FC6h';'PO10';'FC2';'FCz';'Cz';'C2';'C4';'C6';'T8';'TP8';'CP6';'CP4';'CP2';'P2';'I2';'P6h';'P8';'P10';'PO8';'PO4';'O2'};
+          elec = ft_read_sens(fullfile(ftdir,'template','electrode','standard_1005.elc'));
+
+          [sel1,sel2] = match_str(label,elec.label);
+          % isequal(elec.label(sel2),label(sel1))
+
+          chanpos = elec.chanpos(sel2,:);
+          elecpos = elec.elecpos(sel2,:);
+          elec.chanpos = chanpos;
+          elec.elecpos = elecpos;
+          elec.label = label;
+
+
+          figure;
+          hold on
+          ft_plot_sens(elec, 'style', 'ob','label','label');
+          ft_plot_vol(vol, 'facealpha', 0.5, 'edgecolor', 'none'); % "lighting phong" does not work with opacity
+          material dull;
+          camlight;
+
+          %
+          cfg                 = [];
+          cfg.elec            = ft_convert_units(elec,'cm');
+          cfg.headmodel       = ft_convert_units(vol,'cm');
+          cfg.reducerank      = 3;
+          cfg.channel         = 'all';
+          cfg.grid.resolution = 1;   % use a 3-D grid with a 1 cm resolution
+          cfg.grid.unit       = 'cm';
+          grid = ft_prepare_leadfield(cfg);
+
+
+          %% load simulated data
+          load datat1.mat
+
+          cfg            = [];
+          cfg.channel    = 'all';
+          cfg.elec       = ft_convert_units(elec,'cm');
+          cfg.senstype   = 'eeg';
+          cfg.latency    = [0.2 0.3];
+          cfg.reducerank = 3;
+          cfg.numdipoles = 1;
+          cfg.grid       = ft_convert_units(grid,'cm');
+          cfg.gridsearch = 'yes';
+          cfg.nonlinear  = 'yes';
+          cfg.vol        = ft_convert_units(vol,'cm');
+          cfg.model      = 'moving';
+          cfg.numdipoles = 2;
+          cfg.symmetry   = 'x';
+          cfg.dipfit.constr.sequential = 1;
+          dipole = ft_dipolefitting(cfg, datat1);
+
+          %%
+          figure;
+          ft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [-3.1   -4.6    -1.4], 'orientation', [0 1 0], 'resolution', 0.1);
+          ft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [-3.1   -4.6    -1.4], 'orientation', [1 0 0], 'resolution', 0.1);
+          ft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [-3.1   -4.6    -1.4], 'orientation', [0 0 1], 'resolution', 0.1);
+          axis tight;
+          axis off;
+
+          for frame=1:17;
+            ft_plot_dipole(dipole.dip(frame).pos(1,:), dipole.dip(frame).mom(1:3,:),'color','r');
+            ft_plot_dipole(dipole.dip(frame).pos(2,:), dipole.dip(frame).mom(4:6,:),'color','b');
+          end
+      - +@isprivate: "0"
+        commentid: "17268"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-04-29 17:25:12 +0200
+        thetext: "find the data below \nhttps://www.dropbox.com/s/9ftdl2kz14xmb8h/datat1.mat?dl=0"
+      - +@isprivate: "0"
+        commentid: "17389"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:17:14 +0200
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #1)\n\nHi Diego, \n\nSince I am working on something related, I came across your bug report. The sequential option was implemented by me and Arjen (now CC) to fit multiple dipoles at the same time, where each dipole has a different topography. This only makes sense (as far as I know) in combination with the rigidbody option. The specific use case is this:\n \ncfg = [];\ncfg.channel = 'MEGMAG';\ncfg.headmodel = headmodel;\ncfg.dip.unit = 'm';\ncfg.dip.pos = polhemus_hpipos;\ncfg.model = 'regional';\ncfg.dipfit.constr.rigidbody = true;\ncfg.dipfit.constr.sequential = true;\ncfg.frequency = hpicoilfreq;\ncfg.gridsearch = 'no';\nhpifit_jointly = ft_dipolefitting(cfg, freq);\n\nwhere (in my data) I have 10 HPI head coils, each at its own frequency, for which the fourier topographies are contained in the freq structure. I want to fit 10 magnetic dipoles, whose relative position is fixed and whose starting point is given by the polhemus recording, but the topography is not a linear mixture of the 10 dipole topographies. Rather, each dipole has its own topography (which is spectrally separated).\n\nSo you should think of the data as Nchan*Ncoil, and the dipole model is Ncoil*3, and I want to move all dipoles jointly (hence rigid body) to minimize the overall error between model and data.\n\nYour use case is rather complicated, but I don't think the \"sequential\" option should be part of it.\n\nActually, sequential and moving don't match.\n\nI will add a check and error to the ft_dipolefitting function."
+      - +@isprivate: "0"
+        commentid: "17390"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:20:26 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          mac011> git commit -a
+          [bug3119-constr-sequential c2dde19] ENH - give an error with incorrect configuration for dipole fitting, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3119
+           3 files changed, 130 insertions(+), 1 deletion(-)
+           create mode 100644 test/test_bug3119.m
+      - +@isprivate: "0"
+        commentid: "17391"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:43:25 +0200
+        thetext: |-
+          specifying cfg.symmetry=x together with a cfg.grid that is NOT a symmetric dipole grid is also weird. I followed it through the code, and accidentally it does work correctly. Actually, it is fine I realize... the symmetry is implemented on the 2nd call to ft_prepare_sourcemodel (from ft_dipolefitting).
+
+          I have improved this a bit.
+
+          mac011> git commit -a
+          [bug3119-constr-sequential 97a4578] ENH - added some sanity checks, extended test script. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3119
+           3 files changed, 67 insertions(+), 9 deletions(-)
+      - +@isprivate: "0"
+        commentid: "17392"
+        comment_count: "5"
+        attachid: "793"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:50:16 +0200
+        thetext: "Created attachment 793\nscreen shot of data and model\n\nthis is how I think your simulated data should be fitted\n\ncfg            = [];\ncfg.channel    = 'all';\ncfg.elec       = ft_convert_units(elec,'cm');\ncfg.grid       = ft_convert_units(grid,'cm');\ncfg.headmodel  = ft_convert_units(vol,'cm');\ncfg.senstype   = 'eeg';\ncfg.latency    = [0.2 0.3];\ncfg.reducerank = 3;\ncfg.gridsearch = 'yes';\ncfg.nonlinear  = 'yes';\ncfg.model      = 'regional';\ncfg.numdipoles = 2;\ncfg.symmetry   = 'x';\ndipole = ft_dipolefitting(cfg, datat1); \n\nThe fit is not perfect, but see\n\noriginal = rmfield(dipole, 'dip');\noriginal.avg = dipole.Vdata;\n\nfitted = rmfield(dipole, 'dip');\nfitted.avg = dipole.Vmodel;\n\ncfg = [];\ncfg.layout = 'elec1005.lay';\nft_multiplotER(cfg, original, fitted);"
+      - +@isprivate: "0"
+        commentid: "17393"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:51:24 +0200
+        thetext: |-
+          please note that I do not rule out that there are errors due to inconsistent model handling in ft_dipolefitting in these sections:
+
+          1) the grid search
+          2) the nonlinear part
+          3) the post-hoc recomputing of the fit
+      - +@isprivate: "0"
+        commentid: "17394"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:52:12 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          mac011> git commit -a
+          [bug3119-constr-sequential dc689a0] ENH - added the "best" configuration to the test script, and added visualisation of the result
+           1 file changed, 31 insertions(+)
+      - +@isprivate: "0"
+        commentid: "17395"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-01 17:54:31 +0200
+        thetext: I merged the changes with https://github.com/fieldtrip/fieldtrip/pull/168
+      - +@isprivate: "0"
+        commentid: "17396"
+        comment_count: "9"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-06-02 00:12:43 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #8)\nHi Robert,\nThanks for your thorough answer. Now I see the rigid body option for the headlocalizer application. \n\nRegarding my proposal of fitting two dipoles without symmetry constraints I still think makes sense. I think BESA has a way to fit a single dipole that explains as much variance as possible and then it fits a second one to increase the variance explained (here the reason I reported about the cfg.dipfit.constr.sequential = true;). This is the reason I thought about selecting the two lowest error values in the grid.error. Do you have any suggestions about how to fit two dipoles without symmetry constrains? I thought about it for a while but no worries if it's too much nuisance"
+      - +@isprivate: "0"
+        commentid: "17397"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-02 09:23:21 +0200
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #9)\n\nit is possible to fit two dipoles without symmetry constraint, but not to do a grid search with two dipoles without symmetry. You'll have to position them at suitable starting locations.\n\nOne strategy is to call ft_dipolefitting twice, in the first gridsearch and nonlinear with symmetry, and then in the second call to release the symmetry and further nonlinear optimize (without grid search, but using the result from the first).\n\nThe low-level dipole_fit function does currently not support the fitting of one dipole while keeping another dipole at a fixed position. It would be possible to extend the dipole_fit->dipolemodel2param and param2dipolemodel function to support. Let me give that a try...\n\nmac011> git push origin bug3119-constr-sequential\nX11 forwarding request failed on channel 0\nCounting objects: 4, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (4/4), done.\nWriting objects: 100% (4/4), 859 bytes | 0 bytes/s, done.\nTotal 4 (delta 3), reused 0 (delta 0)\nTo git@github.com:robertoostenveld/fieldtrip.git\n   dc689a0..dcc246c  bug3119-constr-sequential -> bug3119-constr-sequential\n\nThis branch (in robertoostenveld/fieldtrip) contains dipole_fit function with an extended constraint. Look in the code for \"constr.nofit\".\n\nYou should be able to make your own \"bug3119-constr-sequential\" branch locally and to pull the changes on my branch into yours. Then you can try out. \n\nAfter fitting the first dipole, you should proceed with a 2nd call to ft_dipolefitting with\n\ncfg.dip.pos(1,:) = position from first fit\ncfg.dip.pos(2,:) = your best guess for the 2nd dipole\ncfg.dipfit.constr.nofit = [1 1 1 0 0 0]\n\nI still don't know how to deal with the interaction between the (simple) gridsearch, the (elaborate) nonlinear model and the strength/moment optimization at the end."
+      - +@isprivate: "0"
+        commentid: "17400"
+        comment_count: "11"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-06-02 16:00:34 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+          Cool! I try it as soon as I can and I let you know
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "793"
+      date: 2016-06-01 17:50:00 +0200
+      delta_ts: 2016-06-01 17:50:16 +0200
+      desc: screen shot of data and model
+      filename: Screen Shot 2016-06-01 at 17.49.45.png
+      type: image/png
+      size: "136479"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

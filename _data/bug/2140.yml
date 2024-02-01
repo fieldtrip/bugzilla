@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2140"
+    creation_ts: 2013-04-26 11:57:00 +0200
+    short_desc: discrepancy between trials/time when filtering in-memory trials with mirror padding
+    delta_ts: 2014-03-12 12:21:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: robince
+      +@name: Robin
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10311"
+        comment_count: "0"
+        who:
+          +content: robince
+          +@name: Robin
+        bug_when: 2013-04-26 11:57:07 +0200
+        thetext: |-
+          Is it possible filter in-memory extracted trials data with mirroring at the
+          edges?
+
+          When I try:
+
+          % filter
+          cfg = [];cfg.lpfilter = 'yes';
+          cfg.lpfreq = '40';
+          cfg.lpfilttype ='but';
+          cfg.padtype = 'mirror';
+          % trial length is 1.1s so mirror-pad to1.5s (200ms each side)
+          cfg.padding = 1.5;
+          flt_data = ft_preprocessing(cfg, block_data);
+
+          I get:
+
+          Reference to non-existent field 'Fs'.
+
+          Error in ft_preprocessing (line 288)
+                padding = round(cfg.padding * data.Fs);
+
+          Adding block_data.Fs = block_data.fsample; seems to work. But in the
+          resulting data structure the time vectors no longer match the trial data,
+          so obviously something is going wrong:
+
+          >> size(block_data.time{1})
+
+          ans =
+
+               1   560
+
+          >> size(block_data.trial{1})
+
+          ans =
+
+             234   560
+
+          >> size(flt_data.trial{1})
+
+          ans =
+
+             234   560
+
+          >> size(flt_data.time{1})
+
+          ans =
+
+               1   357
+
+          This is using SVN r8075.
+          block_data is the result of ft_appenddata of several individual runs.
+      - +@isprivate: "0"
+        commentid: "10317"
+        comment_count: "1"
+        attachid: "468"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-26 12:26:37 +0200
+        thetext: "Created attachment 468\ncorrected for in-memory data - is this correct for data on disk as well?\n\nHi Robin,\n\nin the meanwhile I found that the error is because the number of padded samples also get deducted from the time-axis, while time-axis did not get padded. So that was an easy fix, see attachment. \nI just wonder whether the same fix that I applied for data in memory has to be applied for data on disk. The attached version applies the same fix for data on disk, but I am not sure whether this is the correct thing to do. I will still have to do some sanity checks for this. However, your bug should be fixed with this version."
+      - +@isprivate: "0"
+        commentid: "10725"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-12 16:25:19 +0200
+        thetext: |-
+          Hi Robin,
+
+          whoops, I thought this was fixed, but I just checked and realized it is not. I fixed all this padding stuff now, should work in the version from tomorrow onwards. Sorry for the long delay.
+          http://code.google.com/p/fieldtrip/source/detail?r=8246
+
+          Best,
+          Jörn
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "468"
+      date: 2013-04-26 12:26:00 +0200
+      delta_ts: 2013-04-26 12:26:37 +0200
+      desc: corrected for in-memory data - is this correct for data on disk as well?
+      filename: ft_preprocessing.m
+      type: text/x-objcsrc
+      size: "28091"
+      attacher:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      data: REMOVED

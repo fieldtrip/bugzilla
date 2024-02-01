@@ -1,0 +1,201 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1513"
+    creation_ts: 2012-06-11 10:58:00 +0200
+    short_desc: grid and vol different units (neuromag data)
+    delta_ts: 2012-07-12 10:41:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: hanneke.p.van.dijk
+      +@name: Hanneke van Dijk
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - hanneke.p.van.dijk
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6335"
+        comment_count: "0"
+        attachid: "273"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2012-06-11 10:58:23 +0200
+        thetext: |-
+          Created attachment 273
+          data used in my script
+
+          When I prepare mni-realigned sourcemodels and afterwards plot grid and vol, they are at different places in the plot (attached).
+
+          My analysis in short:
+
+          %after creating template_grid and template_vol;
+          1. ft_read_mri
+          2. ft_mri_realign (cfg.fiducial)
+          3. ft_volumesegment
+
+          %After this the error occurs;
+
+          4. ft_prepare_headmodel
+          5. ft_prepare_sourcemodel (using cfg.grid.warpmni='yes', and template_grid)
+
+          %-----------------------------------------------------
+          %script:
+          %-----------------------------------------------------
+          mrifile = ('/mri/sets/mri.fif');
+          mri = ft_read_mri(mrifile);
+          [RPA,NAS,LPA] = vs_read_landmarks(s);
+
+          cfg                 = [];
+          cfg.method          = 'fiducial';
+          cfg.fiducial.lpa    = LPA;
+          cfg.fiducial.nas    = NAS;
+          cfg.fiducial.rpa    = RPA;
+          cfg.coordsys        = 'neuromag' ;
+          mri_real            = ft_volumerealign(cfg,mri);
+
+          % segment the anatomical MRI
+          cfg = [];
+          cfg.template        = '/data/apps/fieldtrip/latest/external/spm8/templates/T1.nii';
+          cfg.coordsys        = 'neuromag';
+          cfg.write           = 'no';
+          cfg.name            = 'temp';
+          cfg.sourceunits     = 'm';
+          segmentedmri = ft_volumesegment(cfg, mri_real);
+
+          % construct volume conductor model (i.e. head model) for each subject
+          % this is optional, you can also use another model, e.g. a single sphere model
+          cfg                 = [];
+          cfg.method          = 'singleshell';
+          cfg.sourceunits     = 'cm';
+          cfg.coordsys        = 'neuromag';
+          vol = ft_prepare_headmodel(cfg,segmentedmri);
+
+          % create the subject specific grid, using the template grid that has just been created
+          load(strcat(basepath,'templates/template_grid.mat'));
+          cfg                 = [];
+          cfg.grid.warpmni    = 'yes';
+          cfg.grid.template   = template_grid;
+          cfg.grid.nonlinear  = 'yes'; % use non-linear normalization
+          cfg.coordsys        = 'neuromag';
+          cfg.mri             = mri_real;
+          cfg.sourceunits     = 'm';
+          cfg.vol             = vol;
+          grid                = ft_prepare_sourcemodel(cfg);
+
+          %%%%%%%%%%%%%%%%%%%%%
+          function [RPA,NAS,LPA] = vs_read_landmarks(s);
+
+          fid = fopen(/mri/landmarks_voxel.txt'));
+          frewind(fid)
+          T1=fgets(fid);
+          T2=fgets(fid);
+
+          LPA = str2num(fgets(fid));
+          RPA = str2num(fgets(fid));
+          NAS = str2num(fgets(fid));
+      - +@isprivate: "0"
+        commentid: "6337"
+        comment_count: "1"
+        attachid: "274"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2012-06-11 11:05:09 +0200
+        thetext: |-
+          Created attachment 274
+          figure
+      - +@isprivate: "0"
+        commentid: "6338"
+        comment_count: "2"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2012-06-11 11:17:24 +0200
+        thetext: I have also tried using the 'vol' in stead of 'mri_real' to prepare the grid. This results in nicely overlapping data. However the inwardshift of -1.5 that I used in the template_grid gets lost. I guess the points that are normaly a bit outside of the vol, are now inside. This is not supposed to happen of course.
+      - +@isprivate: "0"
+        commentid: "6339"
+        comment_count: "3"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2012-06-11 11:21:54 +0200
+        thetext: 'There are also a lot less grid points when I use the vol in stead of mri_real (642 instead of 5780)(In reply to comment #2)'
+      - +@isprivate: "0"
+        commentid: "6413"
+        comment_count: "4"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2012-06-14 13:23:09 +0200
+        thetext: Doing ft_convert_units(mri_real,'mm'), before doing ft_prepare_sourcemodel solved the problem.
+      - +@isprivate: "0"
+        commentid: "6757"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-07 20:28:13 +0200
+        thetext: 'TO DO: ensure the mri data to have ''mm'' units prior to doing the normalisation.'
+      - +@isprivate: "0"
+        commentid: "6767"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-09 16:21:14 +0200
+        thetext: changed in revision 6254
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "273"
+        date: 2012-06-11 10:58:00 +0200
+        delta_ts: 2012-06-11 10:58:23 +0200
+        desc: data used in my script
+        filename: hanneke_data.zip
+        type: application/x-zip-compressed
+        size: "32892169"
+        attacher:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "274"
+        date: 2012-06-11 11:05:00 +0200
+        delta_ts: 2012-06-11 11:05:09 +0200
+        desc: figure
+        filename: grid_vol.jpg
+        type: image/jpeg
+        size: "18489"
+        attacher:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        data: REMOVED

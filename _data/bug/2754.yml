@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2754"
+    creation_ts: 2014-11-05 10:21:00 +0100
+    short_desc: selectdata does not avgovertime
+    delta_ts: 2015-02-11 10:40:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14755"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-11-05 10:21:42 +0100
+        thetext: |-
+          Hi,
+
+          It seems selectdata does not actually average over time when cfg.avgovertime = 'yes' or ...'avgovertime','yes'... (old). 'Latency' and 'toilim', respectively do work.
+
+          Can anyone replicate this?
+
+          Cheers,
+          Stephen
+      - +@isprivate: "0"
+        commentid: "14756"
+        comment_count: "1"
+        attachid: "673"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-11-05 10:32:30 +0100
+        thetext: |-
+          Created attachment 673
+          ERF test dataset
+      - +@isprivate: "0"
+        commentid: "14757"
+        comment_count: "2"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-11-05 10:34:53 +0100
+        thetext: "That is, for timelocked data. See attachment. \n\nThe following does not result in a datastructure averaged over time:\ntestERF_avgtime = ft_selectdata(testERF,'avgovertime','yes');\n\nNow I am thinking, perhaps it is not compatible with FT to have an ERF with a single datapoint...\n\nHmm... ok, my bad. I guess I'll use ft_math for this.\n\nOnly suggestion is to throw an error but I'll close it."
+      - +@isprivate: "0"
+        commentid: "14758"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-05 10:40:28 +0100
+        thetext: "Please use the new implementation of ft_selectdata, i.e. the one that takes a cfg as first input. That is also how it is documented in the help. The support for key-value pairs is only there for backward compatibility, and we will not maintain that in the future.\n\nThe ft_selectdata bugs in general are/were addressed in bug #1021.\n\n---\n\nNote to future self: this works just fine\n\ntimelock.avg = [1 2 3];\ntimelock.time = [1 2 3];\ntimelock.label = {'chan1'}\ntimelock.dimord = 'chan_time'\n\ncfg.avgovertime = 'yes'\ncfg.latency = 'all'\nft_selectdata(cfg, timelock)\n\nans = \n       avg: 2\n      time: 2\n     label: {'chan1'}\n    dimord: 'chan_time'\n       cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "14759"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-05 10:41:38 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #3)\n\nIf I repeat the previous code with a single latency as time point, it also works fine,\n\n>> timelock.time = 1;\n>> timelock.avg = 1;\n\n>> ft_selectdata(cfg, timelock)\nthe call to \"ft_selectdata\" took 0 seconds and required the additional allocation of an estimated 1 MB\n\nans = \n\n       avg: 1\n      time: 1\n     label: {'chan1'}\n    dimord: 'chan_time'\n       cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "14760"
+        comment_count: "5"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-11-05 11:05:40 +0100
+        thetext: I tried both the new and then the old implementation. It did not work for me on either. Could you try with the dataset I uploaded please?
+      - +@isprivate: "0"
+        commentid: "14761"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-05 11:35:54 +0100
+        thetext: "(In reply to Stephen Whitmarsh from comment #5)\n\nbug confirmed. It fails due to the data being raw. The error is in cellmatmean around line 1221, where it takes the average over dim-1. \n\nThis appears to be due to the dimord of the trial field being incorrect, which is interpreted as 'chan_time', but should be '{rpt}_chan_time}'."
+      - +@isprivate: "0"
+        commentid: "14762"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-05 11:39:16 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          sorry, it goes wrong on the data.time cell-array, not on the data.trial cell-array.
+
+          the dimord of data.time should be {rpt}_1_time?
+      - +@isprivate: "0"
+        commentid: "14765"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-05 14:52:36 +0100
+        thetext: |-
+          mac011> svn commit test/test_bug2754.m utilities/ft_selectdata.m
+          Adding         test/test_bug2754.m
+          Sending        utilities/ft_selectdata.m
+          Transmitting file data ..
+          Committed revision 9938.
+      - +@isprivate: "0"
+        commentid: "15238"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:34 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "673"
+      date: 2014-11-05 10:32:00 +0100
+      delta_ts: 2014-11-05 10:32:30 +0100
+      desc: ERF test dataset
+      filename: testERF.mat
+      type: text/plain
+      size: "930215"
+      attacher:
+        +content: stephen.whitmarsh
+        +@name: Stephen Whitmarsh
+      data: REMOVED

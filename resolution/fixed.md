@@ -1,0 +1,5 @@
+---
+title: Fixed
+---
+
+{% include resolution %}

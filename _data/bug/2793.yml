@@ -1,0 +1,469 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2793"
+    creation_ts: 2014-12-23 12:56:00 +0100
+    short_desc: add mini version of spm12 to fieldtrip/external
+    delta_ts: 2019-08-10 12:41:14 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked:
+      - "3228"
+      - "2837"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - a.stolk8
+      - brungio
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14990"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-23 12:56:12 +0100
+        thetext: this requires to find out which of the spm12 functions are called by fieldtrip, and only add those functions. Should use depfun or mydepfun
+      - +@isprivate: "0"
+        commentid: "16392"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 01:13:55 +0100
+        thetext: |-
+          It seems we should replace, in ft_volumerealign, the call to spm_normalise by spm_coreg.
+
+          The latter can be called according to:
+
+          VG          = 'IR18_MR.nii'; % VG    - handle for reference image (see spm_vol).
+          VF          = 'IR18_CT.nii'; % VF    - handle for source (moved) image.
+          flags       = []; % use the defaults
+          x = spm_coreg(VG,VF,flags);
+
+          transform = spm_matrix(x(:)');
+      - +@isprivate: "0"
+        commentid: "16393"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 01:53:16 +0100
+        thetext: "Actually just build this in. For instance, if one has spm12 on the path, one can call:\n\nmri             = ft_read_mri(mrfile);\nct              = ft_read_mri(ctfile);\ncfg             = [];\ncfg.method      = 'spm';\ncfg.spmversion  = 'spm12';\nct              = ft_volumerealign(cfg, ct, mri);\n\n\nThe build in support (ft_volumerealign):\n\nelseif strcmpi(cfg.spmversion, 'spm12')\n      \n      if ~isfield(cfg, 'spm'), cfg.spm = []; end\n      \n      tname1 = [tempname, '.nii'];\n      tname2 = [tempname, '.nii'];\n      VG = ft_write_mri(tname1, target.anatomy, 'transform', target.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % reference image\n      VF = ft_write_mri(tname2, mri.anatomy, 'transform', mri.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % source (moved) image\n      \n      flags         = cfg.spm;\n      x             = spm_coreg(VG,VF,flags);\n      transform     = spm_matrix(x(:)');\n      \nend\n\n\nNote that spm_coreg works fine without having two put the two volumes in the same coordsys (a big plus from my point of view). I've also add the spm12 options to the help section:\n\n% When cfg.spmversion = 'spm12', the following options apply: \n%   cfg.spm.sep     = optimisation sampling steps (mm), default: [4 2]\n%   cfg.spm.params  = starting estimates (6 elements), default: [0 0 0  0 0 0]\n%   cfg.spm.cost_fun = cost function string:\n%                       'mi'  - Mutual Information (default)\n%                       'nmi' - Normalised Mutual Information\n%                       'ecc' - Entropy Correlation Coefficient\n%                       'ncc' - Normalised Cross Correlation\n%   cfg.spm.tol     = tolerences for accuracy of each param, default: [0.02 0.02 0.02 0.001 0.001 0.001]\n%   cfg.spm.fwhm    = smoothing to apply to 256x256 joint histogram, default: [7 7]"
+      - +@isprivate: "0"
+        commentid: "16394"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 08:29:43 +0100
+        thetext: "Turns out it is not as easy as \ntransform     = spm_matrix(x(:)');\n\nAccording to the documentation of spm_coreg, mapping from voxels in 'target' to voxels in 'mri' is attained by: mri.transform\\spm_matrix(x(:)')*target.transform\n\nAt the end of ft_volumerealign, the realign struc is build according to:\nrealign.transform     = transform * mri.transform;\n\nmeaning that the transform variable should equal:\n( mri.transform\\spm_matrix(x(:)')*target.transform )/mri.transform\n\nHowever, I cannot produce consistent results this way, switching between markers placed in either a ct or mri. Whereas the spm gui does produce a coregistered file that has markers with equal positions as within its target.\n\nAs a sidenote, spm12 now has spm_coreg and spm_realign, for aligning between and within modalities, respectively. Spm_normalise no longer is included (it was in spm8)."
+      - +@isprivate: "0"
+        commentid: "16395"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-19 08:37:08 +0100
+        thetext: we should change it such that it remains compatible with old versions of spm. The code of ft_read_mri contains an example on how to make it work for different spm versions.
+      - +@isprivate: "0"
+        commentid: "16396"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 08:44:25 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #4)\n\nIt (still) is:\n\nif strcmpi(cfg.spmversion, 'spm2') || strcmpi(cfg.spmversion, 'spm8')\n\n...\nparams        = spm_normalise(V2,V1,[],[],[],flags);\ntransform     = (target.transform/params.Affine)/T/mri.transform;\n....\n\nelseif strcmpi(cfg.spmversion, 'spm12')\n      \n      if ~isfield(cfg, 'spm'), cfg.spm = []; end\n      \n      tname1 = [tempname, '.nii'];\n      tname2 = [tempname, '.nii'];\n      VG = ft_write_mri(tname1, target.anatomy, 'transform', target.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % reference image\n      VF = ft_write_mri(tname2, mri.anatomy, 'transform', mri.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % source (moved) image\n      \n      flags         = cfg.spm;\n      x             = spm_coreg(VG,VF,flags);\nend"
+      - +@isprivate: "0"
+        commentid: "16398"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 19:33:11 +0100
+        thetext: "(In reply to Arjen Stolk from comment #5)\nTransformation matrices are not my cup of tea, but this seems to produce identical results as when done with the spm gui:\n\ntname1 = [tempname, '.nii'];\ntname2 = [tempname, '.nii'];\nV1 = ft_write_mri(tname1, mri.anatomy, 'transform', mri.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % source (moved) image\nV2 = ft_write_mri(tname2, target.anatomy, 'transform', target.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % reference image\n      \nflags         = cfg.spm;\nx             = spm_coreg(V2,V1,flags); % spm_realign does within modality rigid body movement parameter estimation\n% x     - the parameters describing the rigid body rotation, such that a\n%         mapping from voxels in G to voxels in F is attained by:\n%         VF.mat\\spm_matrix(x(:)')*VG.mat\nM             = inv(spm_matrix(x(:)'));\nMM            = spm_get_space(tname1);\nmri.transform = spm_get_space(tname1, M * MM); \n      \ntransform     = eye(4); % such that realign.transform will be created below"
+      - +@isprivate: "0"
+        commentid: "16399"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-19 19:48:52 +0100
+        thetext: "(In reply to Arjen Stolk from comment #6)\nsimplified to:\n\n...\n\nelseif strcmpi(cfg.spmversion, 'spm12')\n      \n      if ~isfield(cfg, 'spm'), cfg.spm = []; end\n      \n      tname1 = [tempname, '.nii'];\n      tname2 = [tempname, '.nii'];\n      V1 = ft_write_mri(tname1, mri.anatomy, 'transform', mri.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % source (moved) image\n      V2 = ft_write_mri(tname2, target.anatomy, 'transform', target.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm'); % reference image\n      \n      flags         = cfg.spm;\n      x             = spm_coreg(V2,V1,flags); % spm_realign does within modality rigid body movement parameter estimation\n      transform     = inv(spm_matrix(x(:)')); % from V1 to V2, to be multiplied still with the original transform (mri.transform), see below\n     \nend"
+      - +@isprivate: "0"
+        commentid: "18124"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-03 01:01:57 +0100
+        thetext: |-
+          To make a start in terms of a mini SPM12 version, can we minimally add the following list of functions? They are needed to use SPM12's spm_coregister.m when calling ft_volumerealign as follows:
+
+          cfg               = [];
+          cfg.method        = 'spm';
+          cfg.spmversion    = 'spm12';       % requires spm_coregister.m and a bunch of others
+          cfg.coordsys      = 'tal';
+          cfg.viewresult    = 'yes';
+          ct_fused = ft_volumerealign(cfg, ct, mri);
+      - +@isprivate: "0"
+        commentid: "18125"
+        comment_count: "9"
+        attachid: "822"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-03 01:02:42 +0100
+        thetext: |-
+          Created attachment 822
+          minimally required functions (zip)
+      - +@isprivate: "0"
+        commentid: "18126"
+        comment_count: "10"
+        attachid: "823"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-03 01:03:11 +0100
+        thetext: |-
+          Created attachment 823
+          minimally required functions (screen capture)
+      - +@isprivate: "0"
+        commentid: "18127"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-03 01:04:23 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #9)
+          Total size, unpacked, is 2.1 MB.
+      - +@isprivate: "0"
+        commentid: "18128"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-03 07:28:07 +0100
+        thetext: |-
+          Other FT-functions that rely on spm functionality are (non exhaustively):
+
+          ft_volumenormalise
+          ft_volumesegment
+          ft_warp_apply
+      - +@isprivate: "0"
+        commentid: "18130"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-03 08:41:09 +0100
+        thetext: If those functions also support algorithms specific to spm12, those algorithms and their supporting functions ideally are also added. However, given not much progress has been made in the this bug's 2-year lifetime, shall we proceed with accommodating this instance and add that mini spm12 folder to external?
+      - +@isprivate: "0"
+        commentid: "18131"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-03 08:53:38 +0100
+        thetext: sure, but while we (=you) are/is at it, it would be good to resolve it once and for all :-). Grand-scheme-of-things, and that kind of stuff.
+      - +@isprivate: "0"
+        commentid: "18274"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-23 20:40:33 +0100
+        thetext: |-
+          % TEST test_spm12
+          % currently (Jan, 2017) SPM12 support for:
+          % - ft_volumerealign
+          % - ft_volumedownsample (incl smoothing)
+          % - private/mni2tal
+          % - private/tal2mni
+          % - private/volumesmooth
+          % - ft_read_mri (nifti_spm, default remains spm8) - based on function deps, not real data
+          % - private/volumewrite_spm (default remains spm8) - based on function deps, not real data
+          % - utilities/private/sn2individual (called by ft_warp_apply) - based on function deps, not real data
+          % - utilities/private/individual2sn (called by ft_warp_apply) - forced use of spm8 since spm_invdef is missing in spm12 (in toolbox/OldSeg)
+          % to do (function-specific intelligence required):
+          % - ft_volumenormalise
+          % - ft_volumesegment
+
+
+          This is a major commit, and may require monitoring of spm-related functionalities starting to fail testing. ft_volumenormalise and ft_volumesegment did not support spm12 in the first place, and nothing has changed to them.
+
+          Enforced use of spm8 in individual2sn since spm_invdef is missing in spm12 (it's in toolbox/OldSeg but not accessible on the fly)
+      - +@isprivate: "0"
+        commentid: "18280"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-24 14:35:00 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #15)
+
+          arjen submitted this
+          https://github.com/fieldtrip/fieldtrip/pull/305
+
+          I have pulled it to a local branch and will look into it. Important is that existing code does not break, and that consistency is maintained (to avoid future headaches).
+      - +@isprivate: "0"
+        commentid: "18281"
+        comment_count: "17"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-01-24 15:23:38 +0100
+        thetext: "Hi,\n\nplease bear with me, this is the first time I work on bugzilla and I am sure I won't contribute in the right format. I hope this helps anyway.\n\nI have used SPM12 quite a bit in the ft pipelines I developed. In the last iteration I am using Dartel-based normalization of native-space contrasts computed in native grids. \n\nHere I am giving the procedures for doing MNI grids based on the new segmentation in SPM, and also the procedures for doing the Dartel-based analysis (big picture approach).\n\nThe code below for calling SPM routines is based on the batch system (need to dig the actual functions, and quite a few must be common to SPM8).\n\n1. AC-center the anatomical to improve the segmentation. \n\nM=eye(4);\nM(1:3,end)=-AC; %AC is AC location in mm, [3,1] vector\nbatch.spm.util.reorient.transform.transM = M;\n%run the batch.\n\n2. use the new segmentation to extract the TPMs. The grey-matter TPM will be used to create the volume conduction model.\n\nbatch: batch.spm.spatial.preproc\nrequires TPM.nii in spmdir/tpm\n\n3. MNI grid approach: estimate normalization from AC-centered native-space anatomical to MNI:\n\nbatch.spm.tools.oldnorm.est\n\n4. MNI grid approach: MNI normalize subject-specific grey-matter TPMs\nbatch.spm.tools.oldnorm.write\n\n5. MNI grid approach: average MNI-normalized grey-matter TPMs, and eventually exclude regions based on MNI atlases (e.g., AAL, although lately I prefer the Neuromorphometrics atlas in spm12/tmp)\n\ncfg=[];\ncfg.grid.resolution=resolution;\ncfg.mri=mri; %group-average MNI grey TPM with non-interesting regions set to 0\ncfg.threshold=0.25;%\ncfg.smooth=0;\ngroupgrid=ft_prepare_sourcemodel(cfg);\n\n6. various alignment steps\n\n7. MNI grid approach: prepare volume conduction and source models using the new segmentation\n\nclear seg\nseg.gray=Gray; %spm_read_vol('c1acs.nii'); %c1 from ac-centered anatomical\nseg.white=White; %spm_read_vol('c2acs.nii'); \nseg.csf=CSF; %spm_read_vol('c3acs.nii');\nseg.dim=MRI_HeadShapes.dim; %MRI_HeadShapes is the AC anatomical aligned to\n                            %digitized headshape\nseg.transform=MRI_HeadShapes.transform;\nseg.coordsys=MRI_HeadShapes.coordsys;\nseg.unit=MRI_HeadShapes.unit;\n\n\ncfg=[];\ncfg.output='brain'; %create brain mask from segmentation\nseg=ft_volumesegment(cfg,seg); %not sure why I do this and the following three\nseg.gray=Gray;\nseg.white=White;\nseg.csf=CSF;\n\ncfg=[];\ncfg.method='singleshell';\nvol=ft_prepare_headmodel(cfg,seg);\n            \ncfg = [];\ncfg.grid.warpmni   = 'yes';\ncfg.grid.template  = groupgrid;\ncfg.grid.nonlinear = 'yes'; \ncfg.mri            = seg; \ngrid               = ft_prepare_sourcemodel(cfg);\n\n\nThe Dartel-based approach is much more involved!\n\n1. ac-center native-space anatomicals;\n2. segment ac-centered anatomicals;\n3. create Dartel template using the anatomical segmentations at 2. Note, the stereotaxic space is specific to the group of participants. Further steps are required to move to/from MNI:\nbatch.spm.tools.dartel.warp\n\n4. normalize something from native to MNI through Dartel to estimate the Dartel-to-MNI transformation (e.g., participant-specific grey-matter TPMs):\nbatch.spm.tools.dartel.mni_norm\n\n5. normalize the Dartel template to MNI for eventual visualization and sanity checks:\n\n!cp -fv Template_6.nii Template_6_MNI.nii %Template_6.nii is the Dartel template\nload Template_6_2mni.mat %contains mni structure with Dartel-to-MNI transforms\nM = mni.affine;\nP='Template_6_MNI.nii';\nNii = nifti(P);\nNii.mat = M;\nNii.mat_intent = 4;\ncreate(Nii); %note, this changes the header not the data, so voxels are equispaced in Dartel not MNI space\n\n\n6. transform atlases to Dartel space (here example based on aal_for_spm12 http://www.gin.cnrs.fr/AAL)\n\neval(['!cp -fv AAL.nii AAL_Dartel.nii'])\n\ninfile='AAL_Dartel.nii';\nM1=spm_vol(infile);\nM1=M1.mat;\n\nM2=spm_vol([darteldir,'Template_6.nii,1']);\nM2=M2.mat;\nload([darteldir,'Template_6_2mni.mat'])\nM3 = mni.affine;\n\nM=M2*(M3\\M1);\nP=infile;\nNii = nifti(P);\nNii.mat = M;\nNii.mat_intent = 4;\ncreate(Nii); %now AAL_Dartel header is squeezed to Dartel space\n\nThe next step is to resize bounding box and voxel size of the Dartel-normalized atlas so that it corresponds to what in the Dartel template:\n\nvtarg=spm_vol([maskdir,'Template_6.nii,1']);\n\nresize_img_BLG_nearNeighb('AAL_Dartel.nii',... %will attach this function later\n    nan(1,3), nan(2,3), 0,vtarg.mat,vtarg.dim) %resize atlas to dartel template\n\n'rAAL_Dartel.nii' can now be used for label-based removal of uninteresting regions from the Dartel-space grey-matter TPM\n\n\n7. transform the Dartel-space TPM with uninteresting regions set to 0 from Dartel to native space\n\nbatch.spm.tools.dartel.crt_iwarped\nbatch.spm.tools.dartel.crt_iwarped.interp = 7;\n\nand set to a binary mask.\n\n8. prepare native-space grids with specific resolution\n\nmaskforgridfn=fn_for_native-space_mask computed at 7.\ntargetvoxdim=in_mm;\nBB=nan(2,3); %if nans it uses bounding box of original volume\nresize_img_BLG_nearNeighb(maskforgridfn, targetvoxdim, BB, 1);\n\n\nvm=spm_vol(['r',maskforgridfn]);\n[Mask,XYZ]=spm_read_vols(vm);\nMask=Mask(:)==1;\n\ncfg=[];\ncfg.grid.pos     =XYZ'/10;%   = N*3 matrix with position of each source\ncfg.grid.inside  =Mask;\ncfg.grid.dim     =vm.dim;%\ncfg.unit='cm';\ngrid=ft_prepare_sourcemodel(cfg);\n    \n\n9. the forward model is computed as above. Now we need to compute the leadfields for the native-space grid. Before doing so, we transform the positions so that they include the alignment of the native-space anatomical to the digitized headshape.\n\nvgridmask=spm_vol((['r',maskforgridfn]); %the native-space grid mask at 7. \nMgridmask=vgridmask.mat;\n\nvanat=spm_vol(anatfn); %the ac-centered anatomical for this subject\nManat=vanat.mat;\n\nMheadshapes=MRI_HeadShapes.transformorig; %form MRI-to-headshape alignment\n\nM1=Mgridmask;\nM2=Mheadshapes;\nM3=Manat;\n            \ndim=grid.dim; %native-space grid from 8.\n[X,Y,Z] = ndgrid(1:dim(1), 1:dim(2), 1:dim(3));\nposvox=[X(:) Y(:) Z(:)];\n          \nM=M2*inv(M3)*M1; \ngrid.pos = ft_warp_apply(M,posvox)/10;\n \nNow we can compute leadfields using grid\n\n\n10. when done with our native-space analyses we can finally dartel-normalize the contrasts/encoding/whatever measures of interest from native to group space. Note, this also uses a smoothing of the dartel-normalized images, which boosts SNR further than what already done by the improved Dartel-based alignment of anatomies. We have two options here.\n\n10.a. we Dartel-normalize native-space stuff then smooth\n\nbatch.spm.tools.dartel.crt_warped %dartel normalize\nTHEN\nbatch.spm.spatial.smooth %smooth\n\n10.b. directly normalize to MNI (includes a smoothing step):\n\nbatch.spm.tools.dartel.mni_norm\n\nThe SPM community prefers 10.a. Note that with this option the Dartel normalization is slower than with option 10.b. Also, 10.a. produces volumes with the same resolution of the Dartel template, which should be overkill for MEG. Ideally, one would resample the output of 10.a. to a target resolution and find out how 10.a. can be sped up."
+      - +@isprivate: "0"
+        commentid: "18282"
+        comment_count: "18"
+        attachid: "826"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-01-24 15:26:11 +0100
+        thetext: |-
+          Created attachment 826
+          the resize function used in comment 17
+      - +@isprivate: "0"
+        commentid: "18283"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-24 17:07:13 +0100
+        thetext: "I searched through the code, there were quite some inconsistencies which needed to be fixed. SPM2 turned out to be partially broken, and sometimes SPM8 was forced on the path (even if spm2 or spm12 were already on the path).\n\nI pimped the test_old_spm8 script, which I think should in principle be able to work with either spm version. Note that it does not work yet for spm12.\n\nI added the changes to my bug2793-spm12 branch on github. @Arjen can you review that branch and see whether it works for you? If it does, we should continue testing that it works for all other existing spm use cases. \n\n\nmac011> git commit -a\n[bug2793-spm12 4500931] FIX - various changes to improve the support for SPM12 and the mini version that is diccussed in http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2793\n 16 files changed, 149 insertions(+), 104 deletions(-)\n\nmac011> git push\nX11 forwarding request failed on channel 0\nCounting objects: 40, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (40/40), done.\nWriting objects: 100% (40/40), 5.33 KiB | 0 bytes/s, done.\nTotal 40 (delta 36), reused 0 (delta 0)\nremote: Resolving deltas: 100% (36/36), completed with 28 local objects.\nTo github.com:robertoostenveld/fieldtrip.git\n   5906965..4500931  bug2793-spm12 -> bug2793-spm12"
+      - +@isprivate: "0"
+        commentid: "18284"
+        comment_count: "20"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-24 21:18:00 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #19)
+
+          Hey Robert, there's a test_spm12 in my pull request, which is also based on test_spm8_old. It tests some of the new spm12 functionalities, in additional to older spm8 functionalities. There's no way for me to do more in-depth testing than simply using the minispm12 branch as I have been doing for a short amount of time. More thorough testing would require running the test suite on the donders cluster?
+
+          Another option would be to compare external/spm8 and external/spm12 and see where the functions that are currently in spm8 and not in spm12 are used.
+      - +@isprivate: "0"
+        commentid: "18285"
+        comment_count: "21"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-24 23:09:32 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #20)
+
+          "Another option would be to compare external/spm8 and external/spm12 and see where the functions that are currently in spm8 and not in spm12 are used."
+
+          > Although spm_coreg (spm12) used to be spm_normalize (spm2/8). And spm_invdef is no longer in the main folder (as it is in external/spm8). But at the least, in conjunction with the output of the ft's testsuite, it could help determine what functions need copying over still for full integration with spm12.
+      - +@isprivate: "0"
+        commentid: "18286"
+        comment_count: "22"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 06:56:14 +0100
+        thetext: |-
+          Pulled your branch and ran the test, Robert (test_old_spm8). As expected ft_volumenormalize and ft_volumesegment do not yet support spm12:
+
+
+          > ft_volumenormalize with spm12
+
+          Reference to non-existent field 'template'.
+
+          Error in ft_volumenormalise (line 158)
+          if isempty(cfg.template)
+
+          Error in test_old_spm8 (line 37)
+          n12 = ft_volumenormalise(cfg, mri);
+
+
+          > ft_volumesegment with spm12:
+
+          the input is volume data with dimensions [256 256 176]
+          Error using ft_volumesegment (line 436)
+          unsupported SPM version
+
+
+          Everything else ran fine. Also tried coregistration using ft_volumerealign, which ran through for all 3 versions. spm_coreg (used with spm12), however, took just a couple of seconds whereas spm_normalise (used with spm2/8) took longer than 15 mins somehow.
+
+          clear fun;
+          cfg               = [];
+          cfg.method        = 'spm';
+          cfg.coordsys      = 'tal'; % arjsto test mri is in tal
+          cfg.spmversion    = 'spm2';
+          r2 = ft_volumerealign(cfg, mri, mri);
+          rmpath(spm('dir'));
+
+          clear fun;
+          cfg.spmversion    = 'spm8';
+          r8 = ft_volumerealign(cfg, mri, mri);
+          rmpath(spm('dir'));
+
+          clear fun;
+          cfg.spmversion    = 'spm12';
+          r12 = ft_volumerealign(cfg, mri, mri);
+          rmpath(spm('dir'));
+      - +@isprivate: "0"
+        commentid: "18287"
+        comment_count: "23"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 07:03:13 +0100
+        thetext: "arjens-MacBook-Pro:fieldtrip arjsto$ git add -A\narjens-MacBook-Pro:fieldtrip arjsto$ git status\nOn branch bug2793-spm12\nYour branch is up-to-date with 'roboos/bug2793-spm12'.\nChanges to be committed:\n  (use \"git reset HEAD <file>...\" to unstage)\n\n\tmodified:   test/test_old_spm8.m\n\narjens-MacBook-Pro:fieldtrip arjsto$ git commit -m 'ONGOING DEV'\n[bug2793-spm12 b8a19a0] ONGOING DEV\n 1 file changed, 25 insertions(+), 5 deletions(-)\narjens-MacBook-Pro:fieldtrip arjsto$ git push origin bug2793-spm12\nEnter passphrase for key '/Users/arjsto/.ssh/id_rsa': \nCounting objects: 82, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (82/82), done.\nWriting objects: 100% (82/82), 156.20 KiB | 0 bytes/s, done.\nTotal 82 (delta 67), reused 0 (delta 0)\nremote: Resolving deltas: 100% (67/67), completed with 36 local objects.\nTo git@github.com:StolkArjen/fieldtrip.git\n * [new branch]      bug2793-spm12 -> bug2793-spm12"
+      - +@isprivate: "0"
+        commentid: "18288"
+        comment_count: "24"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 07:13:56 +0100
+        thetext: ft_volumenormalise and ft_volumesegment need some adjustment work still. In case of the former it's just a matter of finding and adding the template (e.g. same as spm8's 'T1.nii'?) but the latter requiring function-specific intelligence, i.e. about tissue prob maps.
+      - +@isprivate: "0"
+        commentid: "18292"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-25 10:10:36 +0100
+        thetext: "(In reply to Arjen Stolk from comment #24)\n\nsorry, I had missed test_spm12 and therefore started on test_old_spm8. I will rename that to test_spm8. \n\nI consider it desirable to not change the default SPM version from 8 to 12 anywhere yet. We first have to ensure that SPM12 works on request, and if so, we can consider making it the default. This applies both to the high-level and low-level code. \n\nI have pulled the changes from your branch, and continue from there:\n\n---\n\nmac011> git commit \n[bug2793-spm12 329a121] ENH - renamed test_old_spm8 to test_spm8, removed the spm12 parts of that script (see test_spm12 for that). Made the top-level documentation of cfg.spmversion consistent for spm2/spm8/spm12, and made the call to ft_hastoolbox consistent.\n 7 files changed, 33 insertions(+), 68 deletions(-)\n rename test/{test_old_spm8.m => test_spm8.m} (71%)\n \n---\n\nI am still concerned about SPM version conflicts. Hence I will change the path handling in the private functions into this\n\nft_hastoolbox('spm8up', 3) || ft_hastoolbox('spm2', 1);\n\nThis checks whether 8 or 12 is available. If so, it does nothing. If 8 or 12 are not available, it tries to add 8. If that fails (silently), it tries to add 2. If that fails, it throws an error. \n\nThis is consistent with spm8 being the default in the top-level functions, but allows spm12 to be used consistently as well.\n\n---\n\nmac011> git commit\n[bug2793-spm12 ea24956] ENH - ensure consistent path handling for spm, accept spm12 as correct version, add spm8 when no version is available yet. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2793\n 17 files changed, 34 insertions(+), 55 deletions(-)\n\nmac011> git commit -a\n[bug2793-spm12 84726dd] ENH - additional changes to make spm version handling consistent, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2793\n 3 files changed, 97 insertions(+), 103 deletions(-)\n rewrite fileio/private/volumewrite_spm.m (87%)\n\n---"
+      - +@isprivate: "0"
+        commentid: "18293"
+        comment_count: "26"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-25 10:22:18 +0100
+        thetext: "Since spm8 is still the default (now even better than before) and spm12 is purely optional (it is not forced on the path anywhere), it is safe to merge this into the release. \n\nThis allows for easier testing and extending, e.g. based on the suggestions of Bruno (sorry for ignoring you so far...)\n\nI created this PR https://github.com/fieldtrip/fieldtrip/pull/308 and have merged. The development branches can (and should) be deleted to avoid confusion. \n\nWhat still needs to be done is to review the documentation on the wiki, and to test and further enhance support for spm12."
+      - +@isprivate: "0"
+        commentid: "18296"
+        comment_count: "27"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-01-25 10:40:20 +0100
+        thetext: |-
+          No worries. SPM12 is anyway important mostly for the new segmentation approach, which is present also in spm8.
+
+          The other changes are Dartel-related, and I am discussing them with Jan-Mathijs on another bug.
+      - +@isprivate: "0"
+        commentid: "18298"
+        comment_count: "28"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 18:47:48 +0100
+        thetext: |-
+          Nice work, Robert. I agree with you spm8 should stay the default for now, and spm12 is gradually phased in while remaining functionalities are also implemented (i.e. ft_volumesegment and ft_volumenormalise). A brief test using spm12 followed by a call to a spm8-only functionality without specifying what version to use, was successful:
+
+          cfg             = [];
+          cfg.method      = 'spm';
+          cfg.spmversion  = 'spm12';
+          cfg.spm.coostfun = 'nmi';
+          cfg.coordsys    = 'tal';
+          r12 = ft_volumerealign(cfg, mri, mri2);
+
+          cfg            = [];
+          cfg.nonlinear  = 'no';
+          n8 = ft_volumenormalise(cfg, mri); % note spm8 is not specified by is switched to anyway
+
+          And sorry indeed, Bruno. I guess now with this critical transformation finally out of the way, we can start adding new functionalities. I'm closing this bug for now, and suggest you start a new thread for the dartel application in order to keep things a bit organized (I violated this unwritten rule myself as you can see).
+      - +@isprivate: "0"
+        commentid: "18299"
+        comment_count: "29"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 18:52:45 +0100
+        thetext: 'Oh right, of course ''the captain'' beat me to it: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3228'
+      - +@isprivate: "0"
+        commentid: "20262"
+        comment_count: "30"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:03 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20461"
+        comment_count: "31"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:14 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "822"
+        date: 2017-01-03 01:02:00 +0100
+        delta_ts: 2017-01-03 01:02:42 +0100
+        desc: minimally required functions (zip)
+        filename: spm12_mini.zip
+        type: application/zip
+        size: "623317"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "823"
+        date: 2017-01-03 01:03:00 +0100
+        delta_ts: 2017-01-03 01:03:11 +0100
+        desc: minimally required functions (screen capture)
+        filename: Screen Shot 2017-01-02 at 3.58.23 PM.png
+        type: image/png
+        size: "540046"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "826"
+        date: 2017-01-24 15:26:00 +0100
+        delta_ts: 2017-01-24 15:26:11 +0100
+        desc: the resize function used in comment 17
+        filename: resize_img_BLG_nearNeighb.m
+        type: text/plain
+        size: "4952"
+        attacher:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        data: REMOVED

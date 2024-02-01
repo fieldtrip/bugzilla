@@ -1,0 +1,98 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1599"
+    creation_ts: 2012-07-05 16:50:00 +0200
+    short_desc: fixedori has no influence when using LCMV
+    delta_ts: 2012-08-23 14:02:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6738"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-05 16:50:18 +0200
+        thetext: "next one :) fixedori is set correctly in beamformer_lcmv, the only problem is that sourceanalysis seems to not bother about this (or, as JM would probably say: it's a very stubborn beast!)\n\n%% draft of example script\n% load your very favourite data\ndata         = load(...);\nvol          = load(...);\n\n% set basic cfg options\ncfg          = [];\ncfg.vol      = vol;\ncfg.method   = 'lcmv';\ncfg.fixedori ='yes'; \noriyes       = ft_sourceanalysis(cfg, data); \ncfg.fixedori = 'no'; \norino        = ft_sourceanalysis(cfg, data); \n\n% cfg is of course different, see above, so remove it\norino        = rmfield(orino, 'cfg'); \noriyes       = rmfield(oriyes, 'cfg'); \n\nisequal(oriyes, orino);\n\n%\n%ans = 1\n%"
+      - +@isprivate: "0"
+        commentid: "6764"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-09 10:59:27 +0200
+        thetext: |-
+          Hi Jörn,
+
+          Please retry with cfg.lcmv.fixedori = 'yes', rather than cfg.fixedori = 'yes'
+      - +@isprivate: "0"
+        commentid: "6766"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-09 13:13:48 +0200
+        thetext: |-
+          oh right, I forgot to mention, it only happens when using a pre-computed filter
+          See also ft_sourceanalysis line 808 and onwards. tmpdip is computed using beamformer_lcmv (which is perfectly fine), but then dip is constructed without looking for ori (it does not matter whether it's cfg.lcmv.fixedori or cfg.fixedori).
+      - +@isprivate: "0"
+        commentid: "6849"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 11:09:26 +0200
+        thetext: "aha, I assume ori was not added, because it cannot be estimated for individual trials, however for now, I add the ori field to all single trial estimates. \nI also made adding a precomputed filter possible when the grid is not predefined (given that dimensions coincide).\n\nsvn ci ft_sourceanalysis.m test/test_bug1599.m -m \"bugfix-#1599-fixedori for lcmv works now also when using a predefined filter\"\nSending        ft_sourceanalysis.m\nAdding         test/test_bug1599.m\nTransmitting file data .."
+      - +@isprivate: "0"
+        commentid: "6852"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 11:39:54 +0200
+        thetext: |-
+          uh, I just saw this in ft_sourcedescriptives:
+           % The following option only applies to LCMV single-trial timecourses.
+           %   cfg.fixedori         = 'within_trials' or 'over_trials' (default = 'over_trials')
+
+          within trials cannot be supported when using a predefined filter, given that all data will be concatenated for more efficient computation and ori will be computed on the concatenated data. something we need to hint to?
+      - +@isprivate: "0"
+        commentid: "7217"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:12 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

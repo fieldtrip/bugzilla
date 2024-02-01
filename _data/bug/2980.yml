@@ -1,0 +1,43 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2980"
+    creation_ts: 2015-10-06 01:18:00 +0200
+    short_desc: 'possible speed increase: allow ft_plot_XXX functions to work with vpos being a vector (instead of only scalar)'
+    delta_ts: 2015-10-06 01:18:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to: fieldtriptoolbox
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      +@isprivate: "0"
+      commentid: "16174"
+      comment_count: "0"
+      who:
+        +content: roemer.van.der.meij
+        +@name: Roemer van der Meij
+      bug_when: 2015-10-06 01:18:34 +0200
+      thetext: "This came up in bug# 2878. A large part of the time it takes ft_databrowser to draw a new trial is caused by repeatedly calling ft_plot_vector. This is causing a slow down, which can be traced back to calling plot.m multiple times. This can illustrated by the code down below.  \n\nBy allowing ft_plot_vector to work with a vpos per row in its input (if its input is a matrix), speed increases can be achieved. This is probably around 2-fold (see below), which decreases at higher number of channels.\n\nIf this is done, this must be done consistently in all ft_plot functions that use local axis:\ngrep -l vpos *.m\nft_plot_box.m\nft_plot_lay.m\nft_plot_line.m\nft_plot_matrix.m\nft_plot_patch.m\nft_plot_text.m\nft_plot_topo.m\nft_plot_vector.m\nft_uilayout.m (prolly not this one)\n\n\n\nThe slow down can be illustrated by the below:\n******************\ntime = 1:1000;\nfigure\nhpos = rand(100,1);\nvpos = rand(100,1);\nwidth  = 0.1 * ones(100,1);\nheight = 0.1 * ones(100,1);\n% time plotting without vpos'ing\ntic\nfor i=1:100\n  cla\n  dat = randn(100, 1000);\n  %ft_plot_vector(time, dat);\n  plot(time, dat);\n  drawnow\nend\ntoc\n% time plotting with vpos'ing\ncla\ntic\nfor i=1:100\n  cla\n  dat = randn(100, 1000);\n  for i=1:100\n    %ft_plot_vector(time, dat(i,:), 'hpos', hpos(i), 'vpos', vpos(i), 'width', width(i), 'height', height(i));\n    plot(time, dat(i,:));\n  end\ndrawnow\nend\ntoc\n******************\n\nUsing ft_plot_vector:\nElapsed time is 14.788130 seconds.\nElapsed time is 30.443646 seconds.\n\nUsing plot.m:\nElapsed time is 9.943976 seconds.\nElapsed time is 26.832142 seconds."

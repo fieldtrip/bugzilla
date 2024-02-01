@@ -1,0 +1,145 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1428"
+    creation_ts: 2012-04-16 12:36:00 +0200
+    short_desc: implement blocking in ft_read_data
+    delta_ts: 2016-06-14 16:14:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: wouter.oosterheert
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5912"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-16 12:36:27 +0200
+        thetext: |-
+          waarschijnlijk is het iets als dit...
+
+            case 'fcdc_buffer'
+              % read from a networked buffer for realtime analysis
+              [host, port] = filetype_check_uri(filename);
+              if strcmp(blocking, 'yes')
+                 % FIXME waar komt nevents en nsamples vandaag, waarsch nsamples=endsample
+                 % FIXME keyval paren torevoegen voor blocking (default = no) en timeout (default = 10)
+                 % FIXME ook toevoegen aan ft_read_event, vervolgens fileio/ft_poll_buffer deprecaten
+                 buffer('wait_dat', [nsamples nevents timeout], host, port);
+              end
+              dat = buffer('get_dat', [begsample-1 endsample-1], host, port);  % indices should be zero-offset
+              dat = dat.buf(chanindx,:);                                        % select the desired channels
+      - +@isprivate: "0"
+        commentid: "6030"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-05-02 09:03:47 +0200
+        thetext: '*** Bug 443 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "6349"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-11 20:49:45 +0200
+        thetext: "Just spoke with Philip today, and Philip indicated that he would like to replace polling of multiple buffers (needed in specific BrainStream setups) with a 'select' statement. \n\nFor this to work, the socket has to indicate that data is ready to be consumed.\nThe problem is, that the get_data functions return when a response is received; hence, the situation that a socket contains data to be processed does not occur.\n\nPerhaps we should consider a variant that can be used in conjunction with a select statement."
+      - +@isprivate: "0"
+        commentid: "6350"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-11 21:44:17 +0200
+        thetext: "(In reply to comment #2)\n\nI don't understand the suggested method. \n\nEither the client waits for the data to arrive on the server (1), or the client continues doing whatever it wants and checks a bit later whether the data is on the server (2).\n\n1) is a blocking read\n2) is using polling\n\nThe problem that I see is that there are now two servers, and one client. The client has to keep an eye on both servers, and cannot block on one (or the other), but also polling seems not to be desirable. \n\nWhy is polling problematic? Is there a proper argument that it is inefficient? If the servers are both on localhost then polling should be very fast. Of course if the servers are on the other side of the network then it gets slow, but that is a choice, not a design requirement.\n\nThe suggested solution seems to more thinking in the direction of swapping the servers and client, i.e. have one server (where the data has to go to) rather than two servers (where the data has to come from) and two clients (data producers) instead of one (data absorber). \n\nAt this moment I don't think that an integrated MATLAB solution is appropriate to solve the problem. A solution might be to write a small C-program with two threads that read (both as client) read from the two servers and have that c program represent the data in a uniform fashion towards the single brainstream MATLAB client. But that falls outside the scope of WP61 and the fieldtrip implementation."
+      - +@isprivate: "0"
+        commentid: "6362"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-12 11:25:54 +0200
+        thetext: |-
+          To elaborate, there is perhaps a third option:
+
+          3) the clients lets the operating system wait until one of the servers returns the requested data, which happens as soon as this data arrives at the server.
+
+          This can be implemented with a select statement on sockets, see [1]. Indeed, polling can be used as well to wait until there is something to be done, with great flexibility. Select offers a computationally more efficient alternative.
+
+          Having said that, this doesn't belong in the public MATLAB interface to the buffer --- but maybe Philip can exploit low-level functions.
+
+          [1] http://en.wikipedia.org/wiki/Asynchronous_I/O#Select.28.2Fpoll.29_loops
+      - +@isprivate: "0"
+        commentid: "6364"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-12 14:46:04 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          I don't see how a single select call is going to synchronize the processing of data that comes from two different buffer servers. That would require two select calls, one for each client-server connection, which implies that two ft_read_data instances would be running... and that is not possible in MATLAB.
+
+          If the only goal is to achieve less CPU load while the client is waiting for the server to be able to send the  requested data, the present pthread_cond_timedwait in dmarequest.c line 709 also is just as appropriate. On the server one of the thread waits, and the client (not a thread) also waits for the socket to unblock. So the client does not have any load during the WAIT_DAT.
+      - +@isprivate: "0"
+        commentid: "8090"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-11-02 13:29:50 +0100
+        thetext: I am no longer working on FieldTrip. Hence, I donate all my bugs to the joint development user.
+      - +@isprivate: "0"
+        commentid: "9163"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-24 12:29:03 +0100
+        thetext: I changed a bunch of bugs that were assigned to fieldtrip-bugs from ASSIGNED into NEW, since nobody is now explicitly working on them.
+      - +@isprivate: "0"
+        commentid: "15998"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-16 12:39:15 +0200
+        thetext: "mac011> svn commit \nSending        ft_read_data.m\nSending        ft_read_event.m\nAdding         private/buffer_wait_dat.m\nTransmitting file data ...\nCommitted revision 10591."
+      - +@isprivate: "0"
+        commentid: "17473"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:45 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

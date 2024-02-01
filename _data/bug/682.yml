@@ -1,0 +1,232 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "682"
+    creation_ts: 2011-05-24 08:01:00 +0200
+    short_desc: MEG64
+    delta_ts: 2011-11-11 11:19:49 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: yokogawa
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: paul.sowman
+      +@name: Paul Sowman
+    assigned_to:
+      +content: Tilmann.Sander-Thoemmes
+      +@name: Tilmann Sander-Thommes
+    cc:
+      - Masayuki.Mochiduki
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2167"
+        comment_count: "0"
+        who:
+          +content: paul.sowman
+          +@name: Paul Sowman
+        bug_when: 2011-05-24 08:01:53 +0200
+        thetext: |-
+          Trying to read Yokogawa 64
+
+          >> grad = ft_read_sens('2009_10_30_0209_ME039_B1.con');
+          Warning: could be Yokogawa system
+          > In fileio\private\ft_senstype at 233
+            In ft_read_sens at 233
+
+
+          Hi, thanks for your efforts on supporting the Yokogawa format. We have a Yokogawa 64 channel paediatric system along with the meg160. I wonder if I supplied some data for this system if it could be integrated into the read routines. The header is essentially the same but currently the routines throw up warnings due to it not being included in ft_read_sens. Thanks, Paul
+      - +@isprivate: "0"
+        commentid: "2168"
+        comment_count: "1"
+        attachid: "56"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-05-24 11:29:54 +0200
+        thetext: |-
+          Created attachment 56
+          test script Yokogawa input old routines
+      - +@isprivate: "0"
+        commentid: "2169"
+        comment_count: "2"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-05-24 11:31:29 +0200
+        thetext: |-
+          Hi Paul,
+
+          At present the Yokogawa MEG input in FT is in a state of
+          transition as Yokogawa has released an official input toolbox.
+          The integration of the new toolbox will take about 2-3 weeks
+          and the result will be anounced. We will try to recognize all
+          Yokogawa systems in ft_senstype, but this is not easy as
+          the Yokogawa design is very flexible and almost all systems
+          are slightly different. For most purposes you can ignore
+          the warnings.
+
+          To test the current routines with Sydney data please use
+          the attached script, which refers already to some data
+          from Sydney (via Doug).
+
+          If you want to have correct gain for your data before the transition
+          is accomplished, then do the following change to bypass a bug
+          in the old Yokogawa routines (change gain to match your
+          recording condition):
+
+          read_yokogawa_header.m:
+          ...
+          66 % amp_gain        = GetMeg160AmpGainM(fid);
+          67 amp_gain = 500
+          ...
+
+
+          Yours, Till
+      - +@isprivate: "0"
+        commentid: "3660"
+        comment_count: "3"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-10-21 11:21:30 +0200
+        thetext: "Today I submitted my main changes to FieldTrip to \nsupport the YokogawaMEG Reader 1.4 toolbox.\nMinor changes will follow.\n\nThey are in ft_read_header, ft_read_data and the new\nfunctions read_yokogawa_data_new, read_yokogawa_header_new,\nyokogawa2grad_new are added to fileio/private.\nyokogawa2grad_new supports the new grad-structure.\n\nTo use them one needs to have the YokogawaMEGReader_R1.04.00\ndirectory in fieldtrip/external. I will attach the \nzip-archive from Yogawa just below. After the testing phase\nthe toolbox will added to the official external directory.\nYou do not need to remove the old toolboxes from external,\nthe MEG Reader is programmed as first choice. If you want to \nrevert to the old toolboxes just remove the MEG Reader\ndirectory from your path.\n\nFor testing use code such as\n\n%********\n\nft_defaults\n\ncfg             = [];\ncfg.dataset     = [filepath filename]; % to be defined beforehand\ncfg.demean      = 'no';\ncfg.channel     = 'AG*';\n% magnetometers: cfg.channel     = 'M*';\n% planar gradiometers: cfg.channel     = 'PG*'; \n% all: cfg.channel     = 'all';\n    \ndata            = ft_preprocessing(cfg); \n% data.grad.label contains only valid channels, bad channels marked\n% by the user in the Yokogawa MegLaboratory software are excluded \n% (MegLaboratoy: Open original file, then menu: Edit ->  Channel Info, \n% select channel, change Channel Type to Nullchannel; Then save file \n% using a new name)\n\n% plot sensor geometry\nfigure('name','sensor');\nnr_chan          = size(data.grad.chanpos,1);\nplot3(data.grad.chanpos(1:nr_chan,1), data.grad.chanpos(1:nr_chan,2),data.grad.chanpos(1:nr_chan,3),'d')\nxlim([-15,15]); zlim([-15,15]); ylim([-15,15]);\n\n%plot sensor layout\nfigure('name','layout');\ncfg_topo         = [];\nlay              = ft_prepare_layout(cfg_topo, data);\ncfg_topo.layout  = lay;\nft_layoutplot(cfg_topo, data); \n\n%********\n\nYours, Till"
+      - +@isprivate: "0"
+        commentid: "3661"
+        comment_count: "4"
+        attachid: "169"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-10-21 11:22:46 +0200
+        thetext: |-
+          Created attachment 169
+          Yokoagawa MEG Reader 1.4 toolbox, not yet officially part of FT.
+      - +@isprivate: "0"
+        commentid: "3662"
+        comment_count: "5"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-10-21 11:33:48 +0200
+        thetext: |-
+          For people using downloaded zip-archives of FieldTrip please
+          bear in mind, that the changes will take about 2 days to
+          appear in the zip-archive.
+      - +@isprivate: "0"
+        commentid: "3678"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-21 15:56:22 +0200
+        thetext: |-
+          in revision 4561 I have added a test script based on the code below.
+
+          It now works fine with the latest version of fieldtrip. I will attach the figures that I get. The layout is not ideal, because a bit asymmetric, but that probably reflects the position of the helmet relative to the head. The size of the helmet looks ok for a pediatric system.
+      - +@isprivate: "0"
+        commentid: "3679"
+        comment_count: "7"
+        attachid: "171"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-21 15:57:27 +0200
+        thetext: |-
+          Created attachment 171
+          screenshot after fixing, the 3D position of the channels
+      - +@isprivate: "0"
+        commentid: "3680"
+        comment_count: "8"
+        attachid: "172"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-21 15:57:59 +0200
+        thetext: |-
+          Created attachment 172
+          screenshot after fixing, the 2D projected layout of the channels
+      - +@isprivate: "0"
+        commentid: "3930"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:49 +0100
+        thetext: I closed all bugs that were recently resolved.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "56"
+        date: 2011-05-24 11:29:00 +0200
+        delta_ts: 2011-05-24 11:29:54 +0200
+        desc: test script Yokogawa input old routines
+        filename: yokogawa_input_ft_demo_v3.m
+        type: text/plain
+        size: "2229"
+        attacher:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "169"
+        date: 2011-10-21 11:22:00 +0200
+        delta_ts: 2011-10-21 11:22:46 +0200
+        desc: Yokoagawa MEG Reader 1.4 toolbox, not yet officially part of FT.
+        filename: YokogawaMEGReader_R1.04.00.zip
+        type: application/x-zip-compressed
+        size: "94132"
+        attacher:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "171"
+        date: 2011-10-21 15:57:00 +0200
+        delta_ts: 2011-10-21 15:57:27 +0200
+        desc: screenshot after fixing, the 3D position of the channels
+        filename: Screen shot 2011-10-21 at 15.51.58.png
+        type: image/png
+        size: "45514"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "172"
+        date: 2011-10-21 15:57:00 +0200
+        delta_ts: 2011-10-21 15:57:59 +0200
+        desc: screenshot after fixing, the 2D projected layout of the channels
+        filename: Screen shot 2011-10-21 at 15.51.28.png
+        type: image/png
+        size: "49534"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

@@ -1,0 +1,84 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2262"
+    creation_ts: 2013-08-22 23:17:00 +0200
+    short_desc: ft_specest_hilbert has a problem with padding
+    delta_ts: 2013-09-23 15:32:48 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11197"
+        comment_count: "0"
+        attachid: "508"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-08-22 23:17:33 +0200
+        thetext: "Created attachment 508\ndata toy example\n\nft_specest_hilbert has a different padding implementation in comparison with the rest of the ft_specest* functions (data attached to reproduce bug):\n\ncfg           = [];\ncfg.channel   = 'all';\ncfg.method    = 'hilbert';\ncfg.output    = 'fourier';\ncfg.toi       = -2:0.05:4;\ncfg.foi       = 8:12;\ncfg.filttype  = 'firls';\ncfg.filtorder = 4;\ncfg.filtdir   = 'twopass';\ncfg.width     = 1;\ncfg.keeptrials= 'yes';\nfilt          = ft_freqanalysis(cfg,meg);\n\n\nthe input is raw data with 1 channels and 4 trials\nWarning: method = hilbert requires user action to deal with filtering-artifacts \n> In ft_freqanalysis at 286 \nprocessing trials\nSubscript indices must either be real positive integers or logicals.\n\nError in ft_specest_hilbert (line 153)\n  spectrum(:,ifreqoi,:) = dum(:,timeboi+padlength);\n\nError in ft_freqanalysis (line 535)\n      [spectrum,foi,toi] = ft_specest_hilbert(dat, time, 'timeoi', cfg.toi, 'filttype', cfg.filttype, 'filtorder',\n      cfg.filtorder, 'filtdir', cfg.filtdir, 'width', cfg.width, options{:}, 'feedback', f \n\n(pad-dattime) output gives a very small negative number that floor makes it -1 and here the problem on looping through spectrum variable.\n\n\nChanging the cfg.pad (8secs in this case) doesn't solve the problem with the padlength variable:\n\nthe input is raw data with 1 channels and 4 trials\nWarning: method = hilbert requires user action to deal with filtering-artifacts \n> In ft_freqanalysis at 286 \nprocessing trials\ntrial 3, frequency 3 (10.00 Hz)\nWarning: Size vector should be a row vector with integer elements. \n> In ft_preproc_padding at 107\n  In ft_specest_hilbert at 152\n  In ft_freqanalysis at 535 \nWarning: Size vector should be a row vector with integer elements. \n> In ft_preproc_padding at 107\n  In ft_specest_hilbert at 152\n  In ft_freqanalysis at 535 \nSubscript indices must either be real positive integers or logicals.\n\nError in ft_specest_hilbert (line 153)\n  spectrum(:,ifreqoi,:) = dum(:,timeboi+padlength);\n\nError in ft_freqanalysis (line 535)\n      [spectrum,foi,toi] = ft_specest_hilbert(dat, time, 'timeoi', cfg.toi, 'filttype', cfg.filttype, 'filtorder',\n      cfg.filtorder, 'filtdir', cfg.filtdir, 'width', cfg.width, options{:}, 'feedback', f \n\n\n\nSUGGESTION:\n\nI propose to implement all the padding as in all other ft_specest* functions would solve the problem (Indeed I don't know why ft_specest_hilbert is different...)\n\n% Zero padding\nif round(pad * fsample) < ndatsample\n  error('the padding that you specified is shorter than the data');\nend\nif isempty(pad) % if no padding is specified padding is equal to current data length\n  pad = dattime;\nend\npostpad    = round((pad - dattime) * fsample);\nendnsample = round(pad * fsample);  % total number of samples of padded data\nendtime    = pad;            % total time in seconds of padded data\n\ninstead of the current implementation:\n% Zero padding\nif round(pad * fsample) < ndatsample\n  error('the padding that you specified is shorter than the data');\nend\nif isempty(pad) % if no padding is specified padding is equal to current data length\n  pad = dattime;\nend\n\npadlength  = floor((pad-dattime)* fsample)./2;"
+      - +@isprivate: "0"
+        commentid: "11388"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-09-23 14:20:10 +0200
+        thetext: |-
+          Hi Deigo,
+
+          Sorry for the long delay, I've changed the way padding is calculated now:
+          prepad     = floor(((pad - dattime) * fsample) ./ 2);
+          postpad    = ceil(((pad - dattime) * fsample) ./ 2);
+
+          This should prevent any roundoff issues with sample numbers. Could you check and see if your example works?
+      - +@isprivate: "0"
+        commentid: "11389"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-09-23 15:05:05 +0200
+        thetext: solved! Thanks
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "508"
+      date: 2013-08-22 23:17:00 +0200
+      delta_ts: 2013-08-22 23:17:33 +0200
+      desc: data toy example
+      filename: meg.mat
+      type: application/octet-stream
+      size: "12226502"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

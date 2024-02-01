@@ -1,0 +1,142 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3430"
+    creation_ts: 2018-05-28 15:16:00 +0200
+    short_desc: applying ft_appenddata to concatenate epochs from different blocks corrupts data
+    delta_ts: 2019-04-19 12:33:18 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: annekathrinweise
+      +@name: aw
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - annekathrinweise
+      - awutz
+      - aya
+      - ayelet.landau
+      - ayelet.landau
+      - gianpaolo.demarchi
+      - j.schoffelen
+      - stephen.whitmarsh
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19351"
+        comment_count: "0"
+        attachid: "864"
+        who:
+          +content: annekathrinweise
+          +@name: aw
+        bug_when: 2018-05-28 15:16:38 +0200
+        thetext: "Created attachment 864\ntest script that produces the data including the bug and code that can be seen as a workaround\n\nBug report ft_appenddata\n\nI realized several things with ft_appenddata.\n\n1) The first is related to the bug: When applying ft_appenddata via the option cfg.appenddim = 'rpt' to concatenate epochs of different blocks, some of the trials result in corrupt data (see screenshot here: https://oc.th-ht.de/index.php/s/mX5Zsi7tnycYBqb). Trials that are affected by the bug look like trials that consist of several pieces of different epochs, though I am not sure what exactly happens/happend here.\n\nThe error the bug produces does not become obvious at a first glance. That is, it gives no error message. Also, it does not affect all trials (at least in my case), so that one has to go through at least several trials (e.g. via ft_databrowser) to become aware of the bug. \nThis bug is not specific to my own single case but colleagues of mine realized it as well. As a workaround we deleted the data.sampleinfo field from each individual block before applying ft_appenddata. This solved the problem for now.\n\nThe data for replicating the bug can be found here: \nhttps://oc.th-ht.de/index.php/s/YtcsA25JkdKbCmD\n\n\n2) The 2nd issue is not a bug but related to the function ft_appenddata (I don't know where else to report this so that it will be implemented; spamming the fieldtrip list with that issue might be inappropriate?): The documentation of the function needs an update as cfg.appenddim (either 'rpt' or 'chan') is required to work properly what is not documnted in the function so far."
+      - +@isprivate: "0"
+        commentid: "19354"
+        comment_count: "1"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2018-05-31 11:19:47 +0200
+        thetext: "Hi Anne Kathrin,\n\nI've taken a look and can confirm most of your problem.\n\n1) Firstly, the data structures you are concatenating come from different files. After concatenation, this field is therefor irrelevant, and should not be used by ft_appenddata. Normally (at least in the recent past), the sampleinfo field would have been removed from the concatenated data. I don't know why it is not the case in the recent FT version. I think it somehow does not recognize that the data comes from different datafiles.\n\n2) Unlike yours, in my recent FT version, ft_append_data correctly recognizes that I will probably want to concatenate over trials (rpt), and does so. So I don't know why you would need to specify the appendim. Perhaps you have to update your FT? Or perhaps you are using other data structures (more than the two you supplied) in your own code. Note that there is a quite a bit of intelligence in the code to figure out on what dimensions you want to concatinate, based on consistent labels, time axis, etc. Sometimes ft_appenddata is confused, but that typically means that the data itself is ambiguous, e.g. because not all labels are present in all data structures. This might be a reason to keep cfg.appenddim undocumented, so not to force it past problematic input.\n\n3) You trials overlap for a large part, i.e. data in one trial is present in another. This might be intended, of course.\n\n3) After appending, I do see a strange jump in trial 4 that is not present in the original data. Also, as you said, removing the sampleinfo fields before concatenating, solves this. I do suspect that some managing of the sampleinfo in the code might have changed, not resulting removal of the sampleinfo field, and introducing this unexpected behavior. At the bottom of this I suspect is that it does not recognize that the data comes from different files. \n\n4) Perhaps the problem occurs because of the overlapping trials (a long shot, but might be diagnostic). Perhaps you could try segmenting your data into shorter non-overlapping trials and see if it still occurs?\n\nBest wishes,\nStephen"
+      - +@isprivate: "0"
+        commentid: "19358"
+        comment_count: "2"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2018-06-08 13:49:50 +0200
+        thetext: |-
+          hi,
+
+          i successfully replicated the bug with the latest fieldtrip version and have done some further investigation:
+
+          the bug is not in ft_appenddata. when i just concatenate the trial fields of the two cells manually, the resulting cell array is equal to the trial cell array of the structure after ft_appenddata.
+
+          additionally, it is enough to remove the sampleinfo field from the output of ft_appenddata to get rid of the incorrect result.
+
+          thus, the problem seems to be that the sampleinfo field leads to some problem anywhere within ft_databrowser.
+
+          in my opinion, this behavior deserves investigating, even when the ft_appenddata code is updated so that the sampleinfo field will be omitted automatically in a situation like this. a silent error like this is highly problematic.
+
+          i will do some more digging...
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "19359"
+        comment_count: "3"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2018-06-08 14:47:19 +0200
+        thetext: |-
+          ok, the problem seems to be in ft_fetch_data that gets called with allowoverlap=true by ft_databrowser. if that is the case and ft_fetch_data finds overlapping sampling points (according to the sampleinfo field), it mixes up the data when data from two different files have been appended before.
+
+          i assume that the reason for ft_fetch_data to have such an option is to be able to use ft_databrowser with actually overlapping epochs. but i would suggest that we add some check that would throw an error in a case like this.
+      - +@isprivate: "0"
+        commentid: "19436"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-03 14:55:12 +0200
+        thetext: |-
+          How would such a case be detected?
+
+          I think that in this particular user case we cannot provide a foolproof solution. The only meaningful thing I could come up with, is to have an option in ft_appenddata to throw out the sampleinfo field (e.g.: cfg.keepsampleinfo = 'yes'/'no').
+
+          This is not something that should be done by default, because sometimes people do a condition specific selection of trials from the same dataset, in which the append-operation results in a sampleinfo field that is perfectly unambiguous.
+      - +@isprivate: "0"
+        commentid: "19483"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-08 09:53:42 +0200
+        thetext: what is the status of this?
+      - +@isprivate: "0"
+        commentid: "19622"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-01-10 14:33:53 +0100
+        thetext: OK, since the original reporter has become unresponsive, and because I have not been convinced by the people chiming in that this constitutes an actual bug, I am going to close this for now. Please feel free to reopen constructively.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "864"
+      date: 2018-05-28 15:16:00 +0200
+      delta_ts: 2018-05-28 15:16:38 +0200
+      desc: test script that produces the data including the bug and code that can be seen as a workaround
+      filename: test_appenddata.m
+      type: text/plain
+      size: "1102"
+      attacher:
+        +content: annekathrinweise
+        +@name: aw
+      data: REMOVED

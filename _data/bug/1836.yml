@@ -1,0 +1,153 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1836"
+    creation_ts: 2012-11-16 09:48:00 +0100
+    short_desc: ft_write_headshape has to be extended to allow the export of FEM meshes
+    delta_ts: 2014-07-15 17:25:06 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.vorwerk
+      - JakobLudewig
+      - rspangler
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8296"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-16 09:48:19 +0100
+        thetext: "Right now ft_read_headshape can read tetgen and vista files, and the meshes can be edited in MATLAB. But there is no way to export them. That means that MATLAB edited meshes can also not be visualized in tetview.\n\nSee http://tetgen.berlios.de/tetview.html\n\nAlthough we want to extend ft_plot_mesh (see bug 1833), we also want to be able to use external viewers because they are likely much faster. And we want to use tetgen \n\nWhich formats are desirable for writing to?"
+      - +@isprivate: "0"
+        commentid: "8302"
+        comment_count: "1"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-16 10:34:59 +0100
+        thetext: |-
+          I can't say very much about tetview, since I never got it running on my office machine and thus never used it. File format is probably the same as the output from tetgen?
+          We mainly use Scirun (http://www.sci.utah.edu/cibc-software/scirun.html) for visualization here, which can read meshes directly as matlab-structs if they are in the right format (example.node, example.cell, example.field), so that this should be quite easy to implement.
+          Interesting might also be gmsh (http://geuz.org/gmsh/), we are currently working on a writer for the .msh format.
+      - +@isprivate: "0"
+        commentid: "8304"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-16 10:55:06 +0100
+        thetext: "(In reply to comment #1)\n\nyour report on the difficulty getting tetview to run is interesting in itself. Then we should not try too hard.\n\nAt this moment there are\nmac001> grep case ft_write_headshape.m \n  case 'mne_pos'\n  case 'mne_tri'\n  case 'off'\n  case 'vista'\n  case 'tetgen'\n  case 'stl'\n  case 'gifti'\n\nwe could make a \"scirun_mat\" export  format. It would just convert the structure and then save to the mat file.\n\nThe \"gmsh_msh\" would then also be a desired format.\n\nThe tetgen section currently reads\n case 'tetgen'\n    % the third argument is the element type. At the moment only type 302\n    %  (triangle) is supported\n    surf_to_tetgen(filename, bnd.pnt, bnd.tri, 302*ones(size(bnd.tri,1),1),[],[]);\n\nand makes use of fileio/private/surf_to_tetgen.m which is a function from Arno.\n\nSo the tetgen section has to be extended with tet and hex meshes. I also notice that the tri is now written to a poly file, whereas I suspect a face file would make more sense. \n\nIs this something that Jakub could work on?"
+      - +@isprivate: "0"
+        commentid: "8795"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-21 15:16:51 +0100
+        thetext: |-
+          (In reply to comment #2)
+          hi all,
+
+          ft_write_headshape doesn't write hexahedral meshes properly in ply format, see test/test_bug1836.
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8870"
+        comment_count: "4"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-01-03 16:21:20 +0100
+        thetext: |-
+          (In reply to comment #3)
+          Actually, I couldn't find any hint that the ply-format supports hexahedrons. Do we know that this is possible?
+      - +@isprivate: "0"
+        commentid: "8871"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-04 12:32:36 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+          http://paulbourke.net/dataformats/ply/
+
+          suggests that any number of vertices per polygon is possible.
+      - +@isprivate: "0"
+        commentid: "8873"
+        comment_count: "6"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-01-07 10:55:21 +0100
+        thetext: |-
+          (In reply to comment #5)
+          That's true, but I couldn't find any information how the vertices should be oriented, which is somehow more crucial in the hexahedron case then for tetrahedrons.
+      - +@isprivate: "0"
+        commentid: "13721"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-20 09:36:13 +0200
+        thetext: |-
+          following the meeting yesterday, I decided to look into the open bugs. This one has to do with visualisation.
+
+          Playiung around with test_bug1836 and mesh lab, it seems to me that *.ply can only contain surface elements, where the last vertex always gets connected to the first.
+
+          That means that we should not use this file format for representing hexaheders, but we can use it for the sides of the cubes. Each hexaheder would be described by 6 polygons, each with 4 vertices.
+      - +@isprivate: "0"
+        commentid: "13722"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-20 10:02:54 +0200
+        thetext: |-
+          I resolved it by converting the volume elements to faces.
+
+          mac011> svn commit fileio/private/write_ply.m test/test_bug1836.m
+          Sending        fileio/private/write_ply.m
+          Sending        test/test_bug1836.m
+          Transmitting file data ..
+          Committed revision 9552.
+
+          the output of test_bug1836 now looks fine in meshlab
+      - +@isprivate: "0"
+        commentid: "14124"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:06 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

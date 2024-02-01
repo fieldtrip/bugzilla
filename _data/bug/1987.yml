@@ -1,0 +1,157 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1987"
+    creation_ts: 2013-02-15 09:50:00 +0100
+    short_desc: inconsistency in handling of usercfg in provenance and merging of ft_defaults
+    delta_ts: 2013-04-19 16:27:44 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to: fieldtriptoolbox
+    cc:
+      - e.maris
+      - jorn
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9435"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-02-15 09:50:12 +0100
+        thetext: |-
+          Currently, the merging of ft_defaults into a function's cfg is done in ft_preamble_trackconfig. The ft_preamble_provenance is responsible for tracking the callinfo of a function, which now includes tracking the usercfg (i.e., the cfg as specified by the user, before any manipulation or defaults handling). This latter step means that ft_preamble_provenance needs to have a 'virgin' copy of the input cfg to a function, otherwise the usercfg cannot be determined. For this reason, I ensured that all functions using ft_preamble now call ft_preamble_provenance before calling ft_preamble_trackconfig.
+
+          However, the behaviour of ft_preamble_provenance can be influenced by specifying cfg.trackcallinfo. While this works perfectly when the user explicitly specifies cfg.trackcallinfo='XX' on a given function call, the order of preambles mentioned above means that specifying ft_default.trackcallinfo='XX' does nothing, because the defaults aren't merged into the cfg at the time of ft_preamble_provenance.
+
+          Since trackcallinfo is typically something someone might want to specify in ft_default, we need to think of a solution for this.
+      - +@isprivate: "0"
+        commentid: "10165"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 11:28:13 +0200
+        thetext: "Hmmm, this is causing a lot of trouble for my office mate (George). In an extensive analysis pipeline, provenance can be huge (e.g 2GB). Another problem are functions calling other functions, like ft_clusterplot. The user-specified cfg.trackcallinfo does not get passed onto ft_topoplotXXX, causing it to parse the cfg's again and again (crashing the session in the end). Another maybe very common example could be ft_prepare_layout. \n\nShould we just allow the defaults to be present in the 'virgin' user-cfg? The confusion it may give to the user does not outweigh the problems it causes now in my opinion.\n\n\nSlightly related to bug 2101"
+      - +@isprivate: "0"
+        commentid: "10168"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 11:44:31 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          there are relevant defaults and irrelevant defaults, which are all in previous The usercfg was meant to reconstruct the analysis without having to worry about either defaults (since the defaults are represented in the code).
+      - +@isprivate: "0"
+        commentid: "10169"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 11:46:44 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          oh, and provenance gets large because the same previous steps are represented multiple times. In the initial matlab session you don't notice, since matlab then works with pointers to the same data in RAM. But after saving to disk and reloading it it gets "expanded" in memory.
+
+          Could you also get a fieldtrip data structure from George for testing?
+      - +@isprivate: "0"
+        commentid: "10173"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 12:14:42 +0200
+        thetext: |-
+          (In reply to comment #2)
+          Actually, why not just check ft_default.trackcallinfo inside ft_pre/postamble_provenance? This should avoid the md5checksum error on input bigger than 2GB, and is trivial. Then if either the user-specified trackcallinfo or if the ft_default.trackcallinfo is 'yes', tracking is on. (ft_default is set as a global at the start of both functions anyway).
+
+
+          I.e., changing:
+          ****
+          if isfield(cfg, 'trackcallinfo') && ~istrue(cfg.trackcallinfo)
+            % do not track the call information
+            return
+          end
+          ****
+
+          Into:
+          ****
+          if (isfield(cfg, 'trackcallinfo') && ~istrue(cfg.trackcallinfo)) || ~istrue(ft_default.trackcallinfo)
+            % do not track the call information
+            return
+          end
+          ****
+      - +@isprivate: "0"
+        commentid: "10175"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 14:04:18 +0200
+        thetext: |-
+          (In reply to comment #3)
+          On the large 2GB cfgs from George, after going through all of the many function calls in the pipeline figure, it turned out there was a, kind of silly, mistake. Ft_appenddata was used with (data1,data2,dataN), instead of (cfg,data1,data2,dataN), causing the data to end up in the cfgs. So, the extraordinary sizes terms of MB are faulty.
+      - +@isprivate: "0"
+        commentid: "10177"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 14:38:55 +0200
+        thetext: "(In reply to comment #5)\n\nwould this type of mistake happen more often? Should we build in a check on this?\n\nWe do have utilities/private/ft_preamble_help.m which does something along the line of\n\nif nargin==0\n  show help \n  throw error\nend\n\nWe could extend it with \n\nif nargin==0\n  show help \n  throw error\nelseif \"cfg seems to contain data\"\n  show help \n  throw error\nend"
+      - +@isprivate: "0"
+        commentid: "10179"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 14:46:06 +0200
+        thetext: I doubt it would happen very often so I think building in a check would be overkill. (even George agrees :p)
+      - +@isprivate: "0"
+        commentid: "10181"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-19 14:53:32 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          we can first check whether the user is george, and only then continue checking whether his input makes sense :-P
+      - +@isprivate: "0"
+        commentid: "10183"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-19 16:27:44 +0200
+        thetext: '*** Bug 2128 has been marked as a duplicate of this bug. ***'

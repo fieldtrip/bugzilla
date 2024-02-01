@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2224"
+    creation_ts: 2013-07-30 15:46:00 +0200
+    short_desc: cfg.previous fails for ft_selectdata
+    delta_ts: 2014-01-15 14:44:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1021"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10967"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-30 15:46:52 +0200
+        thetext: "Somehow the previous field is combined in the first argument and not spread over all arguments:\n\nfreq1 = [];\nfreq1.dimord = 'chan_freq';\nfreq1.freq = 1:10;\nfreq1.label = {'1', '2', '3'};\nfreq1.powspctrm = randn(3,10);\nfreq1.powspctrm(1) = 1;\nfreq1.cfg.v = 1;\n\nfreq2 = [];\nfreq2.dimord = 'chan_freq';\nfreq2.freq = 1:10;\nfreq2.label = {'1', '2', '3'};\nfreq2.powspctrm = randn(3,10);\nfreq2.powspctrm(1) = 2;\nfreq2.cfg.v = 2;\n\n>> [f1, f2] = ft_selectdata([], freq1, freq2)\nthe call to \"ft_selectdata_new\" took 0 seconds and required the additional allocation of an estimated 0 MB\n\nf1 = \n\n       dimord: 'chan_freq'\n         freq: [1 2 3 4 5 6 7 8 9 10]\n        label: {'1'  '2'  '3'}\n    powspctrm: [3x10 double]\n          cfg: [1x1 struct]\n\n\nf2 = \n\n       dimord: 'chan_freq'\n         freq: [1 2 3 4 5 6 7 8 9 10]\n        label: {'1'  '2'  '3'}\n    powspctrm: [3x10 double]\n          cfg: [1x1 struct]\n\n>> f1.cfg.previous\n\nans = \n\n    [1x1 struct]    [1x1 struct]\n\n>> f2.cfg.previous\nReference to non-existent field 'previous'."
+      - +@isprivate: "0"
+        commentid: "10968"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-30 15:50:41 +0200
+        thetext: |-
+          I added a (failing) test script:
+
+
+          mac001> svn commit test/test_bug2224.m
+          Adding         test/test_bug2224.m
+          Transmitting file data .
+          Committed revision 8352.
+      - +@isprivate: "0"
+        commentid: "12078"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-27 15:25:48 +0100
+        thetext: |-
+          Issue confirmed. Yet, it seems to go wrong in the postamble.
+
+          ft_postamble_previous's default behavior is to pool the cfgs of the input arguments into a cell-array of cfg.previous. In the case of multiple output arguments, where each of the outputs map onto one of the inputs this is not meant to be.
+      - +@isprivate: "0"
+        commentid: "12079"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-27 15:32:27 +0100
+        thetext: |-
+          I don't think we need to aim for a general solution in ft_postamble_previous (and ft_postamble_history), currently I would suggest to solve it locally in ft_selectdata_new, i.e.
+
+          for k = 1:numel(varargout)
+            varargout{k}.cfg = cfg;
+            varargout{k}.cfg.previous = varargin{k}.cfg;
+          end
+      - +@isprivate: "0"
+        commentid: "12080"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-27 15:36:30 +0100
+        thetext: "bash-4.1$ svn commit -m \"bugfix - (bug 2242) append each input argument's cfg to each output argument's cfg.previous\" utilities/ft_selectdata_new.m \nSending        utilities/ft_selectdata_new.m\nTransmitting file data .\nCommitted revision 8871."

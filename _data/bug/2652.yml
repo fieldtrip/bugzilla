@@ -1,0 +1,204 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2652"
+    creation_ts: 2014-07-16 15:35:00 +0200
+    short_desc: ft_prepare_layout is not keeping provenance correctly
+    delta_ts: 2019-08-10 12:43:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14152"
+        comment_count: "0"
+        attachid: "653"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-16 15:35:13 +0200
+        thetext: "Created attachment 653\nscreen shot of ft_analysispipeline\n\nif you do this\n\n----\n%% part 1, prepare some data\ncfg = [];\ncfg.layout = 'elec1020';\nlayout = ft_prepare_layout(cfg);\n\ndata = [];\ndata.label = layout.label;\ndata.trial = {};\nfor i=1:10\n  data.time{i} = 1:1000;\n  data.trial{i} = randn(length(data.label), 1000);\nend\n\n%% part 2, show the issue\ncfg = [];\ncfg.method = 'pca';\ncfg.numcomponent = 5;\ncomp = ft_componentanalysis(cfg, data);\n\ncfg = []\ncfg.layout = 'elec1020';\ncfg.component = 1\n\ncfg = {cfg}\ntic; cfg{end+1} = ft_topoplotIC(cfg{end}, comp); toc; tmp = cfg{end}; details = whos('tmp')\ntic; cfg{end+1} = ft_topoplotIC(cfg{end}, comp); toc; tmp = cfg{end}; details = whos('tmp')\ntic; cfg{end+1} = ft_topoplotIC(cfg{end}, comp); toc; tmp = cfg{end}; details = whos('tmp')\ntic; cfg{end+1} = ft_topoplotIC(cfg{end}, comp); toc; tmp = cfg{end}; details = whos('tmp')\ntic; cfg{end+1} = ft_topoplotIC(cfg{end}, comp); toc; tmp = cfg{end}; details = whos('tmp')\n----\n\nyou can see that the cfg is increasing in size. This is due to cfg.layout.cfg.layout.cfg... nesting. \n\nIt also messes up the figure from\n\nft_analysispipeline([], cfg{end})"
+      - +@isprivate: "0"
+        commentid: "14153"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-16 15:38:53 +0200
+        thetext: |-
+          the specific input/output call structure of ft_prepare_layout is also being used elsewhere:
+
+          mac011> grep function.*,\ cfg.*\( *.m
+          ft_prepare_bemmodel.m:function [vol, cfg] = ft_prepare_bemmodel(cfg, mri)
+          ft_prepare_concentricspheres.m:function [vol, cfg] = ft_prepare_concentricspheres(cfg)
+          ft_prepare_headmodel.m:function [vol, cfg] = ft_prepare_headmodel(cfg, data)
+          ft_prepare_layout.m:function [layout, cfg] = ft_prepare_layout(cfg, data)
+          ft_prepare_leadfield.m:function [grid, cfg] = ft_prepare_leadfield(cfg, data)
+          ft_prepare_localspheres.m:function [vol, cfg] = ft_prepare_localspheres(cfg, mri)
+          ft_prepare_mesh.m:function [bnd, cfg] = ft_prepare_mesh(cfg, mri)
+          ft_prepare_neighbours.m:function [neighbours, cfg] = ft_prepare_neighbours(cfg, data)
+          ft_prepare_singleshell.m:function [vol, cfg] = ft_prepare_singleshell(cfg, mri)
+          ft_prepare_sourcemodel.m:function [grid, cfg] = ft_prepare_sourcemodel(cfg, vol, sens)
+          ft_sourcestatistics.m:function [dat, cfg] = getfunctional(cfg, varargin)
+          ft_statistics_analytic.m:function [stat, cfg] = ft_statistics_analytic(cfg, dat, design)
+          ft_statistics_montecarlo.m:function [stat, cfg] = ft_statistics_montecarlo(cfg, dat, design, varargin)
+          ft_statistics_stats.m:function [stat, cfg] = ft_statistics_stats(cfg, dat, design)
+
+          That means that the same problem potentially happens in these as well.
+      - +@isprivate: "0"
+        commentid: "14154"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-16 15:41:19 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\nyup, this also has it\n\ncfg = [];\ncfg.grid.pos = randn(100,3);\ncfg.grid = ft_prepare_sourcemodel(cfg)\ncfg.grid = ft_prepare_sourcemodel(cfg)\ncfg.grid = ft_prepare_sourcemodel(cfg)\ncfg.grid = ft_prepare_sourcemodel(cfg)\n\nand then \n\nft_analysispipeline([], cfg)"
+      - +@isprivate: "0"
+        commentid: "14155"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-16 15:57:35 +0200
+        thetext: |-
+          I tried this
+
+          tmpcfg = keepfields(cfg, {'rotate', 'style', 'projection', 'layout', 'grad', 'elec', 'gradfile', 'elecfile', 'output', 'feedback', 'montage', 'image', 'mesh', 'bw', 'channel', 'skipscale', 'skipcomnt', 'overlap'});
+          layout = ft_prepare_layout(tmpcfg, comp);
+          [cfg] = rollback_provenance(cfg, layout);
+          cfg.layout = layout;
+
+          but it did not help. There is something conceptually wrong...
+      - +@isprivate: "0"
+        commentid: "19658"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-03-28 10:35:31 +0100
+        thetext: Did you by any chance happen to address this one along the way?
+      - +@isprivate: "0"
+        commentid: "19661"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-28 11:02:50 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          hmm, eentje uit de oude doos.
+
+          I did not look into this specifically, but I will check it out with the tutorial on the iEEG layout. The combination of freq data with multiple layouts and ft_appendlayout should result in an interesting provenance tree.
+      - +@isprivate: "0"
+        commentid: "19663"
+        comment_count: "6"
+        attachid: "883"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-28 12:04:03 +0100
+        thetext: |-
+          Created attachment 883
+          screenshot
+
+          It now works like a charm, see attached screenshot.
+      - +@isprivate: "0"
+        commentid: "19664"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-03-28 12:05:13 +0100
+        thetext: Schouderklopje verdiend! Aan jou de eer om deze weer te sluiten dacht ik zo.
+      - +@isprivate: "0"
+        commentid: "19665"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-28 12:39:21 +0100
+        thetext: |-
+          commit ad58d6f8e92d1331313b4bb8c74d7cff39b77793 (HEAD -> bug2652, origin/bug2652)
+          Author: Robert Oostenveld
+          Date:   Thu Mar 28 12:38:15 2019 +0100
+
+              ENH - add cfg.renderer and figure title consistently
+
+          commit 0483314279b5b48117ec019bb46e851f1f571286
+          Author: Robert Oostenveld
+          Date:   Thu Mar 28 11:59:35 2019 +0100
+
+              ENH - implemented the FieldTrip menu item for the figures in a consistent manner and added it to all plotting functions
+      - +@isprivate: "0"
+        commentid: "19666"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-28 13:55:01 +0100
+        thetext: https://github.com/fieldtrip/fieldtrip/pull/1053 includes some improvements that relate to the plotting, fieldtrip menu and pipeline figure.
+      - +@isprivate: "0"
+        commentid: "20534"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:43:45 +0200
+        thetext: "This closes a whole series of bugs that have recently been resolved (either FIXED/WONTFIX/INVALID). \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "653"
+        date: 2014-07-16 15:35:00 +0200
+        delta_ts: 2014-07-16 15:35:13 +0200
+        desc: screen shot of ft_analysispipeline
+        filename: Screen Shot 2014-07-16 at 15.34.37.png
+        type: image/png
+        size: "27376"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "883"
+        date: 2019-03-28 12:04:00 +0100
+        delta_ts: 2019-03-28 12:04:03 +0100
+        desc: screenshot
+        filename: Screen Shot 2019-03-28 at 12.02.22.png
+        type: image/png
+        size: "116213"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

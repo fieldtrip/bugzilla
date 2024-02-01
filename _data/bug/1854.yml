@@ -1,0 +1,158 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1854"
+    creation_ts: 2012-11-27 09:57:00 +0100
+    short_desc: spm fieldtrip integration fails
+    delta_ts: 2019-08-10 11:56:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - johanna.zumer
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8417"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 09:57:54 +0100
+        thetext: "there is a script test_spm_ft_integration.m which performs a bunch of tests to see whether the FT API as being used by SPM is still working.\n\nI detected that it failed on line 43\n  vol  = ft_prepare_headmodel(cfg);\ndue to\n\nError using ft_headmodel_concentricspheres (line 65)\na conductivity value should be specified for each compartment\n\nError in ft_prepare_headmodel (line 231)\n    vol = ft_headmodel_concentricspheres(geometry,'conductivity',cfg.conductivity,'fitind',cfg.fitind);\n\nError in test_spm_ft_integration (line 43)\nvol  = ft_prepare_headmodel(cfg);\n\nThis pertains to a change in ft_headmodel_concentricspheres in which the default 4-shell conductivity was removed because of the potential mistakes of an inconsistency in the order of the conductivity and the geometries. See http://code.google.com/p/fieldtrip/source/list?path=/trunk/forward/ft_headmodel_concentricspheres.m&start=6864\n\nAgain looking at the code, I realize that further down (after fitting the spheres) the order is well-defined and that there a 3 and 4-shell conductivity default can be specified. So I changed it into \n\nif isempty(vol.c)\n  % it being empty indicates that the user did not specify a conductivity, use a default instead\n  if length(vol.r)==3\n    vol.c = [0.3300   0.0042 0.3300]; % brain,      skull, skin\n  elseif length(vol.r)==4\n    vol.c = [0.3300 1 0.0042 0.3300]; % brain, csf, skull, skin\n  else\n    error('conductivity values should be specified for each tissue type');\n  end\nelse\n  % the conductivity as specified by the user should be in the same order as the geometries\n  % sort the spheres from the smallest to the largest ('insidefirst' order)\n  vol.c = vol.c(indx);\nend\n\nThis should restore old default functionality. The test_spm_ft_integration now runs further."
+      - +@isprivate: "0"
+        commentid: "8418"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 09:59:00 +0100
+        thetext: |-
+          (In reply to comment #0)
+
+          this is the fix
+
+          mbp> svn commit ft_headmodel_concentricspheres.m
+          Sending        ft_headmodel_concentricspheres.m
+          Transmitting file data .
+          Committed revision 6994.
+      - +@isprivate: "0"
+        commentid: "8419"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 09:59:20 +0100
+        thetext: "Although it runs further, it now stops at \n\nError using set\nValue must be numeric\n\nError in ft_plot_mesh (line 170)\n  set(hs, 'FaceVertexCData', vertexcolor, 'FaceColor', 'interp');\n\nError in ft_headmodel_localspheres (line 134)\n    ft_plot_mesh(geometry(shapesel,:), 'vertexcolor', 'g');\n\nError in ft_prepare_headmodel (line 247)\n    vol =\n    ft_headmodel_localspheres(geometry,cfg.grad,'feedback',cfg.feedback,'radius'\n\nError in test_spm_ft_integration (line 108)\nvol  = ft_prepare_headmodel(cfg);"
+      - +@isprivate: "0"
+        commentid: "8420"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 10:12:31 +0100
+        thetext: "(In reply to comment #2)\n\nthat is due to\n\n170   set(hs, 'FaceVertexCData', vertexcolor, 'FaceColor', 'interp');\n\nwhere\n\nvertexcolor = \ng\n\nFirst I though this has to do with http://code.google.com/p/fieldtrip/source/detail?r=5673&path=/trunk/plotting/ft_plot_mesh.m\nBut a closer inspection shows that the bug must also have happened before. \n\nIt appears that in the calling code \n  % find the headshape points that are close to this channel\n  dist = sqrt(sum((geometry-repmat(thispnt,Nshape,1)).^2, 2));\n  shapesel = find(dist<radius);\n  if feedback\n    ft_plot_mesh(geometry(shapesel,:), 'vertexcolor', 'g');\n    drawnow\n  end\nthe number of selected points is precisely one. That is unusual, as multiple points would be expected here. It ain't a problem for the sphere fitting, but it triggers this bug."
+      - +@isprivate: "0"
+        commentid: "8421"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 10:13:16 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          it can simply be reproduced with
+
+          >>ft_plot_mesh([1 2 3], 'vertexcolor', 'r')
+          Error using set
+          Value must be numeric
+
+          Error in ft_plot_mesh (line 170)
+            set(hs, 'FaceVertexCData', vertexcolor, 'FaceColor', 'interp');
+
+          This is supposed to work.
+      - +@isprivate: "0"
+        commentid: "8422"
+        comment_count: "5"
+        attachid: "378"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 10:21:01 +0100
+        thetext: |-
+          Created attachment 378
+          screenshot of figure
+
+          it is supposed to allow for a figure like this
+      - +@isprivate: "0"
+        commentid: "8423"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 11:14:39 +0100
+        thetext: "(In reply to comment #5)\n\nI fixed it by explicitly going through all possible specifications of the vertex colors.\n\nmbp> svn commit ft_plot_mesh.m      \nSending        ft_plot_mesh.m\nTransmitting file data .\nCommitted revision 6995."
+      - +@isprivate: "0"
+        commentid: "8424"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 11:17:45 +0100
+        thetext: the test_spm_ft_integration script now runs through.
+      - +@isprivate: "0"
+        commentid: "19757"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:52:12 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "19801"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:07 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "378"
+      date: 2012-11-27 10:21:00 +0100
+      delta_ts: 2012-11-27 10:21:01 +0100
+      desc: screenshot of figure
+      filename: Screen shot 2012-11-27 at 9.19.37.png
+      type: image/png
+      size: "133508"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

@@ -1,0 +1,236 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2965"
+    creation_ts: 2015-09-23 15:49:00 +0200
+    short_desc: ft_checkdata errors for average data with dimord of rpt_chan_time but no trial field
+    delta_ts: 2017-01-17 11:29:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jdien07
+      +@name: Joseph Dien
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16128"
+        comment_count: "0"
+        attachid: "740"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-09-23 15:49:22 +0200
+        thetext: |-
+          Created attachment 740
+          test data and script
+
+          I’ve got a possible bug but it depends on some nuances of the dimord specification that I am not clear on.  I have an average file with multiple cells.  I have therefore given it a dimord of ‘rpt_chan_time’.  When it gets run through ft_checkdata (fieldtrip-20150920) it crashes because the code assumes that this dimord must be segmented data and therefore has a .trial field rather than a .avg field.
+
+            case 'rpt_chan_time'
+              tmptrial = {};
+              tmptime  = {};
+              ntrial = size(data.trial,1);
+              nchan  = size(data.trial,2);
+              ntime  = size(data.trial,3);
+              for i=1:ntrial
+                tmptrial{i} = reshape(data.trial(i,:,:), [nchan, ntime]);
+                tmptime{i}  = data.time;
+              end
+              data       = rmfield(data, 'trial');
+              data.trial = tmptrial;
+              data.time  = tmptime;
+
+          getdimord does seem to think that this is a legitimate dimord for averaged data:
+
+            case {'avg' 'var' 'dof'}
+              if isequal(datsiz, [nrpt nchan ntime])
+                dimord = 'rpt_chan_time';
+              elseif isequal(datsiz, [nchan ntime])
+                dimord = 'chan_time';
+              elseif isequalwithoutnans(datsiz, [nrpt nchan ntime])
+                dimord = 'rpt_chan_time';
+              elseif isequalwithoutnans(datsiz, [nchan ntime])
+                dimord = 'chan_time';
+              end
+
+          So my question is which part of the code is correct? Can averaged data have a dimord of ‘rpt_chan_time’?
+          Or am I misunderstanding something about the code?
+
+          Joe
+      - +@isprivate: "0"
+        commentid: "16129"
+        comment_count: "1"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-09-23 15:50:06 +0200
+        thetext: "Hi Joe,\n\nThe dimord field was initially added only to freq structures and not used elsewhere (i.e. not in raw, timelock, source and volume data). Some years back we realized that it offered a generic solution to deal with the proliferation of the (sub-)types of data structures and we decided that we would use it more widely.\n\n\nThere are still data structures (from past FT versions) on disk that don’t have dimord, and there is still code that does not use it (i.e. which has not been revisited and refactored yet). That is why on the one hand we use some heuristics in getdimord to determine the dimord if not explicitly present, and on the other hand there are still places in code where the dimord is ignored and the (old) heuristics are being used to decide on the flow of the code.\n\n\nLet me start with a general section, which I will also post on the wiki for future reference: \n\n-----------------\n\nIn general (although some exceptions apply, see below) the rule is that\n\nstructure.aaa = 2-D array\nstructure.aaadimord = ‘xxx_yyy’\nstructure.xxx = scalar vector or cell array that describes the 1st dimension\nstructure.yyy = scalar vector or cell array that describes the 2st dimension\n\nThis can be extended like \n\nstructure.aaa\nstructure.aaadimord = ‘xxx_yyy’\nstructure.bbb\nstructure.bbbdimord = ‘yyy_zzz’\nstructure.xxx\nstructure.yyy\nstructure.zzz\n \nIn case multiple fields in a structure have the same dimord, it is allowed to specify\n\nstructure.aaa\nstructure.bbb\nstructure.dimord = ‘xxx_yyy’ % applies to aaa and bbb  \nstructure.xxx\nstructure.yyy\n\nAnd furthermore\n\nstructure.aaa\nstructure.bbb\nstructure.dimord = ‘xxx_yyy’ % applies to all fields that do not specify their own dimord  \nstructure.ccc\nstructure.cccdimord = ‘yyy_zzz’ % applies only to ccc\nstructure.xxx\nstructure.yyy\nstructure.zzz\n\nSome high-level FieldTrip functions allow or require the specification of the parameter on which to perform their algorithm, whereas other functions do not require or allow the parameter to be specified. If the parameter is not specified, and if the non-specific “dimord” only refers to a single data field, that field is considered to be the main data and will be used as input for the algorithm.\n\nThe known exceptions (to be extended in the wiki documentation at a later time) that apply are that \n- the dimension ‘chan’ is described with the cell-array vector ‘label'\n- the dimension ‘chancmb’ is described with the cell-array ‘labelcmb’, which is a Nx2 array\n- if the dimension is indicated as '{xxx}’, then it refers to a cell-array description. An example is ‘{pos}_ori_time’ for vector dipole moments as a function of time, that are estimated for multiple dipole positions. The positions are here represented in a cell-array to allow for positions (from a 3-D regular grid) outside the brain where the computation is not done. The alternative would be to use a 3D array with pos_ori_time with NaNs to indicate that the data at some positions does not apply, but that is memory-wise inefficient.\n- if the dimension is indicated as ‘(xxx)’, then it refers to a struct-array description. We don’t have this worked out in detail and we don’t use it.\n- some fields contain supportive information and not actual data, and therefore are not described with a dimord. Examples are cumtapcnt, sampleinfo, trialinfo.\n- some dimensions do not have an explicit description and are only implicitly numbered. examples are “comp” and “rpt”.\n- rpt is used for repetitions, which are usually trials, but in timelock (ERP) structures we use “rpt\" and “subj” interchangeably. The dimord “subj_chan_time\" is used to represent an ERP that cas been concatenated over subjects.  \n\n\n-----------------\n\nI suspect your issue to relate to implicit dimords in the timelock data structure, combined with the situation that it has two fields (avg=chan_time, and trial=rpt_chan_time) which are sometimes considered “the most important”, and possibly with “rpt” and “subj” which are to be treated the same. \n\nCan you send me the data structure and a few lines of code that replicate the problem?\n\nthanks\nRobert"
+      - +@isprivate: "0"
+        commentid: "16932"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 14:45:23 +0100
+        thetext: |-
+          Hi Joe,
+
+          Is this currently still and issue for you? If so, could you provide us with some additional input?
+
+          Thanks.
+      - +@isprivate: "0"
+        commentid: "16992"
+        comment_count: "3"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2016-02-25 01:33:27 +0100
+        thetext: |-
+          I just tested this with fieldtrip-20160224 and it is still a problem.  I already posted a test script back in Sept as Robert requested so the ball is in his court.
+
+          Thanks for following up!
+
+          Joe
+      - +@isprivate: "0"
+        commentid: "16996"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:28:48 +0100
+        thetext: |-
+          Hi Joe,
+          Just to be sure. Has your input data (as per the test file) been handcrafted? I.e. did you manually name the avg field 'avg'. Nowadays, I would expect the data field to be called 'trial', irrespective of whether each of the 'rpt's in it contain an average.
+          If I do test.trial =test.avg; test = rmfield(test,'avg'), at least the function does not choke in ft_checkdata. However, now it chokes somewhere else (although I am not sure whether this is not another problem altogether).
+      - +@isprivate: "0"
+        commentid: "16997"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:36:24 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          OK, as per my previous comment, it crashed on a windows machine running matlab2015b. It could be that I have not yet included Robert's latest commit (intended to fix a 2015b issue) in my local code, or that his latest commit breaks it. At least on linux matlab 2014b it works when changing the datastructure as per comment 4.
+      - +@isprivate: "0"
+        commentid: "17013"
+        comment_count: "6"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2016-02-25 21:45:37 +0100
+        thetext: I did handcraft it but it was in accordance with the FieldTrip codebase and documentation.  For example, the code snippet I cited in my original comment clearly indicates avg as an option.  So basically different parts of the FieldTrip code have different expectations about this and they need to be brought into harmony one way or the other.
+      - +@isprivate: "0"
+        commentid: "17014"
+        comment_count: "7"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2016-02-26 22:54:20 +0100
+        thetext: 'Just to be clear, when I say "handcraft" what I mean is that this file is the product of an EP Toolkit-to-FieldTrip conversion routine I wrote.  So this isn''t just a special case.  I need to know how to write this routine both for myself and for the userbase of my EP Toolkit.  While I could use the workaround you''re suggesting, it''s quite likely that it would break some other part of FieldTrip and from your #4 comment it may very well have done so.  We just need to have a decision made about the FieldTrip file format so we know what to fix.  Thanks again for following up!'
+      - +@isprivate: "0"
+        commentid: "17861"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-25 22:53:28 +0200
+        thetext: |-
+          Joe wrote (by email):
+
+          this bug that I reported back in Sept 2015 is still causing problems for me and users of my EP Toolkit software (which calls on some FT routines).  Do you think we could get this resolved?  We just need to have a decision made on this issue so the conflicting software code can be reconciled.
+      - +@isprivate: "0"
+        commentid: "17862"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-25 22:54:02 +0200
+        thetext: Sorry for this taking so long. We have made structural improvements to bookkeeping, so this can be resolved now.
+      - +@isprivate: "0"
+        commentid: "17863"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-25 22:57:45 +0200
+        thetext: |-
+          see https://github.com/fieldtrip/fieldtrip/pull/239
+
+          I changed it such that any field that is recognized (not only avg and trial) will be converted in data.trial{}.
+
+          I don't think that this will break anything, so I'll immediately merge with the release.
+      - +@isprivate: "0"
+        commentid: "17864"
+        comment_count: "11"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2016-10-25 22:58:26 +0200
+        thetext: thanks Robert!  :)
+      - +@isprivate: "0"
+        commentid: "17866"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-26 10:41:19 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #10)\n\nI realize that there are cases where the updated code will fail. It does not respect the historical preference for the 3d \"trial\" and 2d \"avg\" over all other possibilities. \n\nA clear failure is in the presence of avg, var and dof."
+      - +@isprivate: "0"
+        commentid: "17867"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-26 10:52:06 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #12)\n\n[master afcbc30] FIX - avg+var would not work properly, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2965\n 2 files changed, 59 insertions(+)\n\nmac011> git push upstream master\nCounting objects: 6, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (6/6), done.\nWriting objects: 100% (6/6), 1.02 KiB | 0 bytes/s, done.\nTotal 6 (delta 5), reused 0 (delta 0)\nremote: Resolving deltas:   0% (0/5)   \nremote: Resolving deltas: 100% (5/5), completed with 5 local objects.\nTo git@github.com:fieldtrip/fieldtrip.git\n   0bc1a22..afcbc30  master -> master\n\nThis fixes it, I also extended the test script."
+      - +@isprivate: "0"
+        commentid: "18178"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:41 +0100
+        thetext: closed multiple bugs that were resolved some time ago
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "740"
+      date: 2015-09-23 15:49:00 +0200
+      delta_ts: 2015-09-23 15:49:22 +0200
+      desc: test data and script
+      filename: dimordTest.zip
+      type: application/zip
+      size: "254286"
+      attacher:
+        +content: jdien07
+        +@name: Joseph Dien
+      data: REMOVED

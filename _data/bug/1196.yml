@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1196"
+    creation_ts: 2011-11-28 09:29:00 +0100
+    short_desc: conversion between spike and raw data representation should be done by ft_checkdata
+    delta_ts: 2011-12-10 11:40:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - b.reuderink
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4287"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-28 09:29:09 +0100
+        thetext: "At this moment there is a ft_spike_data2spike and a ft_spike_spike2data function. However, for all other xxx2yyy function we have adopted the convention that ft_checkdata should be used with the \"datatype\" option. So instead of \n\ndata = ft_spike_data2spike(cfg, spike)\n\nthe user should be doing \n\ndata = ft_checkdata(spike, 'dataype', 'spike')\n\nthis ensures that all conversions are done in a consistent manner and that on top of that the ongoing development and changes to the data types (e.g. updating a datatype on the fly) can be managed at a central location in the code. \n\nI suggest to reorganize the two specific functions into two local subfunctions in the ft_checkdata code, just like it is done for other conversions. \n\n@Martin, Do you see any objections against that?"
+      - +@isprivate: "0"
+        commentid: "4288"
+        comment_count: "1"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-11-28 13:25:55 +0100
+        thetext: |-
+          Ok I agree, in principle.
+
+          However to go from spike to a raw data structure one does need some additional inputs, for example sampling rate.
+          So the conversion cannot be automatic but requires additional user input.
+          So let's say we have a function ft_spikedensity(cfg,data) taking the raw data structure as input.
+          We may then allow the user to enter ft_spikedensity(cfg,spike) but then an additional input would have to be specified, I am not sure at which level (in the cfg?).
+
+          On the other hand the conversion from raw data to spike can be fully automatic and could be nicely supported by all spike functions.
+      - +@isprivate: "0"
+        commentid: "4289"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-11-28 13:26:36 +0100
+        thetext: |-
+          (In reply to comment #1)
+          sorry one needs only one additional input: sampling rate (specifying the sampling rate used for the data.trial structure).
+      - +@isprivate: "0"
+        commentid: "4291"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-11-28 13:49:30 +0100
+        thetext: |-
+          there is an additional problem here:
+
+          The raw data structure may contain both lfp and spike channels, so we can convert only part.
+          We could check whether the data contains only integers, no negative data and by doing so try to automatically ignore the LFP data (which I think never only contains integers).
+          Another option would be to allow for an additional key,value pair such that we simply use the information in cfg.spikechannel entered by the user.
+          What do you think?
+      - +@isprivate: "0"
+        commentid: "4296"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-11-28 14:57:56 +0100
+        thetext: |-
+          I have added conversion from raw data format to spike format in ft_checkdata and removed ft_spike_data2spike.m
+
+          As for ft_spike_spik2data.m I am not sure how to deal with the additional information sampling rate which is needed to do this conversion
+      - +@isprivate: "0"
+        commentid: "4315"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-28 17:09:42 +0100
+        thetext: |-
+          (In reply to comment #1 and #2)
+          should we specify this in the data structure, i.e. spike.fsample?
+
+
+
+
+          (In reply to comment #3)
+          This problem is also there in the present converter function, and should also be reflected in the calling function. Should we consider doing it like this?
+
+          spikedata = ft_checkdata(inputdata, 'dataype', 'spike');
+          continuousdata = ft_checkdata(inputdata, 'dataype', 'raw');
+
+          This explicitly splits the inputdata into the two different types.
+      - +@isprivate: "0"
+        commentid: "4316"
+        comment_count: "6"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-11-28 17:13:52 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          As for raw to spike, I've added the respective conversion and removed ft_spike_data2spike.
+          I'd think something like
+          spike = ft_checkdata(data,'datatype', 'spike', 'fsample', 1000)
+          should be the way to go.
+          The 1000 could then be a default but one could enter an additional cfg option in scripts in which we think the conversion is useful perhaps?
+      - +@isprivate: "0"
+        commentid: "4325"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-29 10:35:41 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          sounds good
+      - +@isprivate: "0"
+        commentid: "4396"
+        comment_count: "8"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2011-12-01 20:25:19 +0100
+        thetext: Added the subfunction spike2raw now with the extra keyval argument 'fsample' and removed ft_spike_spike2data

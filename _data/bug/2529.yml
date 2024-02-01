@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2529"
+    creation_ts: 2014-04-09 10:46:00 +0200
+    short_desc: 'ft_volumerealign: revamp the user interface'
+    delta_ts: 2014-06-21 14:59:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - dr.chungki.lee
+      - jeechoi
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13267"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-09 10:46:30 +0200
+        thetext: "Right now ft_volumerealign can be called with \n\ncfg.method = 'spm'/'fsl'/'headshape', where the method specific options are in a subfield.\n\nAlternatively (and this is historic behavior) one can do:\n\ncfg.interactive = 'yes'/'no' where 'no' goes along with either specifying cfg.landmark, or cfg.fiducial. The former pertains to MNI type of coregistration, the latter to MEG type of coregistration. If cfg.interactive=='yes' the function is trying to derive what the user wants, by checking whether he/she clicked n/l/r (fiducials) or a/p/z (landmarks). \n\nAlso, cfg.headshape has a sub-option 'interactive', which pertains to an interactive alignment.\n\nMy suggestion would be to make all this more consistent, and to explicitly specify a method 'fiducial', (that can pertain both to landmarks and fiducials), where the cfg.fiducial subfield then can have a cfg.fiducial.interactive 'yes'/'no', or it can have a specification of named anatomical points:\n\ncfg.fiducial.lpa/rpa/nas or cfg.fiducial.ac/pc/zpoint. For backward compatibility we can keep the intelligence that the function figures out herself whether to make a 'spm' or 'ctf' coordsys based on the user specifying a/p/z or n/l/r"
+      - +@isprivate: "0"
+        commentid: "13855"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-17 12:13:57 +0200
+        thetext: |-
+          as discussed with JM on phone:
+
+          in ft_headcoordinates
+          1) remove boolean isrighthanded functionality
+          2) rename flag into coordsys
+          3) clean up documentation: use fid1, fid2, fid3, fid4, where further down in the documentation (conditional on coordsys) the fiducially get their specific interpretation as lpa or ac.
+
+          in ft_volumerealign
+          1) merge method=fiducial with landmark
+          2) make the name of the fiducials conditional on cfg.coordsys
+          3) in case method=interactive, also the pre specified fiducials (if any)
+      - +@isprivate: "0"
+        commentid: "13858"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-17 14:17:04 +0200
+        thetext: |-
+          this issue needs to be addressed to enable the implementation go the paxinos coordinate system with the correct anatomical labels (bregma, lambda, midsagittal).
+
+          Let me start with ft_headcoordinates:
+
+          mac011> svn commit ft_headcoordinates.m
+          Sending        ft_headcoordinates.m
+          Transmitting file data .
+          Committed revision 9633.
+
+          I have added the paxinos coordinate system, cleaned up the nomenclature of the fiducials and reorganized the documentation. I also removed the support for boolean isrighthanded.
+      - +@isprivate: "0"
+        commentid: "13861"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-17 14:41:04 +0200
+        thetext: 'Note to Robert: in cleaning up my mess, this is where I left off last Friday: I still need to properly build in the visualization of the fiducials. My intention would be to use the same structure as how the crosshair is dealt with (although this also does not work well yet). The point is that in the old implementation we used a ''volplot''-type of sub function, which essentially extracted three slices from the volume, and used image() for visualization in each of the subplot. The new implementation uses ft_plot_slice, which essentially plots the slices in 3D, and adjusts the view for each of the subplots. For the plotting of the fiducially, I think that plot3() would be the command to use...'
+      - +@isprivate: "0"
+        commentid: "13925"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-21 11:28:19 +0200
+        thetext: |-
+          In commit 9654 (aimed at tmpcfg=keepfield and rollback_provenance) I accidentally also committed the recent (and incomplete) changes by jan-mathijs that he passed on to me.
+
+          I noticed this by test_bug1295 failing on the dashboard. I'll try to implement a quick fix, otherwise I will have to roll back to a previous version.
+      - +@isprivate: "0"
+        commentid: "13926"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-21 14:59:27 +0200
+        thetext: |-
+          I revamped the user interface, removed "landmark" in favour of "fiducial", made the fiducials dependent on the coordsys, reimplemented the marker-plotting (now with 'f' rather than 'm', since 'm' was already in use).
+
+          I also added support for cfg.coordsys='paxinos', in which case it will ask for bregma, lambda and a midsagittal point. The tutorial at http://fieldtrip.fcdonders.nl/development/mouse_eeg#reading_and_coregistring_the_anatomical_data therefore can be updated with the more user-friendly new functionality.
+
+          mac011> svn commit ft_volumerealign.m
+          Sending        ft_volumerealign.m
+          Transmitting file data .
+          Committed revision 9656.
+
+          @JM: The marker plotting still does not work as expected, although if you rotate it in 3d it looks all fine.

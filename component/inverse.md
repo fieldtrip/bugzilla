@@ -1,0 +1,5 @@
+---
+title: inverse
+---
+
+{% include component %}

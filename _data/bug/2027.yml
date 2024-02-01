@@ -1,0 +1,384 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2027"
+    creation_ts: 2013-03-05 11:57:00 +0100
+    short_desc: troubles while reading 4D MEG files in getting the MEG channels
+    delta_ts: 2016-11-29 09:04:09 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2028"
+    blocked:
+      - "2219"
+      - "2389"
+    everconfirmed: "1"
+    reporter:
+      +content: sophiechen33
+      +@name: sophie
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - francois.tadel
+      - j.schoffelen
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9644"
+        comment_count: "0"
+        who:
+          +content: sophiechen33
+          +@name: sophie
+        bug_when: 2013-03-05 11:57:21 +0100
+        thetext: |-
+          Dear all,
+
+           I am trying to read MEG 4D files with Fieldtrip version 20130226 using ft_preprocessing file with a preselection of MEG channels ( 'MEG' or a cell array of channel names, here is MEG_LABEL) but the output
+           data contains only 152 channels while I have 248 channels... I tried the same code with Fieldtrip version 20121015, and I get everything properly (i.e. 248 channels)
+           Following the script I am running :
+
+
+          > cfg = [];
+          > cfg.dataset = 'c,rfDC';
+          > cfg.trialdef.eventtype  = 'TRIGGER';
+          > cfg.trialdef.eventvalue  = 2;
+          > cfg.trialdef.prestim    = 1;
+          > cfg.trialdef.poststim    = 2;
+          > [cfg] = ft_definetrial(cfg);
+          >
+          > % cfg.channel =  'MEG';
+          > cfg.channel = MEG_LABEL;
+          > cfg.continous = 'yes';
+          > data_2 = ft_preprocessing (cfg)
+
+          I attached MEG_LABEL.MAT/4D MEG file/corresponding config file.
+          Thanks a lot for your help
+
+          Best,
+
+          Sophie
+      - +@isprivate: "0"
+        commentid: "9645"
+        comment_count: "1"
+        who:
+          +content: sophiechen33
+          +@name: sophie
+        bug_when: 2013-03-05 12:07:31 +0100
+        thetext: 'Following the link for downloading the data : MEG_LABELS.mat/4D MEG data file/4D config file : http://filez.univ-amu.fr/7mutn56lg3'
+      - +@isprivate: "0"
+        commentid: "9646"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 12:23:32 +0100
+        thetext: |-
+          Hi Sophie,
+
+          The file is quite big. We would like to create a repository of small files that we can keep for quality tests etc. Would it be possible to upload one of the 'COH' files, rather than the c,rfDC file?
+      - +@isprivate: "0"
+        commentid: "9650"
+        comment_count: "3"
+        who:
+          +content: sophiechen33
+          +@name: sophie
+        bug_when: 2013-03-05 13:18:26 +0100
+        thetext: "Hi, \n\nHere a link to get a smaller data file \nhttp://filez.univ-amu.fr/bw21dqh2n0\nIt is another dataset but the same problem occurs.\n\nI am not sure of the coh file you are talking about, so I did a zip file of the data folder. \n\nThanks,\n\nSophie"
+      - +@isprivate: "0"
+        commentid: "9658"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 14:24:53 +0100
+        thetext: |-
+          Thanks Sophie.
+
+          I could confirm your bug. I think it is a low-level issue with reading the header of the data.
+          I made some changes a while ago, which I thought were an improvement. Apparently, it broke things for the Marseille system (but worked for Glasgow and St. Louis).
+
+          There is an issue in read_4d_hdr, where the number of channels in the hdr.label field is incorrect.
+      - +@isprivate: "0"
+        commentid: "9660"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 14:30:51 +0100
+        thetext: created test data and test function that reproduces the error
+      - +@isprivate: "0"
+        commentid: "9666"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 15:56:44 +0100
+        thetext: |-
+          Sophie, do you happen to have MEG sensors that are called 'mXXX' where XXX is a conventional 10-20 EEG electrode label?
+
+          If so, this could be the cause of your problem.
+      - +@isprivate: "0"
+        commentid: "9668"
+        comment_count: "7"
+        who:
+          +content: sophiechen33
+          +@name: sophie
+        bug_when: 2013-03-05 16:15:26 +0100
+        thetext: "Indeed, some of the MEG sensors are named in this way. Those labels are stored in data.hdr.label when I use the fieldtrip version 20130226. However, when I use the Fieldtrip version 20121015 all the MEG labels in data.hdr.label start with 'A' + number. \nI don't understand why from the same data file I get two different channel labels. \nDo I have to change something in the acquisition setup to fix this? \nIs there a way to fix this before running ft_preprocessing (now that I have the data :-))?\n\nThanks a lot for you help!"
+      - +@isprivate: "0"
+        commentid: "9669"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 16:30:31 +0100
+        thetext: |-
+          To speak with the famous Uderzo and Goscinny: 'ils sont fous, ces Gaulois...'. ;-)
+
+          OK, well the 4D neuroimaging dataformat is a bit clunky in terms of the information that is stored in the header. Actually, as far as I remember, there are two locations where information with respect to the channels is stored: the config file (which is site specific, not file specific) and in the header of the file (i.e. a part of the binary file (e.g. c,rfDC)). The generic channel names A1-A248 are probably stored in one location, whereas user-specified (could be site-specific) are stored somewhere else. Most of the time, these labels match, but apparently not for the Marseille system. One of the most recent changes probably assumes MEG channels always to start with 'A'
+      - +@isprivate: "0"
+        commentid: "9670"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 17:11:50 +0100
+        thetext: |-
+          bash-3.2$ svn commit -m "bugfix - reverted to original, where channel labels are specified as in config file rather than in data file" read_4d_hdr.m
+          Sending        read_4d_hdr.m
+          Transmitting file data .
+          Committed revision 7592.
+
+
+          NOTE: the initial change was I believe to facilitate naming the EEG channels with meaningful names
+      - +@isprivate: "0"
+        commentid: "9671"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-05 17:15:29 +0100
+        thetext: |-
+          Hi Sophie. I fixed it now in the following way.
+
+          All MEG channels are again named A1-A248, so the specification with mXX is lost again.
+
+          If this is OK with you guys, I would stick to this, because the sensor-array definition relies on the MEG channel labels to be A1-A248.
+
+          Could you update and test it? I believe that you can nowadays update your local copy of FieldTrip with the ft_version function. Check the help of this function how it can be used.
+      - +@isprivate: "0"
+        commentid: "9672"
+        comment_count: "11"
+        who:
+          +content: sophiechen33
+          +@name: sophie
+        bug_when: 2013-03-05 17:29:40 +0100
+        thetext: "Merci beaucoup\nThanks a lot \n\nCes gaulois ne changeront jamais... ;-)"
+      - +@isprivate: "0"
+        commentid: "9688"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 14:51:19 +0100
+        thetext: |-
+          oops -- spoke too soon. actually just tried the latest svn update on some Konstanz data and it (mostly) works for me. however, channel selection seems broken -- i.e., defining cfg.channel = {'MEG'}  still loads in all channels (including reference, EEG/EOG/ECG, trigger, etc.) with the development version. But this behaves as expected with my own modification.
+
+          cheers,
+          sarang
+
+
+          On Mar 6, 2013, at 2:07 PM, Sarang S. Dalal <sarang.dalal@gmail.com> wrote:
+
+          Dear Jan-Mathijs and Sophie, (cc Tzvetan from Konstanz and Stefan from Erlangen)
+
+          I'm not sure if the bugzilla regarding 4D MEG issues has been filed yet, but I wasn't able to find it. Anyway -- I just wanted to point out that 4D/BTi's file format is annoyingly inconsistent between different laboratories. Code that works to read in data for one installation may not work for another. I suggest that we get together some short datasets from a few different 4D sites so that we can ensure that any updates don't break the import for another lab.
+
+          FYI, I believe the current development version doesn't work for Konstanz or Erlangen either. I did hack up a version that works with these installations but I'm afraid it might break somebody else's!
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "9689"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 14:59:17 +0100
+        thetext: |-
+          Hi Sarang,
+
+          Thanks for your message. I copied your e-mail into this bug, and cc'ed you and Yuval (who happens to have a bugzilla account). I think we should go for a robust solution here.
+          In the past, I have requested some test data, in order to test the extraction of EEG-electrode related information from the header information. I got feedback from Stefan (no data), but I have some data from Erlangen contributed by Margit Schonherr. Also, Yuval sent me a snippet of data, and we also have test data from Glasgow, Marseille, St.Louis and Konstanz. I think that the Konstanz data has come to us in a processed state (I guess it has passed through pdf2set) so it would be great if you could contribute a small dataset (raw) here.
+      - +@isprivate: "0"
+        commentid: "9690"
+        comment_count: "14"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-03-06 15:02:06 +0100
+        thetext: absolutely. tell me where I should upload, or I can make a link available to you.
+      - +@isprivate: "0"
+        commentid: "9691"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 15:03:47 +0100
+        thetext: If the files are small in zipped format (e.g. a e,rf1.0Hz,COH + config) they can be uploaded directly into this bug (under add an attachment)
+      - +@isprivate: "0"
+        commentid: "9692"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 15:22:45 +0100
+        thetext: |-
+          svn commit -m "enhancement - upgraded to test 4 datasets from different sites: seems to work so far" test_bug2027.m
+          Sending        test_bug2027.m
+          Transmitting file data .
+          Committed revision 7597.
+
+          I included data from:
+
+          colorado
+          glasgow
+          marseille
+          stlouis
+
+          The other test data is too big to store on the local filesystem.
+      - +@isprivate: "0"
+        commentid: "10397"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-07 07:16:22 +0200
+        thetext: |-
+          Hi Sarang,
+
+          Any update on example datasets from Erlangen and Konstanz? Also, did you add your hacked version to FieldTrip?
+      - +@isprivate: "0"
+        commentid: "10446"
+        comment_count: "18"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-05-14 09:37:19 +0200
+        thetext: |-
+          (In reply to comment #17)
+
+          We're acquiring some data later this week and I'll try to get a new short dataset from Konstanz that we'll upload here. I'll remind the Erlangen folks as well.
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "10447"
+        comment_count: "19"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-05-14 09:38:49 +0200
+        thetext: |-
+          (In reply to comment #18)
+
+          BTW, I wonder if this is a related issue? (Found by our postdoc Dan Wong when reading BrainProducts/BrainAmp data.)
+
+          http://bugzilla.fcdonders.nl/show_bug.cgi?id=2136
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "11015"
+        comment_count: "20"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-04 09:08:31 +0200
+        thetext: |-
+          Hi Christian,
+
+          This bug may be of interest related to our recent discussion.
+      - +@isprivate: "0"
+        commentid: "11358"
+        comment_count: "21"
+        attachid: "520"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-09-18 17:49:41 +0200
+        thetext: |-
+          Created attachment 520
+          Konstanz 4D MEG data: Magnes 2500 WH (148 magnetometers)  + EOG + EKG
+
+          We finally have a small example dataset to contribute. This is BTi/4D data in Konstanz: Magnes 2500 WH (148 magnetometers)  + EOG + EKG
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "12475"
+        comment_count: "22"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-13 11:38:37 +0100
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - added konstanz test data to test function, for the moment it is just counting the number of meg channels" test_bug2027.m
+          Sending        test_bug2027.m
+          Transmitting file data .
+          Committed revision 9093.
+
+          I copied the Konstanz data into the test data directory on /home/common
+          For the moment I will set the status to fixed.
+      - +@isprivate: "0"
+        commentid: "17132"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-12 11:05:27 +0100
+        thetext: Reviving this one (based on a recent e-mail thread started by Francois Tadel; although I was 'just' included in the CC, I considere it sufficiently relevant to follow up on this). Removing some people from the CC-list to this bug, to avoid spamming them. Feel free to re'CC :o).
+      - +@isprivate: "0"
+        commentid: "17322"
+        comment_count: "24"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-12 08:52:06 +0200
+        thetext: I don't remember why this was reopened, closing again.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "520"
+      date: 2013-09-18 17:49:00 +0200
+      delta_ts: 2013-09-18 17:49:41 +0200
+      desc: 'Konstanz 4D MEG data: Magnes 2500 WH (148 magnetometers)  + EOG + EKG'
+      filename: Konstanz4D-MEG-EOG.zip
+      type: application/octet-stream
+      size: "12429236"
+      attacher:
+        +content: sarang
+        +@name: Sarang Dalal
+      data: REMOVED

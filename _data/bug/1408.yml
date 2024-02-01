@@ -1,0 +1,367 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1408"
+    creation_ts: 2012-04-04 15:49:00 +0200
+    short_desc: make the demeaning of data prior to filtering consistent
+    delta_ts: 2012-10-10 13:27:32 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5792"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 15:49:13 +0200
+        thetext: |-
+          as discussed in the FT meeting: preproc calls demean/detrend/polyremoval both before and after the filtering. There are good reasons for it, but the code can (and should) be cleaned up
+
+          1) it is desirable to have all ft_preproc_xxxfilter functions demean and (if applicable) re-mean the data
+          1b) should figure out what the fastest way is of adding a constant to all channels
+
+          2) the preproc code should go like this
+
+          if polyremove
+          polyremove with the desired order
+          elseif detrend
+          polyremove with order 1
+          elseif demean
+          polyremove with order 0
+          end
+
+          and this should happen for the whole data (not just the baseline, and not just the data minus padding).
+      - +@isprivate: "0"
+        commentid: "5793"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 15:49:30 +0200
+        thetext: 'also revisit bug #780'
+      - +@isprivate: "0"
+        commentid: "5794"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-04 15:55:00 +0200
+        thetext: |-
+          I emailed this for fun to JM, is useful here:
+
+
+
+          The non-for-loops use maximally around 9,2GB, the for-loops around 4,8GB
+          (difference between the first two depends on the order and other things, over several runs they were the same)
+
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic; dat = dat - datmean(:,ones(1,3e6));toc
+          Elapsed time is 8.134499 seconds.
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic; dat = dat - repmat(datmean,[1 3e6]);toc
+          Elapsed time is 7.630849 seconds.
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic
+          for ichan = 1:200
+            dat(ichan,:) = dat(ichan,:) - datmean(1,ones(1,3e6));
+          end
+          toc
+          Elapsed time is 33.508252 seconds.
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic
+          for ichan = 1:200
+            dat(ichan,:) = dat(ichan,:) - repmat(datmean(1),[1 3e6]);
+          end
+          toc
+          Elapsed time is 24.960733 seconds.
+      - +@isprivate: "0"
+        commentid: "5795"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-04-04 15:56:20 +0200
+        thetext: "I replied this to Roemer:\n\n\nEen betere vergelijking zou zijn:\n\n\nclear \ndat = rand(200,3e6);\ndatmean = rand(200,1);\ntic\nfor ichan = 1:200\n  dat(ichan,:) = dat(ichan,:) - datmean(ichan);\nend\ntoc\n\nclear \ndat = rand(200,3e6);\ndatmean = rand(200,1);\ntic\nfor ichan = 1:3e6\n  dat(:,ichan) = dat(:,ichan) - datmean;\nend\ntoc"
+      - +@isprivate: "0"
+        commentid: "5796"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-04 16:01:58 +0200
+        thetext: |-
+          My third and fourth were of course rubbish, I was sleeping at the moment.
+          The ones JM mentioned:
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic
+          for ichan = 1:200
+            dat(ichan,:) = dat(ichan,:) - datmean(ichan);
+          end
+          toc
+          Elapsed time is 17.273900 seconds.
+
+
+          clear; dat = rand(200,3e6); datmean = rand(200,1);
+          tic
+          dat = dat';
+          for ichan = 1:200
+            dat(:,ichan) = dat(:,ichan) - datmean(ichan);
+          end
+          dat = dat';
+          toc
+          Elapsed time is 15.349796 seconds.
+
+
+          The last one, with the transpose, uses 9,2GB of course, the first 4,8GB of course. The GB is total memory use, the data matrix is 4,8GB.
+      - +@isprivate: "0"
+        commentid: "5797"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-04-04 16:05:08 +0200
+        thetext: still sleeping, indexing over the columns should run between 1 and 3e6 (rather than 200). Also, in that case you don't need to index datmean.
+      - +@isprivate: "0"
+        commentid: "5798"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 16:10:25 +0200
+        thetext: |-
+          With a slightly smaller problem size I get
+
+          >> nchans = 200;
+          >> nsamples = 1e6;
+
+          >> dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          dat = bsxfun(@minus, dat, datmean);
+          toc
+          Elapsed time is 2.418713 seconds.
+
+          >> dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          dat = dat - datmean(:,ones(1,nsamples));
+          toc
+          Elapsed time is 3.118488 seconds.
+
+          so bsxfun is the winner sofar.
+      - +@isprivate: "0"
+        commentid: "5799"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 16:16:10 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          > so bsxfun is the winner sofar
+
+          dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          dat = bsxfun(@minus, dat, datmean);
+          toc
+          Elapsed time is 2.365440 seconds.
+
+          dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          for isample = 1:nsamples
+            dat(:,isample) = dat(:, isample) - datmean;
+          end
+          toc
+          Elapsed time is 1.118270 seconds.
+
+          Ha, found an even faster one. The penalty of the many-more-iterations loop over 1e6 samples is still outweighed by the most efficient memory access!
+
+          Note that my problem size is 3x smaller, so to make it a better comparison here is the one Roemer started with...
+
+          dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          dat = dat - datmean(:,ones(1,nsamples));
+          toc
+          Elapsed time is 3.155108 seconds
+      - +@isprivate: "0"
+        commentid: "5800"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 16:22:31 +0200
+        thetext: "To wrap up: I made this (which I'll add as test script)\n\n-------------------------------------------------------\nnchans   = 200;\nnsamples = 1e6;\n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\ndat = dat - datmean(:,ones(1,nsamples));\nt(1) = toc\n \n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\ndat = dat - repmat(datmean,[1 nsamples]);\nt(2) = toc\n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\nfor ichan = 1:nchans\n  dat(ichan,:) = dat(ichan,:) - datmean(ichan);\nend\nt(3) = toc\n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\ndat = dat';\nfor ichan = 1:nchans\n  dat(:,ichan) = dat(:,ichan) - datmean(ichan);\nend\ndat = dat';\nt(4) = toc\n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\ndat = bsxfun(@minus, dat, datmean);\nt(5) = toc\n\ndat = rand(nchans,nsamples); datmean = rand(nchans,1);\ntic\nfor isample = 1:nsamples\n  dat(:,isample) = dat(:, isample) - datmean;\nend\nt(6) = toc\n\n[minval, minindx] = min(t);\nif minindx~=6\n  error('unexpected winner of the speed test');\nend\n-------------------------------------------------------\n\nwhich results in \n\nt =\n    3.0803    3.1377    7.9075    8.8355    2.3918    1.1138"
+      - +@isprivate: "0"
+        commentid: "5801"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 16:43:02 +0200
+        thetext: |-
+          I found this old code (commented out) in ft_preproc_baselinecorrect
+
+          % save this old code because it looks non-trivially optimized
+          %
+          % persistent hasbsxfun
+          % if isempty(hasbsxfun)
+          %   hasbsxfun = exist('bsxfun', 'builtin')==5;
+          % end
+          %
+          % % determine the size of the data
+          % [Nchans, Nsamples] = size(dat);
+          %
+          % % determine the interval to use for baseline correction
+          % if nargin<2 || isempty(begsample)
+          %   begsample = 1;
+          % end
+          % if nargin<3 || isempty(endsample)
+          %   endsample = Nsamples;
+          % end
+          %
+          % % estimate the baseline and subtract it
+          % baseline = mean(dat(:,begsample:endsample), 2);
+          %
+          % % ensure that the data is not represented as integer, otherwise "minus" fails
+          % dat = double(dat);
+          %
+          % if hasbsxfun
+          %   % it is even faster to do this
+          %   dat = bsxfun(@minus,dat,baseline);
+          % else
+          %   % it is faster to loop over samples than over channels due to the internal memory representation of Matlab
+          %   % for chan=1:Nchans
+          %   %  dat(chan,:) = dat(chan,:) - baseline(chan);
+          %   % end
+          %
+          %   for sample=1:Nsamples
+          %     dat(:,sample) = dat(:,sample) - baseline;
+          %   end
+          % end
+
+
+          It suggests that bsxfun is the fastest, which is inconsistent with my findings today. Perhaps it is Matlab+OS version dependent...
+      - +@isprivate: "0"
+        commentid: "5802"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 16:53:10 +0200
+        thetext: "I finished part 2, i.e. the consistent handling in preproc. Part 1 still needs to be done, the answer to 1b is known.\n\nmanzana> svn commit private/preproc.m preproc/ test/test_bug1408.m      \nSending        preproc/ft_preproc_baselinecorrect.m\nSending        preproc/ft_preproc_detrend.m\nSending        preproc/ft_preproc_polyremoval.m\nSending        private/preproc.m\nAdding         test/test_bug1408.m\nTransmitting file data .....\nCommitted revision 5591."
+      - +@isprivate: "0"
+        commentid: "5803"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 17:18:40 +0200
+        thetext: "there are\n\n>> ls *filter*\nft_preproc_bandpassfilter.m\t\tft_preproc_highpassfilter.m\t\tft_preproc_online_filter_apply.m\nft_preproc_bandstopfilter.m\t\tft_preproc_lowpassfilter.m\t\tft_preproc_online_filter_init.m\nft_preproc_dftfilter.m\t\t\tft_preproc_medianfilter.m\n\nThe online filters don't have to be done, nor does the medianfilter.  I have added a consistent demean/remean section to each of the other functions and added a few lines to the test script. \n\n\nmanzana> svn commit preproc/ test/test_bug1408.m\nSending        preproc/ft_preproc_bandpassfilter.m\nSending        preproc/ft_preproc_bandstopfilter.m\nSending        preproc/ft_preproc_dftfilter.m\nSending        preproc/ft_preproc_highpassfilter.m\nSending        preproc/ft_preproc_lowpassfilter.m\nSending        preproc/ft_preproc_medianfilter.m\nSending        test/test_bug1408.m\nTransmitting file data .......\nCommitted revision 5593."
+      - +@isprivate: "0"
+        commentid: "5804"
+        comment_count: "12"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-04 17:37:56 +0200
+        thetext: |-
+          I am completely surprised and stunned by this:
+          ********
+          dat = rand(nchans,nsamples); datmean = rand(nchans,1);
+          tic
+          for isample = 1:nsamples
+            dat(:,isample) = dat(:, isample) - datmean;
+          end
+          toc
+          Elapsed time is 1.118270 seconds.
+
+          Ha, found an even faster one. The penalty of the many-more-iterations loop over
+          1e6 samples is still outweighed by the most efficient memory access!
+          ********
+
+
+          That is 1 million loops! Something I would never even think of doing.
+          And 1 million samples at 2000Hz is still 500 seconds of 200-channel data! A simulated recording of more than 8(!) hours. And decreased computation time is not insignificant either.
+      - +@isprivate: "0"
+        commentid: "5805"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 18:07:35 +0200
+        thetext: |-
+          (In reply to comment #12)
+
+          I think that the performance on this one depends quite a bit on the MATLAB version. Recent versions (I was using 2010b here) are considerably more efficient in for loops than the older versions. That is also why the bsxfun might have given better performance in the past.
+
+          So an optimal solution might be
+
+          if matlabversion<7.x
+            do the one
+          else
+            do the other optimize solution
+          end
+
+          I leave that as exercise for the reader...
+      - +@isprivate: "0"
+        commentid: "5858"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:37 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "7870"
+        comment_count: "15"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-10-10 13:27:32 +0200
+        thetext: |-
+          On bug binge Oct 10, I noticed that the test script test_bug1408 is failing. It fails because it explicitly checks whether the loop over samples if quicker than the bsxfun implementation. The vector containing the timing results reads:
+
+          t =
+
+                 7.3908       7.6079       1.6848       15.502      0.25811      0.49333
+
+          t(5) is the bsxfun implementation, t(6) the loop over samples. Given the relatively small difference between the two, and the fact that this benchmark seems matlab- (and OS?) version dependent, I am removing the explicit error when t(6) is not the smallest. (So the bug can remain closed, but reopen if needed of course.)

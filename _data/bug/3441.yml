@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3441"
+    creation_ts: 2018-08-06 23:13:00 +0200
+    short_desc: Duplicate trials when reading neuroscan CNT files
+    delta_ts: 2018-08-09 21:03:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: UNCONFIRMED
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2746
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "0"
+    reporter: mlepstein88
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: mlepstein88
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19400"
+        comment_count: "0"
+        who:
+          +content: mlepstein88
+          +@name: ""
+        bug_when: 2018-08-06 23:13:50 +0200
+        thetext: "Hello, \n\nI'm having some issues reading neuroscan .cnt files - random trials seem to be duplicates of one another. This is not happening for all files, but has happened seemingly randomly to me and other members of my lab. \n\nI'm including a link to a .cnt file (sorry that the file is so large, but I want to include the raw data) and a sample script with the preprocessing that causes the error to pop up. I'll also include a preprocessed file if you don't want to have to rerun the script. In this file it is the 111th and 113th trial that are duplicates.\n\nOne thing I noticed is that the duplicate trials seem to all display the same error message - \"Numeric accuracy issue with the first sample: Rounding off to the nearest integer value\". I believe this is coming from loadcnt. I found a previous bug where this seemed to be an issue, but it is labelled as fixed - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2746\n\nLet me know if there is anything else I can supply - thank you!\n\nraw cnt file - https://www.dropbox.com/s/eja8usmlm9x0167/mle_pilot.cnt?dl=0\n\npreprocessed file - https://www.dropbox.com/s/y39rhem12hpk7hj/preproc_odd.mat?dl=0"
+      - +@isprivate: "0"
+        commentid: "19401"
+        comment_count: "1"
+        attachid: "868"
+        who:
+          +content: mlepstein88
+          +@name: ""
+        bug_when: 2018-08-06 23:14:25 +0200
+        thetext: |-
+          Created attachment 868
+          test script
+      - +@isprivate: "0"
+        commentid: "19402"
+        comment_count: "2"
+        who:
+          +content: mlepstein88
+          +@name: ""
+        bug_when: 2018-08-06 23:18:24 +0200
+        thetext: |-
+          macOS High Sierra (but my labmate using Windows 10 also has this error)
+          Both computers 64-bit.
+          Matlab v R2017a, 64-bit
+      - +@isprivate: "0"
+        commentid: "19403"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-09 19:42:32 +0200
+        thetext: "Hi, \n\nThanks for sharing the file and test script, that makes debugging efficient!\n\nYou mention the error message \"Numeric accuracy issue with the first sample: Rounding off to the nearest integer value\", but I presume it is a warning, right? If it is an error, it would not continue. \n\nI don't get this error, but do get \"Warning: events imported with a time shift might be innacurate\"\n\nI also get the warning \"Warning: use cfg.demean instead of cfg.blc\" which might indicate that you are using an old version of fieldtrip (cfg.blc is really old).\n\nand with your test script I get \n>> isequal(preproc_odd.trial{1,111},preproc_odd.trial{1,113})\nans =\n  logical\n   0\n\nso they are not the same. Also when I plot the two trials they are very different.\n\nRight now I suspect your error to be due to you using an old FieldTrip version, or possibly a new FT version but with an old EEGLAB version also on the path (so that the newer fieldtrip/external/eeglab is not used). Please check with the latest FT version. \n\nbest,\nRobert\n\nPS1 I tested with 2017b on High Sierra, so almost the same. \n\nPS2 Note that this might be an eeglab issue rather than a FieldTrip issue, since it uses external/eeglab code. If that is the case, it is to be solved in eeglab and the updated code should be added to FieldTrip."
+      - +@isprivate: "0"
+        commentid: "19404"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-09 19:44:40 +0200
+        thetext: Oh, you may also want to check out https://sccn.ucsd.edu/bugzilla/buglist.cgi?quicksearch=cnt and perhaps check whether the loadcnt in the latest EEGLAB is the same as the loadcnt in the latest FieldTrip. If they are not the same, it should be resolved on either one of the two sides.
+      - +@isprivate: "0"
+        commentid: "19405"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-09 19:54:05 +0200
+        thetext: |-
+          I added the test script and test file to our nightly test batch.
+
+          mac011> git commit -a
+          [bug3441 bf302c056] ENH - added test script according to http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3441
+           1 file changed, 42 insertions(+)
+           create mode 100644 test/test_bug3441.m
+
+          Merged with https://github.com/fieldtrip/fieldtrip/pull/766
+      - +@isprivate: "0"
+        commentid: "19406"
+        comment_count: "6"
+        who:
+          +content: mlepstein88
+          +@name: ""
+        bug_when: 2018-08-09 21:03:19 +0200
+        thetext: "Hi, \n\nThanks for the quick reply! I took another look, and you are completely right about the issue being with EEGLAB. If I run the script after freshly opening matlab, I don't see the duplicates. If I open EEGLAB and run it again, I do see the duplicates as it switches to the EEGLAB version of loadcnt. I had made sure to update to the newest fieldtrip before testing this, but I hadn't checked EEGLAB.\n\nI'll try updating my EEGLAB to see if the issue is fixed now. Either way, I can just be sure the paths are correct when running this step. \n\n-Michael"
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "868"
+      date: 2018-08-06 23:14:00 +0200
+      delta_ts: 2018-08-06 23:14:25 +0200
+      desc: test script
+      filename: test_script.m
+      type: text/x-matlab
+      size: "1292"
+      attacher: mlepstein88
+      data: REMOVED

@@ -1,0 +1,132 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1327"
+    creation_ts: 2012-02-13 18:24:00 +0100
+    short_desc: reading ASC eyelink files - doesn't recognize 'em as such
+    delta_ts: 2019-08-10 12:03:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - dlozanosoldevilla
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5274"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-02-13 18:24:40 +0100
+        thetext: |-
+          My normal workaround specifying header/datatype when working with .ASC (converted Eyelink data) doesn't work in ft_artifact_zvalue since it calls ft_read_data on it's own without taking (all) cfg opt with'm.
+
+          @705:
+
+          data = ft_read_data(cfg.datafile,   'header', hdr, 'begsample', trl(trlop,1), 'endsample', trl(trlop,2), 'chanindx', sgnind, 'checkboundary', strcmp(cfg.continuous,'no'));
+
+          which breaks @950 (unsupported data format)
+
+          and that is because of ft_filetype falsely recognizing it as itab_asc instead of eyelink.
+      - +@isprivate: "0"
+        commentid: "5276"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-13 19:31:43 +0100
+        thetext: I guess adding the key-value pair 'dataformat', cfg.dataformat  would solve it, correct?
+      - +@isprivate: "0"
+        commentid: "5277"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 21:30:03 +0100
+        thetext: |-
+          all functions that call ft_read_header and/or ft_read_data should support the options cfg.headerformat and cfg.dataformat. Most do. Also ft_artifact_zvalue does it on line 185, but indeed not later.
+
+          When fixing, please also fix the following omissions:
+
+          mbp> grep -L headerformat `grep -l ft_read_header *.m`
+          ft_headmovement.m
+          ft_qualitycheck.m
+
+
+          mbp> grep ft_read_data *.m | grep -v dataformat
+          ft_artifact_zvalue.m:  data = ft_read_data(cfg.datafile,   'header', hdr, 'begsample', trl(trlop,1), 'endsample', trl(trlop,2), 'chanindx', sgnind, 'checkboundary', strcmp(cfg.continuous,'no'));
+          ft_spikedownsample.m:    buf = ft_read_data(cfg.dataset, 'header', hdr, 'begsample', begsample(j), 'endsample', endsample(j), 'chanindx', i);
+
+
+          mbp> grep ft_read_header *.m | grep -v headerformat
+          ft_headmovement.m:hdr = ft_read_header(cfg.headerfile);
+          ft_qualitycheck.m:  info.hdr                    = ft_read_header(cfg.dataset);
+          ft_rejectartifact.m:    hdr = ft_read_header(cfg.headerfile);
+      - +@isprivate: "0"
+        commentid: "5283"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-14 08:52:27 +0100
+        thetext: Hi Stephen, do you have enough input to fix it?
+      - +@isprivate: "0"
+        commentid: "5291"
+        comment_count: "4"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-02-14 20:12:30 +0100
+        thetext: I think so, just have to make sure it is passed through.
+      - +@isprivate: "0"
+        commentid: "9429"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-14 11:43:42 +0100
+        thetext: "(In reply to comment #4)\nChecked: using the headerformat and dataformat solves the issue\n\n\ncfg                     = [];\ncfg.trialfun            = 'trialselec';\ncfg.trialdef.epochmoving= 'multnormal_rt';\ncfg.dataset             = [gendir dgendir(subj,1).name indir d(1,1).name];\ncfg.headerformat        = 'eyelink_asc';\ncfg.dataformat          = 'eyelink_asc';\ncfg.trialdef.eventtype  = 'INPUT';\ncfg.trialdef.prestim    = 1;\ncfg.trialdef.poststim   = 3;\ncfg.trialdef.eventvalue = [2 3 4 5 6];\ncfg.trialdef.buttonresp = [97 98];\ncfg                     = ft_definetrial(cfg);\n\ncfg = \n\n          trialfun: @trialselec\n          trialdef: [1x1 struct]\n           dataset: 'H:\\electromag\\dieloz\\MEG\\VOGBNZ_3016028.01\\participants\\VOGBNZdielozS02/Session1/eyelink/original/BNz02.asc'\n      headerformat: 'eyelink_asc'\n        dataformat: 'eyelink_asc'\n          callinfo: [1x1 struct]\n           version: [1x1 struct]\n       trackconfig: 'off'\n       checkconfig: 'loose'\n         checksize: Inf\n      showcallinfo: 'yes'\n             debug: 'no'\n     trackcallinfo: 'yes'\n     trackdatainfo: 'no'\n    trackparaminfo: 'no'\n          datafile: 'H:\\electromag\\dieloz\\MEG\\VOGBNZ_3016028.01\\participants\\VOGBNZdielozS02/Session1/eyelink/original/BNz02.asc'\n        headerfile: 'H:\\electromag\\dieloz\\MEG\\VOGBNZ_3016028.01\\participants\\VOGBNZdielozS02/Session1/eyelink/original/BNz02.asc'\n             event: [1x2342 struct]\n               trl: [240x4 double]\n           channel: {'2'  '3'}\n            demean: 'no'"
+      - +@isprivate: "0"
+        commentid: "9430"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-14 11:44:02 +0100
+        thetext: fixed
+      - +@isprivate: "0"
+        commentid: "19930"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:46 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

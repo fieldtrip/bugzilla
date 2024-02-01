@@ -1,0 +1,72 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3458"
+    creation_ts: 2018-10-14 17:23:00 +0200
+    short_desc: padding in ft_specest_mtmconvol
+    delta_ts: 2019-04-19 12:32:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: nirofir2
+      +@name: Nir Ofir
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19498"
+        comment_count: "0"
+        attachid: "873"
+        who:
+          +content: nirofir2
+          +@name: Nir Ofir
+        bug_when: 2018-10-14 17:23:36 +0200
+        thetext: "Created attachment 873\nExample data with 2 trials and a single channel\n\nHi,\n\nFirst, does padding make sense with TFR analysis? Seems to me like this enables the user to compute the PSD of a purely padded data, which isn't too reasonable. Say I have 2 trials, one 0.5 sec long and the other 2.1 sec long, and I use windows of 0.25 sec and maxperlen zero/mirror padding for the TFR analysis, then I end up with many time points in the TFR of the short trial that contain no real data (and if I use zero padding, then the TFR should only be zeros...).\n\nSecond, the way ft_specest_mtmconvol is written right now doesn't use the padded data. While the data is padded before the fft is computed (line 290 for tap_chan_freq_time dimord, or line 333 for chan_time_freqtap dimord), later lines make sure that only time points with corresponding real data are outputted:\n\nnsamplefreqoi    = timwin(ifreqoi) .* fsample;\nreqtimeboiind    = find((timeboi >=  (nsamplefreqoi ./ 2)) & (timeboi <    (ndatsample - (nsamplefreqoi ./2))));\nreqtimeboi       = timeboi(reqtimeboiind);\n        \n% compute datspectrum*wavelet, if there are reqtimeboi's that have data\ndum = fftshift(ifft(datspectrum .* repmat(wltspctrm{ifreqoi}(itap,:),[nchan 1]), [], 2),2); % fftshift is necessary to implement zero-phase/acyclic/acausal convolution (either here, or the wavelet should be wrapped around sample=0)\ntmp = complex(nan(nchan,ntimeboi),nan(nchan,ntimeboi));\ntmp(:,reqtimeboiind) = dum(:,reqtimeboi);\n\n(lines 304+ for tap_chan_freq_time dimord, or lines 346 for chan_time_freqtap dimord)\nThe result is that the time points for which there is no data (as mentioned in the comment in the code) contain NaNs, and not the result of the convolution of the padded data.\n\nI'm attaching a data example with 2 trials, one 1.5 sec long, and the other 3.1 sec long. Running the following code shows that the resultant powspctrm really contains NaNs where you would expect them based on ft_specest_mtmconvol.\n\nwinlength = 0.25;\ncfg = [];\ncfg.method = 'mtmconvol';\ncfg.output = 'pow';\ncfg.foi = 1/winlength:100;\ncfg.taper = 'dpss';\ncfg.tapsmofrq = 5;\ncfg.t_ftimwin = ones(1,length(cfg.foi))*winlength;\ncfg.toi = 'all';\ncfg.keeptrials = 'yes';\nfreq = ft_freqanalysis(cfg, data);\n\nMy suggestion is to not allow padding at all when using mtmconvol (spectral interpolation is anyway done by choosing the foi here, and not by padding).\n\nThanks!\nNir"
+      - +@isprivate: "0"
+        commentid: "19601"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-20 12:32:47 +0100
+        thetext: |-
+          the padding in mtmconvol is needed to enable the correct application of the algorithmic trick to get the TFR. The trick is to apply a multiplication in the frequency domain (multiplying the Fourier transform of the (padded and tapered) data with the Fourier transform of the 'wavelets'). With variable length trials, data need to be padded with zeros (any other padtype does not make sense in my opinion) to ensure correct scaling etc. Subsequently, only the TFR data points are returned for which the original data contained data samples in the entire shifting time window. The rest will be NaN.
+          It is a misconception that that padding enables to generate data points (TFR) in which there was no actual data present.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "873"
+      date: 2018-10-14 17:23:00 +0200
+      delta_ts: 2018-10-14 17:23:36 +0200
+      desc: Example data with 2 trials and a single channel
+      filename: example_data.mat
+      type: text/plain
+      size: "52521"
+      attacher:
+        +content: nirofir2
+        +@name: Nir Ofir
+      data: REMOVED

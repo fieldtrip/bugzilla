@@ -1,0 +1,223 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "680"
+    creation_ts: 2011-05-20 18:12:00 +0200
+    short_desc: bad axes plotting in ft_multiplotER
+    delta_ts: 2011-06-29 09:50:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ekanal
+      +@name: Eliezer Kanal
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2165"
+        comment_count: "0"
+        attachid: "55"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-05-20 18:12:45 +0200
+        thetext: |-
+          Created attachment 55
+          ft_multiplotER figure showing bad axes
+
+          See attached file for visual. The y-axes are being plotted too far to the right when doing a frequency plot using ft_multiplotER. I generated this using the following:
+
+          cfg = [];
+          cfg.method='mtmfft';
+          cfg.output='pow';
+          cfg.calcdof='yes';
+          cfg.taper='hanning';
+          cfg.foilim=[5 40];
+          data_preprocessed_freq = ft_freqanalysis(cfg,data_preprocessed);
+
+          cfg=[];
+          cfg.layout='neuromag306mag.lay';
+          cfg.showlabels='yes';
+          cfg.ylim=[0 4e-27];
+          ft_multiplotER(cfg,data_preprocessed_freq);
+
+          Note that I was able to fix this by changing the following lines in ft_multiplotRT, subfunction plotWnd:
+          Line 692:
+          --   xs =  xpos+width*([0 0]-xlim(1))/(xlim(2)-xlim(1));
+          ++   xs =  [xpos xpos];
+          This effectively removes the whole normalizing by xlim bit. I was not able to determine out the purpose of the normalizatoin to figure out why this works, so I hope you guys know what it does :)
+
+          Let me know if you want me to upload the datasets (data_preprocessed, data_preprocessed_freq) as well.
+      - +@isprivate: "0"
+        commentid: "2243"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-05-30 16:59:52 +0200
+        thetext: |-
+          Hi Eli,
+
+          Thanks for reporting! I fixed the function according to your proposal. I could not determine why to move either of the axes either. I fixed this as well for the y-axis (which is only off like 0.01 units). You should find this fix in the new FT version from tomorrow on. If you encounter another problem with this function due to this fix, let me know and I'll deal with it asap ;)
+
+          Best,
+          Jörn
+      - +@isprivate: "0"
+        commentid: "2246"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-05-31 09:37:25 +0200
+        thetext: 'short update: I just realized that there was also a division-by-zero bug in ft_plot_vector in case one of the axes was at [0 0]. I fixed this as well'
+      - +@isprivate: "0"
+        commentid: "2280"
+        comment_count: "3"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-06-02 20:44:07 +0200
+        thetext: |-
+          I'm not sure if this was intended, but you removed some existing features in this bugfix, with respect to time plotting. Previously, the [0 0] point of the axes was located at the appropriate location relative to thex and y axes. Now, the axes are located along the edge of the graph all the time. Maybe there should be a `switch` block to determine whether it's temporal or frequency code?
+
+          See new attachments for detail.
+      - +@isprivate: "0"
+        commentid: "2281"
+        comment_count: "4"
+        attachid: "63"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-06-02 20:44:50 +0200
+        thetext: |-
+          Created attachment 63
+          ft_multiplotER output using time data after the fix
+      - +@isprivate: "0"
+        commentid: "2282"
+        comment_count: "5"
+        attachid: "64"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-06-02 20:45:03 +0200
+        thetext: |-
+          Created attachment 64
+          ft_multiplotER output using time data before the fix
+      - +@isprivate: "0"
+        commentid: "2285"
+        comment_count: "6"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-06-02 21:13:27 +0200
+        thetext: Reopening as per comment 3, forgot to mark this last time.
+      - +@isprivate: "0"
+        commentid: "2294"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-06-05 10:13:22 +0200
+        thetext: hm, strange, Since I changed what you suggested, the problem should be caused by the missing normalization. I'll look into this one again when I got some time (~Wednesday)
+      - +@isprivate: "0"
+        commentid: "2295"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-06-05 10:30:40 +0200
+        thetext: Okay, after some short thinking, I'll discuss this on Wednesday with Robert during our weekly meeting. Your initial proposed fixed caused the axis to look nice, but lead to the problem that the x-axis it not located at time- or frequency-point 0. If you plot a frequency spectrum starting at 5Hz, the question arises whether this function should mark frequency 0, or the beginning of the spectrum you put in. I guess it should be first one, which would make the proposed fix invalid, but I'll check with Robert.
+      - +@isprivate: "0"
+        commentid: "2315"
+        comment_count: "9"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-06-06 15:39:38 +0200
+        thetext: Thanks for checking this out, and sorry my original fix wasn't good. I guess I now know why there were axis offsets in the original algorithm :)
+      - +@isprivate: "0"
+        commentid: "2419"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-06-22 12:54:01 +0200
+        thetext: |-
+          After having discussed in the FT meeting, we came to this solution:
+
+          In case the axes do not include 0, we intersect them (similar to what you proposed first), in case they do, we keep them as they were. In code form this means:
+          if prod(xlim) < 0 % eq. to xlim does include zero
+           xs =  xpos+width*([0 0]-xlim(1))/(xlim(2)-xlim(1));
+          else
+           xs = [xpos xpos];
+          end
+
+
+
+          If you got any more remarks, let me know. I set the status of the bug to fixed, but won't close it yet.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "55"
+        date: 2011-05-20 18:12:00 +0200
+        delta_ts: 2011-05-20 18:12:45 +0200
+        desc: ft_multiplotER figure showing bad axes
+        filename: badAxes.png
+        type: image/png
+        size: "101007"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "63"
+        date: 2011-06-02 20:44:00 +0200
+        delta_ts: 2011-06-02 20:44:50 +0200
+        desc: ft_multiplotER output using time data after the fix
+        filename: post-fix.png
+        type: image/png
+        size: "54248"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "64"
+        date: 2011-06-02 20:45:00 +0200
+        delta_ts: 2011-06-02 20:45:03 +0200
+        desc: ft_multiplotER output using time data before the fix
+        filename: pre-fix.png
+        type: image/png
+        size: "53815"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED

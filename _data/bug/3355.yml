@@ -1,0 +1,93 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3355"
+    creation_ts: 2017-09-25 08:41:00 +0200
+    short_desc: ft_timelockanalysis redfines begsampl and endsampl
+    delta_ts: 2017-11-09 17:15:12 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: UNCONFIRMED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "0"
+    reporter:
+      +content: tyler.grummett
+      +@name: Tyler
+    assigned_to: fieldtriptoolbox
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18948"
+        comment_count: "0"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2017-09-25 08:41:25 +0200
+        thetext: |-
+          Dear fieldtrip,
+
+          I am getting the following error:
+
+              Index exceeds matrix dimensions.
+
+              Error in ft_timelockanalysis (line 280)
+              s (:,windowsel) = s (:,windowsel) + dat;            % compute
+              the sum
+
+          The error seems to occur because windowsel is 1x70942, whereas s is 124x70941. This may be because when s is defined, the begsampl and endsampl variables (which are used to calculate maxwin then s) are being calculated based off of abstimvec (line 223 and 224). Whereas on line 266 and line 267, begsampl and ensampl are calculated again (to calculate numsamples, dat, and windowsel) but this time it uses data.time.
+
+          If you comment out line 266 and line 267, it seems to fix the issue. The output data is 124x70941. The question is that if you comment these lines of code, you would also need to comment out line 288 and 289 when calculating the covariance.
+
+          I apologise if I am completely off the mark and theres a simpler solution.
+
+          Regards,
+          Tyler
+      - +@isprivate: "0"
+        commentid: "18949"
+        comment_count: "1"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2017-09-25 09:36:39 +0200
+        thetext: Sorry, my suggested correction did not take multiple trials into consideration. It should be noted that my trials are of a varied length.
+      - +@isprivate: "0"
+        commentid: "18950"
+        comment_count: "2"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2017-09-25 10:38:42 +0200
+        thetext: |-
+          I loaded up data that has 40 trials.
+
+          At line 224: endsampl = nearest(abstimvec, latency(2));
+
+          I worked out the problem was that the 'nearest' value to latency(2) is both abstimvec( end) and abstimvec( end-1), so it choses abstimvec( end-1). The resulting data are then smaller than it should be. A dirty hack is:
+
+          At line 224: endsampl = begsampl+size(abstimvec, 2)-1;
+      - +@isprivate: "0"
+        commentid: "19005"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 17:15:12 +0100
+        thetext: It is not clear whether this is a very specific case where it goes wrong, or whether the suggested solution is a general one.

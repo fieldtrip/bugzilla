@@ -1,0 +1,119 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1770"
+    creation_ts: 2012-10-08 17:14:00 +0200
+    short_desc: improve the neuralynx NRD implementation
+    delta_ts: 2012-10-29 13:44:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - conrado.bosman
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7850"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-08 17:14:32 +0200
+        thetext: "At this moment the low-level reading function has some aspects that are hard-coded for the 256 channel setup in Nijmegen.\n\nTODO: \n- conrado will send an example dataset\n- implement test script that shows that present implementation fails on this dataset\n- fix the low-level FT code"
+      - +@isprivate: "0"
+        commentid: "7851"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-08 21:25:04 +0200
+        thetext: "I created a test script. See\nhttp://code.google.com/p/fieldtrip/source/detail?r=6706 \n\nIn that script the nrd and nsc files seem to be interpreted correctly. They have different channel counts, and start with a slightly different timestamp, which is not unexpected given the neuralynx software. I estimate them to be 315 samples shifted relative to each other. However, apart from the schaling, the channel 1 (which is channel 18 in the other) is not precisely identical. It seems that different filters were used for the ncs file than for the nrd file.\n\n@Conrado: can you please try and run the test script yourself and reproduce the figures?\n\nPlease note that the test dataset directory content is like this:\n\nroboos@mentat001> ls -al . 2012-07-14_15-33-09/\n.:\ntotal 314920\ndrwxr-xr-x  3 roboos mrphys         4096 Oct  8 21:20 .\ndrwxrwxr-x 52 roboos fieldtrip      8192 Oct  8 21:17 ..\ndrwxrwxr-x  2 roboos mrphys         4096 Oct  8 20:51 2012-07-14_15-33-09\n-rwxr-xr-x  1 roboos mrphys    321191936 Oct  8 16:10 DigitalLynxRawDataFile.nrd\n\n2012-07-14_15-33-09/:\ntotal 1487332\ndrwxrwxr-x 2 roboos mrphys     4096 Oct  8 20:51 .\ndrwxr-xr-x 3 roboos mrphys     4096 Oct  8 21:20 ..\n-rwxr-xr-x 1 roboos mrphys   462365 Oct  8 16:04 CheetahLogFile.txt\n-rwxr-xr-x 1 roboos mrphys 47384752 Oct  8 16:04 CSC0.ncs\n-rwxr-xr-x 1 roboos mrphys 47384752 Oct  8 16:04 CSC10.ncs\n...\n-rwxr-xr-x 1 roboos mrphys 47384752 Oct  8 16:05 CSC7.ncs\n-rwxr-xr-x 1 roboos mrphys 47384752 Oct  8 16:05 CSC8.ncs\n-rwxr-xr-x 1 roboos mrphys 47384752 Oct  8 16:05 CSC9.ncs\n-rwxr-xr-x 1 roboos mrphys    17672 Oct  8 16:10 Events.nev\n\nI had some warnings/errors during the unzip procedure because the zip file was larger than 4GB, but still the files seem ok to me."
+      - +@isprivate: "0"
+        commentid: "7852"
+        comment_count: "2"
+        attachid: "344"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-08 21:37:22 +0200
+        thetext: "Created attachment 344\nscreenshot\n\nif you compare \n\npwelch(ch1As, 2000, {}, {}, 32556);\nhold on\npwelch(ch1Bs, 2000, {}, {}, 32556);\n\n(see figure), then it seems that the nrd version (B) is not filtered, whereas the ncs version is around 10kHz. The ncs filter is consistent with the header details (see also in screenshot).\n\nIt is weird if there were no analog anti-aliassing filter!\n\nMy guess at the moment is that the ncs version is a (digitally) filtered version of the nrd version. Still, it is silly that there is no anti-aliassing filter, because it causes high-frequency noise to creep into the signal."
+      - +@isprivate: "0"
+        commentid: "7853"
+        comment_count: "3"
+        attachid: "345"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-08 21:49:04 +0200
+        thetext: "Created attachment 345\nscreenshot of the filter and delay kernel\n\nyup, the FIR filter kernel can be retrieved from the two time series. See attached screen shot at the code therein.\n\nAlso my previous estimate of the shift in number of samples (which was based on the timestamps) seems to be confirmed.\n\nSo the two time series are the same, except that the one is a filtered and slightly time-shifted version of the other. Which means that there is nothing fundamentally wrong with the fT reading functions. \n\nMissing is a proper scaling/calibration of the nrd version. This can be obtained in this particular dataset with a multiplication with hdrB.orig.ADBitVolts. I don't understand why the signal then remains inverted (i.e. apparently multiplied with -1)."
+      - +@isprivate: "0"
+        commentid: "7880"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-10-10 14:33:23 +0200
+        thetext: test_bug1770 failed and has now been fixed (typo)
+      - +@isprivate: "0"
+        commentid: "8024"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:44:59 +0100
+        thetext: changed the status of several bugs that were RESOLVED some time ago to CLOSED
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "344"
+        date: 2012-10-08 21:37:00 +0200
+        delta_ts: 2012-10-08 21:37:22 +0200
+        desc: screenshot
+        filename: Screen shot 2012-10-08 at 21.34.32.png
+        type: image/png
+        size: "44498"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "345"
+        date: 2012-10-08 21:49:00 +0200
+        delta_ts: 2012-10-08 21:49:04 +0200
+        desc: screenshot of the filter and delay kernel
+        filename: Screen shot 2012-10-08 at 21.41.23.png
+        type: image/png
+        size: "28310"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

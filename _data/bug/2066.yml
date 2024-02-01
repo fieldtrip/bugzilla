@@ -1,0 +1,146 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2066"
+    creation_ts: 2013-03-18 12:33:00 +0100
+    short_desc: no channselection in multiplot in interactive mode?
+    delta_ts: 2019-08-10 12:03:17 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "2059"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9872"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 12:33:07 +0100
+        thetext: |-
+          I do not see the reason why this is only allowed for non-interactive calls. I would strongly vote for allowing for this also in interactive mode.
+          If someone is against allowing this, then we should at least throw a warning so that the user gets notified
+      - +@isprivate: "0"
+        commentid: "9873"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 12:36:12 +0100
+        thetext: especially because the default for cfg.interactive is 'yes'
+      - +@isprivate: "0"
+        commentid: "9877"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 12:46:31 +0100
+        thetext: |-
+          more info:
+
+          if isfield(data, 'label') && strcmp(cfg.interactive, 'no')
+            selchannel = ft_channelselection(cfg.channel, data.label);
+          elseif isfield(data, 'labelcmb') && strcmp(cfg.interactive, 'no')
+            selchannel = ft_channelselection(cfg.channel, unique(data.labelcmb(:)));
+          end
+      - +@isprivate: "0"
+        commentid: "9879"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-18 12:57:45 +0100
+        thetext: |-
+          I would expect (1)
+
+          cfg = [];
+          cfg.channel=subset
+          ft_whateverplot(cfg, data)
+
+          to behave similar to (2)
+
+          cfg = []
+          cfg.channel=subset
+          data = ft_selectdata(cfg,data)
+
+          cfg = []
+          cfg.channel=all
+          ft_whateverplot(cfg, data)
+
+          Consequently, in interactive mode one would not be able to get the initially non-selected channels back into view. Initially removed channels stay removed and are not able to affect the plot.
+
+          With my fix to Anne's problem, it is implemented for (1) by ensuring that the layout does not include the channels. If the channels are missing in the layout, they can not be plotted.
+      - +@isprivate: "0"
+        commentid: "9880"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-18 12:59:53 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          note that in private/topoplot_common.m around line 312 I changed that into
+
+          if isfield(data, 'label')
+            cfg.channel = ft_channelselection(cfg.channel, data.label);
+          elseif isfield(data, 'labelcmb')
+            cfg.channel = ft_channelselection(cfg.channel, unique(data.labelcmb(:)));
+          end
+
+          as I also did not understand why this would be conditional on interactive=true/false.
+      - +@isprivate: "0"
+        commentid: "9881"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-18 13:29:52 +0100
+        thetext: "(In reply to comment #4)\nin topoplot_common, the same lines about selchannel are also in (just 2 lines below what you copied)\n\n\nI see the change you made to ft_prepare_layout and was wondering why it did not work for me. It turns out, your change is specific to when providing a layout but not when loading a layout from disk, so e.g. for \ncfg = []...;\ncfg.layout = 'EEG1010.lay', \nft_xxxplot(cfg, data);\n\nstill all channels would be plotted.\n\nI changed it such that the channelselection takes place at the end of ft_prepare_layout after the layout has been initialized for all cases. Also, I marked this as a duplicate of bug 2059, because it was caused by the same issue. Finally, I updated the test script of bug 2059 - and fixed a bug in that testcript ;)\n\nsvn ci ft_prepare_layout.m test/test_bug2059.m -m \"bugfix #2059 #2066 - subselection of channels when plotting works again for all cases, testscript extended\"\nSending        ft_prepare_layout.m\nSending        test/test_bug2059.m\nTransmitting file data ..\nCommitted revision 7690.\n\n*** This bug has been marked as a duplicate of bug 2059 ***"
+      - +@isprivate: "0"
+        commentid: "9884"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-18 13:54:38 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          > I changed it such that the channelselection takes place at the end of
+          > ft_prepare_layout after the layout has been initialized for all cases.
+
+          smart thinking!
+      - +@isprivate: "0"
+        commentid: "19898"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:17 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

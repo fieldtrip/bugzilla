@@ -1,0 +1,71 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2166"
+    creation_ts: 2013-05-14 14:12:00 +0200
+    short_desc: dics beamformer with rawtrial='yes' and fixedori='yes' still computes filter per trial
+    delta_ts: 2014-01-29 13:28:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10450"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-14 14:12:58 +0200
+        thetext: "I'm not sure whether this is a bug or not (but suspect it is). Lines 305-321 of beamformer_dics read:\n\n      if fixedori \n        % compute the leadfield for the optimal dipole orientation\n        % subsequently the leadfield for only that dipole orientation will\n        % be used for the final filter computation\n        if isfield(dip, 'filter') && size(dip.filter{i},1)~=1\n          filt = dip.filter{i};\n        else \n          filt = pinv(lf' * invCf * lf) * lf' * invCf;\n        end\n        [u, s, v] = svd(real(filt * Cf * ctranspose(filt)));\n        maxpowori = u(:,1);\n        eta = s(1,1)./s(2,2);\n        lf  = lf * maxpowori;\n        dipout.ori{i} = maxpowori;\n        dipout.eta{i} = eta;\n        if ~isempty(subspace), lforig = lforig * maxpowori; end\n      end\n\nso it is checked whether there is a pre-supplied filter first. However, it is only used if size(dip.filter{i},1)~=1. It seems to me that the condition should be size(dip.filter{i},1)==1, so only use it if there IS only one row, meaning that the filter projects toward a single orientation already. If the provided filter already projects to a single orientation, should the above code be changed to:\n\n      if fixedori \n        % compute the leadfield for the optimal dipole orientation\n        % subsequently the leadfield for only that dipole orientation will\n        % be used for the final filter computation\n        if isfield(dip, 'filter') && size(dip.filter{i},1)==1\n          filt = dip.filter{i};\n        else \n          filt = pinv(lf' * invCf * lf) * lf' * invCf;\n          [u, s, v] = svd(real(filt * Cf * ctranspose(filt)));\n          maxpowori = u(:,1);\n          eta = s(1,1)./s(2,2);\n          lf  = lf * maxpowori;\n          dipout.ori{i} = maxpowori;\n          dipout.eta{i} = eta;\n          if ~isempty(subspace), lforig = lforig * maxpowori; end\n        end\n      end\n\nso there won't be a dipout.ori/eta anymore, but that is fine since the filter was precomputed."
+      - +@isprivate: "0"
+        commentid: "10471"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-15 17:11:13 +0200
+        thetext: fixed in 2166
+      - +@isprivate: "0"
+        commentid: "10472"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-15 17:11:39 +0200
+        thetext: |-
+          (In reply to comment #1)
+          Note that the code I posted in my first description was not completely right.
+      - +@isprivate: "0"
+        commentid: "12657"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:35 +0100
+        thetext: changing lots of bugs from resolved to closed.

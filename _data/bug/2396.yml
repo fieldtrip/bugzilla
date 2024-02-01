@@ -1,0 +1,355 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2396"
+    creation_ts: 2013-11-29 09:54:00 +0100
+    short_desc: merge ft_import_surf into ft_read_headshape
+    delta_ts: 2014-02-24 10:56:28 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2338"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - ddewong
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12109"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 09:54:17 +0100
+        thetext: |-
+          ft_iso2surf deals with the following formats
+                  case {'.dfs';'.DFS'}
+                  case {'.mesh';'.MESH'}
+                  case {'.surf','.SURF'}
+
+          In contrast to ft_read_headshape, which reads one mesh at a time, it reads multiple in one go and also does some additional processing on the meshes. The additional processing (validation and fixing) is BEM specific and needs to go to fieldtrip/ft_prepare_headmodel.
+      - +@isprivate: "0"
+        commentid: "12124"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 12:04:51 +0100
+        thetext: |-
+          I have added support for BrainSuite dfs files.
+
+          mac001> svn commit
+          Sending        fileio/ft_filetype.m
+          Sending        fileio/ft_read_headshape.m
+          Sending        plotting/ft_plot_headshape.m
+          Sending        utilities/ft_determine_coordsys.m
+          Sending        utilities/ft_hastoolbox.m
+          Transmitting file data .....
+          Committed revision 8912.
+
+          See http://code.google.com/p/fieldtrip/source/detail?r=8912 if you want to have a quick overview of the changes to the code.
+      - +@isprivate: "0"
+        commentid: "12126"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 12:54:01 +0100
+        thetext: |-
+          I have also addes support for brainvisa_mesh
+
+
+          mac001> svn commit
+          Sending        fileio/ft_filetype.m
+          Sending        fileio/ft_read_headshape.m
+          Sending        fileio/private/ft_hastoolbox.m
+          Transmitting file data ...
+          Committed revision 8915.
+
+          mac001> svn commit
+          Sending        fileio/ft_read_headshape.m
+          Transmitting file data .
+          Committed revision 8917.
+
+          However, the required coordinate transformation was not clear to me. I implemented something, but suspect it to be incorrect.
+
+          @Daniel, could you please have a look at ft_read_headshape around line 815?
+      - +@isprivate: "0"
+        commentid: "12127"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 12:57:04 +0100
+        thetext: |-
+          freesurfer surf files are already supported in ft_read_headshape. Also reading multiple surfaces is supported, but that was only implemented and tested for 2 freesurfer hemispheres, never for multiple BEM boundaries.
+
+          It would help if I would get some example data in brainvisa or brainsuite format thaht describes the complete BEM model. Right now I have been testing with example data zip files from the respective websites, which does not include much of relevance of forward modeling.
+      - +@isprivate: "0"
+        commentid: "12128"
+        comment_count: "4"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-11-29 13:03:23 +0100
+        thetext: |-
+          @Robert: I have example segmented files for brainsuite, brainvisa, and freesurfer - all from the same MR. Is there some place I can upload them?
+
+          I'll take a look at the brainsuite code in ft_read_headshape.
+      - +@isprivate: "0"
+        commentid: "12133"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 13:40:00 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+          can you use one of these?
+
+          http://fieldtrip.fcdonders.nl/faq/how_should_i_send_example_data_to_the_developers
+
+          ---
+
+          Btw, I just tried
+
+          >> mesh = ft_read_headshape({'2467264.left.mid.cortex.dfs', '2467264.right.mid.cortex.dfs'})
+          >> ft_plot_headshape(shape); camlight; lighting gouraud
+
+          and it is clear that in this case the coordinate transformation from the MRI does not make sense. However, If I only use the translation like this
+
+                  transform = eye(4);
+                  transform(1:3,4) = mri.transform(1:3,4);
+
+          it does make more sense.
+
+          Any ideas?
+      - +@isprivate: "0"
+        commentid: "12135"
+        comment_count: "6"
+        attachid: "565"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 13:42:41 +0100
+        thetext: "Created attachment 565\nscreenshot of two hemispheres with detailed axes\n\nthis is from \nmesh = ft_read_headshape({'2467264.left.mid.cortex.dfs', '2467264.right.mid.cortex.dfs'})\nft_determine_coordsys(mesh)\nif I only use the translatino from the MRI"
+      - +@isprivate: "0"
+        commentid: "12136"
+        comment_count: "7"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-11-29 14:40:38 +0100
+        thetext: |-
+          The MRI I was using for development had no scaling or rotational transform - only translational.  So, probably that's why it worked for me.  So, it looks like BrainSuite DFS actually only reports the MRI coordinates, without the transformation (assuming your test MR has both scaling and rotations).
+
+          I've uploaded the sample MRI and segmentation files I used to:
+          https://www.dropbox.com/sh/kvjjxzp5sak4q01/j2qwo4aFln
+
+          We should definitely test for various MRI transformations including negative scaling (which has broken things for me in the past).
+      - +@isprivate: "0"
+        commentid: "12193"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 15:01:20 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          I have made the test data available (in-house) on /home/common/matlab/fieldtrip/data/test/bug2396 and will make a test script to accompany it.
+      - +@isprivate: "0"
+        commentid: "12195"
+        comment_count: "9"
+        attachid: "569"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 16:51:29 +0100
+        thetext: |-
+          Created attachment 569
+          screenshot showing problematic dfs coregistration
+
+          I made a test script on basis of your data
+
+          mac001> svn commit test_bug2396.m
+          Adding         test_bug2396.m
+          Transmitting file data .
+          Committed revision 8944.
+
+          the last few lines (that combine the dfs, mesh and surf) show that the dfs is not correctly coregistered.
+      - +@isprivate: "0"
+        commentid: "12196"
+        comment_count: "10"
+        attachid: "570"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 16:57:00 +0100
+        thetext: |-
+          Created attachment 570
+          after "copying" the nii to the dfs location
+
+          (In reply to comment #9)
+
+          if I make a link
+          nobias_KR.nii -> ../../nobias_KR.nii
+          in the directory containing the dfs files, the nii file is read and its translation is applied. Subsequently all surfaces are correctly aligned.
+      - +@isprivate: "0"
+        commentid: "12197"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 17:03:21 +0100
+        thetext: '@Daniel, to me it seems that the ft_read_headshape is now complete and that it represents all functionality that was in ft_import_surf. Do you agree in removing ft_import_surf?'
+      - +@isprivate: "0"
+        commentid: "12198"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 17:05:29 +0100
+        thetext: "here is a small change that I still had to commit. It pertains to only doing the translation of the dfs mesh.\n\n\nmac001> svn commit ft_read_headshape.m \nSending        ft_read_headshape.m\nTransmitting file data .\nCommitted revision 8945."
+      - +@isprivate: "0"
+        commentid: "12199"
+        comment_count: "13"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-03 18:06:50 +0100
+        thetext: |-
+          @Robert: It looks good. The dfs section requires the MRI file to be in the same directory as the dfs (should we add support for older .hdr/.img formats as well?), with the same filename.  Should we make mention of this file organization requirement in the help section?
+
+          Also, the warning "returning vertices in voxel coordinates" is not quite accurate since as we found out, the BrainSuite seems apply the rotations, but not the translations - so without the MR, we end up with somewhat useless coordinates.
+
+          And finally, I guess the tissue sorting section (allows for N-numbers of tissues) can go into another appropriate function.
+      - +@isprivate: "0"
+        commentid: "12200"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-03 18:25:51 +0100
+        thetext: |-
+          (In reply to comment #13)
+
+          I think that documenting it in ft_read_headshape is not the best place. How about combing your two points and change it into
+
+          warning('could not find accompanying MRI file, not applying any translation to vertices, see URL')
+
+          where URL is a pointer to a faq that can explain the expected organization?
+
+          That is a bit similar to these two cases
+
+          mac001> grep warning.*faq *.m
+          ft_defaults.m:  warning_once('You probably used addpath(genpath(''path_to_fieldtrip'')), this can lead to unexpected behaviour. See http://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path');
+          ft_prepare_neighbours.m:      warning('Neuromagr06 system detected - be aware of different sensor types, see http://fieldtrip.fcdonders.nl/faq/why_are_there_multiple_neighbour_templates_for_the_neuromag306_system');
+
+          In a recent discussion with the FT team we also discussed warnings and more obscure documentation sections, see http://fieldtrip.fcdonders.nl/development/meeting/20131030
+      - +@isprivate: "0"
+        commentid: "12204"
+        comment_count: "15"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-03 18:49:54 +0100
+        thetext: Sounds good :-)  In the FAQ, we could also add comments on BrainVisa .minf files and any other file formats that have peculiarities in their transforms.
+      - +@isprivate: "0"
+        commentid: "12258"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 11:52:06 +0100
+        thetext: "also here \n\nmac001> svn del ft_import_surf.m \nD         ft_import_surf.m\n\nmac001> svn commit\nDeleting       forward/ft_import_surf.m\nCommitted revision 8973.\n\n\nPlease reopen this bug if you detect something with the code that does not work as it should."
+      - +@isprivate: "0"
+        commentid: "12530"
+        comment_count: "17"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2014-01-17 18:33:12 +0100
+        thetext: |-
+          Hi Robert,
+
+          I just looked over the comments in your test code (test_bug2396). I noticed the comment on line 56 says 'it seems to be in CTF coordinates, i.e. positive y axis through nasion', with regards to the tissue-labeled MRI generated by BrainSuite.  I'm actually not sure what coordinate system was applied to the tissue-labeled MR since BrainSuite does not ask the user to specify fiducials.  In practice, I've been setting seg.transform = mri.transform since the voxels themselves are not resliced.  I'm guessing this is something you would rather leave for documentation rather than in-FieldTrip coding.
+
+          Dan
+      - +@isprivate: "0"
+        commentid: "12920"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:28 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "565"
+        date: 2013-11-29 13:42:00 +0100
+        delta_ts: 2013-11-29 13:42:41 +0100
+        desc: screenshot of two hemispheres with detailed axes
+        filename: Screen shot 2013-11-29 at 13.41.12.png
+        type: image/png
+        size: "38489"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "569"
+        date: 2013-12-03 16:51:00 +0100
+        delta_ts: 2013-12-03 16:51:29 +0100
+        desc: screenshot showing problematic dfs coregistration
+        filename: Screen shot 2013-12-03 at 16.49.25.png
+        type: image/png
+        size: "26158"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "570"
+        date: 2013-12-03 16:57:00 +0100
+        delta_ts: 2013-12-03 16:57:00 +0100
+        desc: after "copying" the nii to the dfs location
+        filename: Screen shot 2013-12-03 at 16.55.24.png
+        type: image/png
+        size: "27604"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

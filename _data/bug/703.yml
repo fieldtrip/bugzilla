@@ -1,0 +1,76 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "703"
+    creation_ts: 2011-05-27 09:48:00 +0200
+    short_desc: trialfun_general miscalculates trldur if no poststim but prestim is given?
+    delta_ts: 2011-06-29 09:50:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      +@isprivate: "0"
+      commentid: "2227"
+      comment_count: "0"
+      who:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      bug_when: 2011-05-27 09:48:00 +0200
+      thetext: |-
+        I am not quite sure about this one, but it seems to misbehave in the following situation.
+
+        ------------
+        %% just give cfg a prestim period, no poststim period
+        cfg = [];
+        cfg.trialdef.prestim = 0.2;
+        %cfg.trialdef.eventXXX = ...;
+        %cfg.dataset = ...;
+        ft_definetrial(cfg);
+
+        ------------
+
+        %%% in trialfun_general, line 175 ff.
+        % determine the number of samples that has to be read (excluding the begin sample)
+          if ~isfield(cfg.trialdef, 'poststim')
+            trldur = max(event(i).duration - 1, 0);
+          else
+            % this will not work if prestim was not defined, the code will then crash
+            trldur = round((cfg.trialdef.poststim+cfg.trialdef.prestim)*hdr.Fs) - 1;
+          end
+          trlend = trlbeg + trldur;
+
+        -----------
+
+        Given that we have no poststim, trldur will be the eventduration or 0, which in my case is 0. Then, 'trlend' will be set to 'trlbeg'. This, however, means that although having defined a prestim period, the trialdefinition will consist of one sample only. Is this intended to be? I would suppose it should be more like:
+
+        trldur = max(event(i).duration - 1, 0) - trloff; % note that trloff is negative
+
+        In this case, 'trlend' would be set to the event onset, whereas 'trlbeg' would indicate some sample before the event onset.
+
+        Please let me know whether my arguing is correct, I'll correct this then asap. I am doubting since this function has been around for a while already...

@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3068"
+    creation_ts: 2016-02-12 10:07:00 +0100
+    short_desc: ft_warning crashes when stack contains > 63 character name
+    delta_ts: 2016-06-14 16:14:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16812"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2016-02-12 10:07:12 +0100
+        thetext: "I call ft_spikedensity from a GUI, and currently it causes a full hang of Matlab. Debugging through I found the problem was that ft_postamble calls ft_warning, which has a subfunction fieldnameFromStack which call fixname which calls ft_warning when the stack(end) has > 63chars:\n\nline 209 of ft_warning:  \n\n```\nfname = horzcat(fixname(stack(end).name));\n```\n\nuses the END of the stack trace and calls fixname. If the end of the stack is >63 characters:  \n \n ```matlab\n ft_warning(sprintf('%s exceeds MATLAB''s maximum name length of 63 characters and has been truncated to %s',str,str(1:63)));\n```  \n\nthen it calls ft_warning and gets locked in a recursive loop ad infinitum.\n\nMy stack end:  \n\n```\nK>> stack(end)\nans = \n    file: '/Applications/MATLAB_R2015b.app/toolbox/matlab/graphics/+matlab/+graphics/+internal/+figfile/@FigFile/read.m'\n    name: '@(hObject,eventdata)spikes_UI('AnalMenu_Callback',hObject,eventdata,guidata(hObject))'\n    line: 0\n```\n    \nThe evidence of the recursive stack:  \n\n```    \n    K>> stack(1)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/ft_warning.m'\n    name: 'fieldnameFromStack'\n    line: 197\nK>> stack(2)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/ft_warning.m'\n    name: 'ft_warning'\n    line: 143\nK>> stack(3)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/private/fixname.m'\n    name: 'fixname'\n    line: 51\nK>> stack(4)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/ft_warning.m'\n    name: 'fieldnameFromStack'\n    line: 209\nK>> stack(5)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/ft_warning.m'\n    name: 'ft_warning'\n    line: 143\nK>> stack(6)\nans = \n    file: '/Users/ian/Code/fieldtrip/utilities/private/fixname.m'\n    name: 'fixname'\n    line: 51\n```"
+      - +@isprivate: "0"
+        commentid: "16821"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-15 19:10:11 +0100
+        thetext: |-
+          the only call to ft_warning that I can find in ft_postamble (and the scripts it includes) is at the end of ft_postamble_history, where
+
+          % clear warnings from ft_default, so that they don't end up in the next cfg
+          ft_warning('-clear');
+
+          I don't think that is causing the problem.
+
+          But ft_warning calling fixname and vice versa can certainly cause a problem...
+      - +@isprivate: "0"
+        commentid: "16822"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-15 21:46:50 +0100
+        thetext: |-
+          I think this would fix it
+          https://github.com/fieldtrip/fieldtrip/pull/83
+
+          Could you have a look at https://github.com/robertoostenveld/fieldtrip/commit/83a51738666753da5f3cdbfc94e22803acb4f7cb and see whether you agree? If so, then I'll merge the change with the master.
+      - +@isprivate: "0"
+        commentid: "16826"
+        comment_count: "3"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2016-02-16 02:48:20 +0100
+        thetext: |-
+          Yes, it is postamble_history that is triggering this.
+
+          Your patch hasn't fixed it, after merging your changes here is my stack from within fieldnameFromStack, we are still recursing
+
+          K>> stack(:).name
+          ans =
+          fieldnameFromStack
+          ans =
+          ft_warning
+          ans =
+          fixname
+          ans =
+          fieldnameFromStack
+          ans =
+          ft_warning
+          ans =
+          fixname
+          ans =
+          fieldnameFromStack
+          ans =
+          ft_warning
+          ans =
+          fixname
+          ans =
+          fieldnameFromStack
+          ans =
+          ft_warning
+          ans =
+          fixname
+          ans =
+          fieldnameFromStack
+          ans =
+          ft_warning
+          ans =
+          ft_postamble_history
+          ans =
+          ft_postamble
+          ans =
+          ft_spikedensity
+          ans =
+          plotDensity
+          ans =
+          spikes
+          ans =
+          sDensityPlot_Callback
+          ans =
+          spikes_UI
+          ans =
+          @(hObject,eventdata)spikes_UI('sDensityPlot_Callback',hObject,eventdata,guidata(hObject))
+
+          It looks like the logic of any is wrong here, there shouldn't be a ~:
+
+          if ~any(strcmp({stack.file}, 'ft_warning.m'))
+
+          My temporary hack was just to remove the call to ft_warning from fixname which does work.
+      - +@isprivate: "0"
+        commentid: "16827"
+        comment_count: "4"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2016-02-16 03:18:19 +0100
+        thetext: If I remove the ~ it also now doesn't recurse...
+      - +@isprivate: "0"
+        commentid: "16830"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-16 13:34:33 +0100
+        thetext: |-
+          Ah, I now see where it goes wrong. You are right, the ~ should not be there. If there is any previous ft_warning in the stack, the function should return immediately.
+
+          I will merge it into fieldtrip/master.
+      - +@isprivate: "0"
+        commentid: "16831"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-16 13:37:48 +0100
+        thetext: thanks for looking along with the fix.
+      - +@isprivate: "0"
+        commentid: "16833"
+        comment_count: "7"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2016-02-17 02:08:42 +0100
+        thetext: Thanks for fixing Robert, great to see FT has moved over to Github for development, should make it easier to contribute patches (I have an old Plexon V2 pull request that probably needs rebasing, but I'm in grant writing mode so not much time to code...)
+      - +@isprivate: "0"
+        commentid: "17499"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:52 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

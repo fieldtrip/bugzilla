@@ -1,0 +1,116 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1451"
+    creation_ts: 2012-05-02 08:51:00 +0200
+    short_desc: clusterstat (sourcestatistics) crashes on use of spm_bwlabel
+    delta_ts: 2014-01-15 14:42:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6025"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-05-02 08:51:23 +0200
+        thetext: "-------------------------------\n-- calling sourcestatistics: --\n-------------------------------\n\ncfg =  [];\ncfg.statistic               = 'indepsamplesT';\ncfg.method                  = 'montecarlo'; \ncfg.correctm                = 'cluster';\ncfg.numrandomization        = 1000;       \ncfg.parameter               = 'stat';\ncfg.alpha = 0.025;\ncfg.feedback                = 'textbar';\ncfg.ivar = 1;        \ncfg.design                  = [ones(1,size(find(group==-1),2)) ones(1,size(find(group==-1),2))*2] ;\n        stat_con{itime}             = \n\nft_sourcestatistics(cfg,data{find(group==-1)},dummy{find(group==-1)});  \n\n--------------------\n-- all goes well: --\n--------------------\n\nonly selecting voxels inside the brain for statistics (56.6%)\nusing \"ft_statistics_montecarlo\" for the statistical testing\nusing \"statfun_indepsamplesT\" for the single-sample statistics\nconstructing randomized design\ntotal number of measurements     = 28\ntotal number of variables        = 1\nnumber of independent variables  = 1\nnumber of unit variables         = 0\nnumber of within-cell variables  = 0\nnumber of control variables      = 0\nusing a permutation resampling approach\ncomputing a parametric threshold for clustering\nestimated time per randomization is 0 seconds\ncomputing statistic [-----------------------------------------------------/]\n\n------------------------\n-- until clusterstat: --\n------------------------\n\n??? Error using ==> spm_bwlabel\nspm_bwlabel: CONN must be 6, 18 or 26\n\nError in ==> clusterstat at 192\n      [posclusobs, posnum] = spm_bwlabel(tmp, 2*numdims); % use spm_bwlabel for 2D/3D data to avoid usage of image toolbox\n\nError in ==> ft_statistics_montecarlo at 325\n  [stat, cfg] = clusterstat(cfg, statrand, statobs,'issource',issource);\n\nError in ==> statistics_wrapper at 290\n    [stat, cfg] = statmethod(cfg, dat, design, 'issource',issource);\n\nError in ==> ft_sourcestatistics at 102\n    [stat, cfg] = statistics_wrapper(cfg, varargin{:});\n \n192       [posclusobs, posnum] = spm_bwlabel(tmp, 2*numdims); % use spm_bwlabel for 2D/3D data to avoid usage of image toolbox"
+      - +@isprivate: "0"
+        commentid: "6026"
+        comment_count: "1"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-05-02 08:51:53 +0200
+        thetext: roemer?
+      - +@isprivate: "0"
+        commentid: "6027"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-02 08:55:33 +0200
+        thetext: |-
+          can you provide details on the matlab version and the operating system (or mentat name)?
+          and please provide the output of "which spm_bwlabeln"
+      - +@isprivate: "0"
+        commentid: "6028"
+        comment_count: "3"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-05-02 09:02:45 +0200
+        thetext: |-
+          Ah...: spm_bwlabel thinks it's got a 3D image, because the 2D source data is represented in a pos structure:
+
+             stat: [38556x1 double]
+              dim: [38556 1]
+           inside: [1x21819 double]
+          outside: [1x16737 double]
+              pos: [38556x3 double]
+           dimord: 'pos_freq'
+      - +@isprivate: "0"
+        commentid: "6031"
+        comment_count: "4"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-05-02 09:33:40 +0200
+        thetext: "workaround for now is to add appropriate dim field (e.g. with pos2dim3d).\n\nProblem was the problem of locating the moment where the inappropriate dim was added to the data (and the old one was lost).\n\nTo get to the bottom of this and other possible conflicts it is now suggested to make a sourcestatistics testscripts for \n1) first-level sourcestatistics\n2) second level sourcestatistics.\n\nThis should be based on the whole collection of (historical) testdata (made two bugbinges ago)."
+      - +@isprivate: "0"
+        commentid: "11926"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-14 11:54:44 +0100
+        thetext: |-
+          I just did some small (general) cleanups to that function
+
+          mac001> svn commit  private/clusterstat.m
+          Sending        private/clusterstat.m
+          Transmitting file data .
+          Committed revision 8778.
+      - +@isprivate: "0"
+        commentid: "12028"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-24 09:47:27 +0100
+        thetext: |-
+          I don't think that this is an issue anymore at the moment.
+          Closing for now.
+          @Stephen: feel free to reopen if problems persist.

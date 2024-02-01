@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1309"
+    creation_ts: 2012-02-02 12:20:00 +0100
+    short_desc: Cannot determine geometrical units of volume conduction model
+    delta_ts: 2012-06-12 12:59:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1306
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: m.koeneman
+    assigned_to:
+      +content: c.micheli
+      +@name: Cristiano Micheli
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5113"
+        comment_count: "0"
+        who:
+          +content: m.koeneman
+          +@name: ""
+        bug_when: 2012-02-02 12:20:59 +0100
+        thetext: |-
+          After updating FieldTrip from 11 January to 31 January the dipole fitting holds on a error:
+
+          Error using ft_convert_units (line 78)
+          cannot determine geometrical units of volume conduction model
+
+          Error in ft_prepare_sourcemodel (line 255)
+              sens      = ft_convert_units(sens);
+
+          Error in ft_dipolefitting (line 330)
+            grid = ft_prepare_sourcemodel(tmpcfg);
+
+          Error in dipool (line 25)
+                 dipolen = ft_dipolefitting(cfg, data.mmn);
+
+          I am using as configuration the included templates:
+
+          cfg.elec = ft_read_sens('standard_1020.elc');
+          cfg.vol = ft_read_vol('standard_bem.mat');
+
+          I reduced it to the problem that the type of the electrode model equals 'ext1020' and the script gets stuck in trying to compare this type of electric model with types of volume conducting models, like 'dipoli'.
+
+          Earlier this was never a problem.
+      - +@isprivate: "0"
+        commentid: "5116"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-02 14:59:03 +0100
+        thetext: |-
+          Dear M. Koeneman,
+
+          Could you make a minimal example script to reproduce this problem? That would simplify finding the cause for this issue.
+
+          Best regards,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "5117"
+        comment_count: "2"
+        who:
+          +content: m.koeneman
+          +@name: ""
+        bug_when: 2012-02-02 15:29:03 +0100
+        thetext: |-
+          Thank you for the response.
+
+          cfg = [];
+          cfg.elec = ft_read_sens('standard_1020.elc');
+          cfg.vol = ft_read_vol('standard_bem.mat');
+          cfg.grid.resolution = 3;
+          cfg.model = 'regional';
+          cfg.latency = [0.14,0.17];
+          cfg.numdipoles = 1;
+          dip = ft_dipolefitting(cfg, timelock_data);
+
+          timelock_data
+
+                label: {31x1 cell}
+                  avg: [31x500 double]
+                 time: [1x500 double]
+              fsample: 500
+               dimord: 'chan_time'
+                  cfg: [1x1 struct]
+
+          Best regards,
+
+          Mats
+      - +@isprivate: "0"
+        commentid: "5123"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 11:25:23 +0100
+        thetext: |-
+          I can indeed confirm this bug in SVN revision 5232 with the script presented below.
+
+          --
+          clear all;
+          ft_defaults;
+          % artifically create timelock data
+          timelock_data.fsamepl = 500;
+          timelock_data.dimord = 'chan_time';
+          timelock_data.time = zeros(1, 500);
+          timelock_data.avg = zeros(31, 500);
+          for i = 1:31
+              timelock_data.label{i} = sprintf('label%d', i);
+          end
+
+          cfg = [];
+          cfg.elec = ft_read_sens('standard_1020.elc');
+          cfg.vol = ft_read_vol('standard_bem.mat');
+          cfg.grid.resolution = 3;
+          cfg.model = 'regional';
+          cfg.latency = [0.14,0.17];
+          cfg.numdipoles = 1;
+          dip = ft_dipolefitting(cfg, timelock_data);
+      - +@isprivate: "0"
+        commentid: "5124"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 11:37:35 +0100
+        thetext: Probably someone else should handle this bug.
+      - +@isprivate: "0"
+        commentid: "5178"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-06 15:43:14 +0100
+        thetext: "(In reply to comment #3)\n\nThis particular example script causes a correct error message, because there is no overlap in channels. Subsequently it cannot determine the geometrical units of the channels. \n\n>> timelock_data.label\nans = \n  Columns 1 through 12\n    'label1'    'label2'    'label3'    'label4'    'label5'    'label6'    'label7'    'label8'    'label9'    'label10'    ...\n\n>> cfg.elec.label'\nans = \n  Columns 1 through 16\n    'LPA'    'RPA'    'Nz'    'Fp1'    'Fpz'    'Fp2'    'AF9'    'AF7'    'AF5'    'AF3'    'AF1'    'AFz'    'AF2'    'AF4'    ..."
+      - +@isprivate: "0"
+        commentid: "5180"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-06 15:53:12 +0100
+        thetext: "(In reply to comment #5)\n\ndoing \ntimelock_data.label = cfg.elec.label(1:31)\nbefore the dipolefitting call fixes the problem of having no sensors.\n\nThen it becomes clear that ft_voltype(obj) returns ext1020, which is obj.type. However, it is not a type of volume conductor. It is a type of the sensor array. Had ft_voltype returned unknown, then the units would have been correctly estimated further down in the code.\n\nWhat needs to be done is to improve the flow of the logic in ft_convert_units. Instead of\n\n  type = ft_voltype(obj);\n  if ~strcmp(type, 'unknown')\n    switch type\n...\n\nit should  do\n\nelseif ft_voltype(obj, 'infinite')\n...\nelseif ft_voltype(obj, 'singlesphere')\n...\n\ni.e. include the handling of a volume conduction model in the same if-elseif-elseif chain as the handling of  ft_senstype."
+      - +@isprivate: "0"
+        commentid: "5297"
+        comment_count: "7"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-02-15 11:26:38 +0100
+        thetext: |-
+          (In reply to comment #6)
+          This is now fixed following the advice of Robert (a single 'elseif' ladder both for sens and vol). Additionally also the variable name 'size' is changed to avoid ambiguity with the Matlab command.

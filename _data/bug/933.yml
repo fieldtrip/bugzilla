@@ -1,0 +1,174 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "933"
+    creation_ts: 2011-09-05 11:44:00 +0200
+    short_desc: Fieldtrip buffer stops and freezes Matlab
+    delta_ts: 2012-06-20 15:03:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    dependson: "1234"
+    blocked: "1263"
+    everconfirmed: "1"
+    reporter:
+      +content: philipvandenbroek
+      +@name: Philip van den Broek
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc:
+      - b.reuderink
+      - J.Farquhar
+      - r.oostenveld
+      - r.vlek
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3062"
+        comment_count: "0"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2011-09-05 11:44:16 +0200
+        thetext: "In current BrainStreams implementation, fieldtrip buffers play a central role both in communicating events and providing access to the data. For the purpose of optional preprocessing, it automatically installs an extra Matlab session and fieldtrip buffer. Also, for viewing purposes another Matlab client connects to the same buffer and on regular basis retrieves data from it.\n\nThe problem is that at some arbitrary point in time, the fieldtrip buffer server stops writing data to the buffer/socket. A call to the buffer mex-file is responsible for this and it seems like it waits for something that is never going to be obtained.\n\nThis phenomenon occurs in our lab (see description below), but can also be simulated, see testfunction connectMultiBuffers, also below.\n\nAt the end some example output of the test function\n\n==============================================================================\nIn our lab, the exact configuration is as follows:\n------------------------------------------------------------------------------\nbuffer1=biosem2ft --> Matlab: preprocess data and write to new buffer 2 (attached to Matlab)\nBuffer 1 and buffer 2 run on the same mac (OSX).\nBrainStream connects to buffer 2 and reads both data and events (this runs on another mac (OSX))\n\nAnother max (windowsXP) connects to buffer 1 and every second updates a plot of the incoming data.\n==============================================================================\n\nThe testfunction:\nfunction connectMultiBuffers(isclient)\n% start different Matlab sessions and start:\n% one server    : connectMultiBuffers(0)\n% first client  : connectMultiBuffers(1)\n% second client : connectMultiBuffers(1)\n% third client ......\n% Presumably, increasing N will shorten the time towards running into the issue.\n\nurl = 'buffer://localhost:1972';\n\nT\t\t\t\t\t= 0.01;\nN\t\t\t\t\t= 1;\nhdr.Fs\t\t\t= 500;\nhdr.nChans\t\t= 80;\nhdr.nSamples\t= 0;\nepoch\t\t\t\t= floor(hdr.Fs*T);\n\nif ~isclient\n\tft_create_buffer(1972);\n\tft_write_data(url,[],'Header',hdr,'Append',false);\n\t\n\t% write data to the buffer in an endless loop\n\tnum = 0;\n\twhile 1\n\t\tft_write_data(url,rand(hdr.nChans,epoch),'Header',hdr,'Append',true);\n\t\tnum = num + epoch;\n\t\tfprintf('Number of written samples: %d\\n',num);\n\t\tpause(T);\n\tend\nelse\n\t% connect to buffer\n\tpause(T*N);\n\twhile hdr.nSamples < N*epoch\n\t\thdr = ft_read_header(url);\n\tend\n\t% read data\n\twhile 1\n\t\thdr = ft_read_header(url);\n\t\tdat = ft_read_data(url,'Header',hdr,'begsample',hdr.nSamples-N*epoch+1,'endsample',hdr.nSamples);\n\t\tfprintf('%d\\tSize of read data: (%d,%d)\\n',hdr.nSamples,size(dat,1),size(dat,2));\n\t\tpause(T);\n\tend\nend\n\n=======================================================================\nexample output of test function:\n-----------------------------------------------------------------------\nServer:\nNumber of written samples: 161655\nNumber of written samples: 161660\nNumber of written samples: 161665\nNumber of written samples: 161670\nNumber of written samples: 161675\nNumber of written samples: 161680\nNumber of written samples: 161685\nNumber of written samples: 161690\nNumber of written samples: 161695\n* Matlab freezes, cannot break out with ctrl-c\n\n\n\nClient1:\n161650\tSize of read data: (80,5)\n161660\tSize of read data: (80,5)\n161665\tSize of read data: (80,5)\n161670\tSize of read data: (80,5)\n161680\tSize of read data: (80,5)\n161685\tSize of read data: (80,5)\n161695\tSize of read data: (80,5)\nbufread: Interrupted system call\npacket size = 0, should be 8\nTrying to close socket 222\n??? Operation terminated by user during ==> ft_read_header at 777\n\nIn ==> connectMultiBuffers at 31\n\t\thdr = ft_read_header(url);\n>> \n\n\n\nClient2:\n161650\tSize of read data: (80,5)\n161660\tSize of read data: (80,5)\n161665\tSize of read data: (80,5)\n161675\tSize of read data: (80,5)\n161680\tSize of read data: (80,5)\n161690\tSize of read data: (80,5)\nbufread: Interrupted system call\npacket size = 0, should be 8\nTrying to close socket 222\n??? Operation terminated by user during ==> ft_read_data at 593\n\nIn ==> connectMultiBuffers at 32\n\t\tdat =\n                ft_read_data(url,'Header',hdr,'begsample',hdr.nSamples-epoch+1,'endsample',hdr.nSamples); \n>>"
+      - +@isprivate: "0"
+        commentid: "4024"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-16 15:42:35 +0100
+        thetext: |-
+          I could reproduce this problem on mentat301 (Redhat Linux), but not on Windows 7.
+          Fieldtrip version was r4724.
+
+
+          It seems that the problem occurs *earlier* when a lot of clients (~8) are reading.
+      - +@isprivate: "0"
+        commentid: "4031"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 09:50:41 +0100
+        thetext: With no clients, the problem does not seem to happen on Redhat linux. So, it appears there is some (platform-specific) interaction between the consumer reading from the buffer, and the producer writing to the buffer.
+      - +@isprivate: "0"
+        commentid: "4183"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-23 10:16:29 +0100
+        thetext: |-
+          Update from Rutger Vlek (Dutch):
+
+          Een vergelijkbaar probleem deed zich toevallig voor in een nieuwe setup die ik aan het testen ben. Deze bestaat uit de applicatie biosemi2ft die data uit de amp in een FTbuffer stopt en een matlab-functie die deze data eruit haalt en door preprocessing heen haalt, alles loopt via localhost. Heel af en toe stopt ineens de gehele datastream (dus ook biosemi2ft) op dezelfde manier als door philip beschreven op bugzilla. In deze setup poll ik met grote regelmaat op de aanwezigheid van nieuwe data in het FTbuffer, zodat mijn preprocessing zo strak mogelijk de acquisitie van data volgt. Ik vermoed dat het probleem dus niet specifiek is voor het scenario met meerdere clients, maar vooral afhangt van de algemene belasting van de socket.
+
+          Op het moment dat de datastream stopte en de applicaties bleven hangen heb ik vanaf een extra matlab process nog geprobeerd de header van het buffer op te vragen. Het programma biosemi2ft reageerde hier nog wel op met een bericht dat er een nieuwe socket werd geopend, maar de header werd niet doorgegeven en het matlab process bleef hangen. Al googelend kwam ik iets tegen over Network Stack sizes en hoe die per operating system kunnen verschillen. Een mogelijke verklaring voor het probleem zou kunnen zijn dat deze stack vol raakt en dat er een soort deadlock ontstaat waarbij processen eindeloos op elkaar wachten?
+      - +@isprivate: "0"
+        commentid: "4582"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-21 15:56:59 +0100
+        thetext: "I have put some time into this. The fastest way that allows me to reproduce the problem is to first start the demo_buffer executable in a separate window, disable ft_create_buffer in the test function, and to start \n\nconnectMultiBuffers(0)\nconnectMultiBuffers(0)\nconnectMultiBuffers(0)\nconnectMultiBuffers(1)\n\nin 4 matlab instances.\n\nSince I suspect it to be a concurrent thread locking problem, I will focus on dmarequest.\n  \nI have reverted the source code for dmarequest.c to revision 794, which is prior to many changes from Stefan. After removing the properties code, it compiles fine. I found that the bug was already present back then. I reverted to the HEAD version.\n\nWith verbose=2 and adding the following lines\n\n    pthread_mutex_lock(&mutexblocker);\n    fprintf(stderr, \"locked mutexblocker\\n\");\n\n    switch (request->def->command) {\n    ....\n    }\n\n    pthread_mutex_unlock(&mutexblocker);\n    fprintf(stderr, \"unlocked mutexblocker\\n\");\n\nit appears that I can prevent the locking problem. The disadvantage is that the wait is much longer like this. But it helps in zooming in...\n\nThe mutexblocker only around case PUT_DAT is not enough to prevent the problem.\n\nThe mutexblocker around both the case PUT_DAT and GET_DAT  is enough to prevent the problem. So somehow they don't like each others locking style...\n\nGotcha!!!\n\nThe code reveals that case GET_DAT does the following\n            pthread_mutex_lock(&mutexdata);\n            pthread_mutex_lock(&mutexheader);\nwhereas case PUT_DAT does \n            pthread_mutex_lock(&mutexheader);\n            pthread_mutex_lock(&mutexdata);\n\nSo it is possible that GET_DAT locks the one, and PUT_DAT the other. Subsequently they start waiting for the other one to be freed...\n\nThe solution is simple, but the problem (the inconsistent order of locking a sequence of mutexes) has to be checked throughout.  I have to go now, will discuss with Boris tomorrow."
+      - +@isprivate: "0"
+        commentid: "4590"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 09:01:43 +0100
+        thetext: "(In reply to comment #4)\n\nYesterday around 16h I started the recompiled stand-alone buffer yesterday with 3 connectMultiBuffers writers and one reader. They are all still running. I have monitored it in top, after an initial increase of RSIZE and RPRVT they have settled at reasonable numbers, so also memory wise it seems to behave correct. \n\nI will commit the changed source code. Work that remains to be done is\n1) check for the same error elsewhere in the code\n2) recompile the dependent mex files and executables that are in fieldtrip\n3) get it recompiled for the artinis NIRS problem\n\nI suggest 1 is dealt with by Boris, 2 is made conditional on bug #1234 (i.e. first fix that one, subsequently the required stuff to recompile will surface automatically), and that 3 is moved to a separate bug for discussion with Jason et al."
+      - +@isprivate: "0"
+        commentid: "4591"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 09:03:07 +0100
+        thetext: |-
+          manzana> svn commit
+          Sending        src/dmarequest.c
+          Transmitting file data .
+          Committed revision 5067.
+      - +@isprivate: "0"
+        commentid: "4826"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-17 12:32:40 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          1) I'll take a look at the buffer code.
+          2) Indeed see bug 1234.
+          3) I'll contact the Artinis people.
+
+          I have updated the time estimates to reflect this.
+      - +@isprivate: "0"
+        commentid: "4831"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-17 14:53:39 +0100
+        thetext: |-
+          I have added issue 1263 (contacting Artinis to update the ft-buffer in their software).
+
+          What remains to be done in the context of this bug is to check for other occurrences of the same locking problem in the buffer software.
+      - +@isprivate: "0"
+        commentid: "4832"
+        comment_count: "9"
+        who:
+          +content: r.vlek
+          +@name: Rutger Vlek
+        bug_when: 2012-01-17 15:00:05 +0100
+        thetext: |-
+          (In reply to comment #8)
+          The changed code was tested in the DCC BCI setups and so far all runs well! Thank you!
+      - +@isprivate: "0"
+        commentid: "5122"
+        comment_count: "10"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 10:52:32 +0100
+        thetext: I have found a few instances of the problem in other locations, and fixed them. See SVN revision 5233.
+      - +@isprivate: "0"
+        commentid: "5365"
+        comment_count: "11"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-28 15:36:29 +0100
+        thetext: All the tasks in the context of this bug have been completed, for remaining work see the related bugs. Marking this bug as RESOLVED:FIXED.
+      - +@isprivate: "0"
+        commentid: "6447"
+        comment_count: "12"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-20 15:03:19 +0200
+        thetext: Changed my resolved bugs to closed.

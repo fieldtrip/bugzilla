@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1274"
+    creation_ts: 2012-01-22 12:24:00 +0100
+    short_desc: complete the CSP implementation in ft_componentanalysis
+    delta_ts: 2012-06-20 15:03:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4894"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-22 12:24:24 +0100
+        thetext: "I came across this page http://fieldtrip.fcdonders.nl/development/csp, which reminded me that there is an implementation already, but it has not been tested. \n\nI think that it only takes a small amount of time to complete it. \n\nTODO\n- verify correctness of the implementation \n- cerate test script\n- add documentation to ft_componentanalysis\n- flag the page http://fieldtrip.fcdonders.nl/development/csp as done and move it to the DONE list on http://fieldtrip.fcdonders.nl/development\n\nOPTIONAL\n- consider whether (and if so: how) this can be made relevant for realtime processing"
+      - +@isprivate: "0"
+        commentid: "4895"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-22 12:25:22 +0100
+        thetext: I suggest that Boris takes this enhancement on him, as he has experience with the CSP method (as I learned from his PhD thesis).
+      - +@isprivate: "0"
+        commentid: "4898"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-23 08:52:30 +0100
+        thetext: "I'll take care of this issue, and indeed it won't take much time. \n\nBTW, since it hinges mostly on a whitening transform, I was wondering if there are other places that use a whitening transform that could benefit from the factored out and tested implementation? Ft_component_analysis.m mentions a prewhitening_filter2, but I can't find much more."
+      - +@isprivate: "0"
+        commentid: "4902"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-23 09:15:15 +0100
+        thetext: "I don't see a prewhitening_filter2 in ft_componentanalysis... \n\nAt this moment the prewhitening is done inside the already existing low-level csp function. I believe this to be appropriate: the intended use of ft_componentanalysis is not to do the spatial unmixing in multiple steps, but rather in one, and the interest is only in the final step."
+      - +@isprivate: "0"
+        commentid: "4905"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-23 12:51:50 +0100
+        thetext: "Sorry, my mistake. I meant ft_sourceanalysis:\n\n$ grep -n whiten ft_sourceanalysis.m \n...\n407:      Cf      = prewhitening_filter2(squeeze(mean(Cf,1)), squeeze(mean(Cfb,1)));\n\nSince I can't find more, there is not much to factor out thus my point is moot."
+      - +@isprivate: "0"
+        commentid: "4907"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-23 13:44:15 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+
+          The prewhitening_filter2 function appears to be missing from the repository. I reported the missing function as bug 1277.
+      - +@isprivate: "0"
+        commentid: "4917"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-24 20:50:33 +0100
+        thetext: |-
+          given that
+
+          % additional options, see CSP for details
+          cfg.csp = ft_getopt(cfg, 'csp', [])
+          cfg.csp.numfilters = ft_getopt(cfg.csp, 'numfilters', 6)
+
+          I suggest that the cfg.classlabel is moved to cfg.csp.classlabel which is also more consistent with other method-nested options.
+      - +@isprivate: "0"
+        commentid: "5097"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-01 16:47:24 +0100
+        thetext: Fixed in SVN revision 5218.
+      - +@isprivate: "0"
+        commentid: "5160"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-04 11:01:16 +0100
+        thetext: "the test_csp script does not test any fieldtrip function. I suggest to keep the current code, but extend it with something like\n\ndata = [];\ndata.label = {'1', '2', ...\ndata.trial = {X1, X2};\ndata.time = {1:n, 1:n}\n\nand then \n\ncfg = [];\ncfg.method = 'csp'\ncfg.csp.classlabel= [1 2];\ncomp = ft_componentanalysis(cfg, data)\n\nand subsequently check that the output is consistent with the manually crafted result.\n\n\nPlease also add \n% TEST test_csp\n% TEST ft_componenanalysis csp\n\nto ensure that the test script is correctly triggered upon changes."
+      - +@isprivate: "0"
+        commentid: "5342"
+        comment_count: "9"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-23 13:16:52 +0100
+        thetext: "I have added a test for ft_component_analysis, and added the 'TEST *' keywords:\n\nsvn ci -m \"bugfix - added extra test for CSP (bug 1274)\" test/test_csp.m  ft_componentanalysis.m \nSending        ft_componentanalysis.m\nSending        test/test_csp.m\nTransmitting file data ..\nCommitted revision 5313."
+      - +@isprivate: "0"
+        commentid: "6466"
+        comment_count: "10"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-20 15:03:24 +0200
+        thetext: Changed my resolved bugs to closed.

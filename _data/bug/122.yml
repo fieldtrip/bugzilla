@@ -1,0 +1,91 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "122"
+    creation_ts: 2010-07-24 14:08:00 +0200
+    short_desc: ft_rejectartifact doesn't work with data in input when calling artifact_xxx
+    delta_ts: 2011-01-06 09:14:57 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: iversen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "233"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-07-24 14:08:39 +0200
+        thetext: |-
+          This is reported by John Iversen:
+
+          Hi FT Developers,
+
+          Thanks for the continued improvements to Fieldtrip. I'm following the changes with interest and appreciation.
+
+          I've made the following changes to ft_rejectartifact.m. The FT version (I believe I am up to date) does not handle the ft_rejectartifact(cfg, data) condition, in that it doesn't pass data along to any of the ft_artifact_* functions.
+
+          Please let me know if this change is correct. (The cfg.trl line can go away as soon as the artifact functions are also updated to used data.sampleinfo...)
+
+          Best,
+
+          John
+
+          ====
+
+          diff --git a/ft_rejectartifact.m b/ft_rejectartifact.m
+          index c66d5fa..35d5645 100644
+          --- a/ft_rejectartifact.m
+          +++ b/ft_rejectartifact.m
+          @@ -214,7 +214,13 @@ cfg.artfctdef.type = cfg.artfctdef.type(:)';
+          for type=1:length(cfg.artfctdef.type)
+            fprintf('evaluating artifact_%s\n', cfg.artfctdef.type{type});
+            % each call to artifact_xxx adds cfg.artfctdef.xxx.artifact
+          -  cfg = feval(sprintf('artifact_%s', cfg.artfctdef.type{type}), cfg);
+          +  %*** JRI *** fix bug, so can use data
+          +  if nargin==1,
+          +    cfg = feval(sprintf('ft_artifact_%s', cfg.artfctdef.type{type}), cfg);
+          +  else
+          +    cfg.trl = data.cfg.trl;
+          +    cfg = feval(sprintf('ft_artifact_%s', cfg.artfctdef.type{type}), cfg, data);
+          +  end
+          end
+
+          ====
+
+          Will fix a.s.a.p.
+      - +@isprivate: "0"
+        commentid: "238"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-07-26 09:40:55 +0200
+        thetext: Suggested change has been incorporated into ft_rejectartifact. Seems to work fine with a quick test (of course after taking care that all 'paddings' are set to 0). John, could you verify whether it works for you as well (updated version will be uploaded to the ftp-server tonight CET), and change the status of the bug to verified if it works? Thanks.

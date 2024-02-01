@@ -1,0 +1,99 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3447"
+    creation_ts: 2018-09-04 10:47:00 +0200
+    short_desc: Implement regularization in reduced subspace as discussed at BIOMAG
+    delta_ts: 2019-04-01 08:57:59 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - britta
+      - j.schoffelen
+      - Jukka.Nenonen
+      - lauri.parkkonen
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19441"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2018-09-04 10:47:08 +0200
+        thetext: As discussed with Olaf Hauk and others at BIOMAG, the proper way to regularize for MaxFiltered data would be in reduced subspace after removing components with zero eigenvalues. I'm not sure how you want this implemented. If you get this working I can test on the phantom data and Krish Singh can test on his whole brain connectivity example.
+      - +@isprivate: "0"
+        commentid: "19451"
+        comment_count: "1"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2018-09-13 19:20:29 +0200
+        thetext: "Here is a function from Olaf to do combined matrix inversion with regularization when the rank is known. I could hack it into beamformer_lcmv etc. just by replacing the line with pinv and test. But you also have the whole subspace case there so you might prefer a different solution:\n\n\nfunction matreg = Tikhonov_rank_def(mat, rank, lambda)\n\n% Apply Tikhonov regularisation to rank-deficient matrix\n\n% mat: square matrix\n\n% rank: number of singular values to be considered in inversion\n\n% lambda: regularisation parameters\n\n% OH, Sep 2018\n\n\n% SVD of input matrix\n\n[U,S,V] = svd(mat);\n\n\n% get singular values\n\ns = diag(S);\n\n\n% take only relevant values\n\ns2 = s(1:rank);\n\n\n% regularise eigenvalues with Tikhonov and invert\n\ns2 = s2 ./ (s2.^2 + lambda);\n\n\n% reconstitute regularised inverse matrix\n\nmatreg = V(:,1:rank)*diag(s2)*U(:,1:rank)';\n\n \n\n \n\n \n\nTest that the function produces the desired result\n\n \n\n>> mat = randn(3,3)\n\n \n\nmat =\n\n \n\n    2.7694    0.7254   -0.2050\n\n   -1.3499   -0.0631   -0.1241\n\n    3.0349    0.7147    1.4897\n\n \n\n>> matreg = Tikhonov_rank_def(mat, 3, 0.1)\n\n \n\nmatreg =\n\n \n\n    0.1480   -0.4172   -0.0038\n\n    0.5259    1.4010    0.1864\n\n   -0.5473    0.1265    0.5609\n\n \n\n>> mat'*inv(mat*mat' + 0.1*eye(3))\n\n \n\nans =\n\n \n\n    0.1480   -0.4172   -0.0038\n\n    0.5259    1.4010    0.1864\n\n   -0.5473    0.1265    0.5609"
+      - +@isprivate: "0"
+        commentid: "19452"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-09-14 09:07:25 +0200
+        thetext: |-
+          I discussed at BIOMAG with Britta and Sarang (now CC) that we should have an "automatic cliff detection" to determine/estimate the numerical rank of the covariance. The cliff refers to the sudden drop in the singular value spectrum. There were some cases that we identified as resulting in extra cliffs.
+
+          - Combined planar/magnetometer
+          - Combined eeg/meg
+          - Maxfiltered data
+          - ica cleaned data
+          - Concatenated data from different fif files that have been max filtered separately
+          - average referenced eeg (or bipolar, or another silly reference scheme)
+      - +@isprivate: "0"
+        commentid: "19638"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-02-05 11:32:05 +0100
+        thetext: |-
+          There is now a dedicated ft_inv function, which has replaced the call to pinv in the respective beamformer functions, for covariance inversion.
+
+          It now supports various flavours of inversion:
+
+          -truncated svd -> truncation based on 'kappa', or 'tolerance' parameter (tolerance is known in the cfg as 'tol', due to potential clashes with a 'tolerance' option that has a different meaning.
+
+          -diagonally loaded (with lambda) pinv (original only option, still default), method is called 'tikhonov'
+
+          -simple moorepenrose inversion inv(X'*X)*X'
+
+          -simple invers inv()
+
+          -truncated svd with replacement of low singular values (this is most akin to Olaf's implementation), method called 'winsorize' -> truncation based on 'kappa', or 'tolerance', all remaining singular values < lambda replaced by lambda.
+
+          To be tested, documented and broadcasted to the community...

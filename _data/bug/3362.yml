@@ -1,0 +1,113 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3362"
+    creation_ts: 2017-10-11 10:58:00 +0200
+    short_desc: ft_math with biosemi64.lay in data changes channel order
+    delta_ts: 2019-08-10 12:41:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.e.j.de.vries
+      +@name: Ingmar de Vries
+    assigned_to:
+      +content: i.e.j.de.vries
+      +@name: Ingmar de Vries
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18968"
+        comment_count: "0"
+        who:
+          +content: i.e.j.de.vries
+          +@name: Ingmar de Vries
+        bug_when: 2017-10-11 10:58:27 +0200
+        thetext: "I'm using fieldtrip version:\n20171001\n\nI'm using ft_math with biosemi64.lay in the data structure and the following configuration:\n\ncfg = [];\ncfg.operation = 'subtract';\ncfg.parameter = 'avg';\nGA_cond1vscond2 = ft_math(cfg,GAcondition1,GAcondition2);\n\nThis changes the channel label ordering! Specifically channel 37 is in the single condition structures (i.e. GAcondition1 and GAcondition2) channel 'AFz', but after subtracting the conditions using ft_math it becomes 'Fp1'. I'm sure there'll be more label swaps. \n\nI'm using this to plot the result of a cluster-based permutation test (condition contrast, time-by-channel data), and the plot is highlighting the wrong channels as significant because of this label swapping bug!"
+      - +@isprivate: "0"
+        commentid: "19007"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 17:21:19 +0100
+        thetext: |-
+          It's not clear what is happening here.
+
+          Is there only a swap of labels, or is the data also re-ordered as well? I don't understand why this would lead to 'wrong' plotting if the data is kept internally consistent. In other words, are you doing anything to your data outside FieldTrip which assumes a fixed channel order?
+      - +@isprivate: "0"
+        commentid: "19019"
+        comment_count: "2"
+        who:
+          +content: i.e.j.de.vries
+          +@name: Ingmar de Vries
+        bug_when: 2017-11-10 10:10:58 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #1)\n\nHi,\n\nThe function ft_math swaps the labels and the data so it stays internally consistent indeed. When only plotting the data there is nothing wrong.\n\nThe problem is that if you use the ft_timelockstatistics function to run a cluster-based permutation test, then the labels and data are NOT swapped. \nSpecifically, if you follow the tutorial on the Fieldtrip website:\n\nhttp://www.fieldtriptoolbox.org/tutorial/cluster_permutation_timelock\n\nYou run into a problem when you plot the topoplots. The data for the topoplots is based on ft_math and is internally consistent, while the highlighted channels in the signficant clusters are channel-by-time indices extracted from the result of ft_timelockstatistics. \nThe order of the channel indices is thus not consistent anymore with the result of ft_math. \nSo the problem is that if you follow this exact tutorial, it will in some cases highlight the wrong channels in the topoplots. \n\nNow I'm not sure if it is because of the way I import my data. I have a different data structure and transform the structure manually so it looks exactly like the example data ERF_orig.mat that is being using in the tutorial. \nBut is does not have the same history and thus not the same cfg history. I don't know if that could be a problem. \n\nKind Regards,"
+      - +@isprivate: "0"
+        commentid: "19020"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-10 10:28:37 +0100
+        thetext: "OK, thanks. So this is indeed a 'user-error', which the writer of the tutorial did not take into account, either. With lists of labels that are alphabetically ordered from the beginning (as is the case with the CTF MEG data) this is not an issue, but once the channels are not alphabetically ordered (as with a lot of other data, in particular EEG data  with labels according to the 10/20 system), this might pose a problem.\n\nSo, I guess what needs to be done, is to add a few lines of code in the tutorial, to make it robust against this. This can be inserted just before the for-loop that does the actual plotting. It could be something like this:\n\n% ensure the channels to have the same order in the average, and the statistical output\n% this might not be the case, because ft_math might shuffle the order\n[i1,i2] = match_str(raweffectFICvsFC.label, stat.label); \n\nand then, within the for-loop:\n\n % Next, check which channels are significant over the\n   % entire time interval of interest.\n   pos_int = zeros(numel(raweffectFICvsFC.label),1);\n   neg_int = zeros(numel(raweffectFICvsFC.label),1);\n\n     pos_int(i1) = all(pos(i2, m(k):m(k+1)), 2);\n     neg_int(i1) = all(neg(i2, m(k):m(k+1)), 2);\n\n\nZou ik je mogen vragen, om dit op de wiki te veranderen? Bij voorbaat dank."
+      - +@isprivate: "0"
+        commentid: "19023"
+        comment_count: "4"
+        who:
+          +content: i.e.j.de.vries
+          +@name: Ingmar de Vries
+        bug_when: 2017-11-10 14:00:30 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\nIk ga het extra stukje code checken / aanpassen a.h.v. EEG data en zal het daarna toevoegen aan de tutorial. \n\nGroet,\nIngmar"
+      - +@isprivate: "0"
+        commentid: "19024"
+        comment_count: "5"
+        who:
+          +content: i.e.j.de.vries
+          +@name: Ingmar de Vries
+        bug_when: 2017-11-10 14:31:24 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\nIt works like a charm. I added it on the three places in the tutorial where it's needed (three spots where there's something being plotted). \n\ncheers,\nIngmar"
+      - +@isprivate: "0"
+        commentid: "19026"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-12 13:10:56 +0100
+        thetext: Thanks for fixing!
+      - +@isprivate: "0"
+        commentid: "20293"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:29 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20493"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

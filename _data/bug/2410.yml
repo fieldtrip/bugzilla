@@ -1,0 +1,226 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2410"
+    creation_ts: 2013-12-04 08:33:00 +0100
+    short_desc: isfunction error upon a call to ft_getuserfun
+    delta_ts: 2014-01-29 13:38:01 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: e.maris
+      +@name: Eric Maris
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12205"
+        comment_count: "0"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 08:33:56 +0100
+        thetext: "When specifying a trial function in the cfg of ft_definetrial, I get an error on line 39 of ft_getuserfun. This is due to isfunction which does not take char arguments, as in my case (cfg.trialfun is a string).\n \n \nUndefined function 'isfunction' for input arguments of type 'char'.\n \nError in ft_getuserfun (line 39)\nelseif isfunction(func) && ~iscompatwrapper(func)\n \nError in ft_definetrial (line 140)\n  cfg.trialfun = ft_getuserfun(cfg.trialfun, 'trialfun');"
+      - +@isprivate: "0"
+        commentid: "12206"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 08:46:41 +0100
+        thetext: "mac001> find . -name ft_getuserfun\\*\n./private/ft_getuserfun.m\n\nmac001> ls private/isfunction.m \nprivate/isfunction.m\n\nCould you check whether private/isfunction.m is present in your FT installation? It should take a char input argument."
+      - +@isprivate: "0"
+        commentid: "12207"
+        comment_count: "2"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 09:07:30 +0100
+        thetext: "(In reply to comment #1)\n> Could you check whether private/isfunction.m is present in your FT \n> installation? It should take a char input argument.\n\nYes it is, but it is in the same private directory as the calling function (ft_getuserfun). Doesn't that create problems (fieldtrip/private is not in my path, as it should).\n\nBtw, what an enormous path has been added by Fieldtrip! I can't find my own contributions to the path anymore.\n\nBest,\n\nEric"
+      - +@isprivate: "0"
+        commentid: "12211"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 11:25:11 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          Both in private should be fine. might it be that you have another "isfunction" function different than the one that is expected by ft_getuserfun? Coudl you add a breakpoint in ft_getuserfun and type "which isfunction"?
+
+
+          Regarding private, please see
+          http://fieldtrip.fcdonders.nl/faq/matlab_does_not_see_the_functions_in_the_private_directory
+
+          Regarding the path, please see
+          http://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path
+
+          which directories are on the path that you had not expected there? The ft_defaults function is used to set the minimum fieldtrip path. All other toolboxes are only added if they are being used (with the ft_hastoolbox helper function).
+      - +@isprivate: "0"
+        commentid: "12216"
+        comment_count: "4"
+        attachid: "571"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 12:18:01 +0100
+        thetext: |-
+          Created attachment 571
+          My horribly long path
+      - +@isprivate: "0"
+        commentid: "12218"
+        comment_count: "5"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 12:24:46 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          With the breakpoint as suggested, Matlab does NOT see isfunction and neither ft_getuserfun (!).
+
+          These are the last lines of my path settings:
+
+          % Fieldtrip directory
+          addpath /vol/optdcc/fieldtrip-latest
+          ft_defaults
+
+          addpath /vol/optdcc/fieldtrip-latest/qsub
+
+          addpath ~/Matlab/OverruledFieldtripFuncs;
+
+
+          The last line does not do anything. When I ask for the path, ~/Matlab/OverruledFieldtripFuncs is after the regular Fieldtrip folders. The path must have been set again after the first call to ft_defaults.
+
+          I have attached a file with my horribly long path.
+
+          best,
+
+          Eric
+      - +@isprivate: "0"
+        commentid: "12220"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 12:47:03 +0100
+        thetext: "(In reply to comment #4)\n\nand what makes you think that fieldtrip added that path?\n\nSeeing e.g. spm2 and spm8 both on the path and \n/vol/optdcc/fieldtrip-latest/external/dmlt/external/gpstuff/SuiteSparse/MATLAB_Tools/waitmex\nstrongly suggests that you did not adhere to the instructions at http://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path\nand used addpath(genpath(...)). Please see the red warning in the middle of that faq.\n\nDo you not see regular warnings like these?\n\nWarning: Multiple versions of spm on your path will confuse FieldTrip \n> In fieldtrip/private/warning_once at 158\n  In ft_defaults>checkMultipleToolbox at 233\n  In ft_defaults at 89 \nWarning: one version of spm is found here: /Volumes/Data/roboos/matlab/fieldtrip/external/spm8/spm.m \n> In ft_defaults>checkMultipleToolbox at 236\n  In ft_defaults at 89 \nWarning: one version of spm is found here: /Volumes/Data/roboos/matlab/fieldtrip/external/spm2/spm.m \n> In ft_defaults>checkMultipleToolbox at 236\n  In ft_defaults at 89 \nWarning: You probably used addpath(genpath('path_to_fieldtrip')), this can lead to unexpected behaviour. See\nhttp://fieldtrip.fcdonders.nl/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path \n> In fieldtrip/private/warning_once at 158\n  In ft_defaults>checkMultipleToolbox at 239\n  In ft_defaults at 89"
+      - +@isprivate: "0"
+        commentid: "12221"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 12:49:24 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          having 9 different fieldtrip versions on the path, all with addpath(genpath(...)) does not comply with the installation instructions ;-)
+
+          I suggest Roemer takes a look at your path settings.
+      - +@isprivate: "0"
+        commentid: "12223"
+        comment_count: "8"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 13:15:31 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          I know that I should not use addpath(genpath('path_to_fieldtrip')) and I also did not include it in my path settings.
+
+          Therefore, what makes you think that I did so ...(-;
+      - +@isprivate: "0"
+        commentid: "12224"
+        comment_count: "9"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2013-12-04 13:53:09 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          Restarted Matlab with exactly the same path settings, the error does not appear anymore and the Fieldtrip path settings are slim again.
+      - +@isprivate: "0"
+        commentid: "12229"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 15:44:30 +0100
+        thetext: "> Therefore, what makes you think that I did so ...(-;\n\nthe fact that you have 9 different fieldtrip versions on your path and for each of them have directories on the path that fieldtrip would never add itself. If it had been on the mentat cluster, I would have thought that you had done addpath(genpath('/home/common/matlab')).\n\nYou might also have used the graphical \"pathtool\" to set the path and clicked on the \"Add with subfolders\" button, which results in the same as addpath(genpath()).\n\nI suggest you do \n\nrestoredefaultpath\ncd fieldtrip\nft_defaults\n\nand you should be all fine again. You might have to do it every time you start MATLAB though, since your problematic path might be represented on disk (either in pathdef.m or in startup.m) and be executed every time you start.\n\nCan you please tell whether the reported bug persists after you have cleaned up your path?"
+      - +@isprivate: "0"
+        commentid: "12232"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-12-04 16:47:50 +0100
+        thetext: |-
+          Actually, there was an unexpected interaction with an update script I use to maintain our version here at the DCC cluster and our file server (since a few weeks ago), which in the end caused a nesting of partially deleted versions. This is fixed now.
+
+          However, Eric, it would still have been avoided if you used something like Robert suggested in your startup.m:
+
+          restoredefaultpath
+          cd fieldtrip
+          ft_defaults
+
+          Or
+
+          restoredefaultpath
+          your_own_paths
+
+          Or if you already do this in your startup.m, then restart your matlab a little more often ;)
+
+          Setting bug as fixed.
+      - +@isprivate: "0"
+        commentid: "12701"
+        comment_count: "12"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-01-29 13:38:01 +0100
+        thetext: |-
+          Closing time
+
+          http://www.youtube.com/watch?v=7-0lV5qs1Qw
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "571"
+      date: 2013-12-04 12:18:00 +0100
+      delta_ts: 2013-12-04 12:18:01 +0100
+      desc: My horribly long path
+      filename: mypath4Robert.m
+      type: application/octet-stream
+      size: "313328"
+      attacher:
+        +content: e.maris
+        +@name: Eric Maris
+      data: REMOVED

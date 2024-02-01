@@ -1,0 +1,200 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1751"
+    creation_ts: 2012-09-28 13:45:00 +0200
+    short_desc: Adding the autosync SVN property does not trigger a sync.
+    delta_ts: 2012-12-31 11:46:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: release
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7657"
+        comment_count: "0"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-28 13:45:35 +0200
+        thetext: |-
+          I have removed some mex files (nansum and friends), and added a new version a few commits later. These new files didn't have the autosync property that tells the SVN server to update all related copies. Fine.
+
+          So, in https://code.google.com/p/fieldtrip/source/detail?r=6591 I added the property, and expected that this would take care of syncing all files. It didn't. The files are now all have the autosync property, but are in different states.
+
+          Perhaps this is for safety reasons, but I think it is unexpected.
+      - +@isprivate: "0"
+        commentid: "7658"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-28 13:48:22 +0200
+        thetext: Also, what does happen when a autosync-enabled file is deleted? Are all the linked files deleted as well?
+      - +@isprivate: "0"
+        commentid: "7664"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-28 15:56:54 +0200
+        thetext: "The autosync only pertains to modifications. \n\nWhen you first add, commit, and then set the property, there is nothing synched. \n\nIf you first svn add, then set the property (locally), then svn commit, it will get synched to the other instances of the file.\n\nWhen deleting one copy, the others are not deleted.\n\nTo fix the inconclusive state, you have to commit a change to the latest version of the file. This is easy with  an m-file, just change some whitespace and then commit.\n\nThe solution for binary file is to copy the latest version over an older version, then svn commit the (updated) old version -> this will synchronize all exemplars to the latest version."
+      - +@isprivate: "0"
+        commentid: "7823"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 12:07:25 +0200
+        thetext: |-
+          I just reopened #1768, because files with the autosync tag were not in sync. I discovered that the checksums of linked files differed.
+
+          Imagine the following scenario:
+          1) Files that have the autosync property, and have the same file name are meant to be the same file.
+          2) Let's call the linked set of files a group.
+          3) If a group has files with different checksums, there is a violation — this is a state that has to be resolved by they autosync script. Checking changes in a new commit is a sufficient condition given an valid initial state.
+          4) Violation (3) can be resolved by propagating the newest changes to the rest of the group.
+          5) Commit, and everything is valid again.
+
+          Of course this is complicated by additional properties (executable bits, other tags).
+      - +@isprivate: "0"
+        commentid: "7824"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 12:15:18 +0200
+        thetext: "Actually, I did some command lining, and there are quite some files out of sync:\n\n# Get all linked files:\n$ svn propget -R autosync > linked.txt\n\n# Extract filename, path and checksum for these files:\n$ for fname in `cat linked.txt | cut -d \" \" -f1` ;\ndo \n  echo `basename $fname` $fname `sha1sum $fname`; \ndone | sort > grouped.txt\n\n# List groups of files that do not have an unique checksum:\n$ cat grouped.txt  | cut -d \" \" -f1,3 | uniq | cut -d \" \" -f1 | uniq -d\n\nama2vol.m\nbounding_mesh.m\nchannelposition.m\nctf2grad.m\ndata2raw.m\ndataset2files.m\nfind_innermost_boundary.m\nfind_outermost_boundary.m\nfixdimord.m\nfixname.m\nft_apply_montage.m\nft_checkdata.m\nft_checkopt.m\nft_convert_units.m\nft_datatype_comp.m\nft_datatype_dip.m\nft_datatype_freq.m\nft_datatype.m\nft_datatype_mvar.m\nft_datatype_raw.m\nft_datatype_sens.m\nft_datatype_source.m\nft_datatype_spike.m\nft_datatype_timelock.m\nft_estimate_units.m\nft_fetch_data.m\nft_fetch_header.m\nft_findcfg.m\nft_getopt.m\nft_getopt.m\nft_hastoolbox.m\nft_inside_vol.m\nft_progress.m\nft_senslabel.m\nft_senstype.m\nft_voltype.m\ngetsubfield.m\nglobalrescale.m\nhasyokogawa.m\nheadcoordinates.m\nissubfield.m\nistrue.m\nkeyvalcheck.m\nkeyval.m\nmatch_str.m\nmatlabversion.m\nmergeconfig.m\nnanmean.mexw32\nneuralynx_crc.m\nneuralynx_getheader.m\noffset2time.m\nparameterselection.m\npreproc.m\npthread.h\npthreadVC2.lib\nread_neuralynx_dma.m\nrigidbody.m\nrotate.m\nscale.m\nsched.h\nsetsubfield.m\nsine_taper.m\nsmartinput.m\nsolid_angle.m\nsolid_angle.m\nspecest_nanfft.m\ntokenize.m\ntraditional.m\ntranslate.m\ntriplot.m\nuimage.m\nuimagesc.m\nwarp_apply.m\n\nThis seems quite a list. Perhaps I made a mistake somewhere. But at least nanmean.mexw32 is there, for which I know there is a problem."
+      - +@isprivate: "0"
+        commentid: "7825"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 12:20:53 +0200
+        thetext: |-
+          Ok, there is probably a series of false positives due to the $Id tag of SVN:
+
+          $ diff ./plotting/private/scale.m ./utilities/private/scale.m
+          44c44
+          < % $Id: scale.m 3550 2011-05-16 18:58:45Z roboos $
+          ---
+          > % $Id: scale.m 3486 2011-05-10 09:29:30Z roboos $
+      - +@isprivate: "0"
+        commentid: "7827"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 12:48:47 +0200
+        thetext: "After removing the false positives (skipping the $Id: line in the checksum), the following text files remain:\n\n$ find . -name \"sched.h\"\n./realtime/src/external/pthreads-win64/include/sched.h\n./realtime/src/external/pthreads-win32/include/sched.h\n\n$ find . -name \"pthread.h\"\n./realtime/src/external/pthreads-win64/include/pthread.h\n./realtime/src/external/pthreads-win32/include/pthread.h\n\nThese should probably not be autosynced, since the content is supposed to be different.\n\nThe only binary file in comment 4 is nanmean.mexw32, which is taken care of in #1768. \nI have removed the autosync on sched.h and pthread.h in SVN revision 6703.\n\n*So, in summary there is not really a problem with the current state of autosynced files.*."
+      - +@isprivate: "0"
+        commentid: "7832"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 14:22:53 +0200
+        thetext: 'Update: forgot about pthreadVC2.lib. Also removed autosync tag for this file.'
+      - +@isprivate: "0"
+        commentid: "7834"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-05 16:24:48 +0200
+        thetext: "(In reply to comment #3)\n\n> 1) Files that have the autosync property, and have the same file name are meant\n> to be the same file.\n> 2) Let's call the linked set of files a group.\n> 3) If a group has files with different checksums, there is a violation — this\n> is a state that has to be resolved by they autosync script. Checking changes in\n> a new commit is a sufficient condition given an valid initial state.\n> 4) Violation (3) can be resolved by propagating the newest changes to the rest\n> of the group.\n> 5) Commit, and everything is valid again.\n\nRe. 3: this violation is what triggers the autosync script. It does not know however about checksums, it only knows that one exemplar from the group has been updated, it copies it over the other exemplars and commits.\n\nHowever, you are apparently able (due to some subtle difference in how you do updates compared to how other do it) to break the script. The script breaking is something  the script cannot be made robust against. So item 4 and 5 are part of the current script (but not based on checksums), but sometimes they are not executed.\n\nMight it be that you are not doing an svn update following your svn commit and that therefore your other copies are not updated?\n\nHave a look in /home/svnroot/fieldtrip/hooks/post-commit-autosync \non the svn server (you can open that file after logging in with your normal account)."
+      - +@isprivate: "0"
+        commentid: "7835"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-05 16:25:10 +0200
+        thetext: |-
+          I checked two of the problem files:
+
+          manzana> svn info realtime/src/external/pthreads-win64/include/pthread.h
+          Path: realtime/src/external/pthreads-win64/include/pthread.h
+          Name: pthread.h
+          URL: svn+ssh://roboos@svn.fcdonders.nl/home/svnroot/fieldtrip/trunk/realtime/src/external/pthreads-win64/include/pthread.h
+          Repository Root: svn+ssh://roboos@svn.fcdonders.nl/home/svnroot/fieldtrip
+          Repository UUID: 0cf7c7f0-3615-4144-b4e6-68da3bce3cd0
+          Revision: 6705
+          Node Kind: file
+          Schedule: normal
+          Last Changed Author: borreu
+          Last Changed Rev: 6703
+          Last Changed Date: 2012-10-05 12:47:38 +0200 (Fri, 05 Oct 2012)
+          Checksum: f781fae7a2ba70179bccc1ad82866575
+
+          manzana> svn info realtime/src/external/pthreads-win32/include/pthread.h
+          Path: realtime/src/external/pthreads-win32/include/pthread.h
+          Name: pthread.h
+          URL: svn+ssh://roboos@svn.fcdonders.nl/home/svnroot/fieldtrip/trunk/realtime/src/external/pthreads-win32/include/pthread.h
+          Repository Root: svn+ssh://roboos@svn.fcdonders.nl/home/svnroot/fieldtrip
+          Repository UUID: 0cf7c7f0-3615-4144-b4e6-68da3bce3cd0
+          Revision: 6705
+          Node Kind: file
+          Schedule: normal
+          Last Changed Author: borreu
+          Last Changed Rev: 6703
+          Last Changed Date: 2012-10-05 12:47:38 +0200 (Fri, 05 Oct 2012)
+          Checksum: 8b389a9959dba88a89d8226304542158
+      - +@isprivate: "0"
+        commentid: "7836"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-05 16:27:26 +0200
+        thetext: "(In reply to comment #9)\n\nfor these two I also notice that \n\nmanzana> svn propget autosync realtime/src/external/pthreads-win32/include/pthread.h \nmanzana> svn propget autosync realtime/src/external/pthreads-win64/include/pthread.h \n\nreturn both nothing. So the files are not synched. From the svn log I also understand that to be intentional."
+      - +@isprivate: "0"
+        commentid: "7837"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-05 16:28:46 +0200
+        thetext: "(In reply to comment #10)\n\nor more specifically \nhttp://code.google.com/p/fieldtrip/source/detail?r=6703"
+      - +@isprivate: "0"
+        commentid: "8027"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:46:04 +0100
+        thetext: as far as I can tell, the autosync issues have been resolved, right?
+      - +@isprivate: "0"
+        commentid: "8830"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:21 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

@@ -1,0 +1,157 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3275"
+    creation_ts: 2017-03-27 10:33:00 +0200
+    short_desc: allow sEEG (i.e. not ECoG but depth electrodes) to be visualized with ft_sourceplot
+    delta_ts: 2019-08-10 12:41:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "3059"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - roemer.van.der.meij
+      - sandongriffin
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18521"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 10:33:22 +0200
+        thetext: |-
+          ... since it is basically the same as virtual electrodes, but then with real electrodes ;-)
+
+
+          I discussed this with Arjen, Sandon and Jan-Mathijs. If the data contains sens.chanpos, then ft_checkdata should allow on-the-fly conversion of timelock/freq data to source data.
+      - +@isprivate: "0"
+        commentid: "18522"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 11:25:51 +0200
+        thetext: |-
+          I started implementing this on a branch
+
+          [bug3275-sourceplot 57fd387] ENH - support on the fly conversion of timelock/freq to ungridded source for sEEG visualization, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3275
+           6 files changed, 204 insertions(+), 12 deletions(-)
+           create mode 100644 test/test_bug3275.m
+           create mode 100644 utilities/private/dimindex.m
+
+          [bug3275-sourceplot df84228] ENH - added time-frequency example to test script, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3275
+           1 file changed, 25 insertions(+), 8 deletions(-)
+      - +@isprivate: "0"
+        commentid: "18523"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 11:35:23 +0200
+        thetext: "In the ft_sourceplot implementation I noticed that it would do \n\nfun = fun(inside)\n\nwhere inside is a boolean vector. This caused the time and/or frequency dimension to be  discarded. I changed it into \n\nfun = fun(inside,:,:)\n\nso that it does not take the first (time/frequency) slice, but that it selects all time/frequency.\n\nThis reveals that the cloud plotting does not yet allow for either selecting the latency/frequency, nor for browsing through it. I think that the browsing through time/frequency is only implemented for method=ortho. For all others (including method=cloud) it would be good at least to implement latency/frequency selection."
+      - +@isprivate: "0"
+        commentid: "18524"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 11:55:30 +0200
+        thetext: |-
+          I improved ft_sourceplot a bit and added a test case to the script.
+
+          [bug3275-sourceplot 3b6472f] ENH _ improve detection of 4d or 5d source structures, enhanced test script in line with http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3275#c2
+           2 files changed, 38 insertions(+), 14 deletions(-)
+
+          I will discuss with Jan-Mathijs how to proceed in general with the implementation of ft_sourceplot w.r.t. time and/or frequency.
+      - +@isprivate: "0"
+        commentid: "18525"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 23:00:02 +0200
+        thetext: |-
+          The only cfg.method in ft_sourceplot that presently supports time and/or frequency is method=ortho. For the others I am now giving an explicit error. I also added cfg.latency/cfg.frequency and cfg.avgovertime/avgoverfreq options. That allows for all methods to select a single time and frequency.
+
+          The issue is resolved with https://github.com/fieldtrip/fieldtrip/pull/386
+
+          Of course there are still improvements to make, but I think it is already in a usable state.
+      - +@isprivate: "0"
+        commentid: "18526"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-29 01:29:03 +0200
+        thetext: |-
+          Not sure where you mentioned it earlier, but I tried running test_bu3275 which gave me the following issue
+
+          Undefined function 'fieldnames' for input arguments of type 'double'.
+
+          Error in ft_selectdata (line 140)
+              restoreavg = fieldnames(varargin{1}.avg);
+
+          Error in ft_sourceplot (line 295)
+            functional = ft_selectdata(tmpcfg, functional);
+
+          Tried debugging it by removing the avg field from the statement at line 140, but ran into issues further downstream suggesting me that I was overlooking something here.
+      - +@isprivate: "0"
+        commentid: "18527"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-29 09:55:42 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #5)
+
+          I also noticed the bug. It was due to the field timelock.avg. Shen converted to source.avg, some code assumes that it is a structure (e.g. containing source.avg.pow).
+
+          I made some other small cleanups as well. They are merged in the master branch.
+
+          [master 27a0421] FIX - small fix related to conversion of timelock to source data for iEEEG plotting, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3275#c5
+           4 files changed, 13 insertions(+), 12 deletions(-)
+      - +@isprivate: "0"
+        commentid: "20257"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:59 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20456"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:09 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

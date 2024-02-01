@@ -1,0 +1,129 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3008"
+    creation_ts: 2015-11-19 18:37:00 +0100
+    short_desc: FDR thresholding wrong
+    delta_ts: 2016-06-14 16:14:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: kathrin.muesch
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16397"
+        comment_count: "0"
+        who:
+          +content: kathrin.muesch
+          +@name: ""
+        bug_when: 2015-11-19 18:37:03 +0100
+        thetext: |-
+          Hi,
+
+          I realized that the fdr.m file gives a wrong output in the (maybe less frequent) case that the smallest p values are above the FDR threshold. The current script only declares the p values below or equal to the threshold as significant, whereas in fact all p values that are smaller or equal to the largest p value below or equal to this threshold should be declared significant. This is also stated in the original paper that was implemented in the fdr.m file: "find the largest P value that is below the line [threshold]. All voxels with P values less than or equal to this are declared active."
+
+          An example:
+          p = [0.008 0.008 0.012 0.018 0.03];
+          q = 0.05;
+
+          % h=fdr(p,q) gives me the following, when setting a breakpoint at line 39:
+          pi = [0.0044    0.0088    0.0131    0.0175    0.0219]; % slope of the FDR threshold
+          ps = p; % because already sorted from smallest to largest
+
+          % plot
+          plot(p,'ro');
+          hold on;
+          plot(pi); % illustrating that the first 3 p values should be significant because 0.012 is the largest p value below the threshold
+
+          % line 36 gives the following output
+          h = (ps<=pi);
+          h = [0 1 1 0 0];
+
+          % this is incorrect, the first sample should also be significant, i.e. 1
+          % this can be achieved by updating line 36 to the following:
+          h = ps<=(max(ps(ps<=pi)));
+
+          Cheers,
+          Kathrin
+      - +@isprivate: "0"
+        commentid: "16406"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 13:18:16 +0100
+        thetext: I think we have been discussing this with various people (including experts) in the past and that there were two slightly different models that could be used in the FDR correction. Let me look up the old discussion thread...
+      - +@isprivate: "0"
+        commentid: "16424"
+        comment_count: "2"
+        who:
+          +content: kathrin.muesch
+          +@name: ""
+        bug_when: 2015-11-24 00:05:20 +0100
+        thetext: |-
+          There are two types of FDR correction (Benjamini-Hochberg & Benjamini-Yekutieli), of which the second is currently implemented. The reported bug would affect both methods.
+
+          My proposed fix needs to be updated for the case that none of the tests is significant under the FDR correction. The following if-loop replacing the h = ... statement should do (line 36):
+
+          if ~isempty(ps(ps<=pi)) % no significant tests
+              h = ps<=(max(ps(ps<=pi)));
+          else
+              h = zeros(size(ps));
+          end
+      - +@isprivate: "0"
+        commentid: "16428"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-24 12:29:42 +0100
+        thetext: "(In reply to kathrin.muesch from comment #2)\n\nthanks, you beat me to finding those references. So it is not related to the difference, which I had suspected.\n\nIn me reading your suggestion\n\nif ~isempty(ps(ps<=pi)) % no significant tests\n    h = ps<=(max(ps(ps<=pi)));\nelse\n    h = zeros(size(ps));\nend\n\nI would say that it is the same as\n\nif any(ps<=pi)\n    h = ps<=(max(ps(ps<=pi)));\nelse\n    h = zeros(size(ps));\nend\n\nright? but the \"if\" applies in case there is something significant, and the \"else\" in case there is not. So I don't understand the placement of your comment (although it is probably not relevant, so don't bother). The \"else\" clause has to do with no significant tests.\n\nLooking up the Genovese paper, figure 1, I see the potential difference between the present FT implementation and the paper. I threshold each sorted p value (\"ps\") relative to the corresponding \"qi\" (which gets smaller towards the origin, whereas the paper states that the largest \"ps\" under the line is to be taken as a fixed threshold. \n\nIn principle it could have been with the existing implementation that large p values would have reached significance, whereas smaller ones that (after sorting) decrease less fast than the \"qi\" line (e.g. think of a plateau) would not fall below the \"qi\" line and hence not have been marked significant.\n\n\nI have fixed it.\n\nmac011> svn commit private/fdr.m \nSending        private/fdr.m\nTransmitting file data .\nCommitted revision 10935."
+      - +@isprivate: "0"
+        commentid: "16430"
+        comment_count: "4"
+        who:
+          +content: kathrin.muesch
+          +@name: ""
+        bug_when: 2015-11-24 16:40:14 +0100
+        thetext: |-
+          Hi Robert,
+
+          Your fix is totally appropriate and more elegant than mine. My comment in the code was supposed to go with the else statement.
+
+          Thanks for fixing it!
+
+          Kathrin
+      - +@isprivate: "0"
+        commentid: "17486"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:49 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

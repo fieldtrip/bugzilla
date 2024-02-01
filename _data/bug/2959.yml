@@ -1,0 +1,100 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2959"
+    creation_ts: 2015-09-10 18:29:00 +0200
+    short_desc: prepare_freq_matrices does not work on data that is derived from 'mtmconvol'
+    delta_ts: 2016-01-14 21:27:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2762"
+    everconfirmed: "1"
+    reporter:
+      +content: rene.scheeringa
+      +@name: rené scheeringa
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16083"
+        comment_count: "0"
+        who:
+          +content: rene.scheeringa
+          +@name: rené scheeringa
+        bug_when: 2015-09-10 18:29:15 +0200
+        thetext: |-
+          While performing beamforer on EEG data an error occurs in the 'nearest' function used for selecting the data. This bug was discussed during the EEG lunch meeting at the DCCN of 07/09. The error report is below. I used the internal fieldtrip version central storage and the bug/error still ocurred on 09/10.
+
+          The cfg and data set I Used can be downloaded from:
+          https://www.dropbox.com/sh/vkxqd6fknzbo45c/AABYTZc1mA_kxOIN9RdY7535a?dl=0
+
+
+          error message:
+
+          [source] = ft_sourceanalysis(cfg, freq_LR2_t04_f25);
+
+          Error using nearest (line 58)
+          The limits you selected are outside the range available in the data
+
+          Error in ft_selectdata_old (line 541)
+              toitmp=nearest(data.time,[seltoi(1) seltoi(2)]);
+
+          Error in ft_selectdata (line 77)
+            [varargout{1:nargout}] = ft_selectdata_old(varargin{:});
+
+          Error in prepare_freq_matrices (line 197)
+              freq = ft_selectdata(freq, 'foilim', cfg.frequency, 'toilim', cfg.latency);
+
+          Error in ft_sourceanalysis (line 513)
+                [Cf, Cr, Pr, Ntrials, cfg] = prepare_freq_matrices(cfg, data);
+      - +@isprivate: "0"
+        commentid: "16084"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-10 19:27:11 +0200
+        thetext: |-
+          A workaround for now may be to follow the recipe on the wiki:
+
+          - use ft_redefinetrial to cut out a time window of interest
+          - use ft_freqanalysis with 'mtmfft' as a method
+          - call ft_sourceanalysis.
+      - +@isprivate: "0"
+        commentid: "16090"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-11 10:36:26 +0200
+        thetext: "I think the cause of Rene's problem is due to the fact that within ft_sourceanalysis already some processing is done on the 'mtmconvol'ed data with 'powandcsd'.\nThese processing steps already entail a latency and frequency selection, as well as a conversion of the linearly indexed cross-spectral densities into a chan_chan representation. \nNext prepare_freq_matrices chokes on this, when attempting a next round of latency and frequency selection (not needed anymore). On top it was trying to use ft_selectdata_old for this :o).\n\nIn short, it's time to update prepare_freq_matrices"
+      - +@isprivate: "0"
+        commentid: "16091"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-11 10:57:00 +0200
+        thetext: fixed on revision 10659

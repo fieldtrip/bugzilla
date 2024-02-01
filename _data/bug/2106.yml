@@ -1,0 +1,176 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2106"
+    creation_ts: 2013-04-11 13:59:00 +0200
+    short_desc: 'ft_rejectvisual: when cfg.mode = ''summary'', plotting topographies using the ''trial plotter'' results in an error'
+    delta_ts: 2014-01-29 13:39:51 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1477
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10053"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-11 13:59:33 +0200
+        thetext: (quick report, found during the toolkit) (just like the previous 2 bugs actually ;))
+      - +@isprivate: "0"
+        commentid: "10387"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-06 19:43:29 +0200
+        thetext: |-
+          Hi Roemer,
+          Can this be reproduced? Otherwise I suggest to wontfix this.
+      - +@isprivate: "0"
+        commentid: "10585"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-03 10:33:46 +0200
+        thetext: Cannot reproduce here (with CTF275 or neuroscan16 data), so marking as worksforme. Feel free to reopen if it turns out to be a real bug :)
+      - +@isprivate: "0"
+        commentid: "10614"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 11:09:41 +0200
+        thetext: |-
+          It can be replicated by:
+          load('/home/common/matlab/fieldtrip/data/ftp/tutorial/cluster_permutation_freq/dataFIC.mat')
+          cfg = [];
+          cfg.layout = 'CTF151.lay';
+          cfg.method = 'summary';
+          ft_rejectvisual(cfg,dataFIC);
+          And then plotting a random trial by putting a trial number in the 'plot trial' box and hitting enter. Error ending up in ft_checkdata.
+
+          Assigning to me.
+      - +@isprivate: "0"
+        commentid: "10615"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 11:58:08 +0200
+        thetext: "In ft_checkdata's raw2timelock subfunction, the time axis is being reconstructed after counting the number of samples pre and postzero. The error is caused by the reconstructed time-axis having 1 sample less than the actual time-axis, thus causing an indexing error later on. \n\nThe miscounting itself is caused by numerical inaccuracies in the time-axis. Sampling/resampling rate of the tutorial data is 300Hz, and there is some machine noise surrounding the time-steps. \nReconstructing the time-axis by mint:mean(diff(time)):maxt skips the last sample, because it is less than mean(diff(time)) away from the previous sample. \n\nSo, in short, the problem is caused by an 'irrational' fractional time-step (infinite decimals). I guess we deal with this kind of thing in other places as well, and I'm not sure whether this is the appropriate place for a 'fix'. \n\n\nNote, this is not related to bug 1477."
+      - +@isprivate: "0"
+        commentid: "10616"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 12:06:03 +0200
+        thetext: (additional note, also fails when reading in tutorial data anew, so issue not related to old preprocessed data)
+      - +@isprivate: "0"
+        commentid: "10633"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 16:02:00 +0200
+        thetext: "After discussing this in the ft-meeting, it became clear that the code where the sample was lost was part of the fix for bug 1477. \nBecause the underlying issue was related to a 'irrational' sampling rate and/or numerical error in the time-axis, I tried to find a way to correct for this. \n\nHowever, any 'irrational' sampling rate (either truly irrational like 1/3 or numerically close to irrational like 1/278) will always lead to difference in time-steps of at least eps. \nI.e.: numel(unique(diff(time)))~=1. \nI do not think there is a way around this, unless we want to set a limit on the precision of the sampling rate. \nHowever, this brings back *dumdumdummmm* the fsample field from deprecation. If we decide to at some point, a time-axis fix can be implemented in ft_datatype_raw's fixtimeaxes subfunction.\n\nConsidering it unlike we would ever do that (right?), I fixed the problem with irrational sampling rates in raw2timelock, ft_checkdata.\n\nSetting as fixed, more info in bug1477."
+      - +@isprivate: "0"
+        commentid: "10634"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-05 16:09:49 +0200
+        thetext: |-
+          I am strongly in favour of bringing back fsample! It should never have been deprecated in the first place. It just makes life so much easier. As said in the meeting, I always add it back anyway, because I like to be able to do stuff like
+
+          cfg = [];
+          cfg.toilim = [1 2-1/data.fsample];
+          data = ft_redefinetrial(cfg, data);
+
+          to select exactly 1s of data (speeds up fft tremendously).
+      - +@isprivate: "0"
+        commentid: "10635"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-05 16:11:33 +0200
+        thetext: |-
+          hehehe, I always do:
+
+          cfg = [];
+          cfg.toilim = [1 2-mean(diff(data.time{1}))];
+          data = ft_redefinetrial(cfg, data);
+
+          This also speeds up the fft ;-)
+      - +@isprivate: "0"
+        commentid: "10637"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 16:25:45 +0200
+        thetext: |-
+          or just do:
+          cfg.padding = ceil(max(cellfun(@numel,data.time))./data.fsample);
+          freq = ft_freqanalysis(cfg,data)
+
+          To get a nice integer multiples in 1 freq-axis ;). @Jorn: hint! ;p
+
+
+
+          Actually, if you're aiming for fast fft's, shouldn't it be a power of 2?
+          cfg.padding = 2^nextpow2(max(cellfun(@numel,data.time))) ./ data.fsample;
+      - +@isprivate: "0"
+        commentid: "10734"
+        comment_count: "10"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-13 10:38:50 +0200
+        thetext: 'fsample we love you! #OccupyPreprocessing'
+      - +@isprivate: "0"
+        commentid: "12707"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-01-29 13:39:51 +0100
+        thetext: |-
+          Closing time
+
+          http://www.youtube.com/watch?v=7-0lV5qs1Qw

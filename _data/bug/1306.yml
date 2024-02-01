@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1306"
+    creation_ts: 2012-02-01 15:03:00 +0100
+    short_desc: 'ctf64 data: ft_datatype_sens(data.grad) fails after call to ft_selectdata'
+    delta_ts: 2019-08-10 11:55:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1309
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1763
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5065"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-02-01 15:03:09 +0100
+        thetext: |-
+          Inside ft_timelockanalysis, after call to ft_selectdata for cfg.trials, (put a breakpoint there around line 144), then if you run ft_datatype_sens(data.grad) it fails (for ctf64 data only; runs ok on ctf274 and bti).
+
+          The reason is that senstype is not found correctly in ft_senstype, as the existence of data.grad.elecpos causes 'iselec' to be set 'true', so senstype is set to 'electrode' further down. Thus, why does elecpos get added?
+      - +@isprivate: "0"
+        commentid: "6120"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-05-16 08:05:40 +0200
+        thetext: '*** Bug 1419 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "7773"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 15:22:56 +0200
+        thetext: "Start with implementing a test script. \nSee /home/common/matlab/fieldtrip/data/test/original/meg"
+      - +@isprivate: "0"
+        commentid: "7840"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-05 18:19:26 +0200
+        thetext: "(In reply to comment #2)\n\nI'm checking the triggers of the ctf64 dataset but I cannot read the file:\n\ncfg                         = [];\ncfg.trialdef.eventtype      = '?';\ncfg.dataset                 = '/home/common/matlab/fieldtrip/data/test/original/meg/ctf64/Wat123r1raw.ds';\ncfg                         = ft_definetrial(cfg);\n\nWarning: could not determine filetype of /home/common/matlab/fieldtrip/data/test/original/meg/ctf64/Wat123r1raw.ds/Wat123r1raw.meg4 \n> In fileio/private/warning_once at 75\n  In ft_filetype at 1061\n  In ft_checkconfig at 503\n  In ft_definetrial at 116 \nWarning: no trialfun was specified, using ft_trialfun_general \n> In ft_definetrial at 123 \nevaluating trialfunction 'ft_trialfun_general'\nError using ft_read_header (line 1655)\nunsupported header format (unknown)\n\nError in ft_trialfun_general (line 55)\nhdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);\n\nError in ft_definetrial (line 162)\n    [trl, event] = feval(cfg.trialfun, cfg);\n\nThe error is because the ctf64 *.meg4 file header's mismatch when inside ft_definetrial (line 116), ft_checkconfing calls ft_filetype: Around line 230:\nfiletype_check_header(filename, 'MEG41CP'), the ctf64 header is 'MEG4CPT' instead of 'MEG41CP'. What to do?\n\nSuggestion: add an OR statement in ft_filetype line 230 to make ctf64 compatible:\n\nelseif filetype_check_extension(filename, '.meg4') && filetype_check_header(filename, 'MEG41CP') || filetype_check_header(filename, 'MEG4CPT')"
+      - +@isprivate: "0"
+        commentid: "7841"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-07 11:30:21 +0200
+        thetext: |-
+          Hi Diego,
+
+          This looks like a good suggestion. Note that you need brackets around the 2 statements that are separated by the '||' in order for it to work.
+      - +@isprivate: "0"
+        commentid: "7858"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-09 15:59:10 +0200
+        thetext: |-
+          (In reply to comment #4)
+           Done Jan-Mathijs. I've the same issue with the ctf64 *.res4 file: the header info is 'MEG3RES' but is not among the ft_filetype options (see line 226). I propose you the same:
+
+          elseif filetype_check_extension(filename, '.res4') && (filetype_check_header(filename, 'MEG41RS') || filetype_check_header(filename, 'MEG42RS') || filetype_check_header(filename, 'MEG4RES') || filetype_check_header(filename, 'MEG3RES'))
+      - +@isprivate: "0"
+        commentid: "7859"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-09 16:03:17 +0200
+        thetext: sounds good to me!
+      - +@isprivate: "0"
+        commentid: "7861"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-09 17:29:39 +0200
+        thetext: "(In reply to comment #6)\n\ncfg                         = ft_definetrial(cfg);\nWarning: no trialfun was specified, using ft_trialfun_general \n> In ft_definetrial at 123 \nevaluating trialfunction 'ft_trialfun_general'\n\nreadCTFds: .meg4 file header=MEG4CPT   Valid header options:  MEG41CP  MEG42CP\n\nReference to non-existent field 'res4'.\n\nError in ft_read_header (line 405)\n    hdr.Fs           = orig.res4.sample_rate;\n\nError in ft_trialfun_general (line 55)\nhdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);\n\nError in ft_definetrial (line 162)\n    [trl, event] = feval(cfg.trialfun, cfg);\n\nThe new headers for CTF64 are not included in readCTFds.m funtion. If we want to add them, we should change go to lines 88-89 in readCTFds.m:\n\nres4Headers=strvcat(['MEG41RS',char(0)],['MEG42RS',char(0)],['MEG3RES',char(0)]);\nmeg4Headers=strvcat(['MEG41CP',char(0)],['MEG42CP',char(0)],['MEG4CPT',char(0)]);\n\nAs it's readCTFds.m it's an external function, shall we discuss potential solutions tomorrow at the fieldtrip bug binge?"
+      - +@isprivate: "0"
+        commentid: "7886"
+        comment_count: "8"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-10 15:53:35 +0200
+        thetext: '...'
+      - +@isprivate: "0"
+        commentid: "19731"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:51:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "19775"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:55:46 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

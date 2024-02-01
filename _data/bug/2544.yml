@@ -1,0 +1,163 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2544"
+    creation_ts: 2014-04-18 15:07:00 +0200
+    short_desc: ft_sourcegrandaverage error due to field dimord not being detected properly
+    delta_ts: 2014-09-04 10:41:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2185
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13386"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-04-18 15:07:40 +0200
+        thetext: |-
+          Howdy 'tripcats,
+
+          When computing a grand average of a set of source data, I get this error.
+
+          cfg=[];
+          cfg.keepindividual='no';
+          sc_g_all=ft_sourcegrandaverage(cfg,sc{:});
+
+          ??? Undefined variable selchan.
+
+          Error in ==> ft_selectdata at 272
+              if fieldhaschan,    varargin{i} = makeselection(varargin{i}, find(ismember(dimtok,{'chan'
+              '{chan}'})), selchan{i},    avgoverchan, datfield{j}, cfg.select); end
+
+          Error in ==> ft_sourcegrandaverage at 108
+          [varargin{:}] = ft_selectdata(cfg, varargin{:});
+
+          Looks like 'fieldhaschan' is true, which is weird, because this is source data so there are no channels in it. The source structures each have the following fields:
+
+                  dim: [19 23 21]
+                 freq: 9.9917
+                  pos: [9177x3 double]
+               inside: [1x4478 double]
+              outside: [1x4699 double]
+               method: 'average'
+                  avg: [1x1 struct]
+                  cfg: [1x1 struct]
+                xgrid: [1x19 double]
+                ygrid: [1x23 double]
+                zgrid: [1x21 double]
+
+          Any ideas?
+      - +@isprivate: "0"
+        commentid: "13387"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-18 18:52:26 +0200
+        thetext: "Hi Tom,\n\nI have recently been working on these pieces of code, so most likely it is my fault. \n\nThe sourcegrandavg test script I have is not reporting any errors. Your error report suggests that it is going wrong on line 262\n\nfieldhaschan    = ismember('chan',    dimtok) | ismember('{chan}', dimtok);\n\nwhich I can imagine being due to dimtok (the cut up version of dimord) being incorrect. My changes to the code pertain to using the dimord much more consistently in the ft_selectdata code, which means that utilities/private/getdimord is now used to determine the dimord of fields for which the dimord is not explicitly specified in the data.  \n\nThis is also related to the work on bug 2185, for which heh resolution was to explicitly convert the source data structure to the \"new\" representation, which basically means squeezing the avg structure out of the data and making it source.pow instead of source.avg.pos. The same squeeze applies to source.trial(i).pow. \n\nIn your data I cannot see what is contained in the source.avg substructure. But I do see the xgrid/ygrid/zgrid, which I had not expected. Could you share the data (e.g. on common/temp) so tha I can have a detailled look at it and at its provenance history?\n\nthanks\nR"
+      - +@isprivate: "0"
+        commentid: "13392"
+        comment_count: "2"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-04-22 11:00:30 +0200
+        thetext: |-
+          A trimmed version of the structure in question is now on /home/common/temporary/bug2544. This version still causes the same error.
+
+          Note that despite trimming it is still quite large. This is because I did not want to interfere with the provenance history.
+
+          Best,
+          Tom
+      - +@isprivate: "0"
+        commentid: "13394"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-22 15:19:56 +0200
+        thetext: |-
+          (In reply to t.marshall from comment #2)
+
+          thanks for the data, I can reproduce the problem... which is more interesting than I thought (let me CC Jan-mathijs).
+
+
+
+          dimord
+      - +@isprivate: "0"
+        commentid: "13395"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-22 15:23:32 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          ... sorry
+
+          the dimord for the source.avg.filter field has been determined as {pos}_ori_chan, which is correct. Not bad that my own function is outsmarting me ;-)
+
+          This relates to an old standing issue represented as bug 1746.
+      - +@isprivate: "0"
+        commentid: "13396"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-22 15:29:35 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+
+          If I change line 261 from
+            fieldhaschan = ismember('chan', dimtok) || ismember('{chan}', dimtok);
+          into
+            fieldhaschan = (ismember('chan', dimtok) || ismember('{chan}', dimtok)) && isfield(varargin{1}, 'label');
+          the specific problem disappears and the average is computed.
+
+          I'll implement that for the moment:
+
+          mac011> svn commit test/test_bug2544.m utilities/
+          Adding         test/test_bug2544.m
+          Sending        utilities/ft_selectdata.m
+          Transmitting file data ..
+          Committed revision 9447.
+      - +@isprivate: "0"
+        commentid: "13609"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:46 +0200
+        thetext: closed several of my bugs that have been resolved

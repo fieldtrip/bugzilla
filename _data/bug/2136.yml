@@ -1,0 +1,141 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2136"
+    creation_ts: 2013-04-25 18:12:00 +0200
+    short_desc: ft_senstype mis-classification
+    delta_ts: 2013-10-26 18:01:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: daniel.wong
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10301"
+        comment_count: "0"
+        attachid: "467"
+        who:
+          +content: daniel.wong
+          +@name: ""
+        bug_when: 2013-04-25 18:12:44 +0200
+        thetext: |-
+          Created attachment 467
+          Contains proposed bug fixes and ANT128 sensor position file
+
+          Hi,
+
+          I'm using an ANT128 system and ft_senstype is classifying the sensors as 'meg', which causes ft_datatype_sens to crash on line 117 when it expects an ori field (ft_datatype_sens is called from ft_read_sens). This wasn't a problem with the version I downloaded in November.
+
+          I've compared the recent and November versions of FieldTrip, and here's what's going on:
+
+          1) In both versions, the sensor type gets initially identified as some sort of EEG system based on the fields included, which results in the iselec flag being set to 1.
+          2) In the November version, the iselec flag results in the sensor labels being compared against sensor labels from different EEG systems.  When no match is found (since there is no ANT definition), the type field gets set to 'electrode' and everyone is happy.
+          3) In the recent version, the iselec flag results in the sensor labels being compared against sensor labels from all systems (EEG and MEG) since someone removed the categorization of sensor definitions.  For the ANT system at least one of the sensor labels matches the ctfref definition, resulting in the type being set to 'ctf'.
+
+          There are two ways I can think of to fix this:
+          1) Add the ANT definition.
+          2) There is a subsequent section in which the EEG and MEG systems are classified separately.  We could take advantage of that by making a call to that section and running a check that if the iselec flag == 1, then we should expect an EEG system back, otherwise force the type to be 'eeg'.  And a similar check could be put in place for the MEG.
+
+          I've attached a copy of ft_senstype and ft_senslabel, which contain both these fixes.
+          The first fix affects both files:
+          - ft_senstype lines: 267-268, 375
+          - ft_senslabel lines: 87-215
+          while the second fix only affects ft_senstype:
+          - ft senstype lines: 247-248, 559-260
+
+          Also attached is a copy of the EEG sensor position file I'm using.
+
+          PS: There are two copies of ft_senstype and ft_senslabel - in /forward and in /fileio/private
+      - +@isprivate: "0"
+        commentid: "11269"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-09-09 08:56:34 +0200
+        thetext: |-
+          Hi Dan,
+          It was nice meeting you in Geneva. Thanks for the detailed report. I'll look into it a.s.a.p., or at least will assign it to someone that will look into it ;-)
+      - +@isprivate: "0"
+        commentid: "11271"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-09-09 09:29:39 +0200
+        thetext: |-
+          I reviewed the changes and it looks good to me. If you could also add the ant128 in the documentation section of ft_senstype ~line 33, I think it is safe to commit these changes. Could I ask you or Sarang to do this? Don't worry about the multiple locations. The files are autosync'ed through svn, so if changed in one location, the copy/copies at the other locations are changed, too. I suggest to commit the changes to the versions in fieldtrip/forward.
+
+          Thanks,
+          JM
+
+          PS: If you have committed and tested the changes, you can change the status of this bug to 'fixed'.
+      - +@isprivate: "0"
+        commentid: "11359"
+        comment_count: "3"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-09-18 18:04:41 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          tested and committed.
+      - +@isprivate: "0"
+        commentid: "11363"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-09-19 13:03:02 +0200
+        thetext: the added conditional statement with a call to ft_senstype leads to some complicated screw-up of the tracking of the recursive calls within this function. Since this breaks the code at some other critical locations I am reverting back to the single clause in the if-statement. If this results in a problem for you guys I suggest to come up with a better fix ;-)
+      - +@isprivate: "0"
+        commentid: "11364"
+        comment_count: "5"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-09-19 13:22:21 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          looks like this still works for us, thanks!
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "467"
+      date: 2013-04-25 18:12:00 +0200
+      delta_ts: 2013-04-25 18:12:44 +0200
+      desc: Contains proposed bug fixes and ANT128 sensor position file
+      filename: Sensor Misclassification Fixes.zip
+      type: application/octet-stream
+      size: "20525"
+      attacher: daniel.wong
+      data: REMOVED

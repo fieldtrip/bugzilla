@@ -1,0 +1,129 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1908"
+    creation_ts: 2012-12-19 21:34:00 +0100
+    short_desc: ensure consistent units for the headmodel functions
+    delta_ts: 2013-01-23 13:07:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8771"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-19 21:34:02 +0100
+        thetext: |-
+          The following change breaks three test scripts on the dashboard.
+
+          http://code.google.com/p/fieldtrip/source/diff?spec=svn7233&r=7232&format=side&path=/trunk/forward/ft_headmodel_localspheres.m&old_path=/trunk/forward/ft_headmodel_localspheres.m&old=7123
+
+          because vol is still empty on line 65. I changed the unit handling in the code into
+
+          --------
+
+          if isempty(unit)
+            geometry = ft_convert_units(geometry);  % ensure that the geometry has units
+            unit     = geometry.unit;               % also use these units for the volume conductor
+          else
+            % convert the input geometry to the desired units
+            geometry = ft_convert_units(geometry, unit);
+          end
+
+          % ensure that all defaults have the same user-defined units
+          radius    = ft_getopt(varargin, 'radius',    scalingfactor('cm', unit) * 8.5);
+          maxradius = ft_getopt(varargin, 'maxradius', scalingfactor('cm', unit) * 20);
+          baseline  = ft_getopt(varargin, 'baseline',  scalingfactor('cm', unit) * 5);
+      - +@isprivate: "0"
+        commentid: "8772"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-19 21:35:35 +0100
+        thetext: "This contains the fix:\n\nmbp> svn commit \nSending        forward/ft_headmodel_localspheres.m\nTransmitting file data .\nCommitted revision 7234."
+      - +@isprivate: "0"
+        commentid: "8773"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-19 21:55:31 +0100
+        thetext: |-
+          I made another change to make the three functions behave the same. With the previous commit there was a conversion of the input geometry, whereas with the other two there was (is) not. Now in all three there is no conversion.
+
+          mbp> svn commit
+          Sending        forward/ft_headmodel_concentricspheres.m
+          Sending        forward/ft_headmodel_localspheres.m
+          Sending        forward/ft_headmodel_singlesphere.m
+          Transmitting file data ...
+          Committed revision 7235.
+
+          We should together have a look at the unit handling in these functions, as I think it is still not perfect. E.g. if the input geometry has units, and the user specifies something else, the result is inconsistent. I don't know whether the input will or can always have units. Is it always a struct?
+
+          I also notice that fns use units rather than unit. And that quite a few are not fully documented, e.g. ft_headmodel_localspheres does not have unit in the help. I suggest we sit down together and make the changes such that we both agree to the documentation and implementation. Not urgent, though.
+      - +@isprivate: "0"
+        commentid: "8790"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-21 13:04:27 +0100
+        thetext: Thanks again for fixing the bug I introduced.  Yes, I'm happy to meet to discuss further how unit should be handled and if a conflict exists of geometry.unit versus user-specified unit.
+      - +@isprivate: "0"
+        commentid: "8792"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-21 13:08:40 +0100
+        thetext: '*** Bug 1912 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "8804"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-22 23:41:35 +0100
+        thetext: |-
+          the units were not copied from of the input geometry, nor estimated. This commit below fixes it, and also allows ft_convert_units to work on a struct array (needed for concentric spheres).
+
+          roboos@mentat001> svn commit
+          Sending        forward/ft_convert_units.m
+          Sending        forward/ft_headmodel_concentricspheres.m
+          Sending        forward/ft_headmodel_localspheres.m
+          Sending        forward/ft_headmodel_singlesphere.m
+          Transmitting file data ....
+          Committed revision 7258.

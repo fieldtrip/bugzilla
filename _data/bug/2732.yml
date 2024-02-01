@@ -1,0 +1,172 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2732"
+    creation_ts: 2014-10-10 16:59:00 +0200
+    short_desc: demeaning in ft_resampledata when data has nans
+    delta_ts: 2017-01-17 11:29:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "3193"
+    everconfirmed: "1"
+    reporter:
+      +content: giorgos.michalareas
+      +@name: Giorgos Michalareas
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14613"
+        comment_count: "0"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2014-10-10 16:59:42 +0200
+        thetext: |-
+          I have a data set where the data is in 1 long trial.
+          I know that there are some noisy segments in the data which i replace with nans.
+          So now my 1 trial data contains some blocks of nans.
+          I want to preserve this structure in the data and I dont want to split it in multiple trials with variable length.
+
+          With such a dataset there is a problem with downsampling by  ft_resampledata because in line 168:
+
+
+
+          bsl             = mean(data.trial{itr},2);
+          data.trial{itr} = data.trial{itr} - bsl(:,ones(1,size(data.trial{itr},2)));
+
+          the mean of the data is nan and then all the resulting resampled dataset has nans.
+
+          THis could be easily avoided I think by just replacing "mean" with "nanmean".
+
+          Is this possible??
+      - +@isprivate: "0"
+        commentid: "14615"
+        comment_count: "1"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2014-10-10 17:08:05 +0200
+        thetext: |-
+          Actually I am not entirely sure if this would fix it.
+          My new resampling frequency
+
+          is original Sampling frequency/4
+
+          so newFs=origFs/4 ;
+
+          but ft_resampledata still tries to interpolate rather than just take the subset every 4 samples.
+
+          I though maybe there is a numerical inaccuracy an it is not exactly one fourth.
+          But when I do origFs/newFs the result is 4.
+
+          In such cases shouldn't the resampling just take a subseet of the data and not do any interpolation??
+      - +@isprivate: "0"
+        commentid: "14616"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-10 17:15:25 +0200
+        thetext: |-
+          (In reply to Giorgos Michalareas from comment #0)
+
+          see also bug 2364. From that bug: "Given the increased support in artefact handling allowing the channel value to be represented as nan in case the channel is bad, this is bad."
+
+          Also here it is desired. However, it won't work everywhere (as you realise yourself, because filtering data with nans is not trivial).
+
+          I think we should go through the ft_preproc functions consistently and make them (if reasonably possible) nan aware. We might also check whether there is other places in the code where this would be useful, e.g. ft_freqbaseline (which I would guess already handles NaNs correctly).
+
+          first thing to do: make a test script that goes over these functions
+
+          ft_preproc_bandpassfilter.m
+          ft_preproc_bandstopfilter.m
+          ft_preproc_baselinecorrect.m
+          ft_preproc_denoise.m
+          ft_preproc_derivative.m
+          ft_preproc_detrend.m
+          ft_preproc_dftfilter.m
+          ft_preproc_highpassfilter.m
+          ft_preproc_hilbert.m
+          ft_preproc_lowpassfilter.m
+          ft_preproc_medianfilter.m
+          ft_preproc_online_downsample_apply.m
+          ft_preproc_online_downsample_init.m
+          ft_preproc_online_filter_apply.m
+          ft_preproc_online_filter_init.m
+          ft_preproc_padding.m
+          ft_preproc_polyremoval.m
+          ft_preproc_rectify.m
+          ft_preproc_rereference.m
+          ft_preproc_resample.m
+          ft_preproc_slidingrange.m
+          ft_preproc_smooth.m
+          ft_preproc_standardize.m
+
+          It should detect whether the function is nan-aware. If not give a warning. Then we should decide which ones need to be updated, those should give an error in the test script. Subsequently we'll change the code.
+
+          @Giorgos, could you make such a test script? A bit like test_bug840.m and test_bug1561.m in fieldtrip/test.
+      - +@isprivate: "0"
+        commentid: "14617"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-10 17:16:36 +0200
+        thetext: |-
+          (In reply to Giorgos Michalareas from comment #1)
+
+          oh, and please note that downsampling should not be done without an anti-aliassing filter, otherwise you'll introduce noise in the data.
+
+          See http://en.wikipedia.org/wiki/Anti-aliasing_filter
+      - +@isprivate: "0"
+        commentid: "17940"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-05 09:55:48 +0100
+        thetext: |-
+          mac011> git commit -a
+          [bug2732-nan 98b97d6] ENH - give a warning if the data contains NaN values, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2732
+           18 files changed, 391 insertions(+), 76 deletions(-)
+
+          The code now gives a warning (once) if the preprocessed data contains a nan. I also made a test script that checks that in the output data the NaN does not go outside the expected range.
+      - +@isprivate: "0"
+        commentid: "17941"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-05 09:57:12 +0100
+        thetext: merged https://github.com/fieldtrip/fieldtrip/pull/254
+      - +@isprivate: "0"
+        commentid: "18175"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:40 +0100
+        thetext: closed multiple bugs that were resolved some time ago

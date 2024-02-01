@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3190"
+    creation_ts: 2016-10-24 14:37:00 +0200
+    short_desc: ft_sourceparcellate's handling of ft_sourceinterpolate's output for atlases
+    delta_ts: 2017-01-17 11:29:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2968"
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17847"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-24 14:37:57 +0200
+        thetext: "When interpolating an atlas onto a sourcemodel and using the result to parcellate a source-level connectivity, two issues arise that force you to manually fiddle with the sourceinterpolate output.\n\n% Lets load atlas, sourcemodel, and a connectivity structure (e.g. \n% from https://www.dropbox.com/s/3uoc28yn23ultgk/source_pco_new.mat?dl=0)\natlas = ft_read_atlas('ROI_MNI_V4.nii'); \nload('standard_sourcemodel3d10mm.mat'); % 'sourcemodel'\nload('source_pco_new.mat'); % 'source_pco'\n\nsource_pco\t= ft_convert_units(source_pco, 'cm'); \natlas\t\t= ft_convert_units(atlas, 'cm');\nsourcemodel\t= ft_convert_units(sourcemodel, 'cm');\n\n% For parcellation we need an atlas that corresponds to our sourcemodel\ncfg_int\t\t\t= [];\ncfg_int.interpmethod\t= 'nearest';\ncfg_int.parameter\t= 'tissue';\natlas_templ\t\t= ft_sourceinterpolate(cfg_int, atlas, sourcemodel);\n\n% All of these have to be identical\nsource_pco.pos  = sourcemodel.pos;\natlas_templ.pos = sourcemodel.pos;\n\n% ISSUE 1: The field tissuelabel was dropped during interpolation. If it is\n% not present we dont know what the tissue indices mean but also\n% ft_checkdata does not recognize the atlas as a parcellation\natlas_templ.tissuelabel\t= atlas.tissuelabel; \n\n% ISSUE 2: ft_sourceparcellation cannot deal with NaNs, because again ft_checkdata objects to having more unique tissues (each NaN counts indovodually) than there are tissue labels.\natlas_templ.tissue(isnan(atlas_templ.tissue)) = 0;\t \n\n% Now the parcellation works\ncfg\t\t\t= [];\ncfg.parcellation\t= 'tissue';\ncfg.parameter\t\t= 'powcorrspctrm';\nsource_pco_parc\t\t= ft_sourceparcellate(cfg, source_pco, atlas_templ);\nimagesc(source_pco_parc.powcorrspctrm)"
+      - +@isprivate: "0"
+        commentid: "17848"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-24 17:08:34 +0200
+        thetext: "Both issues are due to an unusual application of ft_sourceinterpolate. \n\nShould we fix them by detecting this unusual case in ft_sourceinterpolate?\n\nI'll make a branch on github and come with a proposal...\n\n\nPS I renamed and copied the data here:\n\nmac011> mv source_pco_new.mat bug3190.mat\nmac011> scp bug3190.mat mentat001:/home/common/matlab/fieldtrip/data/test"
+      - +@isprivate: "0"
+        commentid: "17849"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-24 17:30:10 +0200
+        thetext: at the moment I am working in a branch 'parcel_conn' which I could push to schoffelen/fieldtrip. The purpose of this branch is to streamline the processing of parcellated data (e.g. to compute connectivity after parcellating). Would it make sense to work on this issue in the same branch? If so, I can push it to github.
+      - +@isprivate: "0"
+        commentid: "17850"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-24 17:40:03 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #2)\n\n@Jan-Mathijs: I was just typing this:\n\n----\n\n@Jens:\n\nCould you have a look at \nhttps://github.com/robertoostenveld/fieldtrip/tree/bug3190-interpolate-atlas\nand specifically at these changes\nhttps://github.com/robertoostenveld/fieldtrip/commit/2d8500a9475d10ad6d2c625758110b19eafd7ff6\n\nI also made a test script, see fieldtrip/test/test_bug3190.m\n\nNote that these changes all live on a branch and are not on home/common yet. If you confirm this as a good solution, I will merge it into the master release.\n\n----"
+      - +@isprivate: "0"
+        commentid: "17851"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-24 17:41:58 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #2)
+
+          does this match your work, or conflict with it? It is only a small fix in ft_datatype and an extension of ft_sourceinterpolate (conditional on the input and cfg.interpmethod).
+
+          PS why is it called cfg.interpmethod and not cfg.method?
+      - +@isprivate: "0"
+        commentid: "17852"
+        comment_count: "5"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-24 18:06:52 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          Yes that seems to work for me! Thanks!
+      - +@isprivate: "0"
+        commentid: "17858"
+        comment_count: "6"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-10-25 11:47:17 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          Wait, that version actually fails when calling ft_volumereslice.
+
+          cfg            = [];
+          cfg.resolution = 1;
+          cfg.dim        = [256 256 256];
+          mrirs          = ft_volumereslice(cfg, mri);
+
+          Reference to non-existent field 'interpmethod'.
+
+          Error in ft_sourceinterpolate (line 133)
+          if strcmp(cfg.interpmethod, 'nearest') && (ft_datatype(functional, 'volume+label') || ft_datatype(functional, 'source+label'))
+
+          Error in ft_volumereslice (line 180)
+          resliced = ft_sourceinterpolate(tmpcfg, mri, resliced);
+      - +@isprivate: "0"
+        commentid: "17880"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-27 10:46:03 +0200
+        thetext: "(In reply to Jens Klinzing from comment #6)\n\nright, the default for interpmethod is only set later. \n\nI changed it.\n\nmac011> git commit -a \n[bug3190-interpolate-atlas cae3620] FIX - set interpmethod to [] to start with, otherwise it fails. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3190#c6\n 2 files changed, 11 insertions(+), 3 deletions(-)\n\nmac011> git push\nX11 forwarding request failed on channel 0\nCounting objects: 13, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (13/13), done.\nWriting objects: 100% (13/13), 1.99 KiB | 0 bytes/s, done.\nTotal 13 (delta 9), reused 0 (delta 0)\nremote: Resolving deltas: 100% (9/9), completed with 5 local objects.\nTo git@github.com:robertoostenveld/fieldtrip.git\n   2d8500a..cae3620  bug3190-interpolate-atlas -> bug3190-interpolate-atlas"
+      - +@isprivate: "0"
+        commentid: "17881"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-10-27 10:48:36 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          I made this PR https://github.com/fieldtrip/fieldtrip/pull/245 and merged it.
+
+          thanks for testing
+      - +@isprivate: "0"
+        commentid: "18202"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:47 +0100
+        thetext: closed multiple bugs that were resolved some time ago

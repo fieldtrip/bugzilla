@@ -1,0 +1,205 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3160"
+    creation_ts: 2016-07-13 14:27:00 +0200
+    short_desc: ft_sourceanalysis cannot deal with larger .grad structure than data
+    delta_ts: 2019-08-10 12:32:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "3164"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17640"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-13 14:27:02 +0200
+        thetext: |-
+          ft_sourceanalysis has a problem when supplying a cfg.grad which is based on more sensors than are in the data, i.e. the latter only containing gradiometers. This is because I lose my grad when I combine data sets, so I retrieve it from a previous dataset, that also has more channels (i.e. magnetometers as well).
+
+          It ends up breaking at:
+
+          --------------
+          Error using reshape
+          To RESHAPE the number of elements must not change.
+
+          Error in ft_sourceanalysis (line 645)
+              Cf  = reshape(Cf , [1 Nchans Nchans]);
+          --------------
+
+          This is because it created the headmodel as well as a cfg previously (line 344, ft_sourceanalysis):
+
+          % collect and preprocess the electrodes/gradiometer and head model
+          [headmodel, sens, cfg] = prepare_headmodel(cfg, data);
+
+          Which was used to determine the number of channels (line 357, ft_sourceanalysis):
+          % It might be that the number of channels in the data, the number of
+          % channels in the electrode/gradiometer definition and the number of
+          % channels in the localspheres volume conduction model are different.
+          % Hence a subset of the data channels will be used.
+          Nchans = length(cfg.channel);
+
+          And that is because ft_fetch_sens (line 53, prepare_headmodel) returned both gradiometers and magnetometers, i.e. 306 sensors, based on the cfg.grad structure (there is no grad in the data):
+
+          % get the gradiometer or electrode definition, these can be in the cfg or in the data
+          sens = ft_fetch_sens(cfg, data);
+
+          Now, I don't know if this is a bug, or just my problem. I should ofcourse be able to solve this by taking my reference data, and running selectdata on that. It's just that it takes another couple of Gig of memory to do so. Also, it seems that the 'subset of data channels' is perhaps wrongly implemented.
+
+          Perhaps there is a way for me to do something like ft_selectdata or ft_fetch_sens to select channels for grad output?
+
+
+          Cheers,
+          Stephen
+      - +@isprivate: "0"
+        commentid: "17645"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-07-14 13:03:28 +0200
+        thetext: |-
+          stephen sent me teh data, it is now in the test dir
+
+          mac011> scp bug3160.mat mentat001:/home/common/matlab/fieldtrip/data/test
+          bug3160.mat                                   100% 2342KB   2.3MB/s   00:00
+      - +@isprivate: "0"
+        commentid: "17665"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-20 17:57:04 +0200
+        thetext: |-
+          als ik doe:
+
+          load bug3160
+          data = common_FFT; % 'k snap niet waarom mensen altijd creatief willen zijn met variable names
+
+          cfg = [];
+          cfg.method = 'dics';
+          cfg.frequency = data.freq;
+          cfg.headmodel.o = [0 0 4];
+          cfg.headmodel.r = 8; % je moet iets, supplied data is tamelijk minimaal
+          cfg.grid.resolution = 1;
+
+          source = ft_sourceanalysis(cfg, data);
+
+          % this works without problems for me, on my git-repo, pulled from upstream master yesterday.
+      - +@isprivate: "0"
+        commentid: "17666"
+        comment_count: "3"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-20 23:06:26 +0200
+        thetext: Ah ja, ik zal morgen de cfg met de grad uploaden, daar gaat het mee mis.
+      - +@isprivate: "0"
+        commentid: "17671"
+        comment_count: "4"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-21 10:36:33 +0200
+        thetext: 'JM: op je gmail'
+      - +@isprivate: "0"
+        commentid: "17673"
+        comment_count: "5"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-21 10:40:57 +0200
+        thetext: "JM, probeer aub met de cfg die ik je gestuurd heb, het volgende:\n\n cfg = [];\n    cfg.method              = 'dics';\n    cfg.grad                = hdr.grad;\n    cfg.grid                = leadfield;\n    cfg.channel             = 'MEGGRAD';   \n    cfg.headmodel           = headmodel_meg;\n    cfg.dics.keepfilter     = 'yes';\n    cfg.dics.lambda         = '5%';\n%     cfg.dics.reducerank     = 2;\n    source_common           = ft_sourceanalysis(cfg, data);"
+      - +@isprivate: "0"
+        commentid: "17674"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-21 11:06:48 +0200
+        thetext: saved cfg as bug3160b on /home/common/matlab/fieldtrip/data/test/
+      - +@isprivate: "0"
+        commentid: "17675"
+        comment_count: "7"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-21 11:12:51 +0200
+        thetext: I see that at line 488 in source_analysis, data.label is empty. I therefor suspect it actually is related to bug 3164 (solved in my pull request)...
+      - +@isprivate: "0"
+        commentid: "17676"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-21 11:16:22 +0200
+        thetext: |-
+          (In reply to Stephen Whitmarsh from comment #7)
+
+
+          I hope not, because this would mean that you use ft_combineplanar prior to sourceanalysis, which is not good.
+      - +@isprivate: "0"
+        commentid: "17677"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-21 11:18:07 +0200
+        thetext: "The problematic thing is a call to ft_selectdata with cfg.channel = 'MEGGRAD';\n\nThis indeed returns an empty powspctrm and label.\n\nIf I change cfg.channel to cfg.channel = ft_channelselection('MEGGRAD',common_FFT.label); \n\nand then call ft_sourceanalysis, it runs through without error.\n\nMy diagnosis is that ft_selectdata has problems in appropriately using the wildcard MEGGRAD in the channel selection."
+      - +@isprivate: "0"
+        commentid: "17678"
+        comment_count: "10"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-21 11:20:58 +0200
+        thetext: "Exactly, so a similar cause as \nhttp://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3164\n\nI.e. a problem of ft_channelselection because of a problem in ft_senstype. See pull-request"
+      - +@isprivate: "0"
+        commentid: "17679"
+        comment_count: "11"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-07-21 14:16:44 +0200
+        thetext: |-
+          And thanks for the work-around JM! At least I can keep going now!
+
+          *** This bug has been marked as a duplicate of bug 3164 ***
+      - +@isprivate: "0"
+        commentid: "20130"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:32:27 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,73 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2334"
+    creation_ts: 2013-10-23 17:28:00 +0200
+    short_desc: ft_trialfun_general selects wrong events after r8613
+    delta_ts: 2019-08-10 12:03:02 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: sarang
+      +@name: Sarang Dalal
+    cc:
+      - j.herring
+      - johanna.zumer
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11652"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-10-23 17:28:01 +0200
+        thetext: "In r8613 the following lines were changed by sardal in ft_trialfun_general:\n\"\nif ~isempty(cfg.trialdef.eventvalue)\n  % this cannot be done robustly in a single line of code\n  if ~iscell(cfg.trialdef.eventvalue)\n    valchar    = ischar(cfg.trialdef.eventvalue); \n    valnumeric = isnumeric(cfg.trialdef.eventvalue);\n  else\n    valchar    = ischar(cfg.trialdef.eventvalue{1});\n    valnumeric = isnumeric(cfg.trialdef.eventvalue{1});\n  end  \n  for i=1:numel(event)\n    if (ischar(event(i).value) && valchar) || (isnumeric(event(i).value) && valnumeric)\n      sel(i) = sel(i) & ~isempty(intersect(event(i).value, cfg.trialdef.eventvalue));\n    end\n  end\nend\n\"\n\nto\n\n\"\nif ~isempty(cfg.trialdef.eventvalue)\n  % this cannot be done robustly in a single line of code\n  if ~iscell(cfg.trialdef.eventvalue)\n    valchar    = ischar(cfg.trialdef.eventvalue); \n    valnumeric = isnumeric(cfg.trialdef.eventvalue);\n    eventvalue = cfg.trialdef.eventvalue;\n  else\n    valchar    = ischar(cfg.trialdef.eventvalue{1});\n    valnumeric = isnumeric(cfg.trialdef.eventvalue{1});\n    eventvalue = cfg.trialdef.eventvalue{1};\n  end  \n  for i=1:numel(event)\n    if (ischar(event(i).value) && valchar) || (isnumeric(event(i).value) && valnumeric)\n      sel(i) = sel(i) & ~isempty(intersect(event(i).value, eventvalue));\n    end\n  end\nend\"\n\nwith the comment: \"fix for labels on trials from CTF data (cell vs string discrepancy)\".\n\nTwo problems have hereby been introduced:\n\n1. In case cfg.trialdef.eventvalue is a cell variable with multiple events(e.g. {'S 1' 'S 2' 'S 3'}), only the first event is used to compare with each trial due to \"eventvalue = cfg.trialdef.eventvalue{1};\".\n\n2. \"eventvalue = cfg.trialdef.eventvalue{1};\" causes event value to become a char-variable if it was a cell of strings. This causes intersect in \"sel(i) = sel(i) & ~isempty(intersect(event(i).value, eventvalue));\" to compare the characters within the string separately rather than comparing the string as a whole. \n\nI'm not sure what the problem with ft_trialfun_general was in the first place (I could not find a bug on it) but this fix introduces problems for Brainvision users."
+      - +@isprivate: "0"
+        commentid: "11657"
+        comment_count: "1"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-10-23 18:44:02 +0200
+        thetext: Sorry to have introduced this problem. We have just committed another revision that should hopefully maintain compatibility with your data as well as fix the problem we had with CTF data. Please let me know if it continues to be a problem.
+      - +@isprivate: "0"
+        commentid: "11829"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-11-01 16:26:03 +0100
+        thetext: The fix works. Thanks! I've assigned the bug to you and will change the status to resolved.
+      - +@isprivate: "0"
+        commentid: "19881"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:02 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

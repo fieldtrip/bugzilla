@@ -1,0 +1,163 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2220"
+    creation_ts: 2013-07-13 23:49:00 +0200
+    short_desc: demeaning with a baseline and ft_preprocessing does not work
+    delta_ts: 2014-03-12 12:20:37 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: flork
+      +@name: Flor Kusnir
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - jorn
+      - lilla.magyari
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10885"
+        comment_count: "0"
+        who:
+          +content: flork
+          +@name: Flor Kusnir
+        bug_when: 2013-07-13 23:49:58 +0200
+        thetext: "Hi,\nI am performing MEG analysis with FieldTrip.\nI was performing a simple demeaning operation on a dataset using ft_preprocessing, with baseline [-0.5 0], when I realised that the sensor data in the actual baseline period did not have a mean of 0, as it should. By looking into the actual FieldTrip code, I figured out that in the function 'ft_preprocessing,' in line 358, in the following command,\n\ndataout.trial{i}, dataout.label, tmptime, cfg] = preproc(data.trial{i}(rawindx,:), data.label(rawindx),  offset2time(0, data.fsample, size(data.trial{i},2)), cfg, begpadding, endpadding);\n\ninstead of using the actual time points of the dataset, a set of NEW time points always starting at zero is created by the 3rd input argument of the above command (also shown below): \n\noffset2time(0, data.fsample, size(data.trial{i},2))\n\n\nThis simply means that if my desired baseline is [-0.5 0],  or in general any negative time array (as it usually is), then the only time point that is actually considered as baseline is time point ZERO (because it's the nearest to both values of my baseline period). The data value at this time point is thus subtracted from the rest of the trial, so that all trials end up with zero as the first data value. \n\nSo, by running \n\ncfg=[];\ncfg.demean='yes';\ncfg.baselinewindow=[-0.5 0];\ndatanew=ft_preprocessing(cfg,data);\n\n\nthe result is that the first point in each trial and in each channel is 0, as this is the only point taken as baseline.\n\nThe  error occurs with the latest FieldTrip version as of now (8310)  but it also occurs with the previous FieldTrip version I was using, which I downloaded through svn checkout on the 4th of July.\n\nI have attached a matlab data file called bugdatafile.mat containing a FieldTrip data structure called 'data.' The command I ran for demeaning is the one a few lines above. I hope I'm not missing something obvious, and if I'm not, could you please tell me the last FieldTrip version in which you know for sure that demeaning worked correctly (as this is critical for my previous analyses!)?\n\nThanks very much (and fingers crossed I'm just missing something obvious)!\nFlor"
+      - +@isprivate: "0"
+        commentid: "10886"
+        comment_count: "1"
+        attachid: "494"
+        who:
+          +content: flork
+          +@name: Flor Kusnir
+        bug_when: 2013-07-13 23:50:52 +0200
+        thetext: |-
+          Created attachment 494
+          data file
+      - +@isprivate: "0"
+        commentid: "10887"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-14 14:59:44 +0200
+        thetext: |-
+          bug confirmed: revision 8246 introduced it.
+
+          I don't see a strong reason why data.time{i} has been replaced by offset2time, apart from my hunch that ft_preproc_padding does not return the padded time axis.
+
+          @Jörn: could you confirm my hunch? If so, would it be an idea that ft_preproc_padding returns the updated time axis and fix this with high priority? Thanks
+      - +@isprivate: "0"
+        commentid: "10888"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-15 08:37:39 +0200
+        thetext: "Hi,\n\nindeed the reason why I introduced the temporary time-axis was because by padding, the number of sample changes and thereby the old, correct time-axis cannot be used. I never considered that someone wants to use a baseline whilst calling preprocessing... my bad. \nImho it would be best to adjust the first argument of offset2time appropriately rather than fiddling around with ft_preproc_padding (as e.g. there is no fsample field in the lower-level function, leading to numerical inaccuracies and what have you). Also, a similar thing probably needs to be done further below in case of reading from disk, where offset2time is also used. I'm gonna fix this later this morning"
+      - +@isprivate: "0"
+        commentid: "10889"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-15 08:38:27 +0200
+        thetext: added JM (see last comment)
+      - +@isprivate: "0"
+        commentid: "10890"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-15 08:51:48 +0200
+        thetext: I agree. Upon second thought ft_preproc_padding should be low-level, so it will not be taking (nor outputting) a time-axis.
+      - +@isprivate: "0"
+        commentid: "10892"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-15 11:11:19 +0200
+        thetext: '*** Bug 2204 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "10895"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-15 12:28:14 +0200
+        thetext: |-
+          time-axes are not a good thing ;) Using offset2time might not be usable in case of in-memory-data because it could be resampled (i.e. trialinfo and sampleinfo become invalid) or not contain information about the offset somewhere (neither in sampleinfo nor in the time-axis). So actually, the only way to go here is work directly on the time-axis, i.e. apply ft_preproc_padding on the time-axis to interpolate it in some way. But what shall happen if the time-axis goes from -0.5 to 0.5 and the requested baseline-window is [-1 0] - should the padded data be used to compute the baseline? I assume not, thus I will add a 'nan' option to ft_preproc_padding which pads nans, thereby increasing the #samples of the time-axis but won't affect any numerical computation on the time-axis (as long as we are working with nan*-functions).
+
+          svn ci ft_preprocessing.m test/test_bug2220.m -m "bugfix #2220 - baselining in preprocessing fixed"
+          Sending        ft_preprocessing.m
+          Adding         test/test_bug2220.m
+          Transmitting file data ..
+          Committed revision 8314.
+
+
+          @Flor: I think this must work, given all the tests I ran. However your data is really small in magnitude in the order of 10^-11, and after baseline correction the baseline period is not exactly 0 but 10^-13. This gets really close to the numerical accuracy of any double-integer and I don't think there's a way to make it more accurate.
+
+          thanks for reporting, and my sincere apologies for introducing this error :/ please check whether everything is according to your expectations and desires, let me know if not.
+      - +@isprivate: "0"
+        commentid: "10896"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-15 12:29:27 +0200
+        thetext: |-
+          svn ci preproc/ft_preproc_padding.m -m "added 'nan'-padding"
+          Sending        preproc/ft_preproc_padding.m
+          Transmitting file data .
+          Committed revision 8315.
+
+          http://code.google.com/p/fieldtrip/source/detail?r=8314
+          http://code.google.com/p/fieldtrip/source/detail?r=8315
+      - +@isprivate: "0"
+        commentid: "10897"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-15 12:36:54 +0200
+        thetext: double-integer is a nice one actually, hope you know what I meant
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "494"
+      date: 2013-07-13 23:50:00 +0200
+      delta_ts: 2013-07-13 23:50:52 +0200
+      desc: data file
+      filename: bugdatafile.mat
+      type: application/x-matlab-workspace
+      size: "17065413"
+      attacher:
+        +content: flork
+        +@name: Flor Kusnir
+      data: REMOVED

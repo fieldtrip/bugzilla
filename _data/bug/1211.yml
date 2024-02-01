@@ -1,0 +1,202 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1211"
+    creation_ts: 2011-12-01 21:23:00 +0100
+    short_desc: ft_chantype should be made faster
+    delta_ts: 2012-03-14 10:00:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4397"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-01 21:23:54 +0100
+        thetext: |-
+          See ft_chantype, around line 454
+
+          % if possible, set additional types based on channel labels
+          label2type = {
+            {'ecg', 'ekg'};
+            {'emg'};
+            {'eog', 'heog', 'veog'};
+            {'lfp'};
+            {'eeg'};
+            };
+          for i = 1:numel(label2type)
+            for j = 1:numel(label2type{i})
+              type(intersect(strmatch(label2type{i}{j}, lower(label)), strmatch('unknown', type, 'exact'))) = label2type{i}(1);
+            end
+          end
+
+          This section is very slow due to the many strmatch calls. Please use tic/toc and especially the profiler to determine the time to execute.
+      - +@isprivate: "0"
+        commentid: "4634"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 12:08:31 +0100
+        thetext: |-
+          See revision 5086, fileio/ft_chantyp:472.
+
+          Could you indicate how slow it is, and how much faster it should be? Do you have  a specific benchmark?
+      - +@isprivate: "0"
+        commentid: "4641"
+        comment_count: "2"
+        attachid: "208"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-03 12:19:09 +0100
+        thetext: |-
+          Created attachment 208
+          screenshot of profiler
+      - +@isprivate: "0"
+        commentid: "4642"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-03 12:19:36 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          It is called in each FT function, and takes ~1 second at the start of each function. Speeding up this type of bookkeeping is beneficial in general. See attached screenshot and try
+
+          cd data/
+          hdr = ft_read_header('Subject01.ds');
+          profile on
+          ft_channelselection('MEG', hdr.label);
+          profile report
+      - +@isprivate: "0"
+        commentid: "4717"
+        comment_count: "4"
+        attachid: "211"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-10 11:59:37 +0100
+        thetext: |-
+          Created attachment 211
+          Screenshot of profiler run on mentat308.
+      - +@isprivate: "0"
+        commentid: "4719"
+        comment_count: "5"
+        attachid: "213"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-10 12:05:53 +0100
+        thetext: |-
+          Created attachment 213
+          Screenshot of profiler run on Windows 7 (64bit)
+      - +@isprivate: "0"
+        commentid: "4720"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-10 12:15:37 +0100
+        thetext: |-
+          I have run the profiler both on Linux (mentat308) and my Windows laptop; and the results seem to differ quite a bit.
+
+          However, I cannot find ft_chantype in the profile reports, nor in the profiled ft_channelselection. How are they related?
+      - +@isprivate: "0"
+        commentid: "5219"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-02-08 14:25:35 +0100
+        thetext: Robert, my guess is you more likely mean ft_senstype? Indeed, ft_chantype is basically never used in the ft_* top-level functions.
+      - +@isprivate: "0"
+        commentid: "5392"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-02-29 14:39:37 +0100
+        thetext: not worth investing time; ft_senstype only accounts for a few percent of execution time in e.g. ft_channelselection
+      - +@isprivate: "0"
+        commentid: "5536"
+        comment_count: "9"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-03-14 10:00:39 +0100
+        thetext: closing several bugs that have been RESOLVED for a long time
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "208"
+        date: 2012-01-03 12:19:00 +0100
+        delta_ts: 2012-01-03 12:19:09 +0100
+        desc: screenshot of profiler
+        filename: Screen shot 2012-01-03 at 12.16.14.png
+        type: image/png
+        size: "46655"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "211"
+        date: 2012-01-10 11:59:00 +0100
+        delta_ts: 2012-01-10 11:59:37 +0100
+        desc: Screenshot of profiler run on mentat308.
+        filename: mentat308-profiler.png
+        type: image/png
+        size: "27135"
+        attacher:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "213"
+        date: 2012-01-10 12:05:00 +0100
+        delta_ts: 2012-01-10 12:05:53 +0100
+        desc: Screenshot of profiler run on Windows 7 (64bit)
+        filename: profiler_win64.png
+        type: image/png
+        size: "89890"
+        attacher:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        data: REMOVED

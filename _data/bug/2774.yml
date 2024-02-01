@@ -1,0 +1,175 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2774"
+    creation_ts: 2014-12-05 18:57:00 +0100
+    short_desc: OpenMEEG leadfield has erroneous sensor interpolations
+    delta_ts: 2015-02-11 10:40:52 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: daniel.miklody
+      +@name: Daniel Miklody
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14917"
+        comment_count: "0"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-05 18:57:09 +0100
+        thetext: "Hello everyone! \n\nI've had some trouble figuring out what really went wrong:\nMy leadfields for a 4-shell BEM got unstable, often changing polarity in the scalp potentials. \nThe BEMs I first experienced this with were non star-shaped but then i managed to create a simple icosahedron642 with a small dent that had the same problem. This toy geometry was even star shaped. In the direction of the dent the leadfield would flip for some positions even deep within the \"sphere\".\nI first blamed OpenMEEG and found out that I get different leadfields on my linux versions, that weren't having these troubles but where having other troubles.\nIn the end I found out that simply using OpenMEEG inert sensorinterpolation solves the issues.\nI don't know what exactly goes wrong but it must be in ft_prepare_vol_sens(..). Interestingly I haven't had these problems for 3-shells (even simply removing the outer layer of my 4-layer toy geometry and assigning standard 3-shell values banned the errors)...\n\nThe difference between linux and win is due to an older version of fieldtrip on the linux. Still the windows version is up-to-date and produces the error. project_elec function is different on the older ft as far as I can see..\n\nMaybe this is connected to the incorrect units problem in bug 2380?!\n\nMy solution is, as I said, to simply use OpenMEEGs interpolation which works perfect. I can supply code for implementing this.\n\n\nAnyway thanks, guys, for this great toolbox in general! \n\nDaniel"
+      - +@isprivate: "0"
+        commentid: "14918"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-08 09:49:00 +0100
+        thetext: |-
+          Hi Daniel,
+
+          Thanks for the report. Could you provide a test script (with a small mat file with the data objects) that would allow me to reproduce the problem?
+
+          I am not an openMEEG expert myself, so was not aware of the choice between having the interpolation done on the MATLAB or on the openMEEG side. I suppose it was implemented by default in MATLAB (ft_prepare_vol_sens) since the previous BEM models also had it there.
+
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "14919"
+        comment_count: "2"
+        attachid: "683"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-08 21:16:47 +0100
+        thetext: |-
+          Created attachment 683
+          Scalp Potential over sensor for same dipole in different lead fields
+      - +@isprivate: "0"
+        commentid: "14920"
+        comment_count: "3"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-08 21:17:59 +0100
+        thetext: "Robert,\n\nthank you for your reply. I have written a test script but I won't send it to you.\nBecause it is emberassing! :D\nSorry, but while creating it, I realized that it was my own fault!\n\nWhile reshaping the leadfields the dimensions got mixed up. I thought I had checked this. I obviously haden't.\nIt was that in addition to that Alexande Gramfort told me he read about someone having different results between Win64 and Linux and my results were different on Linux than on Windows. I thought it was OpenMEEG causing the troubles, not realizing that the sensor interpolations were done within fieldtrip.. So never checked the ft version-no on the cluster.\nThe dipole locations that caused trouble didn't make sense to me before, because I looked at the wrong locations (mixed up indeces). So thought deep whitin the brain something went wrong, although these where the points that where on the interfaces or outside... They of course can become unstable.\n\nEnough justifications for now!\nSometimes it's a long journey to find out that a simple error in the beginning caused all that. Sorry for blaming fieldtrip. Sorry for blaming OpenMEEG in the past.\n\nSo plese delete this bugreport.\n\nThe results between using OpenMEEG's interpolation and your's differ in amplitude (rel MSE is 50%) but correlations are high (very close to 1).. Looking at the leadfield, I think this is due to the fact that fieldtrip uses a mean average reference while openmeeg just computes this as is.\n\nThank you \n\nDaniel"
+      - +@isprivate: "0"
+        commentid: "14921"
+        comment_count: "4"
+        attachid: "684"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-08 21:20:04 +0100
+        thetext: |-
+          Created attachment 684
+          Correlations between leadfields with sensor interpolation FT vs Openmeeg
+      - +@isprivate: "0"
+        commentid: "14922"
+        comment_count: "5"
+        attachid: "685"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-08 21:20:56 +0100
+        thetext: |-
+          Created attachment 685
+          MSE histogramm between FT vs openmeeg sensor interpolated leadfield
+      - +@isprivate: "0"
+        commentid: "14923"
+        comment_count: "6"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2014-12-08 21:23:35 +0100
+        thetext: I guess this bug is resolved because it was not a bug but an erroneous script.
+      - +@isprivate: "0"
+        commentid: "14924"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-09 11:23:24 +0100
+        thetext: |-
+          (In reply to Daniel Miklody from comment #6)
+
+          thanks for following up! I am glad that you were able to resolve it and that it was not a bug.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15253"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:52 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "683"
+        date: 2014-12-08 21:16:00 +0100
+        delta_ts: 2014-12-08 21:16:47 +0100
+        desc: Scalp Potential over sensor for same dipole in different lead fields
+        filename: RandomDipScalpPotential.pdf
+        type: application/pdf
+        size: "5919"
+        attacher:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "684"
+        date: 2014-12-08 21:20:00 +0100
+        delta_ts: 2014-12-08 21:20:04 +0100
+        desc: Correlations between leadfields with sensor interpolation FT vs Openmeeg
+        filename: Correlation.pdf
+        type: application/unknown
+        size: "4893"
+        attacher:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "685"
+        date: 2014-12-08 21:20:00 +0100
+        delta_ts: 2014-12-08 21:20:56 +0100
+        desc: MSE histogramm between FT vs openmeeg sensor interpolated leadfield
+        filename: MSE.pdf
+        type: application/unknown
+        size: "3780"
+        attacher:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        data: REMOVED

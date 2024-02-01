@@ -1,0 +1,291 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "645"
+    creation_ts: 2011-05-06 23:54:00 +0200
+    short_desc: Increase the speed of reading in xml files, Anyone an idea how to??
+    delta_ts: 2012-04-11 16:48:39 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ingrid.nieuwenhuis
+      +@name: Ingrid Nieuwenhuis
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: bugzilla
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2041"
+        comment_count: "0"
+        attachid: "46"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2011-05-06 23:54:04 +0200
+        thetext: |-
+          Created attachment 46
+          xml file by egi_mff containing the events
+
+          In toolbox xml4mat (now added to external), the function xml2mat.m does the reading in. This can take very long (in case of reading in an egi_mff event file with many triggers). Would there be ways to speed this up? On my quite fast 64 bit Windows 7 PC it can take up to 30 minutes for a 45 minute file.
+
+          I've add an xml file as example
+      - +@isprivate: "0"
+        commentid: "2058"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-10 20:53:06 +0200
+        thetext: |-
+          this affects the following functions
+
+          ft_definetrial
+          statistics_analytic
+          statistics_montecarlo
+          private/prepare_design (is this still in use?)
+          statistics_stats (should be removed anyway)
+      - +@isprivate: "0"
+        commentid: "2059"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-10 20:53:51 +0200
+        thetext: "(In reply to comment #1)\n> this affects the following functions\n> \n> ft_definetrial\n> statistics_analytic\n> statistics_montecarlo\n> private/prepare_design (is this still in use?)\n> statistics_stats (should be removed anyway)\n\noops, that was a reply to the incorrect bug, it was meant for 640"
+      - +@isprivate: "0"
+        commentid: "2064"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-10 21:29:56 +0200
+        thetext: |-
+          it is indeed very slow, whereas it only contains 600 events
+
+          MacBook> grep beginTime ~/Desktop/test_bug645.xml | wc -l
+               600
+
+
+          perhaps try another xml parser, such as http://www.artefact.tk/software/matlab/xml
+          this one is implemented by Guillaume Flandin (from SPM/FIL)
+      - +@isprivate: "0"
+        commentid: "2066"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-10 21:39:57 +0200
+        thetext: or http://www.mathworks.com/matlabcentral/fileexchange/4278
+      - +@isprivate: "0"
+        commentid: "5742"
+        comment_count: "5"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2012-03-30 02:48:44 +0200
+        thetext: 'We (Thanks to Gio) now have a solution that works much faster:'
+      - +@isprivate: "0"
+        commentid: "5743"
+        comment_count: "6"
+        attachid: "244"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2012-03-30 02:59:30 +0200
+        thetext: |-
+          Created attachment 244
+          new xml2struct function which is much faster than the one in external>xml4mat
+      - +@isprivate: "0"
+        commentid: "5744"
+        comment_count: "7"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2012-03-30 03:00:58 +0200
+        thetext: |-
+          Oops, I meant to continue the description before submitting this bug. As I said, thanks to Gio we have a faster solution now. We use a new xlm2struct function, that is much faster! I've tested it, and used it without any problems.
+
+          This is Gio's description, and I have attached the new xlm2struct function that goes with it:
+          Now I use xmlread function from matlab and this one from Matlab File Exchange:
+          http://www.mathworks.com/matlabcentral/fileexchange/28518-xml2struct
+          Then I modified in such a way that it gives the same output that
+          Fieldtrip is expecting. To run it, download the function and put it in
+          the path higher than /path/to/fieldtrip/external/xml4mat
+
+          This is what I do:
+          1) add fieldtrip as usual:
+              addpath /path/to/fieldtrip
+              ft_defaults
+              addpath /path/to/fieldtrip/external/xml4mat
+
+          2) and afterwards
+              addpath /path/to/dir/with/xlm2struct
+
+          3) Then try to read an MFF file. If you see, "xml2struct reading
+          NAME_OF_THE_XML_FILE" it means you're using the faster xml2struct.m
+
+          I haven't included in Fieldtrip because I don't know the licence and it relies on xmlread which relies on Java.
+      - +@isprivate: "0"
+        commentid: "5746"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-30 08:58:57 +0200
+        thetext: "it is only a single function, so makes sense to add it to fileio/private (where it will always have higher priority than external/xml2struct).\n\nI don't see any explicit copying or license restrictions mentioned, so I assume that the file can be added to fieldtrip. We should of course keep the original authors names in the code and provide a link to where the file came from.  \n\nWould the external/xml2struct still be needed after adding this one?"
+      - +@isprivate: "0"
+        commentid: "5747"
+        comment_count: "9"
+        attachid: "245"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-03-30 09:54:09 +0200
+        thetext: |-
+          Created attachment 245
+          diff xml2struct_fileexchange.m xml2struct_modifiedforFT.m
+
+          Hi, sorry I did not include the code in the main Fieldtrip code before. The xml2struct is indeed much faster than the xml4mat. However, we should keep in mind:
+
+          (1) xml2struct relies on xmlread and java. So you need the javamanager running. I can imagine cases in which matlab runs with the -nojvm flag. In this case, xml2struct would crash (while xml2mat would run).
+
+          (2) xml4mat is GNU licensed, while xml2struct has BSD license. Does BSD license allow us to include the function in a GNU project and modify it?
+
+          (3) I made some small changes to the xml2struct code to make it 100% compatible with the output of xml2mat (see attachment). If we get rid of xml2mat, then we can use the original xml2struct code, without changes (but we need to modify ft_read_event and ft_read_header).
+
+          I just noticed that they added a small change to the code:
+          "The function now replaces element and attribute names containing - by _dash_, . by _dot_ and : by _colon_" but this change can be integrated easily.
+
+          Thus, if points (1) and (2) are good for you, we can add xml2struct to fileio/private and test it. What do you think?
+
+          Cheers,
+          G
+      - +@isprivate: "0"
+        commentid: "5750"
+        comment_count: "10"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2012-03-30 18:09:57 +0200
+        thetext: |-
+          Soon EGI will have the new MFF reading code ready, and that also relies on java. So probably when using MFF code, one should just always run matlab with Java...
+
+          So for now, I think it will be easiest if we just add this new modified xml2struct to private. Would it be possible to detect if JAVA is available, and if so use this one, and if not, use the old toolbox?
+
+          Hopefully this will all be very temporary for whenever EGI's code is ready.
+      - +@isprivate: "0"
+        commentid: "5775"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 09:20:00 +0200
+        thetext: "(In reply to comment #9)\n\nregarding license issues with http://www.mathworks.com/matlabcentral/fileexchange/28518-xml2struct\n\nhttp://www.gnu.org/licenses/gpl-faq.html#OrigBSD states\n\n-----\nWhy is the original BSD license incompatible with the GPL? (#OrigBSD)\nBecause it imposes a specific requirement that is not in the GPL; namely, the requirement on advertisements of the program. Section 6 of GPLv2 states:\n\nYou may not impose any further restrictions on the recipients' exercise of the rights granted herein.\n\nGPLv3 says something similar in section 10. The advertising clause provides just such a further restriction, and thus is GPL-incompatible.\n\nThe revised BSD license does not have the advertising clause, which eliminates the problem.\n-----\n\nThe license attached to xml2struct states\n\nCopyright (c) 2010, Wouter Falkena\nAll rights reserved.\n\nRedistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the following conditions are \nmet:\n\n    * Redistributions of source code must retain the above copyright \n      notice, this list of conditions and the following disclaimer.\n    * Redistributions in binary form must reproduce the above copyright \n      notice, this list of conditions and the following disclaimer in \n      the documentation and/or other materials provided with the distribution\n      \nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" \nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE \nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE \nARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE \nLIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR \nCONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF \nSUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS \nINTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN \nCONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) \nARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE \nPOSSIBILITY OF SUCH DAMAGE.\n\nwhich means that there is no requirement for advertisement. This is further explained on http://en.wikipedia.org/wiki/BSD_licenses which clarifies that xml2struct is covered by the (GPL compatible) BSD-2-clause-license.\n\nThat means we can include it in fieldtrip/fileio/private and that it does not have to go into a separate external directory."
+      - +@isprivate: "0"
+        commentid: "5776"
+        comment_count: "12"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-04-04 09:32:19 +0200
+        thetext: |-
+          Great, Thanks for looking into it!
+          I agree about adding it to fileio/private. We can ask users to run java when converting MFF files (maybe throwing an informative error if Java is not running).
+          I don't think it's of much use to have a toolbox which only works as very rare fallback. In this way, we can get rid of external/xml2mat
+
+          What do you think?
+      - +@isprivate: "0"
+        commentid: "5777"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 10:20:39 +0200
+        thetext: "(In reply to comment #12)\n\nI made some improvements to the first implementation of the \negi_mff file format (egi_mff_v1), use alternative (faster)\nxml2struct function, give informative error in case JVM is not\nrunning, added script to test the speed of reading the xml file\n(see http://bugzilla.fcdonders.nl/show_bug.cgi?id=645), added script\nto test the general correctness of the main reading functions (see\nhttp://bugzilla.fcdonders.nl/show_bug.cgi?id=1407).\n\nSending        fileio/ft_read_data.m\nSending        fileio/ft_read_event.m\nSending        fileio/ft_read_header.m\nAdding         fileio/private/xml2struct.m\nAdding         test/test_bug1407.m\nAdding         test/test_bug645.m\nTransmitting file data ......\nCommitted revision 5582.\n\nNote that the test_bug645 script shows that the old xml2struct takes ~400  seconds, whereas the alternative one takes ~20 seconds."
+      - +@isprivate: "0"
+        commentid: "5778"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 10:44:39 +0200
+        thetext: |-
+          I added a faq to the fieldtrip wiki
+
+          See http://fieldtrip.fcdonders.nl/faq/how_can_i_read_egi_mff_data_without_the_jvm
+      - +@isprivate: "0"
+        commentid: "5865"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:39 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "46"
+        date: 2011-05-06 23:54:00 +0200
+        delta_ts: 2011-05-06 23:54:04 +0200
+        desc: xml file by egi_mff containing the events
+        filename: Events_ECI_TCPIP_55513.xml
+        type: text/xml
+        size: "478881"
+        attacher:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "244"
+        date: 2012-03-30 02:59:00 +0200
+        delta_ts: 2012-03-30 02:59:30 +0200
+        desc: new xml2struct function which is much faster than the one in external>xml4mat
+        filename: xml2struct.m
+        type: text/plain
+        size: "6877"
+        attacher:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "245"
+        date: 2012-03-30 09:54:00 +0200
+        delta_ts: 2012-03-30 09:54:09 +0200
+        desc: diff xml2struct_fileexchange.m xml2struct_modifiedforFT.m
+        filename: diff_xml2struct.txt
+        type: text/plain
+        size: "4828"
+        attacher:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        data: REMOVED

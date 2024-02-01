@@ -1,0 +1,71 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2756"
+    creation_ts: 2014-11-06 10:21:00 +0100
+    short_desc: ft_volumerealign crash when plotting (looks for fields not present in mri)
+    delta_ts: 2019-08-10 12:29:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to: fieldtriptoolbox
+    cc:
+      - carosanga
+      - j.herring
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14770"
+        comment_count: "0"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-11-06 10:21:10 +0100
+        thetext: "Dear fieldtrip-developers,\nI have been silent for a while, I hope that counts for something :)\n\nAnyway, with the most recent version ft_volumerealign doesn't work for us anymore (thanks to Carol Sanchez for finding this).\nWhat happens is that when reading an mri (tested different types) which results in something like:\n\nmri = \n\n      anatomy: [256x256x256 double]\n          dim: [256 256 256]\n    transform: [4x4 double]\n         unit: 'mm'\n          cfg: [1x1 struct]\n\n\n(here resliced with ft_volumereslice, but that doesn't matter for the error)\n\ncfg=[];\ncfg.method      = 'interactive';\ncfg.coordsys    = 'neuromag';\nmri_aligned    = ft_volumerealign(cfg,mri); \n\ncrashes with the error:\n\nReference to non-existent field 'scalp'.\n\nError in ft_volumerealign>cb_redraw_surface (line\n927)\n  ft_plot_mesh(opt.scalp, 'edgecolor', 'none',\n  'facecolor', 'skin')\n\nError in ft_volumerealign (line 417)\n        cb_redraw_surface(h);\n \n\nthe problem is, as indicated, in the redraw_surface part\n\nwait, I just figured it out: the problem is, that in line 417 it shouldn't be cb_redraw_surface but cb_redraw\n\ncause obviously i want to align a non-segmented mri to fiducials or whatever. \nthen it works.\ncheers\np"
+      - +@isprivate: "0"
+        commentid: "14771"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-07 14:44:39 +0100
+        thetext: "This is related to a recent addition allowing for clicking on surface plots for marking fiducials (r9928, see bug2707).\n\nThe problem being that both in case cfg.viewmode = ortho & surface, cb_redraw_surface(h); is called, which in turn calls plot_mesh with opt.scalp as input. The latter only being available if there is surface data.\n\nAs Philipp indeed suggested, it seems that the line should have been cb_redraw in case of ortho viewmode. \n\nI'll make the change."
+      - +@isprivate: "0"
+        commentid: "14772"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-07 14:48:26 +0100
+        thetext: Comitted revision 9939
+      - +@isprivate: "0"
+        commentid: "20051"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

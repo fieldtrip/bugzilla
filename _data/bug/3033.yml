@@ -1,0 +1,208 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3033"
+    creation_ts: 2016-01-07 10:24:00 +0100
+    short_desc: support on-the-fly combined planar data in ft_databrowser and elsewhere
+    delta_ts: 2016-03-30 09:54:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2837
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3096
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - hsonntag
+      - j.schoffelen
+      - maess
+      - roemer.van.der.meij
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16565"
+        comment_count: "0"
+        attachid: "763"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-07 10:24:55 +0100
+        thetext: |-
+          Created attachment 763
+          combined planar ICs in databrowser
+
+          This follows a discussion over email, triggered by a suggestion from Burkhard.
+
+          Jan-Mathijs and I have just been discussing this. We really like the idea and we think that a well-designed implementation of this is of great value, extending beyond the initial suggested use case.
+
+          I won't include the email thread, but I will attach the initial figure.
+
+          The general idea (and I'll elaborate later after setting up the initial bug) is to use ft_componentanalysis on Elekta data and then visualize the result in ft_databrowser, where the decomposed planar channels should be represented as a combined topo.
+      - +@isprivate: "0"
+        commentid: "16566"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-07 10:36:27 +0100
+        thetext: |-
+          Following discussion (over email and over coffee) we came up with the following alternative use cases:
+
+          - componentanalysis on combined EEG+MEG data (e.g. from CTF system)
+          - componentanalysis on planar channels only (e.g. old 122ch neuromag)
+          - raw data browser on vector view data, using right-mouse-button topoplot
+          - raw data browser on EEG+MEG data, using right-mouse-button topoplot
+          - ft_topoplotIC on data as described above
+          - ft_topoplotER on data as described above
+          - ft_clusterplot on planar data (not per see using spatial neighbours)
+          - ...
+
+          It boils down to three different (interlinked for the initial use case, but in general independent) requirements:
+
+          1) make combined layout with multiple topo's next to each other (*)
+          2) combine planar values on the fly
+          3) provide appropriate scaling between different channel types (esp. when using 1)
+
+          *) as demonstrated by JM in his email in the super layout attachment
+
+          Regarding 2: In general the ft_plot_topo function now takes the plotting too literal, i.e. it takes 2d positions with values, interpolates and plots. I often show on workshops how it goes wrong on elekta data, since that is an error that many people eventually will make anyway. I.e. so far we considered it a human error ("thou shalt not plot planar data that is not combined"), but some changes to the low-level code would resolve it and propagate more-or-less automatically to all high level functions as mentioned in the alternative use case above.
+      - +@isprivate: "0"
+        commentid: "16567"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-07 10:47:04 +0100
+        thetext: "To tackle the three aspects of this feature request, I suggest we deal with it one by one. \n\nIn general I prefer to start with a (initially empty) test script that will outline the requested functionality. I.e. it should contain a small pipeline that plots the data.\n\nIt will help to have some shared snippets of data (i.e. some mat files) that can be used in the test script. It does not have to be realistic data, just proof of principle data. I will collect some pieces, to allow testing on\n\n- plananar channels raw data\n- plananar channels after PCA or ICA\n- magnetometer+plananar channels raw data\n- magnetometer+plananar channels after PCA or ICA\n- magnetometer+EEG raw data\n- magnetometer+EEG after PCA or ICA\n\nEasiest is to start with a snippet from the Elekta NatMEG example data that we have on the wiki. But I also want to ensure that it works on planar-transformed CTF data.\n\nI have just created /home/common/matlab/fieldtrip/data/test/bug3033 (only relevant for me and JM)."
+      - +@isprivate: "0"
+        commentid: "16568"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-07 13:38:34 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          I just made a test script to facilitate working on this.
+
+          roboos@mentat001> svn commit inspect_3033.m
+          Adding         inspect_bug3033.m
+          Transmitting file data .
+          Committed revision 11041.
+      - +@isprivate: "0"
+        commentid: "16619"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-01-13 20:28:27 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\nHey all,\n\nJust wanted to chime in. I think it's great functionality. \n\n\nRegarding Robert's points:\n\n**1) make combined layout with multiple topo's next to each other**\nI have indeed used this often for ECoG and other intracranial data, using a single layout. Each set of channels can be surrounded by a separate mask in lay.mask such that interpolation doesn't bleed into other sets, which I haven't encountered problems with yet.\n\n**3) provide appropriate scaling between different channel types**\nTo me it makes the most sense to deal with differential scaling in each individual high-level plotting function. High-level and not hard-coded in the layout, because color scaling is not determined by low-level properties of the recording system, but how we as humans wish to interpret different sets of channels combined with a certain data analysis. As a case in point, once we go to plotting T-values, the low-level scaling properties of the different types of electrodes/sensors is no longer relevant, and would not produce what we desire. \nWe could start with ft_databrowser, as that already has related functionality in place (the cfg.XXXscale options). \nI'm not sold on anything, but we could:\n- make cfg.ylim and cfg.zlim, and other scaling options, conditional on the channel set\n- make use of an option, something like cfg.chanscalingset, containing a 1xN cell-array of set denotions, like 'MEG', 'MEGGRAD' (these already can be defined sets or wild-card based selections)\n- using some simple intelligence to detect common/likely cases (like MEGGRAD and MEGMAG in the case of Elekta), and place these in cfg.chanscalingset\n- in ft_databrowser, and other high-level plotting functions, we would move applying the differential scaling from the current modification of the data itself, to determining them prior to plotting (by for example internally making a vector of channel specific scalings, or some set of scalings combined with channel indices) (it  wouldn't be difficult to allow this to interact with the databrowser scaling controls)"
+      - +@isprivate: "0"
+        commentid: "16620"
+        comment_count: "5"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2016-01-14 13:44:32 +0100
+        thetext: "(In reply to Roemer van der Meij from comment #4)\n\nHi together,\n\ngreat that you like our suggestion concerning the multiple column map display - thank you.\n\nIn respect to the scaling - I would suggest to use such [1xN] vector of scaling values - if not set, then this vector is initialized just with ones(1,N)\n\nOtherwise - the ith channel data is scaled by ith value of the scaling vector.\n\nOne could think of a separate function who sets the scaling vector in a cool way - i.e. all grads to 1e13 and all mag to 1e15 etc. - but, I would leave it out of the ft_databrowser\n\nIn respect to channel group names - this makes sense to me, if one can select such a channel group in the ft_databrowser from a certain menu for instance.\n\nOr if such channel group names are also used to define rather arbitrary channel groups which then can easily displayed together also using other display routines of fieldtrip. \n\nHere I would suggest to use either a structure containing cell arrays: cgn(channel_group_name) ={list of channel names}\nor some logical addressing. Anyway, I would allow to place the same channel in more than one group. if one uses the channel groups in statistics - then an error should be thrown if a channel appears in more than one group."
+      - +@isprivate: "0"
+        commentid: "17154"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 10:20:46 +0100
+        thetext: progress on this is slow, but it somehow resurfaced in relation to bug 2837 (ECoG visualization) and I realize it also to relate to my own (very recent) bug 3086 (gui for channel selection).
+      - +@isprivate: "0"
+        commentid: "17155"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 10:21:39 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          sorry, that should have been bug 3096 instead of 3086.
+      - +@isprivate: "0"
+        commentid: "17171"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 16:12:25 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          regarding
+
+          1) make combined layout with multiple topo's next to each other (*)
+          2) combine planar values on the fly
+          3) provide appropriate scaling between different channel types (esp. when using 1)
+
+          For bug 3096 I have now implemented 1 and 3 (in a separate github branch, not yet merged in master). So only 2 remains.
+      - +@isprivate: "0"
+        commentid: "17172"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 16:15:43 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          regarding the test script: I am currently working on a Video+Audio+MEG dataset from Andrey Zhdanov. That turns out to be a very useful dataset, as it includes MAG+GRAD+EEG channels and some seizures that are clearly visible with the data browser (and in the video).
+
+          Synchronizing with the video is part of bug 2490.
+      - +@isprivate: "0"
+        commentid: "17188"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-30 09:54:36 +0200
+        thetext: |-
+          Sarang wrote in https://github.com/fieldtrip/fieldtrip/pull/130 and http://bit.ly/1ZK81ql
+
+
+          Finally, a feature that may be of interest to Elekta users: the ability to output combined planar gradiometers as a complex value, and a corresponding addition to topoplot_common.m enabling the plotting of vector fields. This allows topoplots to preserve and visualize the directionality captured by the planar gradiometers. Note that the vectors may need to be reoriented to align with the topo-head, but perhaps this is best done with the aid of additional information in the layout file?
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "763"
+      date: 2016-01-07 10:24:00 +0100
+      delta_ts: 2016-01-07 10:24:55 +0100
+      desc: combined planar ICs in databrowser
+      filename: ica_decomp_first_five_comps_plotted_with_bm_ft_databrowser.jpeg
+      type: image/jpeg
+      size: "79817"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

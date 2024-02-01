@@ -1,0 +1,90 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "905"
+    creation_ts: 2011-08-30 10:32:00 +0200
+    short_desc: indexing out of range depening on trial-specific number of tapers
+    delta_ts: 2012-01-11 14:37:05 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "1228"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: e.maris
+      +@name: Eric Maris
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2967"
+        comment_count: "0"
+        attachid: "127"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2011-08-30 10:32:39 +0200
+        thetext: "Created attachment 127\ntest script and small data set that will allow you to recreate the error (see bug description)\n\nDear developers,\n\n\nOver the passed days I stumbled over a number of bugs (or errors from my \npart) that I at first tried to circumvent by changing some variables' \nvalues in my script. However, it didn't become much better. So, here \nthey come.\n\n1. Running ft_freqdescriptives with cfg.trials=[1:ntrials] (i.e., \nselecting all trials in the freqanalysis output that I pass as an \nargument to freqdescriptives) gives an error in seloverdim (called by \nft_selectdata) at line 82 because indexing operation \ntmp{j}(sel,:,:,:,:,:,:,:) tries to select elements from tmp{1} that go \npast the size of the first dimension in tmp{j}.\n\n2. ft_freqanalysis produces an unequal number of tapers for different \ntrials that all have the same number of samples. The difference in \nnumber of tapers is always 1.\n\n3. ft_freqdescriptives produces an error that is related to the \nconversion of my fourier input (obtained from ft_freqanalysis) to power \nvalues. The error occurs in the subfunction fixcsd of ft_checkdata (see \nerror message below). Again, this has to do with selecting elements \n(here, using the variable indx that contains integers that go past the \nsize of the first dimension of data.fourierspctrm. This piece of code is \nonly executed if the fourier data have an unequal number of tapers in \nthe different trials, which they do in my case (see point 2).\n\nError in ==> ft_checkdata>fixcsd at 707\n      tmpdat = data.fourierspctrm(indx,:,:,:);\n\nError in ==> ft_checkdata at 604\n    data = fixcsd(data, cmbrepresentation, channelcmb);\n\nError in ==> ft_freqdescriptives at 142\nfreq = ft_checkdata(freq, 'cmbrepresentation', 'sparsewithpow', \n'channelcmb', {});\n\n\nThe occurrence of these problems depends on the settings of the \nft_freqanalysis configuration, in particular, the value of tapsmofreq \n(which I set on a value that is computed from the Fourier frequencies for my data length)and maybe also of foilim.\n\n\n\nbest,\n\nEric Maris"
+      - +@isprivate: "0"
+        commentid: "3271"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-09-21 17:01:43 +0200
+        thetext: "Hey Eric,\n\nIt turns out that the different number of tapers per trial (which is not supported), are being caused by round-off errors in the time-axis. If you for example do: data.time(1) - data.time(2) you will see slight variations in the order of 10e-11. In the current implementation, the sampling rate is determined within ft_specest_xxx by using the time-axis. I.e., fsample = 1 / (time(2) - time(1)). Because of the above round-off errors, the computed sampling rate slightly differs per trail, and the number of tapers computed is off because of this. If you do e.g. data.time(i) = round(data.time(i) .* 10000) ./ 10000, it works out. \n\nThe reason we use the time-axis for computing the sampling rate is.... something I forgot :o. JM (cc), do you remember? Issues with the sampling rate computation have been reported before, I think...\n\nThe other points you mention are related to the different number of tapers per trial, which is not supported at the moment (i.e. the code in ft_freqdescriptives fails if there are a variable number of tapers per trial). When the number of tapers are constant, the script runs without errors.\n\n\nCheers,\nRoemer"
+      - +@isprivate: "0"
+        commentid: "3281"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 10:17:34 +0200
+        thetext: "Hi guys, \n\nI concur with a part of the diagnosis: the problems seem to be caused by the small round-off issues in the individual trials' time axes, causing different numbers of tapers (e.g. comparing trials 3 and 4 in the example data).\nThe number of tapers is a consequence of the input arguments into the double_dpss function, which occurs in line 87 of ft_specest_mtmfft. Double_dpss is a wrapper around MATLAB's dpss function, and only ensures that the input arguments are double precision, because we had some issues with single precision Slepian sequences in the past. To make a long story short, comparing the second input argument into this function on line 87 for trial 3 and 4 (for one of the iterations over different foilims), I get the following values:\n\n9.749999998476257 versus 9.750000003094783, leading to either 19 or 20 tapers.\n\nHowever, I didn't understand why this should pose any problems. At least, if cfg.output='fourierspctrm' the data matrix contains in the first dimension just the concatenated single taper estimate. It shouldn't care about the fact that trial 3 had 19 tapers, and trial 4 had 20 tapers. In the past this just worked as far as I remember for variable length trials. Looking a bit further I noticed, taking the freq-structure from the second freqbinindx, that the dimensionality of the fourierspctrm is 30x28x7, and this is inconsistent with the expected dimensionality of 32x28x7 (trial 4 and 5 having 4 tapers, leading to 8 trials x 3 tapers + 2 trials x 4 tapers = 32 tapers).\nSo, something unexpected (at least to me) seems to happen in ft_freqanalysis, where the single trial spectra (as computed by ft_specest_mtmfft) are collected. Ft_specest_mtmfft seems to return the variable number of tapers spectra allright, i.e. 3x28x7 for trial 3 and 4x28x7 for trial 4.\nHowever, when the fourierspctrm is created (line 674 in ft_freqanalysis) this is done incorrectly because the indexing goes wrong.\n\n\nSo, having said all this, here's the verdict:\n\n1 I think that ft_freqanalysis should support variable number of tapers, when cfg.method = 'mtmfft' (because it did so in the past and I don't see an objection against it). It puzzles me why this has gone unnoticed so far. \n2 Yet in the present case I don't know whether this is what Eric wants, so we also have the round-off issue with respect to the number of tapers which we need to think about.\n\nRegarding 1: I have made a fix in ft_freqanalysis which seems to work fine (no subsequent problems in ft_freqdescriptives and ft_selectdata and ft_checkdata). Yet it may be suboptimal because of memory allocation issues: the initial matrix is allocated assuming a fixed number of tapers per trial.\nRegarding 2: for the time being, (@Eric) if you ensure each trial to have the same time-axis, i.e. datapart.time(1:end) = datapart.time(1); you should at least get the same number of tapers per trial."
+      - +@isprivate: "0"
+        commentid: "4750"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-01-11 14:36:51 +0100
+        thetext: |-
+          In the end most likely a duplicate of 1228
+
+          *** This bug has been marked as a duplicate of bug 1228 ***
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "127"
+      date: 2011-08-30 10:32:00 +0200
+      delta_ts: 2011-08-30 10:32:39 +0200
+      desc: test script and small data set that will allow you to recreate the error (see bug description)
+      filename: testscriptanddata_erimar.tar.gz
+      type: application/x-gzip
+      size: "1960966"
+      attacher:
+        +content: e.maris
+        +@name: Eric Maris
+      data: REMOVED

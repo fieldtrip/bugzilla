@@ -1,0 +1,202 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3285"
+    creation_ts: 2017-04-20 16:04:00 +0200
+    short_desc: how to keep information about the montage and/or referencing that is applied to data
+    delta_ts: 2019-08-10 12:42:13 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "3287"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: a.stolk8
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18563"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-20 16:04:46 +0200
+        thetext: "see https://github.com/fieldtrip/fieldtrip/pull/393\n\nfor one of the changes by Arjen I had to make an emergency fix: \n\n[master b3f492c] emergency fix - commit d79037f in PR #393 broke quite some of the test scripts. I removed the section from ft_preprocessing where the montage was applied to the sensors. The interaction between the montage, reref and all sensor descriptions that might be present in the data was not clear. This requires a serious reconsideration on how it should work."
+      - +@isprivate: "0"
+        commentid: "18564"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-20 16:08:21 +0200
+        thetext: "I opt for the following: \n\n- if cfg.montage is used, it is possible through cfg.updatesens to update the elec/grad/opto (all three of them).\n- if cfg.reref is used, cfg.updatesens is not relevant. \n\nIf we want to make this relevant, then it should be done by making a cfg.montage on the fly. This makes ft_preproc_reref obsolete, and would involve changes in private/preproc, and also relate to cfg.implicitref and cfg.refchannel."
+      - +@isprivate: "0"
+        commentid: "18576"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-24 04:07:29 +0200
+        thetext: |-
+          Thanks for fixing this on the fly. Did you already implement those suggestions? I'm asking because all seems to work, i.e. test_pull393.m, with the minor fix proposed in PR 411 on top of your recent changes.
+
+          One related issue that remains open is that the elec field is not updated with the channels specified in cfg.channel when calling ft_preprocessing. Accordingly, more information is stored in the elec field than necessary, resulting in redundant information (multiple copies of elec fields in one) when appending differently preprocessed iEEG data coming from the same recording (e.g. bipolar deriv on depths + CAR on grids). Also described here: https://github.com/fieldtrip/fieldtrip/pull/393
+      - +@isprivate: "0"
+        commentid: "18577"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-24 04:09:27 +0200
+        thetext: |-
+          Test code for both montage-based and standard-way rereferencing:
+
+          load('SubjectUCI29_data.mat', 'data');
+
+          cfg               = [];
+          cfg.channel       = ft_channelselection({'LPG*', 'LTG*'}, data.label);
+          cfg.reref      	  = 'yes';
+          cfg.refchannel    = 'all';
+          reref_grids = ft_preprocessing(cfg, data); %FIXME: chansel not applied to elec struc
+
+          depths = {'RAM*', 'RHH*', 'RTH*', 'ROC*', 'LAM*', 'LHH*', 'LTH*'};
+          for d = 1:numel(depths)
+            cfg                    = [];
+            cfg.channel            = ft_channelselection(depths{d}, data.label);
+            cfg.montage.labelold   = cfg.channel;
+            cfg.montage.labelnew   = strcat(cfg.channel(1:end-1),'-',cfg.channel(2:end));
+            cfg.montage.tra        = ...
+            [1    -1     0     0     0     0     0     0
+              0     1    -1     0     0     0     0     0
+              0     0     1    -1     0     0     0     0
+              0     0     0     1    -1     0     0     0
+              0     0     0     0     1    -1     0     0
+              0     0     0     0     0     1    -1     0
+              0     0     0     0     0     0     1    -1];
+            reref_depths{d} = ft_preprocessing(cfg, data); %FIXME: chansel not applied to elec struc
+          end
+
+          cfg             = [];
+          cfg.appendsens  = 'yes';
+          reref = ft_appenddata(cfg, reref_grids, reref_depths{:});
+      - +@isprivate: "0"
+        commentid: "18578"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-24 09:02:30 +0200
+        thetext: "ft_preprocessing is working on the data, not on the sensor structure. That has never been the case in the last 15 years and I don't see why that should change. The only modification that is done is that the linear weighting of the channels is updated, such that the forward model (with ft_compute_leadfield) matches the data. \n\nThe selection of channels for the forward model is made at the time when needed, i.e. in private/prepare_headmodel and ft_prepare_vol_sens."
+      - +@isprivate: "0"
+        commentid: "18580"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-24 11:24:34 +0200
+        thetext: "mac011> git commit test/test_bug3285.m \n[bug3287-append 42131f1] added test script that was provided by Arjen in http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3285\n 1 file changed, 71 insertions(+)\n create mode 100644 test/test_bug3285.m\n\nnote that this is in my personal bug3287-append branch, not yet in master."
+      - +@isprivate: "0"
+        commentid: "18595"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-25 14:55:12 +0200
+        thetext: "appending of channel level data has been reimplemented. It is not clear to me why certain processing steps (such as montaging) need to be represented in the data. \n\nPrinciple 1: all processing is contained in the user's script, and in data.cfg.previous. The data itself does not describe what happened to it. \n\nPrinciple 2: the data should be self-explanatory and internally consistent."
+      - +@isprivate: "0"
+        commentid: "18598"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-25 22:16:14 +0200
+        thetext: "For completion, the issue in numbers:\n\n>> data.elec\n\nans = \n\n     chanpos: [152x3 double]\n    chantype: {152x1 cell}\n    chanunit: {152x1 cell}\n    coordsys: 'tal'\n     elecpos: [152x3 double]\n       label: {152x1 cell}\n        unit: 'mm'\n         cfg: [1x1 struct]\n\n>> reref.elec\n\nans = \n\n       chanpos: [1209x3 double]\n    chanposold: [1216x3 double]\n      chantype: {1209x1 cell}\n      chanunit: {1209x1 cell}\n      coordsys: 'tal'\n       elecpos: [1216x3 double]\n         label: {1209x1 cell}\n      labelold: {1216x1 cell}\n          unit: 'mm'\n           cfg: [1x1 struct]\n\n\nViolates the self-consistency aspect of principle 2. It's actually not going to break anything btw. There's just a lot of redundant and old electrode information in reref.elec, such as 'RAM1' (which was superseded by 'RAM1-RAM2', etc). It'd be cleaner if reref.elec had the same 145 channels as reref itself:\n\nreref = \n\n         label: {145x1 cell}\n    sampleinfo: [26x2 double]\n          elec: [1x1 struct]\n         trial: {1x26 cell}\n          time: {1x26 cell}\n           cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "18601"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 02:16:10 +0200
+        thetext: "(In reply to Arjen Stolk from comment #7)\nActually have to take back that duplicate elecs in an elec structure won't break anything. Generating the layout, using Roemer's functionality, will cause lay.pos to have many overlapping electrodes. This, on its turn, crashes ft_multiplotTFR:\n\nWarning: (one of the) axis is/are not evenly spaced, but plots are made as if axis are linear \n> In ft_multiplotTFR (line 414) \nError using uimage (line 60)\nThe X and Y axis should be increasing.\n\nThis means 'smart elec merging' is needed. But it cannot be done in ft_appendsens, but because ft_appendsens does not know anything about the functional data."
+      - +@isprivate: "0"
+        commentid: "18602"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 02:32:41 +0200
+        thetext: "Calling ft_preprocessing with cfg.montage does indeed replace old with new channels, e.g. in this case RAM1, RAM2 become RAM1-RAM2. Yet, the non-selected channels are also included. Not saying this is necessarily undesired, just that it lays the groundwork for the problem of duplicate and outdated channels later on after ft_appendsens.\n\n>> reref_depths{1}.elec.label\n\nans = \n\n    'RAM1-RAM2'\n    'RAM2-RAM3'\n    'RAM3-RAM4'\n    'RAM4-RAM5'\n    'RAM5-RAM6'\n    'RAM6-RAM7'\n    'RAM7-RAM8'\n    'RTH1'\n    'RTH2'\n    'RTH3'\n    'RTH4'\n    'RTH5'\n    'RTH6'\n    'RTH7'\n    'RTH8'\n    'RHH1'\n    'RHH2'\n    'RHH3'\n    'RHH4'\n    'RHH5'\n    'RHH6'\n    'RHH7'\n    'RHH8'\n    'ROC1'\n    'ROC2'\n    'ROC3'\n    'ROC4'\n    'ROC5'\n    'ROC6'\n    'ROC7'\n    'ROC8'\n    'LAM1'\n    'LAM2'\n    'LAM3'\n    'LAM4'\n    'LAM5'\n    'LAM6'\n    'LAM7'\n    'LAM8'\n    'LTH1'\n    'LTH2'\n    'LTH3'\n    'LTH4'\n    'LTH5'\n    'LTH6'\n    'LTH7'\n    'LTH8'\n    'LHH1'\n    'LHH2'\n    'LHH3'\n    'LHH4'\n    'LHH5'\n    'LHH6'\n    'LHH7'\n    'LHH8'\n    'LPG1'\n    'LPG2'\n    'LPG3'\n    'LPG4'\n    'LPG5'\n    'LPG6'\n    'LPG7'\n    'LPG8'\n    'LPG9'\n    'LPG10'\n    'LPG11'\n    'LPG12'\n    'LPG13'\n    'LPG14'\n    'LPG15'\n    'LPG16'\n    'LPG17'\n    'LPG18'\n    'LPG19'\n    'LPG20'\n    'LPG21'\n    'LPG22'\n    'LPG23'\n    'LPG24'\n    'LPG25'\n    'LPG26'\n    'LPG27'\n    'LPG28'\n    'LPG29'\n    'LPG30'\n    'LPG31'\n    'LPG32'\n    'LPG33'\n    'LPG34'\n    'LPG35'\n    'LPG36'\n    'LPG37'\n    'LPG38'\n    'LPG39'\n    'LPG40'\n    'LPG41'\n    'LPG42'\n    'LPG43'\n    'LPG44'\n    'LPG45'\n    'LPG46'\n    'LPG47'\n    'LPG48'\n    'LPG49'\n    'LPG50'\n    'LPG51'\n    'LPG52'\n    'LPG53'\n    'LPG54'\n    'LPG55'\n    'LPG56'\n    'LPG57'\n    'LPG58'\n    'LPG59'\n    'LPG60'\n    'LPG61'\n    'LPG62'\n    'LPG63'\n    'LPG64'\n    'LTG1'\n    'LTG2'\n    'LTG3'\n    'LTG4'\n    'LTG5'\n    'LTG6'\n    'LTG7'\n    'LTG8'\n    'LTG9'\n    'LTG10'\n    'LTG11'\n    'LTG12'\n    'LTG13'\n    'LTG14'\n    'LTG15'\n    'LTG16'\n    'LTG17'\n    'LTG18'\n    'LTG19'\n    'LTG20'\n    'LTG21'\n    'LTG22'\n    'LTG23'\n    'LTG24'\n    'LTG25'\n    'LTG26'\n    'LTG27'\n    'LTG28'\n    'LTG29'\n    'LTG30'\n    'LTG31'\n    'LTG32'"
+      - +@isprivate: "0"
+        commentid: "18609"
+        comment_count: "10"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 23:54:37 +0200
+        thetext: |-
+          https://github.com/fieldtrip/fieldtrip/pull/415
+          copp-paste:
+
+          ft_preprocessing creates a unit matrix on the fly in case cfg.reref = 'yes' (and in case there's a sens)
+
+          ft_apply_montage keepunused = 'no' still had too many elecpos. the function is pretty oldskool and the most reliable way to ensure that keepunused = 'no' didn't still attach unused stuff was by using a call to ft_selectdata on the input right in the beginning (rather than sifting out fields at the end)
+
+          test_preprocmontage test the different rereferencing options on data with and without a sens
+
+          unclear: should ft_preprocessing, when it creates the unit matrix (in case cfg.reref) , also take into account cfg.implicitref if existent? physically, there's no elecpos to assign to it, but there may be a chanpos hypothetically (although no idea where to put it)
+      - +@isprivate: "0"
+        commentid: "18659"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-13 09:17:52 +0200
+        thetext: This had been addressed in PR 415, 434, 435
+      - +@isprivate: "0"
+        commentid: "18660"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-13 09:18:03 +0200
+        thetext: This had been addressed in PR 415, 434, 435
+      - +@isprivate: "0"
+        commentid: "20327"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:57 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20527"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:42:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

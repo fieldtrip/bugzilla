@@ -1,0 +1,175 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3475"
+    creation_ts: 2019-06-05 02:17:00 +0200
+    short_desc: ft_plot_sens wont plot labels of a linear array of electrodes
+    delta_ts: 2019-08-10 12:43:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19694"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-06-05 02:17:21 +0200
+        thetext: |-
+          PROBLEM SIMULATION:
+
+          elec.label = {'elec1','elec2','elec3','elec4','elec5'}';
+          elec.elecpos(:,1) = [1 2 3 4 5];
+          elec.elecpos(:,2) = [1 1 1 1 1];
+          elec.elecpos(:,3) = [1 1 1 1 1];
+          elec.chanpos = elec.elecpos;
+          elec.unit = 'mm';
+
+          ft_plot_sens(elec, 'label', 'on')
+
+          ... results in no labels shown, or as experienced using real data, throws the following error:
+
+          Error using builtin
+          The data is degenerate in at least one dimension - ND set of points lying in (N+1)D space.
+
+          Error in qhullmx
+
+          Error in convhulln (line 64)
+          [k,vv] = qhullmx(x', opt);
+
+          Error in projecttri (line 57)
+              tri = convhulln(pos);
+
+          Error in ft_plot_sens (line 298)
+              tri = projecttri(pos);
+
+
+          POTENTIAL SOLUTION:
+          reorganize lines 293-313 to be more robust somehow, e.g. skipping the attempt to triangulate? for convenience, the code is:
+
+          if isempty(ori) && ~isempty(pos)
+            if ~any(isnan(pos(:)))
+              % determine orientations based on surface triangulation
+              tri = projecttri(pos);
+              ori = normals(pos, tri);
+            else
+              % determine orientations by fitting a sphere to the sensors
+              try
+                tmp = pos(~any(isnan(pos), 2),:); % remove rows that contain a nan
+                center = fitsphere(tmp);
+              catch
+                center = [nan nan nan];
+              end
+              for i=1:size(pos,1)
+                ori(i,:) = pos(i,:) - center;
+                ori(i,:) = ori(i,:)/norm(ori(i,:));
+              end
+            end
+          end
+      - +@isprivate: "0"
+        commentid: "19695"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-06-05 03:05:57 +0200
+        thetext: |-
+          Note the triangulation approach also won't work for electrode arrays smaller than 3.
+
+          ft_plot_sens(elec, 'label', 'on');
+          Error using delaunay
+          At least three input points must be provided to define a triangular mesh.
+      - +@isprivate: "0"
+        commentid: "19696"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-06-08 07:15:43 +0200
+        thetext: https://github.com/fieldtrip/fieldtrip/commit/0e5489cd5e6982d7683b560db0fa80b297f4f345#diff-d83112eee816b56d32479d35e56dab63   is the version in which projecttri was introduced
+      - +@isprivate: "0"
+        commentid: "19697"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-06-11 15:17:30 +0200
+        thetext: |-
+          The most common set of electrodes is for scalp EEG, where the outward displacement from the scalp surface (= the electrode triangulation) works well.
+
+          Plotting the labels on top of the electrodes is not very good.
+
+          I propose that a try-catch is added to the code to deal with electrode sets for which a triangulation cannot be determined.
+      - +@isprivate: "0"
+        commentid: "19698"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-06-11 15:20:34 +0200
+        thetext: |-
+          note that I recently changed the triangulation from convex hull into delaunay
+
+          https://github.com/fieldtrip/fieldtrip/commit/3335f5c2fd6f96f0bff18a851d0073846e21e744
+
+          That results in an open (at the bottom) triangulation instead of a closed one, which means that the label-displacement for the lower line of electrodes is better.
+
+          The consequence is also that the "degenerate" error does not show up any more. But the labels for the linear array still don't show.
+      - +@isprivate: "0"
+        commentid: "19699"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-06-11 15:48:52 +0200
+        thetext: |-
+          [bug3475 2159c5c24] FIX #3475 - improve plotting of electrode labels for linear arrays
+           3 files changed, 111 insertions(+), 20 deletions(-)
+           create mode 100644 test/test_bug3475.m
+
+          https://github.com/fieldtrip/fieldtrip/pull/1140
+
+          Have a look at the test script. Please reopen if you think that more work is needed.
+      - +@isprivate: "0"
+        commentid: "19700"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-06-11 15:49:15 +0200
+        thetext: The specific example now looks fine
+      - +@isprivate: "0"
+        commentid: "20535"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:43:46 +0200
+        thetext: "This closes a whole series of bugs that have recently been resolved (either FIXED/WONTFIX/INVALID). \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,186 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3266"
+    creation_ts: 2017-03-10 03:20:00 +0100
+    short_desc: mesh smoothing
+    delta_ts: 2019-08-10 12:41:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18475"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-10 03:20:38 +0100
+        thetext: |-
+          There's a smoothing subfunction named 'fairsurface' in ft_prepare_mesh_headshape that seems to do a proper job at smoothing a mesh without shrinking it.
+
+          ft_prepare_mesh_headshape can be reached by:
+
+          cfg = [];
+          cfg.headshape = mesh;
+          cfg.method = 'headshape';
+          mesh_sm = ft_prepare_mesh(cfg);
+
+          However, ft_prepare_mesh_headshape calls fairsurface with a fixed, non-configurable smoothing parameter. Would it be an idea to make it configurable (e.g. cfg.smooth, or cfg.smoothiter)?
+
+          Alternatively, could we house the fairsurface functionality under a dedicated mesh smoothing function/ft_prepare_mesh submethod?
+      - +@isprivate: "0"
+        commentid: "18476"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-10 12:58:36 +0100
+        thetext: "We discussed at multiple occasions in the past to make a mesh sub-toolbox, just like fileio, preproc, plotting, etc. That would allow power users to bypass the high-level FT cfg interface. It never happened, and I don't think it will. There is not enough need for it for someone to devote time to convert existing functionality (mainly private) into a well structured, consistent and documented set of functions.\n\nThe functionality that you describe seems too specific to be of general interest. I suggest you just rip out the relevant functions from private and just keep it to yourself. \n\nOK?"
+      - +@isprivate: "0"
+        commentid: "18479"
+        comment_count: "2"
+        attachid: "831"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-10 19:00:30 +0100
+        thetext: |-
+          Created attachment 831
+          even camlight does not like unsmoothed meshes
+      - +@isprivate: "0"
+        commentid: "18480"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-10 19:05:39 +0100
+        thetext: |-
+          Not giving up that easily :)
+          https://github.com/fieldtrip/fieldtrip/pull/368
+      - +@isprivate: "0"
+        commentid: "18481"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-10 20:10:02 +0100
+        thetext: |-
+          [ftver, ftpath] = ft_version;
+          atlas = ft_read_atlas([ftpath filesep 'template/atlas/aal/ROI_MNI_V4.nii']);
+          mri_spm = ft_read_mri([ftpath filesep 'external/spm8/templates/T1.nii']);
+          mri_spm.coordsys = 'mni';
+
+          % left hipp
+          cfg = [];
+          cfg.inputcoord = 'mni';
+          cfg.atlas = atlas;
+          cfg.roi = 'Hippocampus_L';
+          hpcL_mask = ft_volumelookup(cfg, mri_spm);
+
+          seg.dim = mri_spm.dim;
+          seg.unit = mri_spm.unit;
+          seg.coordsys = mri_spm.coordsys;
+          seg.transform = mri_spm.transform;
+
+          seg.brain = hpcL_mask;
+          cfg = [];
+          cfg.tissue = 'brain';
+          cfg.numvertices = 3000;
+          hpcL_mesh = ft_prepare_mesh(cfg, seg);
+
+          cfg = [];
+          cfg.headshape = hpcL_mesh;
+          cfg.method = 'headshape';
+          cfg.smooth = 5;
+          hpcL_mesh_sm = ft_prepare_mesh(cfg);
+      - +@isprivate: "0"
+        commentid: "18482"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-10 20:10:18 +0100
+        thetext: |-
+          figure; ft_plot_mesh([hpcL_mesh], 'facecolor', 'cortex_light', 'edgecolor', 'none')
+          material dull; view([-100 20]); lighting gouraud; camlight
+
+          figure; ft_plot_mesh([hpcL_mesh_sm], 'facecolor', 'cortex_light', 'edgecolor', 'none')
+          material dull; view([-100 20]); lighting gouraud; camlight
+      - +@isprivate: "0"
+        commentid: "18484"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-11 10:54:45 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #5)
+
+          agreed, the change is a clean extension of the existing interface. Please see the PR for comments.
+      - +@isprivate: "0"
+        commentid: "18486"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-11 19:26:41 +0100
+        thetext: PR updated
+      - +@isprivate: "0"
+        commentid: "20289"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:26 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20489"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:40 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "831"
+      date: 2017-03-10 19:00:00 +0100
+      delta_ts: 2017-03-10 19:00:30 +0100
+      desc: even camlight does not like unsmoothed meshes
+      filename: Screen Shot 2017-03-10 at 9.58.41 AM.png
+      type: image/png
+      size: "556070"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

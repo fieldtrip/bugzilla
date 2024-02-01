@@ -1,0 +1,207 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2020"
+    creation_ts: 2013-02-28 15:09:00 +0100
+    short_desc: improve mne2grad - sample the leadfield on more points and integrate over them
+    delta_ts: 2017-01-17 11:29:42 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - alexandre.gramfort
+      - lhunt
+      - moddaser
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9590"
+        comment_count: "0"
+        attachid: "429"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-02-28 15:09:07 +0100
+        thetext: "Created attachment 429\nSuggested modifications\n\nHi,\n\nHamid Mohseni from Oxford (hamid.mohseni@eng.ox.ac.uk) expressed interest in taking over maintaining mne2grad from Laurence who is not very motivated at the moment because he moved to the FIL and uses CTF. Hamid made some improvements to represent the sensors by more points, but he seems to have used an old version of mne2grad as his starting point and also might need some assistance with making sure his changes don't break other FT functionality. His message is below. I'm starting this bug to keep track of the progress on this and I suggest that once we sort out the details Hamid is given access to SVN.\n\nVladimir\n\n\n---------------------------\n\nDear Vladimier,\n\nFollowing our discussion in MEG-UK, there is a problem in fusion of gradiometer and magnetometer. A rough correction would be scaling the gradiometer by a factor of 0.0168, which is the distance between the gradiometers coils. If you don't do this correction the source localisation fails.\n\nBut a more accurate way is to model the magnetometer by 9 points and gradiometer by 8 points as explained in the neuramg maxfilter manual.\n\nI think the simplest approach is correcting the mne2grad.m file which has been written by Laurence and Joachim. They basically use two points for each grad and one point for each mag (510 points in total). I now use 9 points for each mag and 8 points for each grad according to the ELEKTA manual (2550 points in total). Therefore the \"pnt\" and \"ori\" are 2550x3 matrices (not 510x3). I also changed the \"tra\" matrix to a 306x2550 according to the weight of each point.\n\nThe program then runs fine and it doesn't affect the speed. The results are also quite similar when you just scale the gradiometer, but I think it is better to use it anyway. I attached the new version of mne2grad_v2.m which should replace mne2grad.m located in fieldtrip/fileio/private/mne2grad.m.\n\nOne thing you may consider is the parameters of the geometry of the sensors. These parameters are for Oxford MEG (see attached file) and it should be changed according the manual of the device (I haven't found them in the fiff file). However, these parameters are the same for different systems and I guess old ELEKTA MEG systems should change them.\n\nIf you use mne2grad_v2.m there is only one bug in the estimating the location of sensor. Basically spm estimate the location of sensors using \"channelposition.m\" file written by you. This file is used for showing the location of sensors in various figures. You need to change line 149-150:\n\n        meanpnt1 = mean(sens.pnt(abs(sens.tra(sel(1),:))>0.5,:), 1);\n        meanpnt2 = mean(sens.pnt(abs(sens.tra(sel(2),:))>0.5,:), 1);\n        meanpnt3 = mean(sens.pnt(abs(sens.tra(sel(3),:))>0.5,:), 1);\n\nfor example to following or any other small value:\n\n        meanpnt1 = mean(sens.pnt(abs(sens.tra(sel(1),:))>0.05,:), 1);\n        meanpnt2 = mean(sens.pnt(abs(sens.tra(sel(2),:))>0.05,:), 1);\n        meanpnt3 = mean(sens.pnt(abs(sens.tra(sel(3),:))>0.05,:), 1);\n\n\"channelposition.m\" is in fieldtrip/plotting/private/channelposition.m and fieldtrip/private/channelposition.m. Also, when you correct grads using factor=0.0168, I think you still need this correction .\n\n\n\n\nMany thanks\n\n\n-- \nHamid R. Mohseni, PhD\nPost-Doctoral Research Assistant\nInstitute of Biomedical Engineering\nUniversity of Oxford, OX3 7DQ, UK\nTel: +44 (0) 1865 2 83826"
+      - +@isprivate: "0"
+        commentid: "9592"
+        comment_count: "1"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-02-28 15:18:26 +0100
+        thetext: '*** Bug 2019 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "9593"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-28 16:51:59 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          The different unit aspect (T and T/m) that is mentioned is a duplicate of bug 963. Please follow up there.
+
+          The representation of the sensor coils with more (and carefully placed) points is a new suggestion. Does anyone know what Matti is doing in MNE?
+      - +@isprivate: "0"
+        commentid: "9594"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-02-28 16:54:20 +0100
+        thetext: |-
+          (In reply to comment #2)
+          Alexandre might know. I added him as well.
+      - +@isprivate: "0"
+        commentid: "9595"
+        comment_count: "4"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-02-28 17:00:09 +0100
+        thetext: |-
+          I am quite confident that Matti uses the accurate sensor modeling, please see
+
+          http://www.martinos.org/meg/manuals/MNE-manual-2.7.pdf
+
+          page 107
+
+          Note that ctf system also needs to model the sensors using 8 or 9 points.
+      - +@isprivate: "0"
+        commentid: "9596"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-28 17:04:09 +0100
+        thetext: |-
+          (In reply to comment #4)
+
+          thanks for the quick reference. I am surprised to see that he models the axial CTF gradiometers with 4+4. A 6+1 distribution is more accurate at (approximately) the same computational cost. That was also common for older systems with larger coil diameters, e.g. the one in Twente.
+      - +@isprivate: "0"
+        commentid: "9597"
+        comment_count: "6"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-02-28 17:05:54 +0100
+        thetext: |-
+          I think we can write all information from page 107-111 of the mne user manual:
+
+          http://www.martinos.org/meg/manuals/MNE-manual-2.7.pdf
+
+          and based on the sensor coil ID (left column of the table) model the sensors for each different system?
+      - +@isprivate: "0"
+        commentid: "9598"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-28 17:09:44 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          it is indeed an idea to make a new xxx2grad that uses the same code for these systems based on sensor types. Note that not all systems are listed, but the list is quite complete and certainly detailed.
+      - +@isprivate: "0"
+        commentid: "9599"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-28 17:11:33 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          I should correct my my comment: MNE is using a 14 point approximation for the normal sensors (so also one point in the center, and both top and bottom coil with many points). The 4+4 was for the reference gradiometer.
+      - +@isprivate: "0"
+        commentid: "13170"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-26 14:50:56 +0100
+        thetext: I have discussed this with Arjen (now CC), for whom it is relevant to look into this. I also got some documentation from Elekta, but I believe it is largely the same as in the MNE manual (page 107).
+      - +@isprivate: "0"
+        commentid: "16655"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 12:10:53 +0100
+        thetext: this has been stuck for a long time. I now need better forward model accuracy for the Elekta system and will hence take this in my hand.
+      - +@isprivate: "0"
+        commentid: "16668"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-19 19:08:58 +0100
+        thetext: You're right. I remember we had some ideas on paper but never got to the implementation part.
+      - +@isprivate: "0"
+        commentid: "16688"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-22 11:35:04 +0100
+        thetext: "mac011> svn commit ft_defaults.m fileio/private/rotate.m fileio/private/translate.m fileio/ft_read_header.m fileio/private/ctf2grad.m fileio/private/mne2grad.m external/mne/coil_def.dat\nAdding         external/mne/coil_def.dat\nSending        fileio/ft_read_header.m\nSending        fileio/private/ctf2grad.m\nSending        fileio/private/mne2grad.m\nAdding         fileio/private/rotate.m\nAdding         fileio/private/translate.m\nSending        ft_defaults.m\nTransmitting file data .....\nCommitted revision 11098.\n\nThis is for CTF and MNE. \nJan-Mathijs suggested to implement it for 4D as well."
+      - +@isprivate: "0"
+        commentid: "17605"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-07-04 13:33:44 +0200
+        thetext: this is implemented for elekta and ctf, and as such the issue can be closed.
+      - +@isprivate: "0"
+        commentid: "18180"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:42 +0100
+        thetext: closed multiple bugs that were resolved some time ago
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "429"
+      date: 2013-02-28 15:09:00 +0100
+      delta_ts: 2013-02-28 15:09:07 +0100
+      desc: Suggested modifications
+      filename: mne2grad_v2.m
+      type: text/plain
+      size: "5448"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

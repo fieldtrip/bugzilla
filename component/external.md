@@ -1,0 +1,5 @@
+---
+title: external
+---
+
+{% include component %}

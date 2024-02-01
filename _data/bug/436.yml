@@ -1,0 +1,142 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "436"
+    creation_ts: 2011-01-26 20:13:00 +0100
+    short_desc: ft_rejectvisual makes inefficient (or no?) use of ft_checkdata
+    delta_ts: 2011-05-23 10:36:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - s.vanpelt
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1259"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 20:13:01 +0100
+        thetext: |-
+          It does
+
+          % check if the input data is valid for this function
+          data = ft_checkdata(data, 'datatype', 'raw', 'feedback', 'yes', 'hastrialdef', 'yes', 'hasoffset', 'yes');
+          ...
+
+          % trl is not specified in the function call, but the data is given ->
+          % try to locate the trial definition (trl) in the nested configuration
+          if isfield(data, 'sampleinfo')
+             trl  = [data.sampleinfo data.offset(:)];
+          else
+            % a trial definition is expected in each continuous data set
+            trl  = [];
+            warning('could not locate the trial definition ''trl'' in the data structure');
+          end
+          ...
+          % remove the offset vector if present (only applies to datasets that have been preprocessed a long time ago)
+          if isfield(data, 'offset')
+            data = rmfield(data, 'offset');
+          end
+
+          this should all be doable with ft_checkdata!
+
+          Other functions that appear to be similarly affected are
+
+          MacBook> grep data.offset *.m
+          ft_databrowser.m:      trlorg = [data.sampleinfo data.offset(:)];
+          ft_rejectartifact.m:    trl = [data.sampleinfo data.offset(:)];
+          ft_rejectvisual.m:   trl  = [data.sampleinfo data.offset(:)];
+      - +@isprivate: "0"
+        commentid: "2069"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-05-11 09:58:03 +0200
+        thetext: |-
+          Fixed it according to your note. However, I seem to recall you telling me that the trl-field in data structures should actually not be there (deprecated), and that sampleinfo should be used instead. That is also probably why there was a
+
+          if (isfield(data,'sampleinfo'))
+            return;
+          end
+
+          at the top of fixtrialdef.m.
+
+          I have (among other things) changed the above to read
+
+          if (isfield(data,'sampleinfo'))
+            data.trl = [data.sampleinfo data.offset(:)];
+            return;
+          end
+
+          so that now a call to ft_checkdata with 'hastrialdef','yes' results in the data structure having a .trl-field in addition to a .sampleinfo-field, if the latter was already there.
+
+          Is this the correct way? Or maybe the functions still trying to recreate a trl-matrix on the fly should instead use the sampleinfo-field (if present, or added by ft_checkdata)? (Which would be a different bug, of course.)
+      - +@isprivate: "0"
+        commentid: "2072"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-11 11:28:43 +0200
+        thetext: This now causes crashes here and there, because the data structure does not necessarily contain an offset field (and will only have one after it is processed by ft_checkdata with 'hasoffset', 'yes'. I personally also find this not an elegant solution because the data.trl field is redundant (can be reconstructed from the sampleinfo and the offset (which is implicit in the time vectors).
+      - +@isprivate: "0"
+        commentid: "2073"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-05-11 11:46:47 +0200
+        thetext: |-
+          I agree, this is extremely inelegant.
+
+          I will revert the changes and then mark this bug as invalid, and instead make a new one something like 'remove dependence on trl matrices throughout various functions, instead use sampleinfo'. Robert and I had an email conversation about a similar issue, and will discuss in the near future (maybe at the meeting?).
+      - +@isprivate: "0"
+        commentid: "2076"
+        comment_count: "4"
+        who:
+          +content: s.vanpelt
+          +@name: Stan van Pelt
+        bug_when: 2011-05-11 12:14:52 +0200
+        thetext: I think this also causes problems in ft_databrowser, since there is also a reference to (a not necessarily present) data.trl (line 176).
+      - +@isprivate: "0"
+        commentid: "2077"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-05-11 12:39:04 +0200
+        thetext: |-
+          @Stan: you caught the ft_databrowser just in the few minutes when I had originally committed the changes I made in response to this bug. Now, it's back to before then again. (And line 176 does not reference data.trl anymore, just like it was.)
+
+          The new bug that supersedes this one is bug 654.

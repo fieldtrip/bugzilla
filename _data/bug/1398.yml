@@ -1,0 +1,223 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1398"
+    creation_ts: 2012-03-29 11:01:00 +0200
+    short_desc: FT nansum do not work on a vector of booleans
+    delta_ts: 2019-08-10 11:56:58 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P2
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1560"
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5734"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-29 11:01:36 +0200
+        thetext: "just try with \na=[true true false]; \nnansum(a)\n\nand make sure that the nansum is the FT version, the Matlab version correctly returns 2 as an answer"
+      - +@isprivate: "0"
+        commentid: "5736"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-29 11:05:30 +0200
+        thetext: |-
+          a vector of booleans never contains nans, so why nansum it?
+
+          does the stats-toolbox version support booleans?
+      - +@isprivate: "0"
+        commentid: "5739"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-29 13:22:34 +0200
+        thetext: |-
+          > correctly returns 2 as an answer
+
+          so the more true statements you make, the more truer your story becomes?
+
+
+          ----
+
+
+          One aspect would be  to check on inputs and always give an error on inappropriate inputs. E.g. what happens with
+
+          x = @plus
+          nansum([x x])
+
+          Another is to type convert. Don't know whether that is desired.
+      - +@isprivate: "0"
+        commentid: "5759"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-02 10:53:40 +0200
+        thetext: |-
+          The stats toolbox version of nansum supports logicals, since it is implemented in an .m-file and not a mex-file. For the m-file, it is trivial to support logicals, since sum() supports logicals as well.
+
+          I agree with JM, people wanting to sum logical arrays should just use sum(), since a logical can never be nan.
+      - +@isprivate: "0"
+        commentid: "6381"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-13 12:47:14 +0200
+        thetext: |-
+          Hmm. Odd one indeed. Matlab automatically convert a literal array with nans to double:
+
+          >> class([true true false nan])
+          ans =
+          double
+
+          Since Matlab's nansum and sum already seem to convert booleans to integers, perhaps it is wise to add type conversion to nansum, but with a warning.
+      - +@isprivate: "0"
+        commentid: "6405"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-13 17:54:45 +0200
+        thetext: "if the type is intXX, uintXX or bool, it can just sum and does not have to care about the nans.\n\nI would do a switch statement on \nhttp://www.mathworks.nl/help/techdoc/apiref/mxgetclassid.html\nand\nhttp://www.mathworks.nl/help/techdoc/apiref/mxclassid.html\n\n\n\nNote that you also should deal with this one ;-)\n\n>> nansum('nan')\nans =\n   317\n\n>> which nansum\n/Applications/MATLAB_R2010a.app/toolbox/stats/nansum.m\n\nwhich is of course the same case as\n\n>> nansum('abc')\nans =\n   294"
+      - +@isprivate: "0"
+        commentid: "6406"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-13 17:57:23 +0200
+        thetext: "... and did you know that \n\n>> nanvar('nan')\nans =\n   56.3333\n\nSo please fix all of\n\nmanzana> ls private/nan*.m\nprivate/nanmean.m               \nprivate/nanstd.m                \nprivate/nanvar.m\nprivate/nanstandardise.m        \nprivate/nansum.m\n\n[[or at least catch the error if the input to the nanXXX mex file is unexpected]]"
+      - +@isprivate: "0"
+        commentid: "6495"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-21 13:50:04 +0200
+        thetext: |-
+          Added unit tests for nansum, nanmean, nanvar and nanstd:
+          http://code.google.com/p/fieldtrip/source/detail?r=6104
+      - +@isprivate: "0"
+        commentid: "6870"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-07-26 15:12:54 +0200
+        thetext: |-
+          Worked quite some hours on the nan* functions. Most data types work now as expected for nansum (other stat fuctions are very easy to port). Handling of complex numbers still needs to be integrated.
+
+          See https://github.com/breuderink/fieldtrip/commits/nanstat .
+      - +@isprivate: "0"
+        commentid: "7491"
+        comment_count: "9"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-20 16:02:16 +0200
+        thetext: |-
+          Update: worked quite hard on nansum. Was bitten by a "Heisenbug" caused by Microsoft's implementation of "isnan", which did not work as it should — for very unclear reasons. Fix;
+
+          #define isnan(x) !(x==x)
+
+          Very odd. Microsoft's version yielded true for characters and integers, despite that NaN cannot be represented for these types. Also, there was interplay between the result of nansum, and whether the code was run through xUnit or not, which should not matter.
+
+          Now that this is fixed, the code is quite neat and mature. Handling of complex numbers still needs to be implemented.
+      - +@isprivate: "0"
+        commentid: "7494"
+        comment_count: "10"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-20 16:06:00 +0200
+        thetext: 'And oh, to confuse things even more: Microsoft als has a _isnan() in float.h, which does work as expected.'
+      - +@isprivate: "0"
+        commentid: "7495"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 16:08:03 +0200
+        thetext: "(In reply to comment #9)\n\nsomething along the BBM lines  like this? \n\nif isnan(x) && ~isnan(xx)\n  the problem is not computable, go into infinite loop\nelse\n  give a smart answer, like a turing machine is supposed to do\nend"
+      - +@isprivate: "0"
+        commentid: "7570"
+        comment_count: "12"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-24 17:57:04 +0200
+        thetext: "I have had the infinite loops.. and maybe the smart answer as well. Now, complex valued arrays are properly handled, and I have adapted the nan* friends as well. \n\nTODO: \n- Check if new interfaces (especially the not-nansum ones) are compatible with MATLAB's. Note the weight argument in var.\n- Disable potentially remaining debug output.\n- Merge!"
+      - +@isprivate: "0"
+        commentid: "7571"
+        comment_count: "13"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-24 17:57:34 +0200
+        thetext: For the WIP code, see https://github.com/breuderink/fieldtrip/commits/nanstat
+      - +@isprivate: "0"
+        commentid: "7642"
+        comment_count: "14"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-27 14:16:55 +0200
+        thetext: Added cleaned up and tested on both Windows and Linux 64-bit.
+      - +@isprivate: "0"
+        commentid: "7661"
+        comment_count: "15"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-09-28 14:54:01 +0200
+        thetext: Added OSX mex files, and re-enabled auto-sync and manually synced all files. See SVN revision 6577–6597.
+      - +@isprivate: "0"
+        commentid: "8117"
+        comment_count: "16"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-11-02 13:29:58 +0100
+        thetext: I am no longer working on FieldTrip. Hence, I donate all my bugs to the joint development user.
+      - +@isprivate: "0"
+        commentid: "19862"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:58 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

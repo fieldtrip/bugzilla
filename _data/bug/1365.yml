@@ -1,0 +1,124 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1365"
+    creation_ts: 2012-03-10 08:44:00 +0100
+    short_desc: extend the "spm double installation" path check to other toolboxes
+    delta_ts: 2019-08-10 12:36:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: a.stolk8
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5492"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 08:44:13 +0100
+        thetext: "Somewhere in the code there is a check on spm5 and spm8 beint installed multiple times. That check issues a warning if multiple instances are found. The same can be done with the other toolboxes that fieldtrip auto-adds, and even with fieldtrip itself. \n\ne.g. give a warning if two copies of ft_preprocessing are on the path, or two copies of sopen (from biosig)."
+      - +@isprivate: "0"
+        commentid: "5568"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-03-14 13:42:15 +0100
+        thetext: also see 1372
+      - +@isprivate: "0"
+        commentid: "5716"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-03-28 12:31:10 +0200
+        thetext: |-
+          Fixed in revision 5551. I needed to determine a 'key' file for each of the external toolboxes, and am not sure I always took the most appropriate one. Perhaps Robert should check this?
+
+          The relevant code:
+
+          checkMultipleToolbox('FieldTrip',           'ft_defaults');
+          checkMultipleToolbox('mne',                 'fiff_copy_tree');
+          checkMultipleToolbox('eeglab',              'eeglab2fieldtrip.m');
+          checkMultipleToolbox('dipoli',              'write_tri.m');
+          checkMultipleToolbox('eeprobe',             'read_eep_avr.mexa64');
+          checkMultipleToolbox('yokogawa',            'GetMeg160ChannelInfoM.p');
+          checkMultipleToolbox('simbio',              'sb_compile_vista');
+          checkMultipleToolbox('fns',                 'fns_region_read.m');
+          checkMultipleToolbox('bemcp',               'bem_Cii_cst');
+          checkMultipleToolbox('bci2000',             'load_bcidat.m');
+          checkMultipleToolbox('openmeeg',            'openmeeg_helper');
+          checkMultipleToolbox('freesurfer',          'vox2ras_ksolve.m');
+          checkMultipleToolbox('fastica',             'fastica');
+          checkMultipleToolbox('besa',                'readBESAmul.m');
+          checkMultipleToolbox('neuroshare',          'ns_GetAnalogData');
+          checkMultipleToolbox('ctf',                 'setCTFDataBalance.m');
+          checkMultipleToolbox('afni',                'WriteBrikHEAD.m');
+          checkMultipleToolbox('gifti',               '@gifti/display');
+          checkMultipleToolbox('sqdproject',          'sqdread');
+          checkMultipleToolbox('xml4mat',             'xml2mat');
+          checkMultipleToolbox('cca',                 'ccabss.m');
+          checkMultipleToolbox('bsmart',              'armorf.m');
+          checkMultipleToolbox('iso2mesh',            'iso2meshver');
+          checkMultipleToolbox('bct',                 'degrees_und.m');
+          checkMultipleToolbox('yokogawa_meg_reader', 'getYkgwHdrEvent.p');
+          checkMultipleToolbox('biosig',              'sopen');
+      - +@isprivate: "0"
+        commentid: "5719"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-28 12:47:14 +0200
+        thetext: "(In reply to comment #2)\n\nin ft_hastoolbox we have a similar issue in checking the presence of a toolbox on the basis of one or multiple files. E.g. \n\n  case 'DENOISE'\n    status  = (exist('tsr', 'file') && exist('sns', 'file'));\n  case 'CTF'\n    status  = (exist('getCTFBalanceCoefs') && exist('getCTFdata'));\n  case 'BCI2000'\n    status  = exist('load_bcidat');\n  case 'NLXNETCOM'\n    status  = (exist('MatlabNetComClient', 'file') && exist('NlxConnectToServer', 'file') && exist('NlxGetNewCSCData', 'file'));\n  case 'DIPOLI'\n    status  = exist('dipoli.maci', 'file');\n  case 'MNE'\n    status  = (exist('fiff_read_meas_info', 'file') && exist('fiff_setup_read_raw', 'file'));\n  case 'TCP_UDP_IP'\n    status  = (exist('pnet', 'file') && exist('pnet_getvar', 'file') && exist('pnet_putvar', 'file'));\n  case 'BEMCP'\n\nI suggest that we try to make this definition of the key file or key files common. E.g.\n   ft_toolboxfunctions('DENOISE')\nreturns {'tsr', 'sns'} and\n   ft_toolboxfunctions('NLXNETCOM')\nreturns {'MatlabNetComClient', 'NlxConnectToServer')\n\nThe ft_hastoolbox code then simplifies to \n\n  case 'NLXNETCOM'\n    status  = all(@existfile, ft_toolboxfunctions('NLXNETCOM'));\n\nwhere I use a subfunction with\nfunction status = existfile(file)\n  status = exist(file, 'file');\n\nor where you could also absorb the handling of the cell-array with multiple files in the subfunction like this\n\nfunction status = existfile(file)\nif ischar(file)\n  status = exist(file, 'file');\nelse\n status = exist(file{1}, 'file');\n  for i=2:length(file)\n    status = status && exist(file{i}, 'file');\n  end\nend"
+      - +@isprivate: "0"
+        commentid: "5720"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-28 12:48:58 +0200
+        thetext: "(In reply to comment #2)\n\nSomething to think about is mex files and p-files. I think that we should check for the presence of a function, not whether it is a mex or p implementation. \n\nSo \ncheckMultipleToolbox('eeprobe',             'read_eep_avr.mexa64');\ncheckMultipleToolbox('yokogawa',            'GetMeg160ChannelInfoM.p');\n\nmight have to be \ncheckMultipleToolbox('eeprobe',             'read_eep_avr);\ncheckMultipleToolbox('yokogawa',            'GetMeg160ChannelInfoM');\n\nhmm, how to deal with both the m-file and the mex file being present..."
+      - +@isprivate: "0"
+        commentid: "19387"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-07-13 10:00:41 +0200
+        thetext: the current implementation (already in place for quite some years) seems to be working just fine. I hear/see on workshops it helps resolving path issues, so I would say it is functional.
+      - +@isprivate: "0"
+        commentid: "20346"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:36:54 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

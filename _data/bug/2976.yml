@@ -1,0 +1,116 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2976"
+    creation_ts: 2015-10-02 21:27:00 +0200
+    short_desc: ft_preamble and ft_postamble are not fully supported on matlab 2015b
+    delta_ts: 2016-06-14 16:14:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2989"
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16165"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-10-02 21:27:19 +0200
+        thetext: |-
+          My script runs the line:
+
+          >> data = ft_rejectartifact(cfg,data);
+
+          And gets the error:
+
+             Reference to a cleared variable data.
+
+             Error in ft_rejectartifact (line 520)
+               cfg = data;
+
+          I tracked it down to ft_postamble_savevar, line 48:
+
+             if ~nargout
+                 % do not return the output variable "ans"
+                 clear(ft_default.postamble{1});
+             end
+
+          The Matlab editor gives a warning:
+
+             Use of 'nargout' in a script will be removed in a future release.
+
+          Since this is a script, I'm not exactly sure where it's supposed to be getting the nargout from, but my call to ft_rejectartifact did request an output, so I guess it should be there.
+
+          I've run this code successfully for a while now, and just ran into this problem *I think* when I upgraded to R2015b, so it may be a change in how this release handles something.  I did try updating to the latest version of FieldTrip (9/30/15) to be sure it wasn't something you had already found and fixed.
+
+          Let me know if you're able to replicate the problem or need any more info.
+
+          Thanks,
+          Teresa
+      - +@isprivate: "0"
+        commentid: "16169"
+        comment_count: "1"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-10-05 18:08:02 +0200
+        thetext: Just thought I'd add, it still crashes (on the same line & with the same error) when I run ft_rejectartifact without an output variable.  My workaround is just to leave cfg.outputfile off and save the data after.
+      - +@isprivate: "0"
+        commentid: "16191"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-11 09:19:17 +0200
+        thetext: |-
+          (In reply to Teresa Madsen from comment #1)
+
+          Hi Theresa,
+
+          I made some updates to the pre and postamble handling on Friday. It mainly had to do with ordering, and not with the error you reported. See https://github.com/fieldtrip/fieldtrip/commit/1c51eaf2bcc7a41103e5f7b8c42fb9129916d93b
+
+          But I also noticed the 2015b warning. So far we have not yet targeted version 2015b, but we should. I have renamed the bug description and will try to pinpoint the problems with the post amble and 2015b.
+      - +@isprivate: "0"
+        commentid: "16419"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-23 17:04:10 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #2)\n\nI made a test script and just tried to replicate with the latest version on matlab r2015b on 64-bit OS X.\n\n>> test_bug2976\ndetected   1 manual artifacts\nrejected    2 trials completely\nrejected    0 trials partially\nfilled parts of    0 trials with nans\nresulting  18 trials\nthe input is raw data with 10 channels and 20 trials\nWarning: Original data has trialinfo, using user specified trialinfo instead \n> In ft_warning (line 181)\n  In ft_redefinetrial (line 256)\n  In ft_rejectartifact (line 504)\n  In test_bug2976 (line 29) \nthe call to \"ft_redefinetrial\" took 0 seconds and required the additional allocation of an estimated 0 MB\nthe call to \"ft_rejectartifact\" took 0 seconds and required the additional allocation of an estimated 0 MB\n\nAll runs as it should, so I'll close the bug.\n\nmac011> svn commit test_bug2976.m\nAdding         test_bug2976.m\nTransmitting file data .\nCommitted revision 10932."
+      - +@isprivate: "0"
+        commentid: "17483"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:49 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

@@ -1,0 +1,242 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2580"
+    creation_ts: 2014-05-14 21:56:00 +0200
+    short_desc: bug with preprocessing, abort is undefined
+    delta_ts: 2014-07-15 17:25:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2478
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2643
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ayelet.landau
+      +@name: Ayelet N. Landau
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: a.stolk8
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13649"
+        comment_count: "0"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2014-05-14 21:56:53 +0200
+        thetext: "every call for ft_preprocessing give the following error:\n\n??? Undefined function or variable 'abort'.\n\nError in ==> ft_preprocessing at 163\nif abort\n\nthis doesn't occur with an earlier version that I have stashed aside.\n\nft_version: \nthis is FieldTrip, version r9530 (svn).\n\nft_preprocessing seems to have been modified today. This might be related.\nlooking forward for the fix!\n\nAyelet"
+      - +@isprivate: "0"
+        commentid: "13650"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-05-14 22:18:56 +0200
+        thetext: "Thanks for reporting, Ayelet. It seems this 'bug' may have been introduced with revision 9520:\n\nhttps://code.google.com/p/fieldtrip/source/detail?r=9520 \nhttps://code.google.com/p/fieldtrip/source/diff?spec=svn9520&r=9520&format=side&path=/trunk/ft_preprocessing.m\n\nAny idea on a quick fix, Robert?"
+      - +@isprivate: "0"
+        commentid: "13653"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 23:25:36 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #1)
+
+          it will indeed be related to my change of today related to bug #2478. However, I don't understand why "abort" would not exist. The boolean variable is created here
+
+          https://code.google.com/p/fieldtrip/source/diff?spec=svn9520&r=9520&format=side&path=/trunk/utilities/private/ft_preamble_init.m
+
+          which is in the same revision.
+
+          @Ayelet, could you check your copy of ft_preamble_init? Could you set a breakpoint in ft_preamble_init and see what goes on?
+      - +@isprivate: "0"
+        commentid: "13668"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-15 16:33:54 +0200
+        thetext: "I got this message from Irina\n\n--------------------\nOn 15 May 2014, at 15:45, Irina Simanova wrote:\n\nMy master student Yuliya came across this error message when trying to create plots with sourceplot. \n\nUndefined function or variable 'abort'.\nError in ft_sourceplot (line 191)\nif abort \n\nIt happened yesterday for the first time, and since then she could not work with this function. \n--------------------\n\nI.e. same problem. I have asked for details."
+      - +@isprivate: "0"
+        commentid: "13672"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-05-15 20:19:16 +0200
+        thetext: Seems indeed that change is throwing errors in some cases - weird. Hope those details will tell us more.
+      - +@isprivate: "0"
+        commentid: "13675"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-16 09:44:08 +0200
+        thetext: "On 15 May 2014, at 20:41, Yuliya Berezutskaya <yuliya.berezutskaya@xxx> wrote:\n\nThank you for your reply. I added  utilities/private/ to the path, it works now.\n\n--------\n\nHmm, that does not make complete sense. You cannot (technically) add private directories to the path, see http://fieldtrip.fcdonders.nl/faq/matlab_does_not_see_the_functions_in_the_private_directory\nYou can add utilities to the path, which ft_defaults would ensure to be the case in each high-level FT function. \n\nYour reply suggests that the order of setting the paths might be involved in the problem. I’ll see whether I can reproduce it."
+      - +@isprivate: "0"
+        commentid: "13676"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-16 09:50:26 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          Starting from a completely empty path, and adding only the main fieldtrip folder, I cannot reproduce the problem. The ft_defaults does its work properly and sets up the path such that ft_preamble_init can be found
+
+          I wonder whether it is a problem due to updating the fieldtrip code on disk without restarting matlab. In that case I could imagine that the change in ft_preamble_init would not be noticed by matlab and that hence the "abort" variable not being set.
+
+          If this were the case, it would potentially only happen once around the update of the code on disk
+
+          @Ayelet, are you still able to reproduce the problem?
+      - +@isprivate: "0"
+        commentid: "13692"
+        comment_count: "7"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2014-05-16 12:58:32 +0200
+        thetext: |-
+          Hi All,
+
+          I am still able to reproduce the problem. I also tried restarting matlab, clearing my path, leaving only the main ft folder in -- running ft_defaults.
+
+          the problem persists.
+
+          As for breaking at ft_preamble_init:
+          when I step into this function - it actually does very little
+
+          the first line: if nargin==0
+          is false
+          do it jumps right out of it.
+
+          here is the conditional that is ft_preamble_help in title, but ft_preamble_init in file name - just in case:
+
+          if nargin==0
+            stack = dbstack('-completenames');
+            % stack(1) is this script
+            % stack(2) is the calling ft_postamble function
+            % stack(3) is the main FieldTrip function that we are interested in
+            stack = stack(3);
+            help(stack.name);
+            % throw the error as if it happened in the original function
+            msg.message     = 'This function requires one or multiple input arguments, please refer to the documentation above';
+            msg.identifier  = '';
+            msg.stack       = stack;
+            error(msg);
+          end
+
+          looking forward to a work around!
+          best,
+          Ayelet
+      - +@isprivate: "0"
+        commentid: "13694"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-16 18:37:08 +0200
+        thetext: |-
+          (In reply to Ayelet N. Landau from comment #7)
+
+          Hi Ayelet,
+
+          It seems to me that you have an old ft_preamble_init.m, since in the change involving abort I also fixed the function name and help. Can you compare it with
+          https://code.google.com/p/fieldtrip/source/browse/trunk/utilities/private/ft_preamble_init.m
+
+          The important difference is that there is a second section wher the abort variable is set.
+      - +@isprivate: "0"
+        commentid: "13698"
+        comment_count: "9"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2014-05-16 23:12:11 +0200
+        thetext: |-
+          Hi Robert,
+
+          our file is not the right one.
+          here is the ID
+          % $Id: ft_preamble_init.m 8241 2013-06-12 13:38:54Z jorhor $
+
+          and here is the function pasted:
+
+
+          if nargin==0
+            stack = dbstack('-completenames');
+            % stack(1) is this script
+            % stack(2) is the calling ft_postamble function
+            % stack(3) is the main FieldTrip function that we are interested in
+            stack = stack(3);
+            help(stack.name);
+            % throw the error as if it happened in the original function
+            msg.message     = 'This function requires one or multiple input arguments, please refer to the documentation above';
+            msg.identifier  = '';
+            msg.stack       = stack;
+            error(msg);
+          end
+
+
+          how do I go about repairing this situation?
+          I am using the fieldtrip version sitting on the cluster /opt/fieldtrip
+          at this point - you might know better than I would what the protocol for updates of this version is.
+
+          Let me know how you think I should address this.
+          Ayelet
+      - +@isprivate: "0"
+        commentid: "13699"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-17 17:42:05 +0200
+        thetext: |-
+          (In reply to Ayelet N. Landau from comment #9)
+
+          Hi Ayelet,
+
+          Good to hear that it is not some magical difference between MATLAB versions, but just a n update problem.
+
+          When and where did you get the fieldtrip version from that you are using? Is someone else in charge of updating it, i.e. is it on a network share? If so, please discuss with that person. Otherwise just get the latest version (zip file) from our FTP server.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "14084"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-09 12:36:10 +0200
+        thetext: there is no indication that the problem has even been in fieldtrip, rather it was a corrupt fieldtrip installation on the end-users' disks.
+      - +@isprivate: "0"
+        commentid: "14132"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:10 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

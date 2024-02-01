@@ -1,0 +1,110 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1343"
+    creation_ts: 2012-02-24 15:06:00 +0100
+    short_desc: Problem in ft_denoise_pca when the 'pertrial' option is set to 'yes'
+    delta_ts: 2012-04-02 16:26:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: Panagiotis.Tsiatsis
+      +@name: Panagiotis Tsiatsis
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - Panagiotis.Tsiatsis
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5353"
+        comment_count: "0"
+        who:
+          +content: Panagiotis.Tsiatsis
+          +@name: Panagiotis Tsiatsis
+        bug_when: 2012-02-24 15:06:30 +0100
+        thetext: |-
+          I think there might be a bug with ft_denoise_pca when the option cfg.pertrial   is set to 'yes' (which as far as I understand is more thorough as an option than 'no').
+
+          More precisely, I am trying to apply it on my CTF-275 MEG data that I have already preprocessed up to a point with SPM, but I am getting the following error
+
+          Error using ft_checkdata (line 307)
+          This function requires raw data as input.
+
+          Error in ft_appenddata (line 71)
+            varargin{i} = ft_checkdata(varargin{i}, 'datatype', 'raw', 'feedback', 'no', 'hassampleinfo', 'yes');
+
+          Error in ft_denoise_pca (line 88)
+            data = ft_appenddata([], tmp{:});
+
+
+          I did not have the time to thoroughly test it but the problem seems to lie in those lines in  ft_denoise_pca
+
+
+          if strcmp(cfg.pertrial, 'yes'),
+            tmpcfg          = cfg;
+            tmpcfg.pertrial = 'no';
+           tmp             = cell(numel(varargin{1}.trial));      %****** this line seems to be the problem
+            for k = 1:numel(varargin{1}.trial)
+              tmpcfg.trials = k;
+              tmp{k,1}      = ft_denoise_pca(tmpcfg, varargin{:});
+
+            end
+            data = ft_appenddata([], tmp{:});
+            return;
+          end
+
+
+          and more specifically in the line
+
+          tmp             = cell(numel(varargin{1}.trial));
+
+          which I have substituted with
+
+          tmp             = cell(numel(varargin{1}.trial) , 1);
+
+          and it seems to be working but since I did not go through the whole code I felt insecure to just patch the code by myself and I thought to ask you first.
+
+          I would be grateful if you could take a look on that.
+      - +@isprivate: "0"
+        commentid: "5356"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-24 15:51:50 +0100
+        thetext: '*** Bug 1342 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "5357"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-26 14:48:24 +0100
+        thetext: |-
+          Error confirmed. Typo in the allocation of the cell-array 'tmp'.
+          Fixed according to the suggestion of Panagiotis (Thanks!).
+
+          Fixed in revision 5318

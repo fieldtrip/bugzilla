@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1796"
+    creation_ts: 2012-10-29 15:18:00 +0100
+    short_desc: prepare_headmodel checks for vol.unit, but old headmodels do not have a .unit field
+    delta_ts: 2014-03-12 12:21:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8033"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-29 15:18:23 +0100
+        thetext: |-
+          I wanted to re-do some analysis and found that my headmodel (vol) does not have a .unit field which causes prepare_headmodel and thereby ft_prepare_leadfield to fail.
+
+          Of course I can (will) re-do the hdm computation, but because of backwards compatibility etc. it might be wise to make prepare_headmodel more robust.
+      - +@isprivate: "0"
+        commentid: "8041"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 15:38:51 +0100
+        thetext: "You are referring to private/prepare_headmodel.m, right? \n\nI would have expected that prior to ending up in that function it would have passed through utilities/ft_datatype_headmodel.m and that that would have added add vol.unit using ft_convert_units.\n\nBut it does not. Also ft_datatype_headmodel states that vol.unit is optional. \n\nLooking at the code, it does seem to be added at the relevant pieces\n\nmac001> grep 'ft_convert_units(vol)' *.m\nft_prepare_bemmodel.m:vol = ft_convert_units(vol);\nft_prepare_concentricspheres.m:vol = ft_convert_units(vol);\nft_prepare_headmodel.m:  vol = ft_convert_units(vol);\nft_prepare_localspheres.m:vol = ft_convert_units(vol);\nft_prepare_singleshell.m:vol = ft_convert_units(vol);\n\nThe one in ft_prepare_headmodel (the new function) is the perfect example\n\n% ensure that the geometrical units are specified\nif ~ft_voltype(vol, 'infinite'),\n  vol = ft_convert_units(vol);\nend\n\nplease add that to ft_datatype_headmodel."
+      - +@isprivate: "0"
+        commentid: "8045"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-29 16:12:54 +0100
+        thetext: |-
+          yep, that's does it, thanks! although in the meanwhile, I also re-created my headmodels - let's see what has changed ;)
+
+          svn ci utilities/ft_datatype_headmodel.m -m "bugfix-#1796-adding a unit field by default to the headmodel structure"
+          Sending        utilities/ft_datatype_headmodel.m
+          Transmitting file data .
+          Committed revision 6805.
+      - +@isprivate: "0"
+        commentid: "8049"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 21:35:48 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          I am getting some problems with a certain script. There is now an infinite recursion due to ft_voltype calling ft_datatype_headmodel and vice versa.
+
+          The reason for the ft_voltype call is to detect the infinite model. The reason for wanting to detect infinite is that can have arbitrary units. The consequence of the arbitrary units is that ft_convert_units failed on the infinite volume conductor. That is something that can be fixed...
+
+          mac001> svn commit forward/ft_convert_units.m
+          Sending        forward/ft_convert_units.m
+          Transmitting file data .
+          Committed revision 6814.
+
+          I changed a small bit to your change.
+
+          mac001> svn commit forward/private/ft_datatype_headmodel.m
+          Sending        forward/private/ft_datatype_headmodel.m
+          Transmitting file data .
+          Committed revision 6816.

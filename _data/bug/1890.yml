@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1890"
+    creation_ts: 2012-12-13 17:18:00 +0100
+    short_desc: ft_channelrepair does not seem to handle the new sens fields well
+    delta_ts: 2014-03-12 12:21:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8694"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-13 17:18:18 +0100
+        thetext: |-
+          e.g. there is the following code around line 301
+
+            % move missing channels to the end
+            missidx = find(ismember(sens.label, cfg.missingchannel));
+            sens.label(end+1:end+numel(missidx))      = sens.label(missidx);
+            sens.label(missidx)                       = [];
+            sens.chanpos(end+1:end+numel(missidx), :) = sens.chanpos(missidx, :);
+            sens.chanpos(missidx, :)                  = [];
+
+          Here channels are moved, but labels are not updated. Why?
+          Also chanori, chanunit and chantype are not moved along.
+
+          This suggest that the output sens might be completely messed up. -> write a script in which this can be tested. E.g. use neuromag 306 channel data with really different types and units per channel.
+      - +@isprivate: "0"
+        commentid: "8875"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-07 11:16:39 +0100
+        thetext: |-
+          assigned to me, cause it seems like I did this ;)
+          labels are updated though, and chanoir, -unit and -type are not used by the method, so they are not ignored. what is happening here is that channels which are missing in the data are moved in the sens so that any interpolation ends up having them as the last channels. sens.chanpos is used by the interpolation algorithm that Jason wrote, sens.labels is used for the output argument (which is a data-structure not a sens-structure)
+
+          There is a test_ft_channelrepair that verifies that the data-output of this moving around is correct. A badchannel will not be moved to the end of the list, a missingchannel will be. The testscript checks whether interpolation of the same channel yields the same results when regarded as a badchannel (i.e. stays in the same position) and as a missingchannel (i.e. when moved to the end).
+
+          I don't see how someone can interpolate missing channels based on different channel types, can that be (correctly) done in FT?
+      - +@isprivate: "0"
+        commentid: "8877"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-07 11:25:29 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          Do I understand it correctly that this sens is not in the output? If it is not and if you only use label and chanpos, I suggest that you don't use the whole sens but rather do something like
+
+          label       = data.grad.label;
+          chanpos = data.grad.chanpos;
+
+          and start changing those two in the subsequent code. That prevents future code updates from assuming that sens is correct (which it is not after the updates).
+      - +@isprivate: "0"
+        commentid: "8878"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-07 11:28:07 +0100
+        thetext: yes, that is correct and it is a good idea to make clear that this sens-structure is not valid anymore.
+      - +@isprivate: "0"
+        commentid: "8879"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-07 11:34:29 +0100
+        thetext: "(In reply to comment #1)\n\n> I don't see how someone can interpolate missing channels based on different\n> channel types, can that be (correctly) done in FT?\n\nI would not know how to do it perfectly, but this function currently does the\ninterpolation potentially incorrect. Now neuromag306 users might expect that\ntheir magnetometer channel is correctly interpolated from the planars, which of\ncourse would never work (unless you use the inward-ourward projection in\nmegrealign). If we know that the code does not work in a specific case, we\nshould share that knowledge with a user, e.g. by\n\nif ft_senstype(sens, 'eeg')\n % ok on EEG data\nelseif ft_senstype(sens, 'meg') && strcmp(ft_senstype(sens), {'...'}) \n % ok on MEG ctf151, 275 and bti148 and 248 systems\nelse\n  error('not supported on %s', ft_senstype(sens));\nend\n\nOf course it could be made to work for more cases by adding mode code, e.g. for\na nm306 magnetometers I would interpolate using all other nm306 magnetometers\n(the interpolated value would be in T). For planars I would interpolate the\nT/cm value from the corresponding planars (either the dV or dH for synthetic,\nbut the same holds for neuromag122 and 306)."
+      - +@isprivate: "0"
+        commentid: "9288"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-31 11:23:04 +0100
+        thetext: |-
+          I now implemented a warning rather than an error, because it depends on the neighbour structure whether it makes sense to interpolate channels on a neuromag system:
+
+            warning('be careful when using %s - mixing of sensor types (e.g. magnetometers and gradiometers) can lead to wrong data. Check your neighbour-structure thoroughly', ft_senstype(sens));
+
+
+          Do all other MEG systems apart CTF and BTI have mixed sensors?
+          svn ci ft_channelrepair.m -m "enhancement #1890 - temporary sens changed names, warning thrown if sensor types might be mixed (e.g mag&grads)"
+          Sending        ft_channelrepair.m
+          Transmitting file data .
+          Committed revision 7427.

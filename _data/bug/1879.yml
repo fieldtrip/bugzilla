@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1879"
+    creation_ts: 2012-12-10 16:15:00 +0100
+    short_desc: ft_plot_vector breaks because it needs iscolumn
+    delta_ts: 2014-03-12 12:21:42 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8612"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-10 16:15:14 +0100
+        thetext: |-
+          ??? Undefined function or method 'iscolumn' for input arguments of type 'double'.
+
+          Error in ==> ft_plot_vector at 74
+            if iscolumn(vdat),
+
+          Error in ==> ft_connectivityplot at 127
+                ft_plot_vector(tmp, 'width', 1, 'height', 1, 'hpos', ix.*1.2, 'vpos', iy.*1.2, 'vlim',
+                cfg.zlim, 'box', 'yes', 'color', cfg.color(1));
+
+
+          there is no function iscolumn (mentat, matlab2009b)
+      - +@isprivate: "0"
+        commentid: "8613"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-10 16:17:30 +0100
+        thetext: there is one in version 2010b, hehehe.
+      - +@isprivate: "0"
+        commentid: "8615"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-10 16:27:54 +0100
+        thetext: |-
+          oh, you have a version it? Would you mind creating an FT version out that then?
+          :P
+      - +@isprivate: "0"
+        commentid: "8616"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 16:29:11 +0100
+        thetext: |-
+          "svn blame ft_plot_vector.m" (*) shows the following
+
+          *) this is something I just learned as useful svn command.
+
+               1     roboos
+            3652     roboos if nargin>1 && all(cellfun(@isnumeric, varargin(1:2)) | cellfun(@islogical, varargin(1:2)))
+               1     roboos   % the function was called like plot(x, y, ...)
+               1     roboos   hdat = varargin{1};
+               1     roboos   vdat = varargin{2};
+               1     roboos   varargin = varargin(3:end);
+               1     roboos else
+               1     roboos   % the function was called like plot(y, ...)
+               1     roboos   vdat = varargin{1};
+            6403     jansch   if iscolumn(vdat),
+            6403     jansch     hdat = 1:size(vdat,1);
+            6403     jansch   else
+            6403     jansch     hdat = 1:size(vdat,2);
+            6403     jansch   end
+               1     roboos   varargin = varargin(2:end);
+               1     roboos end
+               1     roboos
+      - +@isprivate: "0"
+        commentid: "8617"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 16:30:50 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          in 2010a
+
+          >> iscolumn
+          ??? Undefined function or variable 'iscolumn'.
+
+          See http://fieldtrip.fcdonders.nl/code_guidelines#ensure_that_it_runs_on_older_matlab_versions
+      - +@isprivate: "0"
+        commentid: "8618"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-10 16:31:42 +0100
+        thetext: |-
+          ha!
+          btw, I solved it by checking size(vdat, 1) > 1 rather than iscolumn
+      - +@isprivate: "0"
+        commentid: "8619"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-10 16:32:03 +0100
+        thetext: but didn't commit, should I?
+      - +@isprivate: "0"
+        commentid: "8620"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-10 16:34:00 +0100
+        thetext: go ahead
+      - +@isprivate: "0"
+        commentid: "8621"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-10 16:37:02 +0100
+        thetext: |-
+          svn ci ft_plot_vector.m -m "bugfix - #1879 - iscolumn does not always exist, replaced by checking size"
+          Sending        ft_plot_vector.m
+          Transmitting file data .
+          Committed revision 7131.

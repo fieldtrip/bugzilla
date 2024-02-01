@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1614"
+    creation_ts: 2012-07-19 14:22:00 +0200
+    short_desc: ft_default.trackconfig = 'report' results in obscure low-lvl cfg-object error when plotting interactively in ft_multiplotTFR
+    delta_ts: 2015-02-11 10:39:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1762
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6836"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-07-19 14:22:05 +0200
+        thetext: "When ft_default.trackconfig = 'report' and When selecting interactively what to plot next after calling ft_multiplotTFR, I get the series of errors posted below (even though the new plot is actually made correctly, I think). But, only when baselining is requested(!).\nNote, the baselining part could simple be because another level of nesting is requested in the 'output cfg', and maybe has nothing to do with baselining itself.\n\nThis can be replicated by using the frequency data from test_tutorial_timefrequencyanalysis.m, and calling:\n\nglobal ft_default\nft_default.trackconfig = 'report';\ncfg = [];\ncfg.baseline     = [-0.5 -0.1]; \ncfg.baselinetype = 'absolute';        \ncfg.layout       = 'CTF151.lay';\ncfg.interactive  = 'yes';\nft_multiplotTFR(cfg, TFRhann);\n\n\n\n************\nthe call to \"ft_multiplotTFR\" took 1 seconds and an estimated 0 MB\nselected cfg.channel = {'MLC12', 'MLC13', 'MLC14', 'MLC21', 'MLC22', 'MLC23', 'MLC31', 'MLF33', 'MLF34', 'MLF42', 'MLF43', 'MLF44', 'MLF45', 'MLF51', 'MLF52', 'MLT12', 'MLT13', 'MLT22', 'MLT23', 'MLT32', 'MLT41', 'MLT42'}\nthe call to \"ft_singleplotTFR\" took 0 seconds and an estimated 0 MB\nError using config/subsasgn (line 10)\nCell contents reference from a non-cell array object.\n\nError in config/subsasgn (line 35)\n  y2 = subsasgn(y1, index(2:end), val);\n\nError in ft_postamble_previous (line 44)\n      cfg.previous{cnt} = tmpvar.cfg;\n\nError in ft_postamble (line 54)\n  evalin('caller', ['ft_postamble_' cmd]);\n\nError in ft_singleplotTFR (line 521)\nft_postamble previous data\n\nError in ft_multiplotTFR>select_singleplotTFR (line 709)\n  ft_singleplotTFR(cfg, varargin{:});\n\nError in ft_select_channel>select_channel_multiple (line 148)\n      feval(funhandle, label, funargs{:});\n\nError in ft_select_range>evalCallback (line 236)\n    feval(funhandle, val, funargs{:});\n\nError in ft_select_range (line 97)\n      evalCallback(callback, userData.range);\n \nError while evaluating figure WindowButtonDownFcn\n************"
+      - +@isprivate: "0"
+        commentid: "8168"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-07 13:58:26 +0100
+        thetext: This one is related to 1762
+      - +@isprivate: "0"
+        commentid: "8232"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-11-09 16:43:00 +0100
+        thetext: "How to replicate the bug.\n\na = [];\na.field = 1;\na.field2{1} = 1;\nb = config(a);\n\n% adding a new field defined as a cell fails\n>> b.field3{1} = 1\nError using config/subsasgn (line 10)\nCell contents reference from a non-cell array object.\n\nError in config/subsasgn (line 35)\n  y2 = subsasgn(y1, index(2:end), val);\n \n\n% reading/modifying/expanding the current cell-field works\nb.field2{1}\nb.field2{1} = 2\nb.field2{2} = 2\n\nI.e. subsref probably works fine, subsasign doesn't support cell-array being created."
+      - +@isprivate: "0"
+        commentid: "8236"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-11-09 18:11:38 +0100
+        thetext: "The issue was a bit more general, and not specific to cell-arrays. \nWhat was not supported is creating a new field while indexing it at the same time. \n\nSo what fails is:\nb.newfield(1) = 1\nb.newfield{1} = 1\n\nWhereas the following succeeds:\nb.newfield = []\nb.newfield(1) = 1\nand\nb.newfield = []\nb.newfield{1} = 1\n\nI implemented this by adding a switch when generating a new field, so a field is generated of the appropriate type. \n\n\nThe original bug however, is caused by another problem and is still not fixed. The problem occurs when you assign cfg-object to a cell-array inside another config object.\nSo the following fails:\nb = []\nb.field{1} = 1\nb = config(b);\nb.field{1} = b;\n\nWhereas the following succeeds:\ncellvar = {}\ncellvar{1} = b\n\nCuriously, the following also succeeds:\nb.field{1} = cellvar\nb.field{1}\nans = \n   [1x1 config]\n\n\n\nTo be continued..."
+      - +@isprivate: "0"
+        commentid: "14182"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-20 14:32:42 +0200
+        thetext: |-
+          The specifically reported problems are now resolved. There is still a known incompatibility, which is flagged as warning (not error) in the test script.
+
+          mac011> svn commit \@config/* test/test_config.m
+          Sending        @config/private/get.m
+          Sending        @config/subsasgn.m
+          Sending        @config/subsref.m
+          Adding         test/test_config.m
+          Transmitting file data ....
+          Committed revision 9747.
+      - +@isprivate: "0"
+        commentid: "14184"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-20 14:33:41 +0200
+        thetext: fixed, see previous comment.
+      - +@isprivate: "0"
+        commentid: "15218"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:39:59 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

@@ -1,0 +1,103 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2806"
+    creation_ts: 2015-01-12 10:14:00 +0100
+    short_desc: 'ft_read_cifti: ask permission to build in support for passing LabelTable info to output for dense-label files'
+    delta_ts: 2015-07-15 13:31:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.f.marquand
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15040"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 10:14:13 +0100
+        thetext: |-
+          In order to be able to use a dense-label cifti file needs to pass the LabelTable information to the output (creating a XXXlabel field that belongs to the corresponding XXX field, the latter of which is correctly passed to the output (although 0-based -> FT convention requires it to be 1-based)). I request permission to do this :-). I would suggest to build this in around line 900 in ft_read_cifti:
+
+          if ~isempty(NamedMap)
+            % do some stuff here
+          end
+
+
+          agreed?
+      - +@isprivate: "0"
+        commentid: "15043"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-12 12:12:50 +0100
+        thetext: |-
+          permission granted ;-)
+
+          Please inform me (through here) of the update to the code, so that I can also update the cifti-matlab release on github.
+      - +@isprivate: "0"
+        commentid: "15054"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-13 11:37:59 +0100
+        thetext: "[jansch@mentat002 fileio]$ svn diff ft_read_cifti.m\nIndex: ft_read_cifti.m\n===================================================================\n--- ft_read_cifti.m\t(revision 10096)\n+++ ft_read_cifti.m\t(working copy)\n@@ -510,7 +510,8 @@\n             brainstructureIndex{i} = 1:BrainModel(i).SurfaceNumberOfNodes;\n           case {'2', '2.0'}\n             greynodeIndex{i}       = BrainModel(i).VertexIndices;\n-            brainstructureIndex{i} = 1:BrainModel(i).SurfaceNumberOfVertices;\n+            %brainstructureIndex{i} = 1:BrainModel(i).SurfaceNumberOfVertices;\n+            brainstructureIndex{i} = 1:numel(BrainModel(i).VertexIndices);\n           otherwise\n             error('unsupported cifti version');\n         end % switch\n@@ -902,11 +903,31 @@\n   source.label = {Parcel(:).Name};\n end\n \n+if ~isempty(NamedMap)\n+  % the following assumes a single NamedMap\n+  if isfield(NamedMap, 'LabelTable')\n+    % use the key-label combination in the label table\n+    haslabeltable = true;\n+    key           = NamedMap.LabelTable.Key;\n+  end\n+  source.datalabel = NamedMap.LabelTable.Label(:);\n+end\n+\n if readdata\n   if isfield(source, 'data')\n     % rename the data field\n     source.(fixname(dataname)) = source.data;\n+    \n+    % adopt FT convention for parcel-to-label mapping\n+    if haslabeltable\n+      tempdata = nan+zeros(size(source.data));\n+      for k = 1:numel(key)\n+        tempdata(source.data==key(k)) = k;\n+      end\n+      source.data = tempdata;\n+    end\n     source = rmfield(source, 'data');\n+    \n   end\n   \n   % rename the datalabel field\n@@ -914,4 +935,5 @@\n     source.(fixname([dataname 'label'])) = source.datalabel;\n     source = rmfield(source, 'datalabel');\n   end\n+  \n end"
+      - +@isprivate: "0"
+        commentid: "15055"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-13 11:38:48 +0100
+        thetext: |-
+          [jansch@mentat002 fileio]$ svn commit -m "enhancement - also output the XXXlabel field when reading a dlabel cifti" ft_read_cifti.m
+          Sending        ft_read_cifti.m
+          Transmitting file data .
+          Committed revision 10097.
+      - +@isprivate: "0"
+        commentid: "15056"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-13 13:49:43 +0100
+        thetext: "[jansch@mentat002 fileio]$ svn diff ft_read_cifti.m\nIndex: ft_read_cifti.m\n===================================================================\n--- ft_read_cifti.m\t(revision 10097)\n+++ ft_read_cifti.m\t(working copy)\n@@ -903,6 +903,7 @@\n   source.label = {Parcel(:).Name};\n end\n \n+haslabeltable = false;\n if ~isempty(NamedMap)\n   % the following assumes a single NamedMap\n   if isfield(NamedMap, 'LabelTable')\n[jansch@mentat002 fileio]$ svn commit -m \"bugfix - added default haslabeltable, causing crash after latest commit, thanks Andre for reporting\" ft_read_cifti.m\nSending        ft_read_cifti.m\nTransmitting file data .\nCommitted revision 10098."
+      - +@isprivate: "0"
+        commentid: "15177"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-08 19:43:55 +0100
+        thetext: My initial attempt caused some troubles but all seems fine now (with regards to reading in, and dealing with the LabelTable, either present or not).

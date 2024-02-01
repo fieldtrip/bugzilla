@@ -1,0 +1,110 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2799"
+    creation_ts: 2015-01-06 12:13:00 +0100
+    short_desc: 'not cleaning up .hdr file: align_itab2spm and align_ctf2spm'
+    delta_ts: 2015-01-12 09:18:01 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: daniel.miklody
+      +@name: Daniel Miklody
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15000"
+        comment_count: "0"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2015-01-06 12:13:58 +0100
+        thetext:
+      - +@isprivate: "0"
+        commentid: "15001"
+        comment_count: "1"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2015-01-06 12:15:02 +0100
+        thetext: "The functions align_itab2spm and align_ctf2spm miss to cleanup the temporary .hdr files.. \nthey only delete the .img file...."
+      - +@isprivate: "0"
+        commentid: "15027"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-09 09:23:11 +0100
+        thetext: Could you suggest a fix?
+      - +@isprivate: "0"
+        commentid: "15030"
+        comment_count: "3"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2015-01-09 12:16:04 +0100
+        thetext: "yes!\nreplace lines 77 to 80 and 102 to 103 in align_itab2spm:\n\n77 tname1 = [tempname, '.img'];\n78 tname2 = [tempname, '.img'];\n79 V1 = ft_write_mri(tname1, mri.anatomy, 'transform', mri.transform, 80 spmversion', spm('ver'));\n80 V2 = ft_write_mri(tname2, mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'));\n\n102 delete(tname1);\n103 delete(tname2);\n\nby:\n\n77 tname1 = tempname;\n78 tname2 = tempname;\n79 V1 = ft_write_mri([tname1, '.img'], mri.anatomy, 'transform', mri.transform, 80 spmversion', spm('ver'));\n80 V2 = ft_write_mri([tname2, '.img'], mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'));\n\n102 delete([tname1, '.img'],[tname1, '.hdr'],[tname2, '.img'],[tname2, '.hdr']);\n103 \n\nand do it similarly with lines 118-121 and 140-141.\nDo the almost the same with lines 90-93 and 115-116, also 139-142 and 161-162 in align_ctf2spm...."
+      - +@isprivate: "0"
+        commentid: "15031"
+        comment_count: "4"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2015-01-09 12:18:12 +0100
+        thetext: oh, I added an "80" to line 79 and in my code without realizing. works probably better without that.
+      - +@isprivate: "0"
+        commentid: "15032"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-09 12:31:14 +0100
+        thetext: Thanks! We'll look into it.
+      - +@isprivate: "0"
+        commentid: "15037"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-10 09:40:54 +0100
+        thetext: "[jansch@mentat003 private]$ svn commit -m \"enhancement - also remove the temporary hdr files, as per bug 2799\" align_itab2spm.m align_ctf2spm.m \nSending        align_ctf2spm.m\nSending        align_itab2spm.m\nTransmitting file data ..\nCommitted revision 10092.\n\nThanks Daniel! I solved it by doing an additional\ndelete(strrep(tname1, 'img', 'hdr')); (also for tname2).\n\n\n[jansch@mentat003 private]$ svn commit -m \"enhancement - also remove the temporary hdr files, which despite Daniel's instructions I missed\" align_itab2spm.m align_ctf2spm.m \nSending        align_ctf2spm.m\nSending        align_itab2spm.m\nTransmitting file data ..\nCommitted revision 10093."
+      - +@isprivate: "0"
+        commentid: "15038"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-10 09:41:09 +0100
+        thetext: I think it is now fixed.
+      - +@isprivate: "0"
+        commentid: "15039"
+        comment_count: "8"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2015-01-10 19:46:42 +0100
+        thetext: Well, that was even more source code change efficient! Good job! :)

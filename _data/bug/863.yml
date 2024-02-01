@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "863"
+    creation_ts: 2011-08-09 14:34:00 +0200
+    short_desc: megplanar followed immediately by combineplanar does not work
+    delta_ts: 2011-08-17 15:13:32 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2823"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-08-09 14:34:30 +0200
+        thetext: "If you got raw data, call megplanar and then combineplanar, checkdata complaints that you provided ctf data as input instead of ctf planar. The problem is caused in ft_senstype which checks the .grad field, in which channel labels are still left as they originally were. \n\nA proposed fix would be to change the recursion of ft_senstype to first check data.label rather than data.grad. \n\nJohanna encountered the same problem with her Nottingham data."
+      - +@isprivate: "0"
+        commentid: "2824"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-08-09 14:39:40 +0200
+        thetext: megplanar should incorporate the balancing matrix in the gradiometer array and also change the labels. Isn't this the case? i.e. ft_apply_montage should be called in ft_megplanar on both the trial data and the grad-field).
+      - +@isprivate: "0"
+        commentid: "2826"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-08-09 16:12:01 +0200
+        thetext: |-
+          hmm, yea, probably my bug is related to the fact that my data has no M* sensors anymore, just HLC sensors... must be a bug I introduced in my own script.
+          I'll mark this as invalid as long as I cannot reproduce it with proper data, sorry for the confusion!
+      - +@isprivate: "0"
+        commentid: "2827"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-08-09 16:26:44 +0200
+        thetext: |-
+          hm okay, reproduced :/
+
+          the problem is in line 138 of ft_senstype. the function wants to infer the senstype from hdr, which labels did not get converted to planar labels
+
+          -- cut --
+          if isdata
+            % preferably look at the data and not the header for the grad, because it might be re-balanced and/or planar
+            if isfield(input, 'hdr')
+              input = input.hdr;
+              isheader = true;
+          -- cut --
+
+          I do not get that comment, if the data is planar, ft_senstype should return XXX_planar
+
+
+          how to avoid this?
+      - +@isprivate: "0"
+        commentid: "2828"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-08-09 16:42:39 +0200
+        thetext: "I quickly looked at my scripts on my Nottingham data, and it seems my workaround also involved removing the hdr which had original labels causing combineplanar to think it was non-planar data.\nI did it something like this:  \n\ndata.grad=data.hdr.grad\ndata=rmfield(data,'hdr')\ndata1=ft_megplanar(cfg,data)\ndata2=ft_combineplanar(cfg,data1)\n\nI ran into this about 3 weeks ago, but had a few other things different than normal so didn't realise it might be a bug, I thought it was something weird I was doing elsewhere."
+      - +@isprivate: "0"
+        commentid: "2838"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-08-15 13:46:33 +0200
+        thetext: OK, I don't see a reason why the data.hdr should prevail over the data.grad, so I changed the order in the if/else tree. This solves this problem

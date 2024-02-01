@@ -1,0 +1,127 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2824"
+    creation_ts: 2015-02-03 16:32:00 +0100
+    short_desc: 'implement Harmony: Source Reconstruction in the Anatomical Basis of Spherical Harmonics'
+    delta_ts: 2020-07-02 13:04:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: RESOLVED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: luca.ambrogioni
+      +@name: Luca Ambrogioni
+    cc:
+      - e.maris
+      - eelke.spaak
+      - j.schoffelen
+      - tzvetan.popov
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15133"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-03 16:32:29 +0100
+        thetext: |-
+          see http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3469612/
+
+          the implementation should be consistent with the data handling now used in disc and plc (for complex valued data) and with mne (now only for real valued data, but see #2822).
+
+          I suggest to start with a (non-functional) test script that details the architecture of the source code that is exposed to the user. It would best start from some mat files and some simulated data. I.e. something like
+
+          load headmodel.mat   % from ft_prepare_headmodel
+          load sourcemodel.mat % from ft_prepare_sourcemodel, where the input is a FS mesh
+
+          data = ft_dipolesimulation(...)
+
+          erf = ft_timelockanalysis(...)
+
+          cfg = ...
+          source = ft_sourceanalysis(cfg, erf)
+
+          This should clarify how the data is handled and how the various options (=design choices) are dealt with, prior to implementing low-level code. Once the architecture is clear, the low-level implementation can follow.
+      - +@isprivate: "0"
+        commentid: "20554"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-06-20 21:38:34 +0200
+        thetext: |-
+          the current implementation of harmony sucks. That is, it does not work from the shelf using frequency domain data, even though it is suggested in the help of ft_sourceanalysis. I will try to see if it can be fixed with minimum effort. If not, I will disable this functionality from ft_sourceanalysis, unless Luca wants to fix this.
+
+
+          See the code in the PR1456 on github: https://github.com/fieldtrip/fieldtrip
+      - +@isprivate: "0"
+        commentid: "20555"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-06-20 21:46:01 +0200
+        thetext: |-
+          symptoms:
+
+          harmony.m calls ct_mesh_spectrum which does not exist, it seems that mesh_spectrum exists, so I change that;
+
+          default parameters are not specified, and the function errors if parameters are empty (which happens if the user doesn't specify this).
+      - +@isprivate: "0"
+        commentid: "20556"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-06-20 21:47:24 +0200
+        thetext: Also, the function does not check whether the input sourcemodel contains a triangulatied mesh, rather than e.g. a 3D grid, or a random cloud of points in 3D space.
+      - +@isprivate: "0"
+        commentid: "20562"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-07-02 08:50:23 +0200
+        thetext: Currently, the contributed code is dysfunctional, and since the stakeholders don't seem to care about this, I will close this. No reason to keep it open, nor to spend time on it.
+      - +@isprivate: "0"
+        commentid: "20567"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2020-07-02 12:56:13 +0200
+        thetext: should we delete the function and the corresponding failed_bug_harmony.m test script?
+      - +@isprivate: "0"
+        commentid: "20568"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-07-02 13:04:07 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          Perhaps this is a question to be answered by Eric and Luca, since they are the main stakeholders here. If they'd like to invest into getting the function functional again + write some documentation about how to use it, it may still be an asset to the codebase.

@@ -1,0 +1,164 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1255"
+    creation_ts: 2012-01-13 10:42:00 +0100
+    short_desc: stacking in qsubcellfun does not work together with compilation
+    delta_ts: 2015-07-15 13:31:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - john.donners
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4786"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-13 10:42:17 +0100
+        thetext: at this moment it is not possible to use the stack option in combination with the compile option.
+      - +@isprivate: "0"
+        commentid: "15630"
+        comment_count: "1"
+        who:
+          +content: john.donners
+          +@name: John Donners
+        bug_when: 2015-05-01 09:30:22 +0200
+        thetext: |-
+          Hello Robert,
+
+          I'm support consultant at SURFsara and we run the Lisa cluster with PBS. The option to run multiple jobs in one job would be very beneficial on our system.
+
+          What is the status of this issue? It would be great if these two options could work together.
+
+          Another question: is the stacking serial or parallel?
+      - +@isprivate: "0"
+        commentid: "15638"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 14:52:19 +0200
+        thetext: "Hoi John,\n\nIt is no priority for us at the Donders, hence not yet solved. It only requires changes in the bookkeeping part in qubcellfun. \n\nIn principle the stacking consists of changing \n\nqsubcellfun(@myfunction, {1, 2, 3, 4, 5, 6, ...});\n\ninto\n\nqsubcellfun(@cellfun, {@myfunction, myfunction}, {{1,2,3}, {4,5,6}});\n\ni.e. rather than evaluating myfunction, cellfun gets evaluated, which internally (inside the MRC environment) evaluates myfunction multiple times. \n\nThe compilation process does not even have to be changed (I think), i.e. the same compiled application should be able to execute a single job or a multiple in a single call. \n\nDefault cellfun would do it serial I think. There is no reason why it could not also be done in parallel, but that requires more work on the receiving side (like setting up a local matlabpool).\n\nLet me know if you think you could help to get this resolved.\nRobert"
+      - +@isprivate: "0"
+        commentid: "15658"
+        comment_count: "3"
+        who:
+          +content: john.donners
+          +@name: John Donners
+        bug_when: 2015-05-06 07:39:15 +0200
+        thetext: ok, I expect that an implementation would be quite system-dependent and still less than ideal. We'll solve the problem some other way.
+      - +@isprivate: "0"
+        commentid: "15662"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-06 10:56:17 +0200
+        thetext: |-
+          (In reply to John Donners from comment #3)
+
+          I don't see how the implementation would be system dependent. Not more system dependent than the current implementation of fieldtrip/qsub in any way.
+
+          I know of some people that are (have been) using fieldtrip/qsub without issues on the SARA cluster. I have just tested on our cluster with the following:
+
+          ----
+          function y = testcompile(x)
+          y = randn(x);
+          ----
+
+          1>> y = qsubcellfun(@testcompile, {1, 2, 3}, 'memreq', 0, 'timreq', 500)
+          2>> y = qsubcellfun(@testcompile, {1, 2, 3}, 'memreq', 0, 'timreq', 500, 'stack', 3)
+
+          1 and 2 run as expected (not compiled). If I do
+
+          3>> fc = qsubcompile(@testcompile)
+          4>> y = qsubcellfun(fc, {1, 2, 3}, 'memreq', 0, 'timreq', 500)
+
+          then also stacking and compilation works as expected. It is just the compilation on the fly inside qsubcellfun that is not yet working due an incomplete bookkeeping of the number of output arguments.
+
+          I'll have a look at it.
+      - +@isprivate: "0"
+        commentid: "15675"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-06 21:13:48 +0200
+        thetext: |-
+          I changed the order in which stacking and compilation was handled, and updated the bookkeeping of the function name. Stacking and compilation now work simultaneously in qsubcellfun.
+
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Adding         test/inspect_qsubcellfun5.m
+          Adding         test/inspect_qsubcellfun5_fn.m
+          Transmitting file data ...
+          Committed revision 10373.
+      - +@isprivate: "0"
+        commentid: "15719"
+        comment_count: "6"
+        who:
+          +content: john.donners
+          +@name: John Donners
+        bug_when: 2015-05-11 07:51:02 +0200
+        thetext: |-
+          ok, thanks for the hints and the commit. Is the stacking serial? Can it be made parallel easily (in its most basic form an ampersand at the end of every line)?
+
+          The system dependency that I mentioned is that nodes have a different number of cores, different memory, can have hyperthreading on or off, etc.
+      - +@isprivate: "0"
+        commentid: "15720"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-11 08:42:43 +0200
+        thetext: "(In reply to John Donners from comment #6)\n\nStacking refers to adding multiple MATLAB function calls in a single MATLAB session. That would be used if the overhead of starting a MATLAB job is large compared to the function execution. You can run multiple stacked jobs next to each other on a single compute node. Inside a single stacked job, the execution is handled by http://nl.mathworks.com/help/matlab/ref/cellfun.html which is \n\nIf you refer to \"&\" at the end of a line, it seems to me that you refer to the unix notation of starting something in the background, and not the MATLAB \"vectorwise logical and\" notation. Also you mentioning hyper threading suggests that you are looking for a solution to a problem that is different than the ones where stacking is meant for. \n\nI suggest we schedule a phone call for next week to talk it over, that might save a lot of time trying to map a solution onto an incompatible problem. I'll send you a PM."
+      - +@isprivate: "0"
+        commentid: "15721"
+        comment_count: "8"
+        who:
+          +content: john.donners
+          +@name: John Donners
+        bug_when: 2015-05-11 13:08:45 +0200
+        thetext: |-
+          indeed it's now clear that stacking is not the right function for my problem (although it is a handy function). Thanks for your clarifications. The phone call or further discussions are not needed.
+
+          Cheers,
+          John
+      - +@isprivate: "0"
+        commentid: "15901"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:10 +0200
+        thetext: closed several bugs at once that were recently fixed

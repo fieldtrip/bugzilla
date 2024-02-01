@@ -1,0 +1,82 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2350"
+    creation_ts: 2013-10-30 17:44:00 +0100
+    short_desc: ensure that geometrical units are dealt with consistently for all headmodels
+    delta_ts: 2015-02-11 10:43:15 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11777"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 17:44:57 +0100
+        thetext: |-
+          in ft_headmodel_singlesphere it presently reads
+
+          if ~isempty(unit)
+            vol.unit = unit;                       % use the user-specified units for the output
+          else
+            geometry = ft_convert_units(geometry); % ensure that it has units, estimate them if needed
+            vol.unit = geometry.unit;              % copy the geometrical units into the volume conductor
+          end
+
+          whereas all other ft_headmodel_xxx functions there is no such on-the-fly conversion. This should be made consistent and moved to ft_prepare_headmodel.
+      - +@isprivate: "0"
+        commentid: "11778"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 17:46:38 +0100
+        thetext: |-
+          furthermore, all ft_headmodel_xxx functions should be changed such that they can safely expect the input to be in SI units, i.e. in meter.
+
+          Perhaps add something like
+
+          if ~strcmp(geometry.unit, 'm')
+           error('this function requires SI units')
+          end
+      - +@isprivate: "0"
+        commentid: "11779"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 17:48:47 +0100
+        thetext: |-
+          in fieldtrip main functions you can still change units around, as soon as you use a function from fieldtrip/forward (like ft_compute_leadfield, or ft_headmodel_xxx), it should be in SI units.
+
+          Since ft_prepare_headmodel calls ft_headmodel_xxx, ft_prepare_headmodel MUST convert to SI units.

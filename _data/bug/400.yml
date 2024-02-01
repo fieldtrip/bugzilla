@@ -1,0 +1,124 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "400"
+    creation_ts: 2011-01-14 00:55:00 +0100
+    short_desc: 'ft_specest_wavelet: fsample calculation does not produce integer'
+    delta_ts: 2011-01-26 15:38:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1022"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-01-14 00:55:22 +0100
+        thetext: |-
+          I'm using ft 20110110 on a MacBook Pro running OS X 10.6.6 and MATLAB R2010b.
+
+          In running ft_freqanalysis with method 'wavelet' on my own data, I found a bug in ft_specest_wavelet.m. I verified that this bug exists with the dataFIC.mat tutorial data (though in actually running ft_freqanalysis in the tutorial, the actual crash is not produced, and I will explain why).
+
+          Using both the tutorial data and my own data, I have found that when ft_specest_wavelet computes fsample on line 51, it does not produce an integer. Having an integer fsample is necessary for computing many subsequent variables.
+
+          With the tutorial data (where I assume the fsample is 300 Hz):
+          >> fprintf('%.13f\n',fsample);
+          300.0000000000031
+
+          With my data (recorded at 250 Hz), fsample is something like 249.999999999999999
+
+          This is a problem for my data but not the tutorial data because variables like endnsample (line 62) are not integers and commands like zeros (line 117, line 119) round down if they're not given an integer (and throw warnings, which happens on both line 117 and 119). Thus, for my data the size of each cell in wltspctrm is off by 1, and the multiplication on line 137 doesn't work (but it's OK for the tutorial data because it rounds fsample and subsequent variables like endnsample down).
+
+          Proposed solution:
+          The current line 51 is: fsample = 1/(time(2)-time(1));
+          I propose that it is changed to: fsample = round(1/(time(2)-time(1)));
+      - +@isprivate: "0"
+        commentid: "1024"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-01-14 09:50:22 +0100
+        thetext: |-
+          Hi Matt,
+
+          Thanks for reporting this. I'm wondering, if the result of the current code results in a non-integer, is there maybe something wrong with your time-axis? In the tutorial-data it appears it's just an issue of machine-precision, but if your computed fsample is deviating much more from an integer, that it may indicate something odd is going on there.
+          I'll update the code. It should be on the ftp-server this evening.
+
+          Best,
+          Roemer
+      - +@isprivate: "0"
+        commentid: "1034"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-01-14 14:26:47 +0100
+        thetext: |-
+          I guess there could be something wrong with my time axis (I did get a warning that my time axis was not evenly spaced. I can't figure out why this would be. If you have any suggestions I would like to know how to fix this.) However the issue with my data also seems to be machine precision (250 Hz vs fsample=249.9999999999).
+          The other ft_specest_* functions calculate fsample in the same (not rounded) way, but they use round in calculating subsequent variables. I'm not saying that my proposed solution must be implemented, just that it solves the problem. If round was used in a way consistent with the other specest functions that would also be a solution (it seems like consistency across these functions would be a good thing).
+      - +@isprivate: "0"
+        commentid: "1035"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-01-14 15:07:56 +0100
+        thetext: |-
+          Hi Matt,
+
+          I think the most likely place for the creating of a faulty time-axis would be during preprocessing. Most likely it's a low level error around the reading in of data, but would be difficult to pinpoint the exact cause.
+          I added a rounding in all of the specest functions, as it makes no sense, in practice, the have a non-integer sampling rate, and avoiding precision errors is always a good thing.
+
+          Best,
+          Roemer
+      - +@isprivate: "0"
+        commentid: "1160"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:37:13 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.
+      - +@isprivate: "0"
+        commentid: "1209"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:38:33 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.

@@ -1,0 +1,215 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2005"
+    creation_ts: 2013-02-23 12:11:00 +0100
+    short_desc: 'ft_sourceanalysis: improve data handling'
+    delta_ts: 2014-02-12 10:33:54 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.backus
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9518"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-02-23 12:11:07 +0100
+        thetext: |-
+          in particular:
+
+          - when spatial filters are already in the input, sourcemodel csd doesn't need to be computed
+          - when spatial filters are already in the input, do not rely on the dimensionality of the leadfields (for the scanning dipole) to determine the number of dipole orientations (input can be scalar filter).
+          - when spatial filters are already in the input, and no refdip is specified, headmodel is not needed.
+
+          Some of this is probably dealt with currently in ft_sourceanalysis, some of this in the lower level functions.
+      - +@isprivate: "0"
+        commentid: "9523"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-02-23 20:49:21 +0100
+        thetext: |-
+          bash-3.2$ svn commit -m "enhancement - don't use leadfield to determine the number of orientations when filter is already in input (and can be used)" beamformer_pcc.m
+          Sending        beamformer_pcc.m
+          Transmitting file data .
+          Committed revision 7537.
+      - +@isprivate: "0"
+        commentid: "11169"
+        comment_count: "2"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-08-20 11:23:07 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          beamformer_pcc.m line 249:
+
+          Script wants to assign scandiplabel based on previous leadfield.
+
+          However, variable lf (leadfield) is not instantiated when previously computed spatial filter is already input.
+
+          Traced back to lines 83 and 160.
+
+          Cheers & thanks,
+          Alex
+      - +@isprivate: "0"
+        commentid: "11170"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-20 11:31:57 +0200
+        thetext: Could you please upload some small data + script for quick reproduction and testing?
+      - +@isprivate: "0"
+        commentid: "11171"
+        comment_count: "4"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-08-20 11:45:29 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          %% Combined frequency and source analysis
+
+          clear all
+          load('bug2005_data.mat')
+
+          % Frequency analysis
+          foi = 5;
+
+          cfg              = [];
+          cfg.foi          = foi;
+          cfg.trials       = 'all';
+          cfg.keeptrials   = 'yes';
+          cfg.keeptapers   = 'yes';
+          cfg.output       = 'fourier';
+          cfg.channel      = 'MEG';
+          cfg.method       = 'mtmfft';
+          cfg.taper        = 'dpss';
+          cfg.tapsmofrq    = 2;
+
+          f_data = ft_freqanalysis(cfg, data);
+          % f = frequency
+
+          % JM hack
+          cf_data = f_data;
+          cf_data = ft_checkdata(cf_data,'cmbrepresentation','fullfast'); % efficiently compute crsspctrm
+          cf_data = ft_checkdata(cf_data,'cmbrepresentation','sparse'); % remove redundancy in channelcomb
+          cf_data = ft_checkdata(cf_data,'cmbrepresentation','sparsewithpow'); % restore power data
+          % data is now ready to be fed into sourceanalysis
+
+          % Source analysis
+          % Compute common spatial filter
+
+          cfg                             = [];
+          cfg.method                      = 'dics';
+          cfg.grid                        = sourceModelGrid;
+          cfg.vol                         = sourceModelVol;
+          cfg.frequency                   = foi;
+          cfg.keeptrials                  = 'yes';
+          cfg.(cfg.method).keepfilter     = 'yes';
+          cfg.(cfg.method).fixedori       = 'yes';
+          cfg.(cfg.method).realfilter     = 'yes';
+          cfg.(cfg.method).lambda         = '5%';
+
+          sf_data                         = ft_sourceanalysis(cfg, cf_data);
+          % s = source
+
+
+          cfg                             = [];
+          cfg.method                      = 'pcc';
+
+          cfg.grid                        = sourceModelGrid;
+          cfg.grid.filter                 = sf_data.avg.filter;
+          cfg.vol                         = sourceModelVol;
+          cfg.frequency                   = foi;
+
+          cfg.keeptrials                  = 'yes';
+          cfg.(cfg.method).keepmom        = 'yes';
+
+          % error is produced here:
+          sf_data2                         = ft_sourceanalysis(cfg, f_data);
+      - +@isprivate: "0"
+        commentid: "11172"
+        comment_count: "5"
+        attachid: "507"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-08-20 11:47:01 +0200
+        thetext: |-
+          Created attachment 507
+          source model + 4 preprocessed trials of data (bug in comment #3)
+      - +@isprivate: "0"
+        commentid: "11469"
+        comment_count: "6"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-09-26 16:49:35 +0200
+        thetext: "(In reply to comment #5)\n\nBeamforming single trials with precomputed filter.\n\nIn beamformer_pcc.m, line 88:\n\nif isfield(dip, 'filter')\nneedleadfield = 0;\n\n...gives an error later on when describing the outputs, ~line 250:\n\nscandiplabel = repmat({'scandip'}, 1, size(lf, 2)); \n\n...since variable lf is undefined.\n\nEasy to fix at line 181 or at the describing output stage."
+      - +@isprivate: "0"
+        commentid: "11470"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-09-26 16:50:52 +0200
+        thetext: I remember that I started looking at this already. Apparently, I did not fix it. Sorry. Will look into it soon.
+      - +@isprivate: "0"
+        commentid: "12111"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 09:59:29 +0100
+        thetext: fixed with revision 8909. Thanks for your patience.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "507"
+      date: 2013-08-20 11:47:00 +0200
+      delta_ts: 2013-08-20 11:47:01 +0200
+      desc: 'source model + 4 preprocessed trials of data (bug in comment #3)'
+      filename: bug2005_data.mat
+      type: application/octet-stream
+      size: "0"
+      attacher:
+        +content: a.backus
+        +@name: Alexander Backus
+      data: REMOVED

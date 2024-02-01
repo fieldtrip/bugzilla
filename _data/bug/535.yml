@@ -1,0 +1,174 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "535"
+    creation_ts: 2011-03-17 00:27:00 +0100
+    short_desc: can't use ft_singleplotTFR on wavelet/mtmconvol powandcsd data
+    delta_ts: 2011-03-31 08:38:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1630"
+        comment_count: "0"
+        attachid: "32"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-17 00:27:50 +0100
+        thetext: "Created attachment 32\nconnectivity data and cfg for the problem described\n\nI'm using fieldtrip-20110315 on a Mac Pro running MATLAB 7.11 and OS X 10.6.6.\n\nI attempted to use ft_singleplotTFR on connectivity data that was calculated first with ft_freqanalysis (cfg.method='wavelet', cfg.output='powandcsd') and second with ft_connectivityanalysis using cfg.method='plv'.\n\nmy input to ft_singleplotTFR looks like this (labelcmb and plvspctrm have dims with lengths 8256 because there are 129 channels and powandcsd/plv was calculated between all pairs, i.e., nchoosek(129,2)=8256):\ndata_conn = \n     labelcmb: {8256x2 cell}\n       dimord: 'chan_freq_time'\n    plvspctrm: [8256x9x33 double]\n         freq: [2.9630 3.7037 4.4444 5.1852 5.9259 6.6667 7.4074 8.1481 8.8889]\n         time: [1x33 double]\n          cfg: [1x1 struct]\n\ncfg_ft = \n           xparam: 'time'\n           yparam: 'freq'\n           zparam: 'plvspctrm'\n    cohrefchannel: 'E3'\n             zlim: [0 1]\n          channel: 'E60'\n\nI get this error:\nselected 1408 channels for plvspctrm\n??? Error using ==> ft_channelselection at 72\ndata with non-unique channel names is not supported\n\nError in ==> ft_singleplotTFR at 290\nselchannel = ft_channelselection(cfg.channel, data.label);\n\nI've attached data_conn and cfg_ft in a mat file.\n\n====================================================\n\nI should mentioned that I get a similar ft_channelselection error in ft_topoplotTFR (only setting a cohrefchannel, not cfg_ft.channel as in the cfg above; and I do set cfg_ft.elecfile='GSN-HydroCel-129.sfp'; cfg_ft.layout = ft_prepare_layout(cfg_ft);):\n\ncreating layout from data.elec\ncreating layout for egi128 system\nselected 1408 channels for plvspctrm\nWarning: Duplicate x-y data points detected: using average of the z values. \n> In griddata at 108\n  In ft_plot_topo at 146\n  In ft_topoplotER at 732\n  In ft_topoplotTFR at 116\n??? Error using ==> ft_channelselection at 72\ndata with non-unique channel names is not supported\n\nError in ==> ft_topoplotER at 778\n  [dum labelindex] = match_str(ft_channelselection(setdiff(1:length(data.label),highlightchansel), data.label),lay.label);\n\nError in ==> ft_topoplotTFR at 116\ncfg=ft_topoplotER(cfg, varargin{:});"
+      - +@isprivate: "0"
+        commentid: "1633"
+        comment_count: "1"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-17 02:29:11 +0100
+        thetext: |-
+          I specifically wrote about and attached wavelet data, but this also applies to ft_freqanalysis data with cfg.method='mtmconvol'. After running mtmconvol data through ft_connectivityanalysis, data_conn has the exact same structure as I posted about for the wavelet data.
+
+          Also, for both wavelet and mtmconvol, I set cfg.keeptrials='no' and cfg.keeptapers='no' because subjects are my units of observation.
+      - +@isprivate: "0"
+        commentid: "1639"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-17 13:26:35 +0100
+        thetext: "(In reply to comment #1)\n> I specifically wrote about and attached wavelet data, but this also applies to\n> ft_freqanalysis data with cfg.method='mtmconvol'. After running mtmconvol data\n> through ft_connectivityanalysis, data_conn has the exact same structure as I\n> posted about for the wavelet data.\n> \n> Also, for both wavelet and mtmconvol, I set cfg.keeptrials='no' and\n> cfg.keeptapers='no' because subjects are my units of observation.\n\nTo this comment (#1): you need to specify cfg.keeptrials = 'yes', because the connectivity metric you want can only be computed when the single replicates per subject are still there. Once the plv is computed the trials become irrelevant"
+      - +@isprivate: "0"
+        commentid: "1640"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-17 13:37:27 +0100
+        thetext: "found it! \nthe strmatch-operations (e.g. line 196 ft_singleplotTFR) need an 'exact' as third input. Otherwise also partial matches are selected, which caused the problem.\n\nI changed this and also in the relevant other plotting functions.\n\nThanks for posting the data, very helpful, as usual. \n\nCould you check whether it works?"
+      - +@isprivate: "0"
+        commentid: "1643"
+        comment_count: "4"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-17 15:39:14 +0100
+        thetext: |-
+          I will definitely check on it when today's version is on the FTP server (I thought I could immediately get the changes with a public SVN checkout <http://code.google.com/p/fieldtrip/source/checkout>, but I don't see the addition of the 'exact' argument yet.) Also, Matlab 7.11 tells me that strmatch will be removed in future versions. Might be a good idea to use strcmp instead.
+
+          I'm confused about your comment that I need to specify cfg.keeptrials='yes' with powandcsd data. Dr. Maris wrote in this thread <http://mailman.science.ru.nl/pipermail/fieldtrip/2010-September/003086.html> that one could use cfg.keeptrials='no' for a within-subjects analysis (and using less RAM/disk would be ideal). This seems to make sense because the crsspctrm is already computed in ft_freqanalysis for all combinations of channels (8256 in my case). Am I missing something here?
+
+
+          Related to this, it seems that with 'fourier' memory requirements will only be slightly increased in ft_freqanalysis because keeptrials='yes' (one spectrum per electrode per trial), but even more memory will be required when using ft_connectivityanalysis because it computes the cross-spectra between sensors for every trial and every frequency (there's no keeptrials='no' option here). So, if I want to keep memory usage down, I was thinking I should use powandcsd, while fourier will always require lots of RAM. Does that reasoning make sense?
+      - +@isprivate: "0"
+        commentid: "1645"
+        comment_count: "5"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-17 16:08:03 +0100
+        thetext: |-
+          Quick followup.
+
+          I just tried keeptrials='yes' and keeptapers='yes' an I get an error in ft_frequanalysis (line 319) that I can only set both to 'yes' if I'm doing fourier output.
+
+          I then tried keeptrials='yes' and keeptapers='no' and it has brought my computer (one-year-old Mac Pro with 14GB of RAM) to its knees. If keeptrials='yes' is required to do connectivity analyses, is that to be expected? I can't imagine lots of people have access to computers with that much RAM. I was planning on submitting this to a computer cluster that has 2GB of ram per node (running 1 subject per node), but that does not seem like a viable option when 14GB was maxed out for a few minutes after processing the first trial.
+      - +@isprivate: "0"
+        commentid: "1649"
+        comment_count: "6"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-18 00:07:15 +0100
+        thetext: |-
+          I've verified that the bug is fixed for ft_singleplotTFR and ft_topoplotTFR with the addition of the 'exact' match in strfind. I didn't check the ft_*plotER functions.
+
+          However, I don't think I ever tried ft_multiplotTFR before, but trying it now get a weird plot. I only get 2 channels (labeled E1 and E1), not plv/TF plots of all channels using the cohrefchan as the reference. I used the same data_conn that I attached and this cfg_ft:
+
+          cfg_ft = [];
+          cfg_ft.xparam = 'time';
+          cfg_ft.yparam = 'freq';
+          cfg_ft.zparam = 'plvspctrm';
+          cfg_ft.cohrefchannel = {'E3'};
+          cfg_ft.channel = 'all';
+          cfg_ft.xlim = [0.5 0.8]; % time
+          cfg_ft.ylim = [3 8]; % freq
+          cfg_ft.zlim = [0 1]; % spctrm
+          cfg_ft.elecfile='GSN-HydroCel-129.sfp';
+          cfg_ft.layout = ft_prepare_layout(cfg_ft);
+          cfg_ft.showlabels = 'yes';
+          cfg_ft.colorbar = 'yes';
+          cfg_ft.showoutline = 'yes';
+          figure
+          ft_multiplotTFR(cfg_ft,data_conn);
+
+
+
+
+          I'm still curious about the other questions I posted. I'd be happy to take that discussion elsewhere (I can reply to the email you sent on the list) if this bug report isn't the right place. Let me know.
+
+          Thanks,
+          Matt
+      - +@isprivate: "0"
+        commentid: "1658"
+        comment_count: "7"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-18 01:22:18 +0100
+        thetext: |-
+          I know I've made a lot of activity on here recently, and I promise this is the last email you'll get from me today! :-)
+
+          I thought it was interesting enough to note that ft_multiplotTFR successfully plots connectivity data when cfg.output='fourier' in ft_freqanalysis, using both wavelets and multitapers. (the issue in comment 6 was specifically with powandcsd.)
+
+          It really seems like fourier output is the way to go, but I don't know how to reshape it to represent the nchoosek(129,2)=8256 channel combinations when size(data_conn.plvspctrm)=129   129     9    33.
+          If I do
+          siz = size(data_conn.plvspctrm);
+          size(reshape(data_conn.plvspctrm,siz(1)*siz(2),siz(3),siz(4)))
+          ans = 16641           9          33
+
+          and (16641-129)/2 = 8256
+          so it seems that ft_connectivityanalysis is producing duplicate channel combinations (i.e., 'E1_E2' and 'E2_E1' when those should be equal) plus auto-correlations?
+
+          Anyway, goodnight!
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "32"
+      date: 2011-03-17 00:27:00 +0100
+      delta_ts: 2011-03-17 00:27:50 +0100
+      desc: connectivity data and cfg for the problem described
+      filename: data_conn_cfg_ft.mat
+      type: application/x-matlab-workspace
+      size: "24612642"
+      attacher:
+        +content: matt.mollison
+        +@name: Matt Mollison
+      data: REMOVED

@@ -1,0 +1,78 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2916"
+    creation_ts: 2015-06-25 15:52:00 +0200
+    short_desc: negative trlpadding incorrectly disallowed with in-memory data
+    delta_ts: 2015-07-15 13:31:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: robince
+      +@name: Robin
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15819"
+        comment_count: "0"
+        who:
+          +content: robince
+          +@name: Robin
+        bug_when: 2015-06-25 15:52:01 +0200
+        thetext: "I am using current git version: 24a884a\n\nWhen attempting to use a negative trlpadding with in-memory data I get the following error:\n\nError using ft_artifact_zvalue (line 193)\nnegative trlpadding is only allowed with in-memory data\n\nI think this is because in ft_artifact_zvalue lines 190-194 perform this check inside the section for in-memory data (the else clause of if ~hasdata). I think lines 190-194 should be moved to start at 188.\n\n\ndiff --git a/ft_artifact_zvalue.m b/ft_artifact_zvalue.m\nindex f82f2ad..b98685e 100644\n--- a/ft_artifact_zvalue.m\n+++ b/ft_artifact_zvalue.m\n@@ -185,13 +185,12 @@ if ~hasdata\n   cfg = ft_checkconfig(cfg, 'dataset2files', 'yes');\n   hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);\n   trl = cfg.trl;\n-  \n-else\n   % check whether the value for trlpadding makes sense\n   % negative trlpadding only allowed with in-memory data\n   if cfg.artfctdef.zvalue.trlpadding < 0\n     error('negative trlpadding is only allowed with in-memory data');\n   end\n+else\n   % check if the input data is valid for this function\n   data = ft_checkdata(data, 'datatype', 'raw', 'hassampleinfo', 'yes');\n   cfg = ft_checkconfig(cfg, 'forbidden', {'dataset', 'headerfile', 'datafile'})"
+      - +@isprivate: "0"
+        commentid: "15821"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-26 07:05:49 +0200
+        thetext: "thanks for the report. I am trying to understand what it is supposed to do.\n\nIf you ear data from disk, either positive and negative trial padding should be allowed, right?\n\nAnd if you have data in memory, only negative, but not positive trial padding should be supported (i.e. cut a section off). \n\nshould it then not be (on line 192)\n\n  if cfg.artfctdef.zvalue.trlpadding > 0\n    error('you cannot use positive trlpadding with in-memory data');\n  end\n\n??"
+      - +@isprivate: "0"
+        commentid: "15822"
+        comment_count: "2"
+        who:
+          +content: robince
+          +@name: Robin
+        bug_when: 2015-06-26 12:44:34 +0200
+        thetext: That makes sense to me! I think functionally the negative trlpadding was only for in-memory data (it says so in the documentation) so I assumed the check was necessary, but I think the positive check you suggest makes more sense.
+      - +@isprivate: "0"
+        commentid: "15824"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-26 17:41:16 +0200
+        thetext: "(In reply to Robin from comment #2)\n\nok, done. It will be on the ftp this evening and on git in ~15 minutes.\n\nmac011> svn commit ft_artifact_zvalue.m \nSending        ft_artifact_zvalue.m\nTransmitting file data .\nCommitted revision 10487.\n\nthanks,\nRobert"
+      - +@isprivate: "0"
+        commentid: "15893"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:07 +0200
+        thetext: closed several bugs at once that were recently fixed

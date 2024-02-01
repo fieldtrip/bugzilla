@@ -1,0 +1,122 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2235"
+    creation_ts: 2013-08-08 13:52:00 +0200
+    short_desc: ft_denoise_synthetic changes grad labels
+    delta_ts: 2014-01-15 14:45:48 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.backus
+      +@name: Alexander Backus
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11086"
+        comment_count: "0"
+        attachid: "502"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-08-08 13:52:49 +0200
+        thetext: "Created attachment 502\nArtifact rejected MEG data, before denoising\n\nSzabolcs Szebenyi, an MSc student working in our group, has encountered the following problem we would like to report:\n\nft_denoise_synthetic seems to change the order (just the order, not the value) of the 28 reference coils in grad.label, grad.chanpos, grad.chanori. However, the function does not change the order in grad.chantype. \n\nWe suspect that for some of the later FieldTrip steps (probably ICA, or rejectvisual or resample), this leads to confusion and the function just replaces all corrupted chanpos and chanori fields with NaNs (this actually was the original problem that led to our investigation), and, interestingly, it also corrects the grad.chantype field according to the original labels.\n\nThe code of interest looks as follows:\n\n________________________________________________\n\nload('a_data.mat'); % artifact rejected MEG data\n\n\n% denoise meg using the 3rd order gradient\n\ncfg                 = [];\ncfg.gradient        = 'G3BR';\ncfg.trials          = 'all';\n\nda_data             = ft_denoise_synthetic(cfg, a_data);\n\n\n% to quickly see that some chanpositions and orientations changed\n\na_data.grad.chanpos == da_data.grad.chanpos\na_data.grad.chanori == da_data.grad.chanori\na_data.grad.coilpos == da_data.grad.coilpos\na_data.grad.coilori == da_data.grad.coilori\na_data.grad.chantype\nda_data.grad.chantype\na_data.grad.label\nda_data.grad.label\n\n________________________________________________\n\nBest,\nSzabolcs Szebenyi & Alexander Backus"
+      - +@isprivate: "0"
+        commentid: "11106"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-09 09:08:45 +0200
+        thetext: |-
+          Thanks for the detailed report, Alex. We'll look into it.
+
+          I think that the NaN issue is unrelated and has to do with the fact that backprojected component data (essentially doing a sequence of ft_componentanalysis and ft_rejectcomponent) replaces the chanpos/ori with NaN.
+
+          The changing order should however be investigated.
+
+          Could you ask Szabi to also make a bugzilla account? Then he can be added to the CC list.
+      - +@isprivate: "0"
+        commentid: "11110"
+        comment_count: "2"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-08-09 10:31:27 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          Thanks JM, for the fast reply!
+
+          The full story behind this investigation is that we had to replace the post-ICA grad with a pre-ICA grad in order to be able to perform beamforming ect.
+
+          Problem was we only saved a pre-denoise version of the grad field to disk, so we wanted to make sure that the denoising didn't change the grad field before we used it for beamforming. Turned out the grad field was changed - or at least the order of the labels. At this point, we didn't know which grad to use.
+
+          Anyway, replacing the post-ICA grad field with an older version seems like a weird procedure to us, so two questions:
+
+          1) Why does the ICA kill the grad field if it is safe (is it?) to replace with an older version for beamforming? Is it necessary?
+
+          2) If this is the case and standard, couldnt the old grad be kept in the post-ICA data structure, so that it can be automatically found by source model functions?
+
+          May be slightly off topic for this bug - my apologies.
+
+          Best,
+          Alex
+      - +@isprivate: "0"
+        commentid: "12119"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 11:35:53 +0100
+        thetext: copied data over, and created test function
+      - +@isprivate: "0"
+        commentid: "12141"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 15:53:34 +0100
+        thetext: |-
+          ft_apply_montage (which is a low-level function called by ft_denoise_synthetic) changes around the order of the chanpos/chanori/tra, but forgot about the chantype/chanunit. The reason for this being that these features were probably added to the grad structure later than when ft_apply_montage was written.
+
+          I added this now to ft_apply_montage. (revision 8923).
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "502"
+      date: 2013-08-08 13:52:00 +0200
+      delta_ts: 2013-08-08 13:52:49 +0200
+      desc: Artifact rejected MEG data, before denoising
+      filename: a_data.mat
+      type: application/octet-stream
+      size: "9504880"
+      attacher:
+        +content: a.backus
+        +@name: Alexander Backus
+      data: REMOVED

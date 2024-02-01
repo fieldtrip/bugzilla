@@ -1,0 +1,162 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3238"
+    creation_ts: 2017-01-31 13:20:00 +0100
+    short_desc: improve support for partial artifact handling using NaNs
+    delta_ts: 2021-09-16 14:52:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3193
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2645
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3220
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1661
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2818
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3337
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18328"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 13:20:42 +0100
+        thetext: "as discussed at the M/EEG meeting. \n\n@Lorijn: I created an account with a random password for you, please reset it (that goes via email).\n\nTODO\n- identify known issues \n- create test script, starting from fabricated data\n- improve existing FT functions"
+      - +@isprivate: "0"
+        commentid: "18329"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 13:55:15 +0100
+        thetext: "i noticed in fieldtrip/private/preproc (where the filtering etc is done) this \n\n6b5bd0e9 (Eelke Spaak            2013-11-04 13:43:22 +0000 130) \nfsample = 1./nanmean(diff(time));\n\nwhich to me does not make sense: the time axis should never contain nans as far as I know. \n\nThis traces back to\nhttps://github.com/fieldtrip/fieldtrip/commit/6b5bd0e9\nwhich refers to bug 2361.\n\nThere seems to be some unexpected use of nans, which we should look into."
+      - +@isprivate: "0"
+        commentid: "18330"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 14:00:03 +0100
+        thetext: "There is also another section in private/preproc that pertains to nans, around line 284\n\nif any(any(isnan(dat)))\n  % filtering is not possible for at least a selection of the data\n  ft_warning('data contains NaNs, no filtering or preprocessing applied');\n\nelse\n  % here it does the filtering\n\n\nI detected a related change around here in github at\n\nhttps://github.com/fieldtrip/fieldtrip/commit/3c71793b\n\nbut the actual insertion of that code seems to predate the use of github. History (and the associated reasoning) can therefore not easily be found. \n\nright now it simply skips the processing for an affected trial. I don't think that is good!"
+      - +@isprivate: "0"
+        commentid: "18331"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 14:04:20 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #2)\n\nin the actual filtering function there is this section\n\n376514a1 preproc/ft_preproc_bandpassfilter.m (Robert Oostenveld       2016-11-07 10:31:41 +0100 141)   \nft_warning('FieldTrip:dataContainsNaN', 'data contains NaN values');\n\nwhich was inserted in 2016, well after the skip implemented in preproc.\n\nI think it is better to rely on the low-level handling in the ft_preproc_xxx functions than on skipping the processing altogether."
+      - +@isprivate: "0"
+        commentid: "18332"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 14:08:33 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          These ones do consider nans already
+
+          mac011> grep -l isnan *.m
+          ft_preproc_bandpassfilter.m
+          ft_preproc_bandstopfilter.m
+          ft_preproc_denoise.m
+          ft_preproc_derivative.m
+          ft_preproc_dftfilter.m
+          ft_preproc_highpassfilter.m
+          ft_preproc_hilbert.m
+          ft_preproc_lowpassfilter.m
+          ft_preproc_medianfilter.m
+          ft_preproc_polyremoval.m
+          ft_preproc_rereference.m
+          ft_preproc_resample.m
+          ft_preproc_slidingrange.m
+          ft_preproc_smooth.m
+          ft_preproc_standardize.m
+
+          These ones do NOT consider nans at the moment.
+
+          mac011> grep -L isnan *.m
+          ft_preproc_baselinecorrect.m  -> calls ft_preproc_polyremoval
+          ft_preproc_detrend.m          -> calls ft_preproc_polyremoval
+          ft_preproc_padding.m  -> bookkeeping only
+          ft_preproc_rectify.m  -> works on individual samples, so fine
+
+          and these ones are for realtime processing, where nans don't apply:
+
+          ft_preproc_online_downsample_apply.m
+          ft_preproc_online_downsample_init.m
+          ft_preproc_online_filter_apply.m
+          ft_preproc_online_filter_init.m
+
+          So the nan-aware processing seems to be present in the ft_preproc_xxx functions, the task is now to port that correctly to the higher-level functions so that ft-preprocessing does it correctly.
+      - +@isprivate: "0"
+        commentid: "18333"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 14:13:04 +0100
+        thetext: "I made an initial test script with the name \"failed_bug3238\" (since it still fails at the moment). The test script is part of the master (i.e. release) branch of fieldtrip. \n\nmac011> git commit\n[master 4c281ea] ENH - created test script for http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3238, the test script is known to be failing right now\n 1 file changed, 158 insertions(+)\n create mode 100644 test/failed_bug3238.m\n\nTo contribute, you should use the latest version of fieldtrip, which requires using git. \n\nTo get started using git, please look at http://www.fieldtriptoolbox.org/development/git\n\nIf you follow the instructions there, you will also learn how to create a \"pull request\", i.e. a proposal for code updates to be included in the release. I can review those and include them.\n\n@Lorijn, please give it a try and let me know whether you can make sense of it. \n\nI will still link some related bugs to this one (for reference), but won't work on the code for now."
+      - +@isprivate: "0"
+        commentid: "18334"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 14:28:29 +0100
+        thetext: "searching through bugzilla, I encountered ft_interpolatenan. That is a FT function which I actually forgot about. I don't think it is relevant in light of the discussion of Monday (on baby EEG) but should be kept in mind.\n\nThe function is used in http://www.fieldtriptoolbox.org/tutorial/tms-eeg. The short-lived pulse artefact in TMS-EEG can be represented as nans. \n\n\nI updated the documentation.\n\nmac011> git commit -a\n[master 0aba9a5] DOC - improved documentation, point to related functions. Some small cleanups to the code, nothing functional.\n 2 files changed, 49 insertions(+), 43 deletions(-)"
+      - +@isprivate: "0"
+        commentid: "18405"
+        comment_count: "7"
+        who:
+          +content: l.zaadnoordijk
+          +@name: Lorijn Zaadnoordijk
+        bug_when: 2017-02-13 19:01:35 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #5)\n\nHi Robert,\n\nI'm slowly getting used to both bugzilla and at least extracting code from git. I found the failing script that you referred to. It indeed failed for me too, and it indeed failed exactly where my own code is failing: Rereferencing when there are still NaNs in the trial information. \n\nIt seems that my colleagues so far have used a hack around it (basically by removing the channels filled with NaNs entirely from the data-file and storing them elsewhere for bookkeeping), but for the method that we proposed (to fill a channel with NaNs for individual trials instead of an entire experiment) this would not work. This is because one ends up with a matrix of channels that needs to be send as an input (namely per trial) to the re-referencing step rather than a vector, and it seems to get confused by the empty spaces in that matrix for the channels that are missing in a trial. It's also probably not the cleanest way to solve the issue.\n\nI'm not entirely sure what the next step is. What could I do?"
+      - +@isprivate: "0"
+        commentid: "20575"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-11-13 19:54:12 +0100
+        thetext: 'I have opened a PR on github: https://github.com/fieldtrip/fieldtrip/pull/1594/'
+      - +@isprivate: "0"
+        commentid: "20590"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2021-09-16 14:51:55 +0200
+        thetext: I think that this has mostly been addressed by now. The preproc nan handling is optimised as much as possible (https://github.com/fieldtrip/fieldtrip/pull/1594/), and Robert has worked on selective nanning in space and time in the artifact functions. I suggest to close this one here, and to pick it up again if needs be on github.

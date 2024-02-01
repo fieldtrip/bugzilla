@@ -1,0 +1,141 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2861"
+    creation_ts: 2015-03-03 18:46:00 +0100
+    short_desc: ft_sourceanalysis keeps data.filter leading to an error in later sourcestatistics
+    delta_ts: 2016-01-15 09:38:15 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2867
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15485"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-03-03 18:46:00 +0100
+        thetext: "When using ft_sourceanalysis the filter is saved in the output structure (data.filter). When calculating single-trial estimates this field now exists additionally to data.trials(i).filter. I think this is the case since revision 10253. \n\nThe field data.filter leads to an error in ft_datatype_source (line 180) when the source output is given to ft_sourcestatistics (see full error msg below). The error happens when the field 'filter' is processed. This line in ft_datatype_source is only reached if the data contains single trials estimates. Deleting the field data.filter solves the problem.\n\nI have only tested this only with DICS, cfg.rawtrials='yes', and a predefined filter. Here is my code:\n\ncfg                     = [];\ncfg.vol                 = vol;\ncfg.grid                = grid;\ncfg.frequency           = tfr.freq;\ncfg.method              = 'dics';       \ncfg.dics.projectnoise   = 'yes';        \ncfg.dics.lambda         = '5%';         \ncfg.dics.keepfilter     = 'yes';       \ncfg.dics.realfilter     = 'yes';        \ncfg.dics.powmethod      = 'lambda1';   \ncfg.keeptrials          = 'yes';        \ncfg.grad                = grad;    \ncfg.grid.filter         = filter;\ncfg.rawtrial            = 'yes';      \nsource_trials           = ft_sourceanalysis(cfg, tfr);\n\nsource_trials =\n  freq: 1.3977e+01\n  cumtapcnt: [160x1 double]\n  dim: [20 25 22]\n  filter: {11000x1 cell}\n  inside: [11000x1 logical]\n  pos: [11000x3 double]\n  method: 'rawtrial'\n  trial: [1x160 struct]\n  df: 160\n  trialinfo: [160x1 double]\n  cfg: [1x1 struct]\n\ncfg                     = [];\ncfg.dim                 = data.dim;\ncfg.correctm            = 'cluster';\ncfg.method              = 'montecarlo';\ncfg.statistic           = 'indepsamplesT';     \ncfg.clusteralpha        = 0.01;    \ncfg.clusterstatistic    = 'maxsum';            \ncfg.clustertail         = 0;\ncfg.minnbchan           = 2;                   \ncfg.tail                = 0;\ncfg.alpha               = 0.025;\ncfg.numrandomization    = 1000;\ncfg.design              = design;\ncfg.ivar                = 1;                   \ncfg.parameter           = 'pow';\nstats                   = ft_sourcestatistics(cfg, source_trials);\n\nSubscripted assignment dimension mismatch.\nError in ft_datatype_source (line 180)\n            val{indx(k)}(1,:,:,:) = dat{indx(k)};\nError in ft_checkdata (line 239)\n  data = ft_datatype_source(data);\nError in ft_sourcestatistics (line 97)\n  varargin{i} = ft_checkdata(varargin{i}, 'datatype', 'source', 'feedback', 'no');"
+      - +@isprivate: "0"
+        commentid: "15486"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-04 13:23:16 +0100
+        thetext: "Thanks for the notification Jens.\n\nI am not sure whether it's due specifically to the 'filter'. I noticed that the conversion in ft_datatype_source was flaky for any subfield that is represented as a cell-array in source.trial(i) (so also for the csd and noisecd for example: why this did not give a crash in your case I do not know).\nI have updated ft_datatype_source for this purpose, and ft_datatype_source (on my end at least) does not choke on line 180 anymore (also for the filters).\nCould you give it a try on your end with the latest revision?\n\nThanks,\nJan-Mathijs\n\n\n[jansch@mentat002 fieldtrip]$ svn diff utilities/ft_datatype_source.m \nIndex: utilities/ft_datatype_source.m\n===================================================================\n--- utilities/ft_datatype_source.m\t(revision 10264)\n+++ utilities/ft_datatype_source.m\t(working copy)\n@@ -173,6 +173,7 @@\n         \n         \n         if iscell(dat)\n+          datsiz(1) = nrpt; % swap the size of pos with the size of rpt\n           val  = cell(npos,1);\n           indx = find(source.inside);\n           for k=1:length(indx)\n[jansch@mentat002 fieldtrip]$ svn commit -m \"bugfix - fixed faulty conversion from source data with trials\" utilities/ft_datatype_source.m\nSending        utilities/ft_datatype_source.m\nTransmitting file data .\nCommitted revision 10265."
+      - +@isprivate: "0"
+        commentid: "15488"
+        comment_count: "2"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-03-04 20:35:01 +0100
+        thetext: |-
+          Hi Jan-Mathijs,
+          thanks for your fast reply. Unfortunately, the same error still occurs (now the line is 181).
+
+          If you like, here is one of the datasets (and the design) that I'm trying to calculate statistics on.
+
+          https://www.dropbox.com/sh/6ivoz6hxyjkmv7a/AAAGSVONMuMn6lkUhelTC5_ma?dl=0
+      - +@isprivate: "0"
+        commentid: "15489"
+        comment_count: "3"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-03-05 00:42:10 +0100
+        thetext: |-
+          The problem is that the filter has 3 values per channel.
+
+          The line of error is:
+          val{indx(k)}(1,:,:,:) = dat{indx(k)};
+
+
+          size(val{indx(k)}(1,:,:,:))
+          ans =
+               1   273
+
+          size(dat{indx(k)})
+          ans =
+               3   273
+      - +@isprivate: "0"
+        commentid: "15491"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-05 10:55:12 +0100
+        thetext: |-
+          hi Jens,
+          Would it be possible to upload in the Dropbox a structure that has only 2 trials? This should be sufficient to reproduce the problem, but wouldn't take that long to download :-).
+
+          (you could do source.trial = source.trial(1:2))  and then upload...
+      - +@isprivate: "0"
+        commentid: "15492"
+        comment_count: "5"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-03-05 11:08:38 +0100
+        thetext: |-
+          Hi Jan-Mathijs,
+          yes that makes a lot of sense. Sorry for not thinking about it. You find the reduced dataset (~250MB) in the same dropbox folder.
+
+          Best,
+          Jens
+      - +@isprivate: "0"
+        commentid: "15493"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-05 11:30:35 +0100
+        thetext: "Thanks.\n\nI see  where it comes from. The bookkeeping code gets confused because there is indeed a filter in source.filter, as well as in source.trial.filter.\n\nWe need to iron this out, but it is at least clear what's causing it. \nAs such, there's no reason to keep the filter in the output when calling ft_sourceanalysis for the second time (when doing the cfg.rawtrial round), right? So, would you be OK with for the time being just specifying cfg.dics.keepfilter = 'no'; ?"
+      - +@isprivate: "0"
+        commentid: "15494"
+        comment_count: "7"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-03-05 11:43:38 +0100
+        thetext: "Yes, that would work. \n\nThanks a lot for your help and to the whole fieldtrip team. Your work is highly appreciated over here.\n\nGreetings from Tübingen,\nJens"
+      - +@isprivate: "0"
+        commentid: "15994"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-11 13:41:31 +0200
+        thetext: "===================================================================\n--- ft_sourceanalysis.m\t(revision 10577)\n+++ ft_sourceanalysis.m\t(working copy)\n@@ -1037,7 +1037,7 @@\n end\n \n if exist('grid', 'var')\n-  source = copyfields(grid, source, {'pos', 'inside', 'leadfield', 'filter'});\n+  source = copyfields(grid, source, {'pos', 'inside', 'leadfield'});%, 'filter'});\n end\n \n if exist('dip', 'var')\n[jansch@mentat002 fieldtrip]$ svn commit -m \"enhancement - do not preallocate filter in output, to avoid double occurrences\" ft_sourceanalysis.m\nSending        ft_sourceanalysis.m\nTransmitting file data .\nCommitted revision 10579.\n\n\nI think that this should fix it."

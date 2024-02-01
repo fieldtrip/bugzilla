@@ -1,0 +1,196 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1686"
+    creation_ts: 2012-09-02 12:19:00 +0200
+    short_desc: improve debugging of end-users problems using logging options
+    delta_ts: 2019-08-10 12:29:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - johanna.zumer
+      - litvak.vladimir
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7257"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-02 12:19:01 +0200
+        thetext: |-
+          At the Biomag I discussed with one of the BESA developers how they deal with supporting users that have problems, how the users report them to the support staff, and how the problems are reproduced. One of the things they do is to ask the user to switch on "logging" in the preferences, then have the user go through all steps again to reproduce the problem. In the background a log file is written, which after the crash/error/problem can then be mailed by the user to the support staff.
+
+          We could consider something similar. Imagine cfg.logfile="problem.txt" (to be set in ft_defaults to empty) and then implement an ft_preamble_logfile, ft_preamble_debug or integrate it into the other preambles.
+
+          The logging could include details on the input cfg and input data. In the most elaborate form you could imagine saving the input cfg and data to a mat file, and deleting it at the end of the FT function. In case there is a FT function crash, the user could collect the mat file and share it with us. Less extreme options are printing some info on the input data and cfg to the ascii logfile, such that we can try to reproduce it. We can also think of using "diary". Or some try-catch instructions that inform the user to send a specific file to fieldtrip-support@donders.
+
+          To be discussed at the FT meeting.
+      - +@isprivate: "0"
+        commentid: "7258"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-02 12:20:15 +0200
+        thetext: '... "FIeldTrip has detected a problem, do you want it to send the information to the developers?" ...'
+      - +@isprivate: "0"
+        commentid: "7268"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-09-03 12:20:22 +0200
+        thetext: |-
+          This sounds like a very good idea. In other languages, logging is usually implemented by having several log levels (e.g. debug, notice, warning, error) and then the user can specify a logger output and a desired logging level, e.g. in setup pseudocode:
+
+          % record all logging statements to a mat-file
+          ft_addlogoutput('debug', 'matfilelogger', 'mylog.mat');
+
+          % record only important stuff to a txt-file
+          ft_addlogoutput('warning', 'textfilelogger', 'warningsAndErrors.txt');
+
+          Then our code can (and should) be interspersed with logging statements:
+
+          ft_log('debug', 'inverting the mixing matrix');
+
+          ft_log('notice', 'matrix not singular, using pinv instead'); % or whatever
+
+          that travel on to an output channel only if the specified logging level has been hooked up to a log destination.
+      - +@isprivate: "0"
+        commentid: "7348"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-13 12:19:07 +0200
+        thetext: |-
+          This should be integrated with the cfg.showcallinfo handling in the ft_defaults script.
+
+          Also to consider is logging to screen and file simultaneous.
+      - +@isprivate: "0"
+        commentid: "7358"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-14 12:38:03 +0200
+        thetext: '*** Bug 1711 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "8624"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 19:36:53 +0100
+        thetext: "Should we consider making a special cfg flag like cfg.debug? E.g. \n\nft_default.debug.saveinput = 'yes'\n\ncfg = [];\ncfg.option = ...\ndataout = ft_something(cfg, datain)\n\nwhich then writes the cfg, datain and the name of the function to a mat file?\n\nThe ft_default fields are already automatically added to the cfg, so that is easy. \nThe output file could be a temporary one, or specified by the user as fileprefix.\n\nMy idea of the mat file is that it would contain \nfunname = @ft_something\nargin = {cfg, datain}\nsuch that we could always do \nfeval(funname, argin{:})\nafter loading the mat file.\n\nFor generating better SPM test scripts, this would then involve setting cfg.debug.saveinput to yes, clicking around in the SPM gui for some time where all ft functions would save their inputs, and then gathering the mat files with those inputs. We could do the same at the donders to collect test data.\n\nNote that this would only affect the ft-main functions, not the low-level functions."
+      - +@isprivate: "0"
+        commentid: "8625"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-10 19:57:31 +0100
+        thetext: Not sure how useful this would be in the case of SPM as it rarely calls high-level functions
+      - +@isprivate: "0"
+        commentid: "8626"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 23:03:43 +0100
+        thetext: "I made a pre and postable for high-level functions and added it to (sofar only) ft_timelockanalysis. It works by specifying\n\ncfg.debug = 'no'\ncfg.debug = 'displayonerror'\ncfg.debug = 'display'\ncfg.debug = 'saveonerror'\ncfg.debug = 'save'\n\nwhich displays or saves the input to the function (usually the cfg and the input data). The output file is auto-generated in the tmp directory with the function name, date and time in the filename.\n\nWhat remains to be done is to check how this works when different ft functions call each other. At the moment it is only guaranteed to work for a single call.\n\nmbp> svn commit utilities/ft_p* utilities/private/ft_p*debug.m ft_timelockanalysis.m ft_defaults.m \nSending        ft_defaults.m\nSending        ft_timelockanalysis.m\nSending        utilities/ft_postamble.m\nSending        utilities/ft_preamble.m\nAdding         utilities/private/ft_postamble_debug.m\nAdding         utilities/private/ft_preamble_debug.m\nTransmitting file data ......\nCommitted revision 7134."
+      - +@isprivate: "0"
+        commentid: "8765"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-19 08:47:03 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          I should also add the option saveonsuccess.
+          That would allow to harvest known working input data and  cfgs at the dccn.
+      - +@isprivate: "0"
+        commentid: "14179"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-19 10:27:49 +0200
+        thetext: |-
+          I noticed that cfg.debug=saveonerror was not working. This turned out to be due to the "assign" anonymous function in ft_preamble_loadvar.
+
+          mac011> svn commit utilities/
+          Sending        utilities/private/ft_postamble_debug.m
+          Sending        utilities/private/ft_preamble_debug.m
+          Sending        utilities/private/ft_preamble_loadvar.m
+          Transmitting file data ...
+          Committed revision 9745.
+      - +@isprivate: "0"
+        commentid: "14180"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-19 10:37:58 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #9)
+
+          I did some additional cleanups to the workspace, removing temporary variables as soon as possible.
+
+          mac011> svn commit
+          Sending        private/ft_postamble_provenance.m
+          Sending        private/ft_preamble_debug.m
+          Sending        private/ft_preamble_provenance.m
+          Transmitting file data ...
+          Committed revision 9746.
+      - +@isprivate: "0"
+        commentid: "14181"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-19 11:07:55 +0200
+        thetext: |-
+          I wrote this FAQ, which (together with the code) I consider enough for now.
+
+          http://fieldtrip.fcdonders.nl/faq/how_can_i_debug_my_analysis_script_if_a_fieldtrip_function_gives_an_error
+
+          We could in principle take a more active role in explaining this to more users.
+      - +@isprivate: "0"
+        commentid: "20035"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:28 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

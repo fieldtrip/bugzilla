@@ -1,0 +1,92 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3062"
+    creation_ts: 2016-02-03 13:36:00 +0100
+    short_desc: ft_spike_maketrials
+    delta_ts: 2016-05-05 20:30:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: suzanne_1_martens
+      +@name: Suzanne Martens
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - bart.gips
+      - j.schoffelen
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16754"
+        comment_count: "0"
+        who:
+          +content: suzanne_1_martens
+          +@name: Suzanne Martens
+        bug_when: 2016-02-03 13:36:32 +0100
+        thetext: "I'm having a problem with the ft_spike_maketrials function. I've encoutered this problem while going through the tutorials \"spike\" and \"spikefield\". Using the code (unaltered aside from the comments) from the spikefield tutorial, the following shows when the error is encountered: \n\n%% Reading in spike data\naddpath('C:\\Users\\10167188\\Desktop\\Suzanne Martens\\Fieldtrip\\fieldtrip-20160128')\n\naddpath('C:\\Users\\10167188\\Desktop\\Suzanne Martens\\Fieldtrip\\data')\n\nft_defaults\n\nfilename         = 'p029_sort_final_01.nex';\nspike            = ft_read_spike(filename); \n\n%% Selecting two channels\ncfg              = [];\ncfg.spikechannel = {'sig002a_wf', 'sig003a_wf'};\nspike            = ft_spike_select(cfg, spike);\n\n%% Creating a trial structure \ncfg          = [];\ncfg.dataset  = filename;\ncfg.trialfun = 'trialfun_stimon_samples';\ncfg          = ft_definetrial(cfg);\n\n%% Reading in LFP data using trial structure for preprocessing\ncfg.channel   = {'AD01', 'AD02', 'AD03', 'AD04'};\ncfg.padding   = 10; \ncfg.dftfreq   = [60-1*(1/10):(1/10):60+1*(1/10) ]; \ncfg.dftfilter = 'yes';\ndata_lfp      = ft_preprocessing(cfg); \n\n%% Creating trial structure for spike data\ncfg           = [];\ncfg.dataset   = filename;\ncfg.trialfun  = 'trialfun_stimon_samples';\ncfg           = ft_definetrial(cfg);\ntrl           = cfg.trl;\n\n%% Adding trial structure to spike data\ncfg           = []; \ncfg.hdr       = data_lfp.hdr; \ncfg.trlunit   = 'samples';\ncfg.trl       = trl; \n\n%% ERROR\nspikeTrials   = ft_spike_maketrials(cfg,spike)\n\n% the input is spike data with 2 channels\n\n% Error using ft_checkconfig (line 208)\n% The field cfg.progress is not allowed\n\n% Error in ft_spike_maketrials (line 127)\n% cfg = ft_checkconfig(cfg, 'allowed', {'datafile', 'dataformat', 'dataset', %'event','headerfile', 'headerformat', 'trialfun', 'trlunit', %'timestampspersecond', 'hdr', 'trl'});\n\nMysteriously, rebooting Matlab sometimes helps but not always. The problem does not seem to be related to how the path is defined. I've checked ft_checkconfig but I can't quite figure out what's wrong (or what I'm doing wrong), aside from what the error already tells us. Just deleting cfg.progress from the cfg structure does not solve the problem either. I hope I'm not just overlooking some basic step, if that's the case I apologize for filing this bug report. Thanks in advance for your help!\n\nBest,\n\nSuzanne Martens"
+      - +@isprivate: "0"
+        commentid: "16813"
+        comment_count: "1"
+        who:
+          +content: suzanne_1_martens
+          +@name: Suzanne Martens
+        bug_when: 2016-02-12 15:44:34 +0100
+        thetext: "So I got back to this problem today. First, I just downloaded the newest \nversion of fieldtrip. The error also occured using this version. I found out that adding \n \n'progress'\n\nat line 191 of function ft_checkconfig \"fixes\" the problem.\n\nIt seems like I just manually changed what fields are allowed to \nbe in the cfg structure in spike. Allowing the cfg structure to have a .progress field seems to change the output though. The spikeTrials structure I get is different from the one described in the toturial (mine contains 15 extra data points for one channel and 13 extra data points for the other). So it seems like I've \"fixed\" the error but broken the ft_spike_maketrials function in the process.\n\nI checked the cfg structure in spike before running \n\nspikeTrials   = ft_spike_maketrials(cfg,spike)\n\nand it contained a .progress field. However removing the field does not produce errors when 'progress' is added to the ft_checkconfig structure, and as already mentioned before it does not solve the problem when the ft_checkconfig function is unaltered. Apparently, this .progress field is \nnot the one causing the problem. Is a .progress field added somewhere in the workspace of the ft_spike_maketrials function? Maybe in a cfg structure that this function produces in it's own workspace? \n\nI am very confused, am I the only one who encountered this problem even though this is code from the tutorials, not my own code? This might be unrelated but another user reported encountering errors in spike related functions when using the code from the tutorial. I am talking about this bugreport: ID = 3058, title: error using cross-correlations ft_spike_xcorr, http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3058 . This user is also seemingly alone in this problem, but I have encountered this error too. Could the two possibly be related? \n\nI forgot to include last time that I work with matlab version 2013b on Windows 7. \n\nI'd appreciate any help, thank you for your time!\n\nBest,\n\nSuzanne Martens"
+      - +@isprivate: "0"
+        commentid: "16868"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 13:47:54 +0100
+        thetext: "Hi Suzanne,\n\nThanks for the preliminary detective work.\nYour suggested change to ft_checkconfig is indeed the solution to the problem.\n\nSome very brief background: \n-ft_checkconfig can be called to very critically evaluate the input cfg.\n-this is however hardly ever done, apart from in many of the ft_spike functions.\n-the option progress indeed is (in a somewhat obscure/hidden way) added to the cfg, and is needed to keep track of some stuff (which typically the user is not interested in, nor should she be worried about it).\n-in order for ft_checkconfig not to choke on this obscure field it should be explicitly told not to worry about it.\n\nIn short, I will incorporate your suggestion in the code.\n\nWith respect to the other issues you mention:\n\n- I don't know whether bug 3058 is related, or something else\n- the extra number of data points is probably not due to your fix, but may be related to another known issue (which as far as I know has not been addressed yet -> bug 2045).\n\nIf you are happy with this change, can you change the status of this bug to resolved? We should follow up on the other issues elsewhere."
+      - +@isprivate: "0"
+        commentid: "16869"
+        comment_count: "3"
+        who:
+          +content: suzanne_1_martens
+          +@name: Suzanne Martens
+        bug_when: 2016-02-19 13:58:26 +0100
+        thetext: |-
+          Ok, thank you very much! I'll just change it manually then for now.
+          Good to know I don't need to worry about the few extra data points
+          too much.
+      - +@isprivate: "0"
+        commentid: "16870"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 14:04:48 +0100
+        thetext: You're welcome, although I am not sure whether or not to worry about those data points. Is this what bug 2045 suggests?
+      - +@isprivate: "0"
+        commentid: "16871"
+        comment_count: "5"
+        who:
+          +content: suzanne_1_martens
+          +@name: Suzanne Martens
+        bug_when: 2016-02-19 14:19:18 +0100
+        thetext: Ah wait, I guess you're right. That's not really a justified conclusion.

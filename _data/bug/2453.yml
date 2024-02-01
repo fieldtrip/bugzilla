@@ -1,0 +1,596 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2453"
+    creation_ts: 2014-01-23 15:17:00 +0100
+    short_desc: Enhancement suggestions for but/fir1 filter, major problem with firls filter
+    delta_ts: 2019-08-10 12:28:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: widmann
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - haiteng.jiang
+      - i.andolina
+      - ines.bramao
+      - j.schoffelen
+      - johanna.zumer
+      - jorn
+      - n.lam
+      - philipp.ruhnau
+      - roemer.van.der.meij
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12581"
+        comment_count: "0"
+        attachid: "585"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-01-23 15:17:00 +0100
+        thetext: |-
+          Created attachment 585
+          sample frequency responses for but, fir1 and firls
+
+          I have found several problems with filter implementation in fieldtrip while preparing a manuscript on the filtering of electrophysiological data.
+
+          (1) Minor/enhancement: Butterworth filters
+          a) The documentation of default filter order is wrong for ft_preproc_lowpassfilter and ft_preproc_highpassfilter (but not bandpass/bandstop). Documentation states 4, applied order is 6. Different default filter order for highpass/lowpass vs. bandpass/bandstop might additionally confuse users.
+          b) Twopass filtering with filtfilt (default) shifts the traditionally reported -3dB cutoff frequency (see attachment, blue line, 30 Hz 6th order low pass). The effective -3dB cutoff frequency can be computed and could be reported to the user (here 27.9 Hz). Additionally, it could be explicitly documented that the requested cutoff from cfg is to be reported as -6dB cutoff (as e.g., in ERPLAB).
+
+          (2) Minor/enhancement: Fir1 filter
+          a) Same as 1b but with stronger impact (green line; here requested cutoff 30 Hz, effective -6dB cutoff 25.8 Hz; default order 50).
+          b) Actually, twopass filtering is not necessary for fir1 filters to achieve zero phase. The much easier, faster, and elegant way would be to shift the output by the group delay (as fir1 filters are symmetric and have linear phase). Thus, an additional option for “onepass-zerophase” filtering could be appreciated. This would implicitly fix 2a.
+          c) Most importantly, the default for the filter order is arbitrary (the applied formula is from a different context). The filter order defines the transition band width. It would be better to have a default for transition band width (or to ask the user) and to compute the necessary filter order from there. At least, documentation should state how to compute filter order to replace the default.
+
+          (3) Major: Firls
+          In the current implementation firls filters will in many cases massively distort the data in the passband (red line; requested cutoff 30 Hz; default order 50). I think the example in the attachment speaks for itself. Two reasons: The requested frequency response is specified rectangular without a transition band. The filter order is again arbitrary and by far too short to get even close to a rectangular sharp roll-off as requested. In consequence, when fitting, firls produces massive passband ripple (23%!; or other adverse effects). This cannot really be fixed in a proper way. Rather I suggest not using firls for biosignals where passband integrity is essential and to remove the firls option immediately.
+
+          Bug (3) is basically the same, which was in EEGLAB for years and led to some confusion:
+          https://sccn.ucsd.edu/bugzilla/show_bug.cgi?id=631
+          http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3391960/
+          See footnote 1.
+
+          As a result of that discussion, I rewrote the default basic FIR filter in EEGLAB (based on my windowed sinc FIR filter plugin). Porting these functions to Fieldtrip shouldn’t be too demanding. I would like to offer contributing these to Fieldtrip to replace fir1 and firls filters in case you are interested. Additional benefit: independent from signal processing toolbox. Alternatively, I would like to suggest at least adding a configuration option to output/display the effective filter response(s).
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "12591"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-25 09:32:43 +0100
+        thetext: |-
+          Hi Andreas,
+          Thanks for the extensive report. We will discuss it in the team and look into it.
+      - +@isprivate: "0"
+        commentid: "12779"
+        comment_count: "2"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-02-03 10:09:58 +0100
+        thetext: |-
+          Would like to add that "faster" in (2b) actually means 2 x number of CPU-cores faster in MATLAB as filter is multithreaded but filtfilt is not. Not sure about Octave.
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "12796"
+        comment_count: "3"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-02-05 13:54:54 +0100
+        thetext: Thank you for reporting this, Andreas. We've discussed it in the meeting, and Eelke will follow up.
+      - +@isprivate: "0"
+        commentid: "12987"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-03-01 09:50:46 +0100
+        thetext: |-
+          Hi Andreas, Thanks for helping out!
+
+          (1a) Diego updated the documentation for the high/lowpass butterworth filters, such that it says that the default order is 6 (see also bug 2448). Do you (or anyone else on the cc list for this bug with filtering/FT historical expertise) know of a reason why we might need to change this to 4? I don't know why the default was 6 in the first place. Or would it be better to change the default for the bandpass/bandstop also to 6 perhaps?
+
+          (1b/2a) I think reporting the effective cutoff would be a good idea. Would you mind writing a patch (or snippet of code) for this?
+
+          (2b) I did not know this, thanks. Again, would you be willing to supply some code this?
+
+          (2c) To be honest I don't exactly understand this point (though I'm not a filtering expert). The filter order for fir1 is determined by ensuring that the kernel length fits 3 cycles of the lower bound of the passband. As such I would not consider the default order 'arbitrary'. Specifically, we implemented this such that the user ends up with a filtered brain signal that likely actually corresponds to a neural oscillation, important when the user wants to e.g. do a Hilbert transform or so. It is analogous to choosing a frequency-dependent window when doing time-frequency analysis, leading to more smoothing in higher frequencies compared to lower ones. Could you elaborate a bit on your comment?
+
+          (3) The plot indeed looks pretty worrying :) We implemented the firls filter by using code from Nutmeg, if I recall correctly. Johanna or Sarang (both on cc), could you perhaps comment on this? We discussed firls in the FT meeting last year, and I think Johanna showed some plots indicating that the frequency response was actually a bit sharper than for fir1.
+
+          As for your offer to port your windowed sinc FIR filter to FieldTrip: great! If indeed firls has big problems, it would be good to throw that one out in favour of the windowed sinc. I'm not sure about removing the fir1, probably it cannot hurt to leave it as an option to the user?
+
+          For the windowed sinc code, could you write a patch and post it here?
+
+          Thanks!
+      - +@isprivate: "0"
+        commentid: "12988"
+        comment_count: "5"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-01 17:49:46 +0100
+        thetext: "(1a) 4 or 6 as default is rather arbitrary. 4 (-24dB/oct) is used more frequently as default in other software to my experience. Also I would prefer the lower one as the filter is applied twice, that is, order is approximately doubled and order 12 is quite high actually. More importantly, I would definitely make it consistent across filter types for the sake of user experience.\n\n(1b) Yes, will write a patch. But not highest priority.\n\n(2a) For FIR this would be more complicated (can be estimated only). As „onepass-zerophase“ should be the default anyway (see below), this should actually not be necessary.\n\n(2b) This is included in the windowed sinc FIR code and would be ported.\n\n(2c) There is no direct physical relation from the number of cycles of the cutoff (!) frequency to the number of taps of the impulse response for FIR (and also IIR). This is a common misconception I have already met twice. I would be very curious where this comes from. Is this from a text book? \n\nA filter of a particular length can have significantly different effects on the output depending on the *shape* of the impulse response, that’s why taking the number of cycles as a basis is arbitrary as it does not at all consider the shape or type (e.g. Gaussian, window type, etc.). In other words, with different parameters (e.g. window type) different FIR filters can do very different things to the signal within three cycles.\n\nWith FIR you have to get used to the concept of a transition band separating passband and stopband and describing the roll-off or sharpness of the filter. We can calculate the number of taps necessary for a particular FIR filter type to achieve a particular transition band width (and vice versa). Having a well-defined transition band, that is also having a well defined passband (!), is besides having linear-phase property imho the ultimate advantage of most FIR filters over Butterworth filters.\n\nImportantly, your reasoning that it makes sense for many applications in electrophysiology to define the transition band width in dependence of the cutoff frequency, e.g. using wider transition bands/slower roll off for higher cutoff is perfectly correct. However, number of cycles at the cutoff is not the relevant physical relation (you will get a more or less strong bias depending on filter type). You have to take other filter properties into account (in particular passband deviation/ripple and stopband attenuation).\n\nIn the ported version of the windowed sinc filters there will be a cfg parameter transition_band_with (in Hz) and window_type. Window type defines passband ripple and stopband attenuation. Both parameters together will be used to compute filter length. Alternatively, there will be the option to directly define filter length. The function will then report back the achieved transition band width and passband and stopband edges (I will need instruction how reporting is best done in fieldtrip). E.g. user asks for lowpass cutoff 30 Hz, 10 Hz transition band width, thus passband will end at 25 Hz and stopband begin at 35 Hz.\n\nMost important step now, is to agree on a default for transition_band_width in case user does neither configure transition band width nor filter length. For EEGLAB we came up with the following default:\n\n\"Required filter order/transition band width is estimated with the following heuristic in default mode: transition band width is 25% of the lower passband edge, but not lower than 2 Hz, where possible (for bandpass, highpass, and bandstop) and distance from passband edge to critical frequency (DC, Nyquist) otherwise.“\n\nIn other words: For „extreme\" cutoff frequencies, e.g. highpass cutoff below 1 Hz, the transition band is defined as wide as possible but not crossing the critical frequency (here DC). This is a reasonable default as filters should be as short as possible. E.g. a cutoff of 0.5 Hz would have a transition band width of 1 Hz. The transition band would be from 0 to 1 Hz, giving perfect attenuation at DC and a passband starting at 1 Hz. For „normal“ frequency ranges transition band width would be defined relative (25%) to the cutoff frequency, e.g. 10 Hz at 40 Hz (transition band 35 to 45 Hz). For the range between „extreme“ and „normal“, that is, 1 and 8 Hz default transition band width is fixed at 2 Hz. Again, to keep filters reasonably short. Same applies at the upper end of the frequency spectrum relative to Nyquist.\n\nCould you agree on that approach? You would get a definition of filter length/transition band width relative to cutoff frequency as requested in your comment. As this, however, would result in unreasonably long filters for the „extreme\" cases, default behavior is adjusted at the edges.\n\nFinally, could we agree on making \"onepass-zerophase“ the default configuration option for all FIR filters? I’m aware that it is not nice to change defaults, however, twopass filtering really makes no sense for FIR and porting my code would be unnecessarily complicated.\n\nFIR1 is a special case of windowed sinc, just hardcoded to „hamming“ window. My suggestion for default window type would have been „hamming“ (0.2% passband deviation, -53dB stopband attenuation) anyway, so the fir1 characteristic will be there (and default) anyway. Whether you would still like to keep it as an explicit configuration option is an open question.\n\n(3) firls: firls filters try to fit a time domain impulse response to a specified frequency domain magnitude response. Even when used properly such a fitting algorithm might give unexpected results for particular inputs. As we do not want unexpected behavior for our signals I strongly recommend completely removing. In the particular implementation in fieldtrip it is additionally used inappropriately, a rectangular magnitude response would require infinite filter length. As any other FIR filter, firls filters require transition bands and transition band width is a function of filter length. As you can not beat physics the fitting algorithm results in various adverse effects, non-unity DC gain (the signal is amplified), passband ripple and bad stopband attenuation if the filter length is not sufficient to achieve the requested transition band width (0 Hz! in the fieldtrip implementation). firls filters are not sharper than windowed sinc filters.\n\nIf NUTMEG uses the same code I would consider it highly problematic there too. The (ported) windowed sinc plugin will contain a (signal processing toolbox free) visualization of the filter responses. To check whether your filter does what you asked for these are essential and this problem wouldn’t have remained undetected for such a long time. Porting the visualization to Octave might be demanding. I’m completely new to Octave graphics. Are all fieldtrip functions completely Octave compatible?\n\nAnyway, as next step, we should agree on the defaults for firws. Are my suggested defaults acceptable?: Replace default filter length by default transition band width according to the described heuristic, use onepass-zerophase filtering as default.\n\nBest,\nAndreas"
+      - +@isprivate: "0"
+        commentid: "12999"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-03-06 14:48:57 +0100
+        thetext: "(In reply to widmann from comment #5)\nHi Andreas, \nMany thanks for your extensive report and replies!\n\nBelow some comments on two of the issues you raised. There is something I don't understand in the first point, and I hope I'm able to clarify our position regarding default FIR filter order a bit.\n\n1a)\nI actually often just use an order of 4, but in general we try not to change defaults often, as not to confuse users (especially concerning things early on in analysis pipeline like filtering). I don't understand the doubling of IIR filter order though. If I understand it correctly, the main concern when using high filter order is filter stability. If I request a filter order of 6 the filter is stable, but when I request order 12 it is often unstable (and unusable). How would applying the filter twice affect filter stability? Or do you refer to the effective doubling of the filter order because amplitude's in the output signal are attenuated twice? \n\n2c)\nI agree that we should be much more aware of transition-band properties when using FIR filtering. And I think as well for IIR, as we do not currently report the achieved filter performance in any case. However, putting a hard limit on the filter order in FIR filters still makes a lot of sense to me, and I would consider the amplitude response partially secondary (it should be 'decent' of course).  \nWe use FIR filters mostly with a subsequent Hilbert transform. I understand that the shape of the impulse response and the window function used greatly determine the amplitude response of the filter, and the temporal information that is used. However, when we think about using FIR filters plus Hilbert, we have a very strong focus on the temporal information that each Fourier coefficient reflects. Specifying a filter order that is no longer than 3 cycles of the slowest oscillation in our 'main lobe', achieves that we know for sure that each Fourier coefficient at each time-point is described, at most, by the 3 cycle long time-window that surrounds it. This is because I would say we want to make inferences mostly about time-points when something interesting occurs neurophysiologically, and care less about the precise frequencies (as long the central frequency is the desired one). Perhaps someone else can frame this more elegantly.\nIf we would automatically determine the filter order/number of taps by specifying the transition band of the filter, we would lose our direct control over the maximal temporal information that goes into our spectral analysis. And this is crucial when for interpreting a set of time-resolved Fourier coefficients. And this is also why I would strongly discourage using IIR filters with a subsequent Hilbert (as the average user has no clue about the length of the effective impulse response). \nSo perhaps as a summary, we would like to precisely control the maximal time-domain information that is used, at the cost of giving up some control of frequency-domain information.\n\nThis is just to explain our focus on filter order though. I think we have a lot to learn about the effects of the transition-band and pass-band and how to specify them."
+      - +@isprivate: "0"
+        commentid: "13017"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-03-06 16:56:26 +0100
+        thetext: The change I suggested previously (see bug 1129) was that the fir1 default order should be increased from 25 to 200 (so long as sufficient data length) and that firls had a sharper transition and higher passband than fir1.  But yes there does seem unnecessary ripple nevertheless.
+      - +@isprivate: "0"
+        commentid: "13018"
+        comment_count: "8"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-06 18:15:41 +0100
+        thetext: |-
+          Roemer and me had a short off-list conversation and would like to bring the discussion back on list:
+
+          Andreas wrote:
+
+          (1a) Yes, eh no, stability is not the issue. Rather my concern is that the resulting roll-off is very steep and the *effective* impulse response is considerably longer with 12 (2 x 6) compared to 8 (2 x 4).
+
+          (2c) May I split this into two sub-questions?
+
+          (2c-1) I’m still not sure whether I got the point. Can this argument be equally valid for highpass AND lowpass filters (respectively bandpass/bandstop)? And why the slowest oscillation? Wouldn’t be the fastest much more relevant for this argument?
+
+          (2c-2) Independent whether I understand 2c-1, do you think this particular application (Hilbert) is really the most relevant use-case for all Fieldtrip users across all skill levels? Imho, FIR filters are much more powerful than IIR as I can adjust more parameters (in particular have a well defined passband and avoid all the problems related to twopass filtering). A transition band width based default would make FIR filters accessible to a wider range of standard applications (in particular straightforward ERP) and entry level skilled users. The other way around, users doing Hilbert transform can still set their 3 cycles filter length (it’s just one extra line in the cfg). I would consider almost all of these users as advanced users knowing what they do. However, as a default this would be valid only for a limited range of applications. And entry-level users are not aware that this default might be very inappropriate for their application.
+      - +@isprivate: "0"
+        commentid: "13019"
+        comment_count: "9"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-06 18:18:47 +0100
+        thetext: |-
+          Roemer responded:
+
+          1a)
+          Ah, makes sense. Sorry, I was a bit confused there. The effective
+          impulse response being longer is an important consequence I think.
+          However, I would doubt users care a lot about this, as they are using an
+          IIR filter, and are often not aware of the effective impulse response
+          length. At least, so far people have always responded to me that they
+          had no idea. On the steep roll-off, would there be any downsides to
+          this? I mean, wouldn't steeper responses be a good thing?
+
+          2c-1)
+          Excellent point. I only had band-passes in mind. And there I think it
+          would make more sense for the 3 cycles to be for the center frequency
+          (like we do with wavelets), as that would be where most energy comes
+          from. Our main concern here is to deviate from the EEGLAB default. The
+          understanding of these filter in the general user population is so poor
+          I think. So many papers report 'used the default in of XXX.m from
+          EEGLAB' (forgot the function name), that we worry people won't notice
+          the difference if we change it. Not that that is a great reason not to
+          change the defaults. Perhaps with an serious warning when running, but I
+          have the feeling Robert would be in favor of keeping it as is.
+
+          On highpass/lowpass, I'm not sure FIR filters would even be used in
+          fieldtrip in that way. The only case I think off where people would do
+          this is for ERP/Fs, where the causality of the filter becomes a serious
+          issue (when thinking about onset times of e.g. peak waveforms being
+          smeared in both directions). I'm not too confident on the issue, but I
+          think in this case people would desire a predictable time-shift in their
+          signal, so would want desire a linear phase filter. This is also however
+          what a lot of people are unaware about (there was a discussion a year or
+          two in a journal I forgot, urging people to change their ways).
+
+          I'm not sure what a sensible default would be here.
+
+          For bandstops... I don't know, I think users would opt for the default
+          here, which is an IIR (butterworth). For me this also makes a bit of
+          sense. When I want to knock something out, say line noise, then I don't
+          care too much about the length of the impulse response, and I just want
+          it to be maximally suppressed without affecting the passband.
+          Butterworths are pretty good in this sense, at least at the level of
+          detail of common neuroscience data in my experience (line spectra above
+          30Hz at least). The stop-band might be larger, say 1 Hz, but this would
+          not hurt analyses in this range.
+
+          A sensible default for a FIR in this case, I would not know. 3 cycles
+          would most often not provide the spectral resolution desired (as line
+          spectra most often occur at frequencies above 30 in my experience).
+
+          2c-2)
+          I think the list below is pretty exhaustive in what our users use
+          filters for:
+          - removing line-noise
+          - removing high (~30+?) freq noise for ERP/Fs
+          - removing slow drifts/DC in some applications
+          - bandpassing before hilbert
+          This fits perfectly on bugzilla in case I miss a common one ;).
+
+          But I absolutely see your point on power of FIR filters. I really hate
+          not having control about things in IIR filters, in those cases when I
+          want to. Which would also be removing line-noise, where often the same
+          filtering strategy doesn't always help me to remove e.g. high-freq
+          harmonics.
+
+          It would be great to cater to both novices and power users. Perhaps a
+          solution is a mutually exclusive option, where one either specifies
+          filter order or transition band width (with information on the wiki to
+          aid users in what to do). And this could perhaps be the default for
+          high-pass and low-pass (band-pass default is problematic to what I
+          describe above). Especially this last bit should be discussed on
+          bugzilla. The problem with the current defaults is that they have been
+          in place for quite some time, making users get (too) comfortable with
+          not specifying what they want.
+      - +@isprivate: "0"
+        commentid: "13020"
+        comment_count: "10"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-06 18:24:21 +0100
+        thetext: |-
+          1a)
+          Steep is good but steeper unfortunately implies longer impulse response. Less precision in time domain (smearing, autocorrelation).
+
+          EEGLAB)
+          At present the default filter length for the default filter in EEGLAB is exactly what I suggested above (i.e., defined by transition band with adjustment for extreme cutoffs). I wrote it ;) The old 3-cycles default is deprecated (ok, „legacy“ in GUI) since version 10 (iirc?).
+
+          2c-2)
+          So for use cases 1-3 the appropriate default would be rather based on transition width not cycles. Having a different default for bandpass might be rather dangerous. Let’s continue discussion on list.
+      - +@isprivate: "0"
+        commentid: "13023"
+        comment_count: "11"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-07 11:33:20 +0100
+        thetext: |-
+          One more thing with respect to the 3-cycles default:
+          As twopass filtering is default for FIR the effective impulse response actually covers *six* cycles (minus one sample).
+      - +@isprivate: "0"
+        commentid: "13112"
+        comment_count: "12"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-03-19 18:14:54 +0100
+        thetext: So, how to proceed an come to a conclusion? Cannot finish the patches without further input.
+      - +@isprivate: "0"
+        commentid: "13604"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-14 16:34:52 +0200
+        thetext: |-
+          Hi Andreas, sorry for taking so long to reply to this, I was away for some time. Thanks again for your involvement in this. Today we discussed the issue again in the FieldTrip meeting.
+
+          (1) The first conclusion was that we should, at least for now, not change any of the defaults.
+
+          (2) The firls implementation should remain, as it might have use cases we are not entirely aware of. However, we would not be opposed to adding a warning to the filtering functions in case firls is requested, something along the lines of "the filter type you requested is not recommended for neural signals, only proceed if you know what you are doing".
+
+          (3) We would be very happy if you added your firws implementation to FieldTrip. I understand that twopass-filtering is non-trivial using firws; it seems to me perfectly fine to just not allow this option (firws/twopass) to the user, and only support what is easy to implement (onepass-zerophase being the most important one). The default you suggested for the order:
+
+          "Required filter order/transition band width is estimated with the following heuristic in default mode: transition band width is 25% of the lower passband edge, but not lower than 2 Hz, where possible (for bandpass, highpass, and bandstop) and distance from passband edge to critical frequency (DC, Nyquist) otherwise.“
+
+          sounds very reasonable.
+
+          (4) The onepass-zerophase option for fir1 would also be very welcome (though keep the default as 'twopass' for now).
+
+          (5) It would be great if there would be some documentation on the different filter types on our wiki. This could go hand-in-hand with an example script describing how to determine the filter characteristics of the filter that the user requested to use. Would you be willing to help out with this as well? The idea would be to educate users a bit to help them think about the filter types and settings. Eventually, this could justify us changing the defaults or maybe even forcing them to explicitly specify stuff. After this comment, I will attach a PPT that Roemer once gave about filtering. Perhaps there are some pictures/things in there that might be of use for the wiki page.
+
+          (6) As for the visualization of filter properties, we believe that belongs (at least for now) not in the FT codebase itself, but more on the wiki as an example script.
+      - +@isprivate: "0"
+        commentid: "13605"
+        comment_count: "14"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-14 16:36:19 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #13)
+          Bugzilla has a very low attachment file size limit :) The mentioned PPT (2.8 MB) is here: https://dl.dropboxusercontent.com/u/4023322/EDA%20on%20filtering%204-10-2012.ppt
+      - +@isprivate: "0"
+        commentid: "13669"
+        comment_count: "15"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-05-15 16:38:32 +0200
+        thetext: |-
+          (1, 2) I do understand the rationale behind keeping options and defaults (even if I do not agree). I will add the warning.
+
+          (3) I will finish the windowed sinc implementation then using the suggested defaults. Two-pass filtering is not a computational/implementation problem. But it is unnecessary for linear-phase FIR filters and has several drawbacks and side effects.
+
+          (4) Ok.
+
+          (5) This is a good idea. Let's see how this could work out. Possibly I'm not the right person to write that in the Fieldtrip context as I'm massively biased towards FIR filters. IIR filters introduce much more problems than they solve.
+
+          (6) I explicitly disagree. Checking and evaluating the filter responses is an essential part of filter design. The firls error would not have remained undetect if anybody would ever had a look at the filter responses. If you want to educate your user base you should make easy and enforce checking filter responses and learn about the consequences of parameter settings. With an external script this will always be awkward (in the current Fieldtrip structure). I agree that it should be off by default.
+      - +@isprivate: "0"
+        commentid: "13673"
+        comment_count: "16"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-16 09:27:07 +0200
+        thetext: |-
+          (In reply to widmann from comment #15)
+          (1-4) Great! Looking forward to the patch, thanks.
+
+          (5) We can keep this until later, although it would be good to have this documentation available before we announce the new filter implementation to the users (which I think would be good to do). I typically prefer FIR as well (and I know Roemer does too), but I know that Robert has certain specific advantages of IIR in mind. As the documentation would be on the wiki, we should see the page as a collaborative project which can be updated iteratively. For now I have created a placeholder page: http://fieldtrip.fcdonders.nl/development/which_filter_type_should_i_use
+
+          and also I found this one, which would be relevant to link (or possibly update and integrate): http://fieldtrip.fcdonders.nl/example/determine_the_filter_characteristics
+
+          (6) It would require a bit more thinking about the code's architecture to determine where to fit this in. I will put it on the agenda for next week's (or possibly the week after) FT meeting again, to see if anyone over here has input on this. Do you have any ideas on where this would fit in the code? I could imagine a cfg.XXfiltfeedback = 'gui'/'text'/'no' option for ft_preprocessing or so, but then where would the computation be done? Stuff to think about. For now I think we can proceed with the other changes without adding the filter characteristics checking to the code, would you agree?
+      - +@isprivate: "0"
+        commentid: "13677"
+        comment_count: "17"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-05-16 09:54:26 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #16)
+
+          (6) As I have ported major parts of the codebase from EEGLAB this is already in place for the new firws filters. I hope you understand that I actually would not be too happy to remove it again. It could be easily integrated into the fir and firls filters (two or three additional lines of code). Integrating also but will need some more lines and signal processing toolbox but shouldn't be too demanding either.
+
+          The patches are basically ready but still need some testing. Will not have time for that next week. I think first week of June.
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "13679"
+        comment_count: "18"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-16 10:15:59 +0200
+        thetext: |-
+          (In reply to widmann from comment #17)
+
+          (6) Ah OK, yes in that case no need to remove it.
+      - +@isprivate: "0"
+        commentid: "13685"
+        comment_count: "19"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-05-16 11:19:45 +0200
+        thetext: "(In reply to Eelke Spaak from comment #18)\nSorry for being absent from the discussion a bit, busy with finishing my thesis (I'm sure at some point I'll have out-used this excuse ;))\n\n6)\nI would totally be in favor of this, I've been wanting to implement something like this for a few years now. Initially I was thinking about passing along the A,B filter coefficients in the output, but that would be a bit messy (there's not really a nice spot in the data-structure to put them). A feedback option like gui/figure/text/etc would be much preferred. \n\nDepending on how your code can be best interfaced with Andreas, an option could be to put the visualization/feedback code from the firws into a separate function in trunk/preproc/private/xxx.m. Assuming the firws filter spits out A and B coefficients, it can be used trivially for most of the other filters. A convenient place to call xxx.m could be in trunk/preproc/private/filter_with_correction, which is called to do the actual filtering in most cases, and takes A/B as input. It would have to be adapted to accept an additional input argument (type of feedback), which should be passed through the pipeline before it. \n\nAnother option would be to make all ft_preproc_XXXfilter function pass along As and Bs if it can, and put the plotting code in a function called trunk/preproc/ft_preproc_filterfeedback.m or something, which could then be called from trunk/private/preproc.m (which has convenient access to the user cfg. \n\nRight now I would be slightly hinging toward the latter as easiest/cleanest (no messing with high level cfg options in low level functions), but this would also depend on your preference I would say (and whether or not the code is easily adapted to allow it to be used for the other filters)."
+      - +@isprivate: "0"
+        commentid: "13693"
+        comment_count: "20"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-05-16 13:37:14 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #19)
+
+          At the moment it is implemented as suggested in your solution (a) as a function in preproc/private and called from ft_preproc_XXXfilter. I also agree that solution (b) would be favorable, however, I would not go that route as it is to unflexible.
+
+          I would like to convince you, when the firws part is finished, also to make some changes to the Butterworth IIR filtering. You could possibly solve major parts of instability issues by not using AB but ZPK notation for these filters. The present solution (split order, filter twice) is very suboptimal. The assumption that double filtering doubles filter order is only true for the length of the impulse response but not for the shape of the frequency response. That is, you will get a significantly different filter than requested. That's my major concern also with two-pass filtering,  with instable filters now four-pass filtering.
+
+          However, implementing filter feedback upstream as in (b) will be difficult if notation changes between implementations. Downstream as in (a) it is trivial.
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "13899"
+        comment_count: "21"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-06-19 18:47:24 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #13)
+
+          I have finished porting the windowed sinc FIR filters from EEGLAB. I will upload all modified files in a zip-file and as a patch. If you prefer I could also provide a Github pull request. I did extensive testing. However, as always there might be bugs and unexpected use cases and applications. Please, also test thoroughly.
+
+          Default is onepass-zerophase filtering. The default for filter order is as described. Plotting of filter responses is included. In ft_preproc_lowpassfilter I have added a (commented) draft how plotting should work for but (and other) filters. Plotting for IIR filters is completely new, so, there might be need for further adjustments.
+
+          The warning for firls filters is added. fir and but filters are unmodified.
+
+          Any feedback is welcome.
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "13900"
+        comment_count: "22"
+        attachid: "638"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-06-19 18:48:35 +0200
+        thetext: |-
+          Created attachment 638
+          firws4fieldtrip
+      - +@isprivate: "0"
+        commentid: "13901"
+        comment_count: "23"
+        attachid: "639"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-06-19 18:49:41 +0200
+        thetext: |-
+          Created attachment 639
+          firws4fieldtrip modified files
+      - +@isprivate: "0"
+        commentid: "13902"
+        comment_count: "24"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-06-20 08:35:31 +0200
+        thetext: |-
+          (In reply to widmann from comment #21)
+          Thanks very much Andreas. I will do some testing on our end, and if all works out I will commit (or get back to you if needed).
+      - +@isprivate: "0"
+        commentid: "13927"
+        comment_count: "25"
+        attachid: "641"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-06-22 18:32:54 +0200
+        thetext: |-
+          Created attachment 641
+          firws4fieldtrip including new signal processing functions
+
+          Sorry, just noticed that the patch didn't include the new signal processing functions. Forgot to git add before commit. Please, use the new patch.
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "13994"
+        comment_count: "26"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-07-02 16:28:05 +0200
+        thetext: |-
+          Hi Andreas,
+
+          Thanks a lot for providing this code, it looks very clean and the filter responses are very neat indeed. I have now added it to the codebase, with a few minor modifications concerning printing to the console.
+
+          The test script runs through fine, but note that it only tests basic error-free functionality and not correctness of filtered output. But I trust these are all in order :)
+
+          Thanks again, best,
+          Eelke
+
+          bash-4.1$ svn commit preproc test/test_firwsfiltering.m ft_preprocessing.m private/preproc.m utilities/ft_progress.m preproc/private/print_once.m
+          Sending        ft_preprocessing.m
+          Sending        preproc/ft_preproc_bandpassfilter.m
+          Sending        preproc/ft_preproc_bandstopfilter.m
+          Sending        preproc/ft_preproc_highpassfilter.m
+          Sending        preproc/ft_preproc_lowpassfilter.m
+          Sending        preproc/private/filter_with_correction.m
+          Adding         preproc/private/fir_df.m
+          Adding         preproc/private/fir_filterdcpadded.m
+          Adding         preproc/private/firws.m
+          Adding         preproc/private/firwsord.m
+          Adding         preproc/private/invfirwsord.m
+          Adding         preproc/private/kaiserbeta.m
+          Adding         preproc/private/minphaserceps.m
+          Adding         preproc/private/plotfresp.m
+          Adding         preproc/private/print_once.m
+          Adding         preproc/private/windows.m
+          Sending        private/preproc.m
+          Adding         test/test_firwsfiltering.m
+          Sending        utilities/ft_progress.m
+          Transmitting file data ...................
+          Committed revision 9685.
+      - +@isprivate: "0"
+        commentid: "13998"
+        comment_count: "27"
+        who:
+          +content: widmann
+          +@name: ""
+        bug_when: 2014-07-02 17:21:56 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #26)
+
+          Good, thanks!
+
+          I understand the point in your changes to console output. I would, however, prefer collecting all output in a single variable and sending it to print_once all at once. The way it is implemented now it might lead to ambiguous output if for example only the cutoff frequency is changed. I will provide a small patch when I find time.
+
+          Open projects are now (1) a wiki page and (2) plotting of filter responses also for other filter types. If (2) is a desired feature I could provide a patch when I find time.
+
+          Best,
+          Andreas
+      - +@isprivate: "0"
+        commentid: "19999"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:54 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "585"
+        date: 2014-01-23 15:17:00 +0100
+        delta_ts: 2014-01-23 15:17:00 +0100
+        desc: sample frequency responses for but, fir1 and firls
+        filename: fieldtrip_filters.png
+        type: image/png
+        size: "18741"
+        attacher: widmann
+        data: REMOVED
+      - +@isobsolete: "1"
+        +@ispatch: "1"
+        +@isprivate: "0"
+        attachid: "638"
+        date: 2014-06-19 18:48:00 +0200
+        delta_ts: 2014-06-22 18:32:54 +0200
+        desc: firws4fieldtrip
+        filename: firws4fieldtrip.patch
+        type: text/plain
+        size: "44246"
+        attacher: widmann
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "639"
+        date: 2014-06-19 18:49:00 +0200
+        delta_ts: 2014-06-19 18:49:41 +0200
+        desc: firws4fieldtrip modified files
+        filename: firws4fieldtrip.zip
+        type: application/zip
+        size: "43803"
+        attacher: widmann
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "1"
+        +@isprivate: "0"
+        attachid: "641"
+        date: 2014-06-22 18:32:00 +0200
+        delta_ts: 2014-06-22 18:32:54 +0200
+        desc: firws4fieldtrip including new signal processing functions
+        filename: firws4fieldtrip.patch
+        type: text/plain
+        size: "72735"
+        attacher: widmann
+        data: REMOVED

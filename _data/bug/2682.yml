@@ -1,0 +1,463 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2682"
+    creation_ts: 2014-09-03 14:03:00 +0200
+    short_desc: implement support for the neuroscope file format
+    delta_ts: 2018-01-26 09:50:04 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: antferrui
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14288"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 14:03:56 +0200
+        thetext:
+      - +@isprivate: "0"
+        commentid: "14289"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 14:06:02 +0200
+        thetext: "I copy the e-mail correspondence down here, to keep track of stuff and suggest to move the discussion to the bugzilla list\n\n\n############\n\nDear Robert and Jan-Mathijs,\n\nI have started using fieldtrip to analyze my ephys data consisting in LFP and units from multichannel probes in behaving rodents. I'm writhing to you to ask a few questions about our data (which is not among the already supported data formats). \n\nI'm working in the Buzsáki lab (NYU) were we use a particular data format that has been adopted by many other labs in the field and are briefly explained here (http://neuroscope.sourceforge.net/UserManual/data-files.html). Basically it consist in a xml file with the parameter of the recording, ASCII files with the timestamps (at 20 kHz) of the isolated units (.res) and their identities (.clu), ASCII file with the animal position (at 39,0625 Hz) and a binary file for the lfp (at 1250 Hz), storing the data like that:\nsample1_channel1\nsample1_channel2\n...\nsample1_channelN1\nsample2_channel1\nsample2_channel2\n...\nsample2_channelN1\n...\nsampleN2_channelN1\nSome of us are are using now fieldtrip and found it very useful however we found some complications to efficiently read a dataset directly into fiedltrip. So far what we do is first read into matlab each particular file and then covert to fieldtrip format. We are wondering if there are some already existing functions for other similar data formats that with little modification will allow us to solve this issue. And if that is not the case if you would be interested in helping us in doing so. \n\nIn our lab and others it has been developed over the years a bunch of open-source software for processing and visualization of such data (i.e. http://neurosuite.sourceforge.net/ , https://github.com/klusta-team) as well as more specific matlab analysis toolboxes (such as http://fmatoolbox.sourceforge.net/). So we think that it would be interesting for a number of labs the possibility of easily using both fieldtrip and these software.\n\nThank you very much for your attention,\n\n\nAntonio Fernández Ruiz"
+      - +@isprivate: "0"
+        commentid: "14290"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 14:06:56 +0200
+        thetext: "Hi Antonio and Jan-Mathijs\n\nLet me chime in. I  have been skimming over your emails sofar, but not looked at all details. Besides code, which indeed seems to be not too hard, I think that some time should be devoted to thinking about the data representation on disk, mapping onto it in fieldtrip. Specifically the relation between the channels and the files is relevant, also in relation to event and timestamps. \n\nE.g. the Neuralynx system can write LFP data in *.ncs files, which you might know. Each channel is a single file, which if I have seen correctly also applies to your format. It is possible to read a single file by specifying that as filename. It is also possible to read a bunch of files at once, by specifying the directory containing a consistent set of files. \n\nSee among others \"fileio/ft_filetype.m\" line 603. \n\nThe consequence is that \n\nfilename = {\n‘dir/file1.ncs’\n‘dir/file2.ncs’\n‘dir/file3.ncs’\n…}\nfor i=1:length(filename)\n  cfg.dataset = filename{i};\n  data{i} = ft_preprocessing(cfg);\nend\ndataall = ft_appenddata([], data{:});\n\nis equivalent to \n\ncfg.dataset = ‘dir’;\ndataall = ft_preprocessing(cfg);\n\nThe second is much faster and easier to handle with regards to the events and “trialfun”. The second requires the concept of a “dataset” which comprises multiple channels in multiple files. This is not only the case for Neuralynx, there are other instances.\n\nIt might be that this can already be nicely dealt with using fileio/private/read_combined_ds.m and the “combined_ds” format (see ft_read_data and ft_read_header). This is meant to supersede the individual implementations.\n\nbest regard,\nRobert"
+      - +@isprivate: "0"
+        commentid: "14291"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 14:07:37 +0200
+        thetext: "Sorry, the last one was incomplete\n\nHi Robert and Jan-Mathjis,\n\nI send you here a bunch of functions to read all our data formats for lfp, spike times, spike waverforms, events, parameters (header) and positions. I think they provide all the info that is necessary for the ft_read_header and the rest of your functions. I see two options but you may know much better what is the best way to proceed. I can modified this functions to produce and output than can be feeded into fieldtrip or we can keep them as they are and add some code to the fiedltrip read functions than call them and transform their output into the proper structure.\nI also send you some more extensive documentation about the data formats and pre-processing of our data. This info together with a lot of data from the lab is publically available in the crcns.org webpage (https://crcns.org/data-sets/hc), a repository of neuroscience data. The current pdfs deal with some specific details of the dataset but I can easily write a summary of the general points applicable to any other dataset. Also noted that althoug some of these data were adquiered long time ago with NeuraLynx in our comunity of labs we hold the convention than all the data is always converted to the same format (neruroscope...) regardless how it was recorded.\n\nLet me know if this is useful. \nThanks a lot for your help\n\nAntonio"
+      - +@isprivate: "0"
+        commentid: "14298"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 16:35:37 +0200
+        thetext: |-
+          Hi Antonio,
+          Are the binary data stored as integers? If so, is there a calibration factor stored somewhere that transforms into uV?
+      - +@isprivate: "0"
+        commentid: "14299"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 16:46:31 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - started the implementation of support for neuroscope format, see bug 2682" ft_read_data.m ft_read_header.m ../external/neuroscope/
+          Adding         external/neuroscope
+          Adding         external/neuroscope/LoadBinary.m
+          Adding         external/neuroscope/LoadEvents.m
+          Adding         external/neuroscope/LoadParameters.m
+          Adding         external/neuroscope/LoadPositions.m
+          Adding         external/neuroscope/LoadSpikeAmplitudes.m
+          Adding         external/neuroscope/LoadSpikeFeatures.m
+          Adding         external/neuroscope/LoadSpikeTimes.m
+          Adding         external/neuroscope/LoadSpikeWaveforms.m
+          Adding         external/neuroscope/private
+          Adding         external/neuroscope/private/Contents.m
+          Adding         external/neuroscope/private/isdmatrix.m
+          Adding         external/neuroscope/private/isdscalar.m
+          Adding         external/neuroscope/private/isdvector.m
+          Adding         external/neuroscope/private/isimatrix.m
+          Adding         external/neuroscope/private/isiscalar.m
+          Adding         external/neuroscope/private/isivector.m
+          Adding         external/neuroscope/private/islmatrix.m
+          Adding         external/neuroscope/private/islscalar.m
+          Adding         external/neuroscope/private/islvector.m
+          Adding         external/neuroscope/private/isradians.m
+          Adding         external/neuroscope/private/isstring.m
+          Adding         external/neuroscope/private/wrap.m
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_header.m
+          Transmitting file data .......................
+          Committed revision 9779.
+      - +@isprivate: "0"
+        commentid: "14300"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-03 16:53:51 +0200
+        thetext: "Hi Antonio,\nI just committed some new code to our svn-repository, which I did not test extensively, but which would allow you to already read in lfp data for selected channels / time points.\n\nI quickly tried this on some example data from crcns, the hc2 dataset (and there the smallest one).\n\nyou should be able to do something like\n\nhdr = ft_read_header(fullfile(path,dataset),'headerformat', 'neuroscope_ds');\n\nor \n\nhdr = ft_read_header(fullfile(path,dataset,[dataset,'.xml'])), 'headerformat', 'neuroscope_xml');\n\n\nYou can also do something like\n\ncfg = [];\ncfg.datafile = fullfile(path,dataset,[dataset,'.eeg']);\ncfg.dataformat = 'neuroscope_bin';\ncfg.headerformat = 'neuroscope_bin';\ndata = ft_preprocessing(cfg);\n\nyou can now add stuff to the cfg, like cfg.trl = [1000 2000 0; 3000 4000 0]; (to read in sections of data), or cfg.channel = hdr.label([3 5]); (to read in a subset of channels)\n\nIf you have a running version of fieldtrip on your end, you should be able to do: ft_version update, which pulls the latest version of the code.\n\nI would appreciate if you could test this a bit on your end, and see whether it behaves as expected.\n\nTwo points for now:\n-At the moment the lfp channels have rather generic names, i.e. chan001 etc, and I guess there is no information in the neuroscope data about this, true?\n-See my comment about the scaling of the field potentials.\n\nTo be continued for refinements and implementation of spike stuff (which is less trivial)."
+      - +@isprivate: "0"
+        commentid: "14301"
+        comment_count: "7"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-09-03 17:20:05 +0200
+        thetext: Yes they are stored as integers. The gain and voltage ranges appear in the first few line of the xml file (you can open it with a text editor)
+      - +@isprivate: "0"
+        commentid: "14302"
+        comment_count: "8"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-09-03 17:24:14 +0200
+        thetext: "Hi Jan-Mathijs,\n\nI will check what you have done to read LFP, it looks fine to me. I just update my fieldtrip distribution with ft_update but there is no external/neuroscope folder. Maybe is not upload yet so I would try later. \n\nThanks!\nAntonio"
+      - +@isprivate: "0"
+        commentid: "14304"
+        comment_count: "9"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-09-05 14:48:30 +0200
+        thetext: |-
+          Hi Jan-Mathjis,
+
+          I still can´t find the folder external/neuroscope in the fieldtrip updates
+      - +@isprivate: "0"
+        commentid: "14305"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-05 15:05:55 +0200
+        thetext: |-
+          hm, weird. I am at home now, so it will take me some time to check in detail. In essence, however, the neuroscope folder just contains the necessary files to read the data, i.e. the LoadXXX files. If you have a copy of this somewhere on your matlab path, it shouldn't be restrictive for you to test the code. That is, as long as you have the changes I made to ft_read_header and ft_read_data ;-).
+
+          If ft_version update does not work, consider downloading a fresh copy of the code, or check out a copy through google code.
+      - +@isprivate: "0"
+        commentid: "14367"
+        comment_count: "11"
+        attachid: "661"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-09-17 12:32:29 +0200
+        thetext: |-
+          Created attachment 661
+          example of event file
+      - +@isprivate: "0"
+        commentid: "14368"
+        comment_count: "12"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-09-17 13:17:17 +0200
+        thetext: "Hi Jan-Mathijs,\n\nSorry for the delayed response, I am on vacation and only having intermittent access to Internet. I will be back next week and have full availability.  \n\nIn the meantime I have checked what you already have done and it works fine; thank you very much for your efforts :)\nI was able to load and preprocess some files here. I comment the line 1556 referring to the rawfile because once the preprocessing from the .dat file to get the .eeg (downsampled) and the different spike files is done (outside FieldTrip) we don´t need to use the .dat anymore. \n\nRegarding the trial definition, it is usually stored in an event file, such us the one attached (can be read with the function LoadEvents). So I still need to try to create the trl structure form that files. \n\nThe generic channel names are OK. However it would be better if they can be imported directly as defined in neuroscope by \"anatomical groups\" (typically shanks in a multi-shank probe). This information appear in the xml file under <anatomicalDescription>\n  <channelGroups>\nand them each of the groups with its channels. So I guess the names can be something like \"shank1_chan01\", etc. \n\nDid my previous comment clarified the doubt about the scaling of the LFPs?\n\nBest,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "14568"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-07 12:39:36 +0200
+        thetext: |-
+          Hi Antonio,
+          Just to let you know I haven't forgotten about this, but I have been kept quite busy recently. I hope to be able to devote some significant time to this soon.
+      - +@isprivate: "0"
+        commentid: "14594"
+        comment_count: "14"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-10-08 15:29:17 +0200
+        thetext: "Hi Jan-Mathijs,\n\nThanks for writing.\nI have been playing more with our data and FieldTrip (so far only with LFPs) and the results were pretty good. I will also have time to work on the future updates now. \n\nRegarding the conversion to mV of the LFPs the following line may do the work:\n\nLFPok = LFPraw*voltageRange/amplification/(2^nBits)*1000\n\nThe parameters are specified in the .xml files but the typical values are those:\n\nvoltageRange = 10\namplification = 400\nnBits = 16 \n\nCheers,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "14595"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-08 16:16:10 +0200
+        thetext: |-
+          (In reply to AntonioFR from comment #14)
+
+          With regards to the scaling: does the standard xml reading routine output these values somewhere? I'd rather go for a generic solution than assuming 'standard' values.
+      - +@isprivate: "0"
+        commentid: "14596"
+        comment_count: "16"
+        attachid: "664"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-10-08 16:40:20 +0200
+        thetext: |-
+          Created attachment 664
+          New function for reading xml file
+
+          You are right. So I add a few lines to include those parameters in the output structure of the function LoadParamenters.
+      - +@isprivate: "0"
+        commentid: "14597"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-08 16:43:07 +0200
+        thetext: |-
+          (In reply to AntonioFR from comment #16)
+
+          OK, thanks. Will this change also be incorporated on the official release package?
+      - +@isprivate: "0"
+        commentid: "14599"
+        comment_count: "18"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-08 17:04:07 +0200
+        thetext: I took the liberty in modifying LoadParameters a bit more, to also output the whole xmltree. This would be needed to extract channel names as suggested in comment 12
+      - +@isprivate: "0"
+        commentid: "14600"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-08 17:18:59 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - updated calibration of neuroscope data as per Antonio's suggestion" ft_read_header.m ft_read_data.m ../external/neuroscope/LoadParameters.m
+          Sending        external/neuroscope/LoadParameters.m
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_header.m
+          Transmitting file data ...
+          Committed revision 9893.
+
+          The code should now incorporate the correct scaling, based on the specifications in the header.
+      - +@isprivate: "0"
+        commentid: "14601"
+        comment_count: "20"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-10-08 17:21:01 +0200
+        thetext: Ok thats great. Yes, I think the modified function can substitute the old LoadParameters in the offcial distribution.
+      - +@isprivate: "0"
+        commentid: "14602"
+        comment_count: "21"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-10-08 17:21:15 +0200
+        thetext: Ok thats great. Yes, I think the modified function can substitute the old LoadParameters in the offcial distribution.
+      - +@isprivate: "0"
+        commentid: "14603"
+        comment_count: "22"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-10-08 17:21:43 +0200
+        thetext: Ok thats great. Yes, I think the modified function can substitute the old LoadParameters in the offcial distribution.
+      - +@isprivate: "0"
+        commentid: "14803"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-12 15:54:16 +0100
+        thetext: Hi Antonio, I just want to check in to see where we are at, and what to prioritize here (if I have a spare moment to work on this issue :-)).
+      - +@isprivate: "0"
+        commentid: "14815"
+        comment_count: "24"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-11-12 17:08:12 +0100
+        thetext: "Hi Jan-Mathijs,\n\nI think the priority now would be to have the intermediate functions that allow us to read the spike and position data into FieldTrip structures. If you can implement them, even a basic structure, I can then test and refine them until we get something we are happy with. \nLet me know how you want to proceed or if you need some data. I think you already have all the low level functions for reading into Matlab the raw spike, position and event data.\n\nCheers,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "14846"
+        comment_count: "25"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-13 13:34:02 +0100
+        thetext: "forgive my ignorance, but I do not fully understand the representation of the spike data, with regards to the spikes. I would like to verify this:\n\nFor each of the channel groups, there's a set of files .res. (containing the timestamps) .clu. (containing the results of the spike clustering) and .spk. (containing the waveform information for each spike).\n\nFor a given channel group, at the time stamps specified in the .res. file a snippet of waveform is recorded and stored in .spk. where (after clustering) for each of these spike events a cluster is assigned and stored in .clu. \n\n1) I would assume that the unique indices in clu refer to the spikes of an individually identified single unit, correct? Now, indices in .clu. start from zero (at least in the toy data I have downloaded): are they zero-based, i.e. do all zeros belong together, or does a zero mean that they don't belong to a cluster?\n\n2) Across channel groups, do the indices in the clu files refer to the same units?"
+      - +@isprivate: "0"
+        commentid: "14854"
+        comment_count: "26"
+        attachid: "676"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-11-13 19:26:36 +0100
+        thetext: |-
+          Created attachment 676
+          function to load particular units
+      - +@isprivate: "0"
+        commentid: "14855"
+        comment_count: "27"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2014-11-13 19:28:06 +0100
+        thetext: "Hi Jan-Mathijs,\n\nYou are right, per electrode group there are a .res file with all the time stamps of the units belonging to this group, one .clu file with the identity of those time stamps and one .spk file with the waveforms of each of them (as many waveforms as electrodes are in this particular electrode group). The number 0 in every .clue file correspond to noise (so we can discard those timestamps) and the number 1 correspond to multiunit activity (non individually sorted units) belonging to this particular electrode group. The rest of the numbers correspond to different individually sorted units, but they are different from one electrode group to the other (so the number 3 in group 1 is one different unit from the number 3 in group 2).  \n\nWith the function LoadSpikeTimes you would get a matrix with three columns, the first is timestamp, the second electrode group and the third unit identity. I send you here, just in case it is useful, another function which allows you to get the time stamps of particular units, after having load all of them with LoadSpikeTimes.\n\nCheers,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "15143"
+        comment_count: "28"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2015-02-04 17:13:43 +0100
+        thetext: "Hi Jan-Mathijs,\n\nI´m writting to you to check at which point are we with the implementation of Neuroscope files to FieldTrip. \nThe last thing we were talking about is that you will take the low-level function to read the data I porvided and add them to intermediate-level functions that can output FieldTrip structures. This is working so far for binary eeg files but we still need to do it for the spikes and positions. Have you had some spare time to work on it? Is there something I can do to help on that?\n\nBest,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "15178"
+        comment_count: "29"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-08 20:54:51 +0100
+        thetext: "Dear Antonio,\n\nSorry for my long unresponsiveness, but this project was put on the back burner a bit.\nI have made some necessary changes to ft_read_spike, and I think this is a good start to call you in as a beta-tester.\n\nIf you update to the latest version of the code, you could test it out (I am curious about what you will find).\n\nI used a CRCNS dataset for testing. With the pwd being the directory that 'sees' the 'data container' (i.e. the directory containing all the files, so don't cd into the directory so that you can see the .clu .eeg .xml files etc.) the following works for me:\n\nspike = ft_read_spike('ec013.527','spikeformat','neuroscope');\n\n\n[jansch@mentat003 fileio]$ svn commit -m \"enhancement - built in support for neuroscope file format\" ft_read_spike.m\nSending        ft_read_spike.m\nTransmitting file data .\nCommitted revision 10180.\n\n[jansch@mentat003 fileio]$ svn diff ft_read_spike.m\nIndex: ft_read_spike.m\n===================================================================\n--- ft_read_spike.m\t(revision 10177)\n+++ ft_read_spike.m\t(working copy)\n@@ -217,7 +217,61 @@\n       spike.timestamp{i} = tmp.spikew.timestamp(:,i)';\n       spike.unit{i}      = tmp.spikew.unitID(:,i)';\n     end\n+  \n+  case 'neuroscope'\n+    % the information about the spikes is represented in:\n+    % x.clu.y or x.res.y (containing the timing +cluster info)\n+    % x.spk.y (containing the waveform info)\n+    % x.fet.y (containing features: do we need this?)\n+    \n+    if isdir(filename),\n+      tmp = dir(filename);\n+      filenames = {tmp.name}';\n+    end\n+    \n+    % read the header\n+    filename_hdr = filenames{~cellfun('isempty',strfind(filenames,'.xml'))};\n+    hdr          = ft_read_header(fullfile(filename,filename_hdr), 'headerformat', 'neuroscope_xml');\n+    spikegroups  = hdr.orig.spikeGroups;\n+    fsample      = hdr.orig.rates.wideband;\n \n+    filename_clu = filenames(~cellfun('isempty',strfind(filenames,'.clu')));\n+    filename_spk = filenames(~cellfun('isempty',strfind(filenames,'.spk')));\n+    \n+    % FIXME should we do a sanity check on whether the clu and spk actually\n+    % belong together?\n+    \n+    c = cell(numel(filename_clu),1);\n+    w = cell(numel(filename_spk),1);\n+    for k = 1:numel(filename_clu)\n+      c{k} = LoadSpikeTimes(fullfile(filename,filename_clu{k}), fsample);\n+    end\n+    for k = 1:numel(filename_spk)\n+      w{k} = LoadSpikeWaveforms(fullfile(filename,filename_spk{k}),numel(spikegroups.groups{k}),spikegroups.nSamples(k));\n+    end\n+    \n+    spike = [];\n+    spike.label = cell(hdr.orig.spikeGroups.nGroups,1);\n+    spike.hdr   = hdr;\n+    spike.unit      = cell(1,numel(spike.label));\n+    spike.waveform  = cell(1,numel(spike.label));\n+    spike.timestamp = cell(1,numel(spike.label));\n+    \n+    for k = 1:numel(spike.label)\n+      sel = find(c{k}(:,3)>1); % values >1 corresponds to individual units, 0 = noise, 1 = MUA\n+      \n+      % the times are defined in s, convert to original time stamps\n+      timestamps = c{k}(sel,1) * hdr.orig.rates.wideband;\n+      if any(abs(timestamps-round(timestamps))>1e-5),\n+        error('there seems to be a mismatch between the spike times and the expected integer-valued timestamps');\n+      end\n+      \n+      spike.timestamp{k} = round(timestamps(:))';\n+      spike.waveform{k}  = permute(w{k}(sel,:,:), [2 3 1]);\n+      spike.unit{k}      = c{k}(sel,3)';\n+      spike.label{k}     = sprintf('spikegroup%03d',k);\n+    end\n+     \n   otherwise\n     error(['unsupported data format (' spikeformat ')']);\n end"
+      - +@isprivate: "0"
+        commentid: "15179"
+        comment_count: "30"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-09 09:05:42 +0100
+        thetext: 'Note to self + antonio: as of yet ft_read_spike discards the MUA (i.e. it only keeps the spikes that have an index > 1. Probably we do want the MUA also...'
+      - +@isprivate: "0"
+        commentid: "15192"
+        comment_count: "31"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2015-02-10 14:01:39 +0100
+        thetext: "Hi,\n\nThanks for the code. I test it with a different dataset and I worked fine. The only part that didn't worked was loading the waveforms (the .spk files). But if it does work for you with the other data it maybe something with the format of the waveforms in my data, so I will check that. In any case, for most of the analysis we won´t want to load the waveforms just the spikes, so this will be better an optional thing. \nThe .fet files are not necessary at all, they are useful only for the clustering.\nI will change the spike output structure to have all the units sorted together instead of separated by spike groups and a few other details. It will be easy to change in your ft_read_spike. When i´m happy with the result I will send you the new code so you can substitute it in the distribution.\n\nCheers,\nAntonio"
+      - +@isprivate: "0"
+        commentid: "15195"
+        comment_count: "32"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-10 16:11:02 +0100
+        thetext: |-
+          It would be good to make changes with the overall philosophy (as defined not by me, but by people who had some clear ideas about it), as documented on:
+
+          http://fieldtrip.fcdonders.nl/tutorial/spike
+
+          http://fieldtrip.fcdonders.nl/tutorial/spikefield
+
+          http://fieldtrip.fcdonders.nl/reference/ft_datatype_spike
+
+
+          to ensure compatibility with all spike-processing related functions.
+
+          NOTE to self: the pos information should be relatively straightforward to get implemented: it can be treated as a set of additional LFP channels, right?
+      - +@isprivate: "0"
+        commentid: "15845"
+        comment_count: "33"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-03 12:30:38 +0200
+        thetext: Hi Antonio, are you still in for following up on this one?
+      - +@isprivate: "0"
+        commentid: "15846"
+        comment_count: "34"
+        who:
+          +content: antferrui
+          +@name: AntonioFR
+        bug_when: 2015-07-03 14:10:36 +0200
+        thetext: |-
+          Hi Jan-Mathijs,
+
+          Thanks for writing. Sure I'm totally in to keep on with this. We are now using FieldTrip a lot in the lab, but so far only for LFPs..
+
+          Best,
+          Antonio
+      - +@isprivate: "0"
+        commentid: "18110"
+        comment_count: "35"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:43:08 +0100
+        thetext: |-
+          Hi Antonio,
+
+          It's been a while, but I was wondering whether there's new insights here. I havent' had time to really see this one through, but I'd like to carry this one forward (i.e. facilitate the resolution of the bug, while other people (who are in greater need of actually getting it resolved) do the practical work.
+
+          Would it make sense to create a separate branch in a git-repo to get this settled?
+      - +@isprivate: "0"
+        commentid: "19110"
+        comment_count: "36"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-30 16:34:45 +0100
+        thetext: Closing for now, feel free to re-open if need arises
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "661"
+        date: 2014-09-17 12:32:00 +0200
+        delta_ts: 2014-09-17 12:32:29 +0200
+        desc: example of event file
+        filename: Rat08-20130708.cat.evt
+        type: text/plain
+        size: "376"
+        attacher:
+          +content: antferrui
+          +@name: AntonioFR
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "664"
+        date: 2014-10-08 16:40:00 +0200
+        delta_ts: 2014-10-08 16:40:20 +0200
+        desc: New function for reading xml file
+        filename: LoadParameters_new.m
+        type: text/plain
+        size: "2766"
+        attacher:
+          +content: antferrui
+          +@name: AntonioFR
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "676"
+        date: 2014-11-13 19:26:00 +0100
+        delta_ts: 2014-11-13 19:26:36 +0100
+        desc: function to load particular units
+        filename: GetSpikeTimes.m
+        type: text/x-matlab
+        size: "3909"
+        attacher:
+          +content: antferrui
+          +@name: AntonioFR
+        data: REMOVED

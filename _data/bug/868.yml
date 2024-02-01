@@ -1,0 +1,179 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "868"
+    creation_ts: 2011-08-15 17:43:00 +0200
+    short_desc: ft_neighbourselection miss sensors after ft_rejectcomponent
+    delta_ts: 2011-10-05 15:07:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2839"
+        comment_count: "0"
+        attachid: "114"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2011-08-15 17:43:30 +0200
+        thetext: |-
+          Created attachment 114
+          gradiometers before and after IC rejection
+
+          Missing sensors calculating ft_neighbourselection after reject ICs. I attach gradometers before (grad_ori) and after (grad_afterICrej) IC rejection. With the followed pipeline, the lost channel is MLT31 (sensor number 111):
+
+
+
+          cfg                         = [];
+          cfg.dataset                 = 'VOGTHAdielozS06.ds';
+          cfg.trialdef.eventtype      = 'frontpanel trigger';
+          cfg.trialdef.eventvalue     = 4;
+          cfg.trialdef.prestim        = 1.5; % in seconds
+          cfg.trialdef.poststim       = 3.7; % in seconds
+          cfg.trialdef.epochmoving    = 'multnormal';
+          cfg.trialdef.taskfile       = [gendir dgendir(subj,1).name '/task_behavior/' dgendir(subj,1).name '_behav_EXP_results.mat'];%path to load beahvior info;
+          cfg.trialdef.buttonresp     = [97 98];
+          cfg.trialfun                = 'trialselec_rt';
+          cfg                         = ft_definetrial(cfg);
+
+
+          %MEG preprocessing
+          cfg.channel                 = {'MEG'};
+          cfg.lpfilter                = 'yes';
+          cfg.lpfreq                  = 210;
+          cfg.keeptrials              = 'no';
+          cfg.demean                  = 'no';
+          cfg.detrend                 = 'yes';
+          cfg.continuous              = 'yes';
+          cfg.trl                     = cfg.trl(1:3,:);
+          meg                         = ft_preprocessing(cfg);
+
+          load('/home/electromag/dieloz/MEG/VOGTHA_3016028.02/participants/VOGTHAdielozS06/raw_data/VOGTHAdielozS06_delay_rt_meg_sum_icaW.mat')%this is my IC inverse weights' matrix saved as comp variable
+
+          %demixing MEG sensors
+          cfg                 = [];
+          cfg.topo            = comp.topo;
+          cfg.topolabel       = comp.topolabel;
+          clear comp;
+          meg                 = ft_componentanalysis(cfg, meg);
+
+
+          component=[3 6 16 24 30];
+
+          %rejecting previous selected ICs
+          cfg                 = [];
+          cfg.component       = [component];
+          meg                 = ft_rejectcomponent(cfg, meg);
+
+
+          cfg.feedback        = 'yes';
+          %cfg.method          = 'distance';
+          %cfg.neighbourdist   = 5;
+          cfg.method          = 'triangulation';
+          %cfg.method          = 'template';
+          cfg.neighbours      = ft_neighbourselection(cfg, meg);
+      - +@isprivate: "0"
+        commentid: "2853"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-08-17 10:05:49 +0200
+        thetext: 'I made a fix. @Diego: can you test it and let me know whether it works?'
+      - +@isprivate: "0"
+        commentid: "2862"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2011-08-17 13:55:42 +0200
+        thetext: |-
+          (In reply to comment #1)
+          > I made a fix. @Diego: can you test it and let me know whether it works?
+
+          I run the code that I sent you but when I'm in the ft_neighbourselection step, Matlab is hanging (In ducth "vast lopen"?). When I press crtl+c this is what I get:
+
+
+          Using the gradiometer configuration from the dataset.
+          undoing the invcomp balancing
+          Warning: the linear projection for the montage is not full-rank, the resulting data will have reduced dimensionality
+          > In ft_apply_montage at 76
+            In fieldtrip/private/undobalancing at 30
+            In fieldtrip/private/channelposition at 31
+            In ft_neighbourselection at 110
+          undoing the comp balancing
+          undoing the G3BR balancing
+          ??? Operation terminated by user during ==> channelposition at 77
+
+          In ==> ft_neighbourselection at 110
+                  [sens.pnt, sens.label] = channelposition(sens);
+
+
+          Any ideas??
+      - +@isprivate: "0"
+        commentid: "2876"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-08-17 19:55:34 +0200
+        thetext: |-
+          Hi Diego,
+          We decided to solve this in a different way. This will need some substantial changes to the code and will take a while.
+          For now I'd advice you to either:
+
+          -copy a grad-structure from a data-structure before you start applying the componentanalysis and rejectcomponent, or
+          -use the template method for the neighbourhoodselection.
+      - +@isprivate: "0"
+        commentid: "3315"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-26 14:49:22 +0200
+        thetext: |-
+          This bug should now be fixed, that is: the channel description will contain explicit positions of the channels. For the dataset that caused problems, the issue should be fixed when the whole analysis is done again (sorry). No backward compatibility is possible in this case.
+          Please see my recent post on the discussion list (friday September 23) for more information
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "114"
+      date: 2011-08-15 17:43:00 +0200
+      delta_ts: 2011-08-15 17:43:30 +0200
+      desc: gradiometers before and after IC rejection
+      filename: gradiometers.mat
+      type: application/octet-stream
+      size: "4528575"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

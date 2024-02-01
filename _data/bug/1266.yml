@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1266"
+    creation_ts: 2012-01-18 10:50:00 +0100
+    short_desc: GDF files are written in blocks of 1 gig (biosemi2ft buffer), but not concatinated when read
+    delta_ts: 2012-04-11 16:48:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    dependson: "1366"
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - philipvandenbroek
+      - r.vlek
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4838"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-01-18 10:50:14 +0100
+        thetext: "Similarly as our CTF data, GDF data is stored in blocks (of 1 gig). To read the data, apparantly the FT implementation does not contain the intelligence yet to concatinate the data chunks. Concatinating after ft_preprocessing would miss intermediate trials as it is unknown how the samples continue between files. \nAnyone have any idea?"
+      - +@isprivate: "0"
+        commentid: "5456"
+        comment_count: "1"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-03-06 16:42:55 +0100
+        thetext: BUMB!
+      - +@isprivate: "0"
+        commentid: "5493"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 09:01:53 +0100
+        thetext: |-
+          there are two pieces in the buffer/cpp ODM code where new files are created with a number
+
+          "GDF_BackgroundWriter.h" line 119 of 221
+                     char suffix[12];
+                      snprintf(suffix,12,"_%i.gdf", fileCounter);
+                      filename.append(suffix);
+
+
+          and in
+
+          "OnlineDataManager.h" line 459 of 764
+                  if (fileCounter == 0) {
+                      curWriter->start(curFilename.c_str());
+                  } else {
+                      char *compName = new char[curFilename.size() + 20];
+                      sprintf(compName, "%s_S%i", curFilename.c_str(), fileCounter);
+
+
+          The first seems to be related to the file size, i.e. the automatic splitting of a continuous recording over 1GB files. The second relates to the user stopping and starting saving multiple times, i.e. resulting in files that do not represent a continuous recording.
+
+          So there are
+
+          test.gdf
+          test_1.gdf
+          test_2.gdf
+           ...
+
+          and
+
+          test.gdf
+          test_S1.gdf
+          test_S2.gdf
+
+          where only the first should be auto-appended in ft_read_xxx
+      - +@isprivate: "0"
+        commentid: "5501"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:13:11 +0100
+        thetext: "I made the required changes to the code, which was more work than expected :-(\n\nWhile making the changes, I also came across the solution for bug #1281.\n\nmbp> svn commit `cat out`       \nSending        fileio/ft_read_data.m\nSending        fileio/ft_read_event.m\nSending        fileio/ft_read_header.m\nSending        fileio/private/read_biosig_data.m\nSending        fileio/private/read_biosig_header.m\nSending        fileio/private/read_combined_ds.m\nAdding         test/test_bug1266.m\nTransmitting file data .......\nCommitted revision 5429."
+      - +@isprivate: "0"
+        commentid: "5843"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:31 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

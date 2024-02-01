@@ -1,0 +1,94 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "275"
+    creation_ts: 2010-12-08 11:41:00 +0100
+    short_desc: timallow/timreq have to be made consistent on master and slave
+    delta_ts: 2011-01-05 12:01:02 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: peer
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: a.stolk8
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "585"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-08 11:41:32 +0100
+        thetext: "in peercellfun.m\n\n    % estimate the time that it took the collected jobs to finish\n    estimated_min = min(collecttime(collected) - submittime(collected));\n    estimated_max = max(collecttime(collected) - submittime(collected));\n    estimated_avg = estimated_max; % the maximum is used instead of the mean\n    \n    if ~isempty(ResubmitTime)\n      % use the user-specified amount\n      estimated = ResubmitTime;\n    elseif any(collected)\n      % estimate the expected time of the jobs, assuming a \"normal\" distribution\n      % the rationale for the estimate is the mean plus X times the standard deviation\n      % instead of the standard deviation the min-max range is used\n      estimated = estimated_avg + 2*(estimated_max - estimated_min);\n      % take into account that the estimate is less accurate in case of only few collected jobs\n      estimated = estimated * (1 + 1/(1+log10(sum(collected))));\n      % add some time to allow the matlab engine to start\n      estimated = estimated + 10;\n    elseif ~isempty(timreq)\n      % assume that it will not take more than 2x the required time\n      estimated = 2*timreq;\n      % add some time to allow the matlab engine to start\n      estimated = estimated + 10;\n    else\n      % it is not possible to estimate the time that a job will take\n      estimated = inf;\n    end\n\nthe code above determines when a job is considered to be lost and requires resubmission\n\n\nin peerslave.c\t\n\t/* determine the maximum allowed job duration */\n\ttimallow = 2*(host->timavail+1);\n\nthis means that a 24h peerslave can continue running for 48h, whereas the job is only a 10 minute job. \n\nThe job probably will be resubmitted much sooner than killed."
+      - +@isprivate: "0"
+        commentid: "589"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-08 11:50:27 +0100
+        thetext: |-
+          in peerslave.c the killswitch should be triggered if
+          either host->timallow is exceeded
+          or job->timreq (times a fudge factor) is exceeded.
+
+          i.e. take minimum of the two
+      - +@isprivate: "0"
+        commentid: "686"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-15 21:42:55 +0100
+        thetext: fixed in revision 2442
+      - +@isprivate: "0"
+        commentid: "687"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-15 21:43:51 +0100
+        thetext: |-
+          there is currently still a problem with the estimated time of the jobs in peercellfun
+
+          furthermore, 64-bit linux peerslave needs to be recompiled and started on mentat and esi-hpc1
+      - +@isprivate: "0"
+        commentid: "794"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 11:56:57 +0100
+        thetext: selected a long list of resolved bugs from roboos and changed the status into "RESOLVED"
+      - +@isprivate: "0"
+        commentid: "873"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 12:01:02 +0100
+        thetext: selected all old bugs from roboos with status RESOLVED and changed it into CLOSED

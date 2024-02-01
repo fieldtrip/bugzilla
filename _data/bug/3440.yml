@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3440"
+    creation_ts: 2018-07-12 20:39:00 +0200
+    short_desc: OpenMEEG pipeline conflicts
+    delta_ts: 2018-07-12 21:22:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    dependson: "3439"
+    everconfirmed: "1"
+    reporter:
+      +content: sarang
+      +@name: Sarang Dalal
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - alexandre.gramfort
+      - daniel.miklody
+      - ddewong
+      - r.oostenveld
+      - sabine.leske81
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19382"
+        comment_count: "0"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2018-07-12 20:39:54 +0200
+        thetext: |-
+          There have been reports that the FieldTrip-OpenMEEG pipeline often produces unexpected results:
+          https://lists.gforge.inria.fr/pipermail/openmeeg-info/2018/000252.html
+          https://mailman.science.ru.nl/pipermail/fieldtrip/2017-May/011532.html
+
+          In addressing Bug 3439 (the OpenMEEG test script itself producing strange results), I realized that unfortunately there are conflicting OpenMEEG pipelines in FieldTrip, so there's confusion on which one is being used.
+
+          I'm not sure whether the other ones are producing sensible results if called appropriately or with older versions of OpenMEEG, but the test script (external/openmeeg/testOpenMEEGeeg.m) was using them and producing unexpected results with OpenMEEG 2.3 and 2.4.
+
+          Crucially, the working pipeline that my group contributed and actively uses (largedly contained in forward/private/leadfield_openmeeg.m) does not use ft_prepare_headmodel. After updating the test script to use this pipeline, it now gives the expected results.
+
+          However, if the vol structure output by ft_prepare_headmodel are passed to ft_prepare_leadfield (as seen in the previous test script, and some user attempts), it invokes multiple and seemingly misbehaving OpenMEEG pipelines: ft_headmodel_openmeeg.m, external/openmeeg/openmeeg_dsm.m, external/openmeeg/openmeeg_megm.m – which each contain several passages of code that are similar to each other, such that the underlying OpenMEEG parameter files appear to be created several times and their associated OpenMEEG functions called repeatedly. From investigating the test script, the OpenMEEG geom file resulting from these pipelines seems to give a bizarre mesh order and layer definition, so this might be the major issue with them.
+
+          But I'm not sure what to do here, since I'm not sure if some people are using them and have a way to get sensible results, and also it seems they've been updated to allow running the Windows version of OpenMEEG. (leadfield_openmeeg.m may need to be tweaked to allow Windows functionality.)
+
+          @Robert, thoughts on how to go about this?
+      - +@isprivate: "0"
+        commentid: "19383"
+        comment_count: "1"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2018-07-12 20:58:37 +0200
+        thetext: |-
+          BTW, here's an example of how I would call our OpenMEEG pipeline:
+
+          cfg = [];
+          vol.type = 'openmeeg';
+          switch(numlayers)
+              case 4
+                  vol.cond = [0.33 0.0041 1.79 0.33]; % SI units, all 4 layers
+              case 3
+                  vol.cond = [0.33 0.0041 0.33]; % SI units, no CSF
+          end
+          vol = ft_convert_units(vol,'mm');    % Convert bnd to SI units
+          % optionally save OpenMEEG's output files by setting these parameters
+          vol.basefile = subjId;
+          vol.path = ['./' subjId '/hm']; % following files in here can be reused: hm.bin, hm_inv.bin, dsm.binvol.bnd = bnd;
+
+          cfg                 = [];
+          cfg.grid.pos        = %%%%% your preferred method :-)
+          cfg.grad            = grad_mri; % grad structure in MRI coords
+          cfg.vol             = vol;
+          cfg.reducerank      = 'no';
+          grid                = ft_prepare_leadfield(cfg);
+      - +@isprivate: "0"
+        commentid: "19384"
+        comment_count: "2"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2018-07-12 21:00:32 +0200
+        thetext: |-
+          (In reply to Sarang Dalal from comment #1)
+          oops, mispasted. In the vol structure, there should also be:
+          vol.bnd = bnd;

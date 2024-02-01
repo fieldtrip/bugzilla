@@ -1,0 +1,133 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1281"
+    creation_ts: 2012-01-24 22:08:00 +0100
+    short_desc: make reading of GDF events and channels more memory efficient
+    delta_ts: 2019-08-10 11:56:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1143
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    cc:
+      - b.reuderink
+      - johanna.zumer
+      - l.roijendijk
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4918"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-01-24 22:08:43 +0100
+        thetext: |-
+          Should be a piece of cake (see below). If I don't hear a shout I'll update the code asap. The thing is that ft_read_event uses ft_read_data which in its turn reads all the data at once and then only selects channel(s) of interest. It is possible to only read the relevant channel in the first place. See correspondence with Alois from Biosig below. Will first see if HDR.EVENT contains the info already, else will make it pass the status channel data through.
+
+          -------------
+          Dear Stephen,
+
+          sending e-mail to me is fine. Because your question might be of interest
+          to others, AND because You seem agreeable to make the correspondence
+          public, I'll send the reply to the mailinglist, too.
+
+          Unlike EDF/BDF, events, annotations and markers are stored in GDF in a
+          separate event table, which is read when SOPEN is called. Also, the
+          Annotation/Status channel of EDF+/BDF is read and decoded within SOPEN.
+          The resulting event information is available through HDR.EVENT.
+
+          In other words, you usually do not need to use SREAD for obtaining the
+          event information. However, nothing prevents you to use an additional
+          channel for storing trigger information, but this is not the most
+          efficient way and I recommend avoiding this.
+
+          Concerning your question: Yes, it is possible to read only one channel at
+          a time. The easiest way is probably:
+
+              [s,HDR] = sload(filename, statuschannel);
+
+          Alternative ways are:
+
+            ch = 1;
+            while (1)
+              [s,HDR] = sload(filename, ch);
+              ch = ch + 1;
+            if ch>HDR.NS, break; end;
+            end;
+
+          or if you know the number of signals (NS)
+
+            for ch = 1:NS,
+              [s,HDR] = sload(filename, ch);
+            end;
+
+          SLOAD does basically a SOPEN/SREAD/SCLOSE. In theory, it would be possible
+          to use only one SOPEN/SCLOSE. In that case, either you replace SREAD with
+          you own version, or modify HDR in such a way that SREAD does what you
+          want. This could become messy, and this mode of operation is currently
+          neither supported nor tested.
+
+
+             Alois
+      - +@isprivate: "0"
+        commentid: "5128"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 11:57:10 +0100
+        thetext: No-one shouted :). Assing this bug to you to keep the NEW-list tidy.
+      - +@isprivate: "0"
+        commentid: "5502"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:15:11 +0100
+        thetext: |-
+          this has been taken care of by a change in the gdf file reading related to bug #1266.
+
+          In the read_biosig_data wrapper a cacheheader is kept as persistent variable. Since the sopen call allows one to specify the channel selection, I have added it here and the channel selection is kept in the persistent cacheheader (which equals the biosig HDR) over multiple calls.
+      - +@isprivate: "0"
+        commentid: "19749"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:52:05 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "19793"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:00 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

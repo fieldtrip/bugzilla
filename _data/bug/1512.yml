@@ -1,0 +1,86 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1512"
+    creation_ts: 2012-06-11 07:49:00 +0200
+    short_desc: read_nex_event sample + 1 missing
+    delta_ts: 2016-09-13 14:57:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2093
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: martinvinck
+      +@name: Martin Vinck
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - braingirl
+      - jorn
+      - martinvinck
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6331"
+        comment_count: "0"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-11 07:49:18 +0200
+        thetext: |-
+          read_nex_event does the following:
+
+          dum = fread(fid,hdr.varheader(mrkvarnum).cnt,'int32');
+          timestamp = dum;
+          dum = dum ./(hdr.filheader.frequency./smpfrq);
+          mrk.tim = round(dum);
+
+          I think, this should be
+          mrk.tim = round(dum+1);
+
+          as the current definition would allow for a sample number of zero
+      - +@isprivate: "0"
+        commentid: "6332"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-11 09:23:41 +0200
+        thetext: in that case I would rather use floor instead of round + 1, just to make it exactly rounding up (e.g. if dum would be 0.5, floor would result in 1, round(dum+1) would result in 2)
+      - +@isprivate: "0"
+        commentid: "6333"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-11 09:33:24 +0200
+        thetext: "(In reply to comment #0)\n\nI think you are right about the +1 for the sample, but am not sure whether you should not also first  subtract -1 from the timestamp. Say the data for this channel is acquired at 40kHz (equal to the system sampling rate), then timestamps equals samples, right? In that case \n\nsample = round(timestamp ./(hdr.filheader.frequency./smpfrq) + 1);\nresults in \nsample  = timestamp+1;\nwhich is incorrect.\n\nRegarding the comment of Jorn: the timestamp can be in-between two samples, and then you want it to to round to the nearest sample.\n\nMaybe as thought experiment: what about a sampling rate of 20kHz (half the system sampling rate), or 10kHz? You can draw the 10kHz case as follows\n\n|----|----|----|----|----|----|\n\nwhere each - is a timestamp point and each | is a boundary between two samples. So you get 4 timestamp points per sample, or stated differently: each sample is 4 timestamps wide."
+      - +@isprivate: "0"
+        commentid: "6334"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-11 09:49:25 +0200
+        thetext: "(In reply to comment #2)\nsample = round(timestamp/40 + 1);\nresults in \n40 samples  = timestamp + 40;\n\nsamples does not equal timestamps here, because the lfp has a lower sampling rate.\n\nThe first timestamp that can be registered is 0\n\nif timestamp = 15, sample should be 1, not zero"

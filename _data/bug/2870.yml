@@ -1,0 +1,91 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2870"
+    creation_ts: 2015-03-17 14:57:00 +0100
+    short_desc: precomputed leadfield not detected in sourcemodel and dipolefitting
+    delta_ts: 2015-04-02 21:59:57 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: richards-john
+      +@name: John Richards
+    assigned_to: fieldtriptoolbox
+    cc:
+      - carsten.wolters
+      - j.vorwerk
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15551"
+        comment_count: "0"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2015-03-17 14:57:35 +0100
+        thetext: "I have precomputed a leadfield(s) for a SIMBIO and BEMCP models.  The ft_prepare_leadfield proc uses the prepare_headmodel proc.  One part is to compute the transfer function--this takes a long time for SIMBIO.  \n\nWhen using ft_sourceanalysis or ft_dipolefitting, ft_dipolesimulation, the prepare_headmodel is called again.  For the BEMCP this is pretty quick (just finds the electrode positions on the scalp surface), but for SIMBIO it attempts to compute the transfer functions again; which would take a very long time.  In other parts of the ft_sourceanalysis and ft_dipolefitting it uses the lf information ok, and apparently the vol.transfer field is not used when the precomputed leadfield exists in the cfg.grid."
+      - +@isprivate: "0"
+        commentid: "15553"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-18 00:54:21 +0100
+        thetext: |-
+          Hi John,
+
+          This is a known bug. It should indeed be solved, because at the moment simbio is basically too computationally expensive to use in any scenario.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15554"
+        comment_count: "2"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2015-03-18 01:01:41 +0100
+        thetext: |-
+          Robert (and others).
+
+          It is computationally extensive, and I had created a pipeline to do the processing offline on a pretty good cluster.  It appears that this section of the code is computing the transfer function; which was already computed in the precompiled leadfield.  I could save the transfer data, and use them?  Would one of you comment on this?
+
+          Also, I can't tell for sure but this one section is computing the transfer function.  This is necessary for the computed leadfield, but i don't believe that it is used in the subsequent code for the inverse model.  So perhaps this could be skipped when the lf already exists.
+
+          This is unfortunate for me.  I was trying to get FT to work for me because I have individual participant head models, and have found that the FEM is "different" than the BEM, and probably better.  So a fully configured FEM model would be a very big goal for me with FT.
+
+
+          John
+      - +@isprivate: "0"
+        commentid: "15585"
+        comment_count: "3"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2015-04-02 21:59:57 +0200
+        thetext: |-
+          Could one of you comment on this?  See my notes below re this.
+
+          For both ft_sourceanalysis and ft_dipolesimulatio, there is a call to prepare_head model.  The last call in this is to ft_prepare_vol_sens.  For ft_prepare_vol_sens the simbio case there is a sb_transfer call.  For the simbio this attempts to create the transfer function for all the electrodes, and i presume at the end, do the lf vectors for all the dipoles.  It appears that the transfer function is used later in the ft_sourceanalysis or ft_dipolesiulation only to create a lf if one does not already exist, but are not used if the lf already exists.
+
+          So would it be "ok" to skip this step when using precompiled simbio models?  I have actually done this for some test models and get results which look reasonable (are similar to BEMPCP models with same fitting function).

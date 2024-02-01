@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2526"
+    creation_ts: 2014-04-04 20:10:00 +0200
+    short_desc: ft_prepare_sourcemodel and mri.coordsys
+    delta_ts: 2014-05-14 20:08:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: gopalar.ccf
+      +@name: Raghavan Gopalakrishnan
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13237"
+        comment_count: "0"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-04 20:10:04 +0200
+        thetext: "ft_prepare_sourcemodel fails if the input \ncfg.mri            = mri;\ndoes not contain coordsys field. \nmri structure looks like this\n\nmri = \n\n          dim: [256 256 256]\n      anatomy: [256x256x256 double]\n          hdr: [1x1 struct]\n    transform: [4x4 double]\n         unit: 'mm'\n\nEither the output of ft_read_mri should have coordsys field, or ft_prepare_sourcemodel should not ask for it.\n\nThe following error is generated.\n\n\nReference to non-existent field 'coordsys'.\n\nError in ft_convert_coordsys (line 80)\nif nargin>1 && ~strcmpi(target, obj.coordsys)\n\nError in ft_volumenormalise (line 123)\n  interp = ft_convert_coordsys(interp, 'spm');\n\nError in ft_prepare_sourcemodel (line 632)\n  normalise        = ft_volumenormalise(tmpcfg, mri);"
+      - +@isprivate: "0"
+        commentid: "13243"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-07 09:23:21 +0200
+        thetext: "Hi Raghavan,\n\nthanks for reporting. I actually think that ft_determine_coordsys should be called. That is an interactive function, requiring information from the user to determine the coordinate system origin and direction of axes.\n\nThe error message you are now getting is not informative in this respect.\n\nThere are three high-level functions that seem to be relying on coordsys: \n\nmac011> grep -l mri.coordsys *.m\nft_volumerealign.m\nft_volumereslice.m\nft_volumesegment.m\n\nI'll have a look at those..."
+      - +@isprivate: "0"
+        commentid: "13248"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-07 10:33:35 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\n\nLooking at the code, I see the call sequence\n\nft_prepare_sourcemodel -> ft_volumenormalise -> ft_convert_coordsys\n \nand in ft_convert_coordsys it starts with\n\nif ~isfield(obj, 'coordsys') || isempty(obj.coordsys)\n  % determine the coordinate system of the input object\n  obj = ft_determine_coordsys(obj, 'interactive', 'yes');\nend\n\nwhere obj is the input argument. This suggests that you have been presented a figure with questions on the command line to specify the coordinate system, but that you somehow (closing the figure?) have been able to get around it, causing it to still not have the coordsys after ft_determine_coordsys.\n\nI will build in another check like this\n\nif ~isfield(obj, 'coordsys') || isempty(obj.coordsys)\n  % the call to ft_determine_coordsys should have taken care of this, but\n  % it is possible that the user aborted the coordinate system determination    \n  error('the coordinate system of the geometrical object is not specified');\nend"
+      - +@isprivate: "0"
+        commentid: "13249"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-07 10:44:21 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #2)\n\nmac011> svn commit utilities/ft_convert_coordsys.m \nSending        utilities/ft_convert_coordsys.m\nTransmitting file data .\nCommitted revision 9364."
+      - +@isprivate: "0"
+        commentid: "13250"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-07 10:45:16 +0200
+        thetext: PS could you please check once more and let me know whether this addresses it? It might also be needed to improve the help (or information on screen) that you get with ft_determine_coordsys to ensure you don't skip this step.
+      - +@isprivate: "0"
+        commentid: "13263"
+        comment_count: "5"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-08 16:18:31 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          Thank you very much. This addresses it.
+      - +@isprivate: "0"
+        commentid: "13618"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:49 +0200
+        thetext: closed several of my bugs that have been resolved

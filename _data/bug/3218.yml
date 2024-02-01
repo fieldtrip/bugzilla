@@ -1,0 +1,153 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3218"
+    creation_ts: 2016-12-13 16:09:00 +0100
+    short_desc: ft_rejectvisual recalculates metric after each trial when data contains NaNs
+    delta_ts: 2017-01-17 11:30:37 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked:
+      - "3219"
+      - "3220"
+    everconfirmed: "1"
+    reporter:
+      +content: p.mostert
+      +@name: Pim Mostert
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18049"
+        comment_count: "0"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-13 16:09:01 +0100
+        thetext: When I add one NaN to my data, e.g. data.trial{1}(200, 1) = nan, then ft_rejectvisual becomes slow to use. Specifically, each time after I exclude a trial, the function will recalculate the summary statistics. This is not the case when my data contains no NaNs, and excluding a trial is very quick in that case.
+      - +@isprivate: "0"
+        commentid: "18056"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-14 09:16:14 +0100
+        thetext: Could you upload some example data, and point to a location in the code where the re-computing (or not) takes place?
+      - +@isprivate: "0"
+        commentid: "18057"
+        comment_count: "2"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-14 10:57:08 +0100
+        thetext: |-
+          Of course, I uploaded two files:
+          - tmp_data.mat
+          - tmp_script.m
+          to the FTP dropbox at /pub/incoming
+
+          The example script illustrates the problem that I experience. I'm using Matlab 2013a, by the way.
+      - +@isprivate: "0"
+        commentid: "18058"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-14 11:03:06 +0100
+        thetext: |-
+          Thanks, but could you upload a datafile that is manageable in size, so that it can be stored for future reference.
+
+          e.g. only 2 channels and a few trials
+
+          Also, where in the code does it go 'wrong'
+      - +@isprivate: "0"
+        commentid: "18059"
+        comment_count: "4"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2016-12-14 11:19:06 +0100
+        thetext: |-
+          Thanks, I uploaded two new files to the FTP dropbox:
+          - tmp_data_small.mat (1.8 MB)
+          - tmp_script_2.m
+
+          What exactly do you mean with "where it goes 'wrong'"? The example scripts illustrate this, and I added comments that describe the problem.
+
+          If you mean where "in real life" I would encounter this problem: it occurs when I reject artifacts using ft_rejectartifact and cfg.artfctdef.reject = 'nan'. Then NaNs are added to the data and ft_rejectvisual afterwards becomes cumbersome. This problem does not exist when specifying cfg.artfctdef.reject = 'partial'.
+
+          Please let me know if anything is unclear.
+      - +@isprivate: "0"
+        commentid: "18063"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-14 13:30:44 +0100
+        thetext: |-
+          In general, shouldn't the metric be recomputed to begin with? That is, when some trials are removed, shouldn't the summary statistic change?
+
+          Also, does this depend on the type of summary statistic selected?
+      - +@isprivate: "0"
+        commentid: "18068"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-15 14:23:29 +0100
+        thetext: |-
+          Line 153 in rejectvisual_summary (in fieldtrip/private) checks whether the metric needs to be computed, based on whether the requested metric has changed from one iteration to the next, and based on the presence of NaNs. Both should be fulfilled, probably because the presence of NaNs might indicate that something might have gone wrong in the computation of the metric.
+
+          In your case, the NaNs are there by construction, because the computation of the metric (starting at line 175) is generally not nan-aware. This could be solved easily by replacing std with nanstd (line 180) and the equivalent nan-aware function below that.
+
+          Could we think of any scenarios in which this leads to unwanted/unexpected side effects?
+
+          Note: this is an explicit question to the people who are on the CC of this bug
+      - +@isprivate: "0"
+        commentid: "18069"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-15 14:24:25 +0100
+        thetext: Sorry Robert S., I added the wrong Robert to the CC-list of this bug, removing again...
+      - +@isprivate: "0"
+        commentid: "18071"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-16 12:28:37 +0100
+        thetext: Fixed with Github PR277
+      - +@isprivate: "0"
+        commentid: "18214"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-17 11:30:37 +0100
+        thetext: closed multiple bugs at once

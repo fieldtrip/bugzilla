@@ -1,0 +1,283 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1735"
+    creation_ts: 2012-09-21 16:42:00 +0200
+    short_desc: ft_appenddata doesn't append data correctly --> ft_databrowser and ft_fetch_data failure
+    delta_ts: 2014-02-24 10:56:37 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ayelet.landau
+      +@name: Ayelet N. Landau
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - eelke.spaak
+      - jorn
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7527"
+        comment_count: "0"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2012-09-21 16:42:25 +0200
+        thetext: |-
+          When appending data1 (trials count 33) and data2 (trial count 46) and get data3 with 79 trials.
+          trials 1-33 are data1
+          trials 34-66 are data1 (!)
+          and the remaining trials are the last 32 trials from data2.
+
+          This is very strange, and I look forward to discovering that it is some utterly silly user error on my behalf.
+
+          the way I assessed this is by going trial by trial in ft_databrowser.
+
+          attached is a mat file that has two data structures - and another - called test that has the appended version.
+
+          in data browser you can go to trial 1 and then trial 34 and see that they are identical.
+
+          you can of course browse the parent structures.
+
+          last - it would be nice if trialinfo were concatinated too when doig ft_appenddata.
+      - +@isprivate: "0"
+        commentid: "7528"
+        comment_count: "1"
+        attachid: "317"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2012-09-21 16:43:59 +0200
+        thetext: |-
+          Created attachment 317
+          a file with two parent structurse and 'test' a ft_appenddata output of those variable.
+      - +@isprivate: "0"
+        commentid: "7533"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-22 14:22:29 +0200
+        thetext: "Thanks for the test data. What is weird is that I cannot reproduce the exact problem:\n\n>> test1 = ft_appenddata([], data_trgtOnstimOnBTrgtLDetected_sourceL, data_trgtOnstimOnBTrgtLNotDetected_sourceL)\ninput dataset 1, 1 channels, 33 trials\ninput dataset 2, 1 channels, 46 trials\nconcatenating the trials over all datasets\ntest1 = \n           hdr: [1x1 struct]\n       fsample: 100\n    sampleinfo: [79x2 double]\n         trial: {1x79 cell}\n          time: {1x79 cell}\n         label: {'sourceECCgammaL_x'}\n           cfg: [1x1 struct]\n\nwhich looks fine, whereas the one in the mat file is \n\n>> test\ntest = \n           hdr: [1x1 struct]\n       fsample: 100\n    sampleinfo: [92x2 double]\n         trial: {1x92 cell}\n          time: {1x92 cell}\n         label: {'sourceECCgammaL_x'}\n           cfg: [1x1 struct]\n\n\nThe main function used appears to be the same\n\n>> test1.cfg.version\nans = \n    name: '/Users/robert/matlab/fieldtrip/ft_appenddata.m'\n      id: '$Id: ft_appenddata.m 5554 2012-03-28 14:00:12Z roboos $'\n\n>> test.cfg.version\nans = \n    name: '/opt/fieldtrip/ft_appenddata.m'\n      id: '$Id: ft_appenddata.m 5554 2012-03-28 14:00:12Z roboos $'"
+      - +@isprivate: "0"
+        commentid: "7534"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-22 14:29:35 +0200
+        thetext: "Using \"isequal\" I found something suspicious. Note that test is yours, test1 is mine.\n\n>> test.cfg.previous{1}.callinfo\nans = \n      matlab: '7.12.0.635 (R2011a)'\n    proctime: 0.2545\n     procmem: 0\n    calltime: [2012 9 21 15 46 33.7852]\n        user: 'landaua'\n    hostname: 'esi-svhpc10'\n         pwd: '/mnt/hps/home/landaua/megData/twoG_static/S01_to_S05_trgtanalysis/Backup_24.8/S01_AB'\n\n>> test.cfg.previous{2}.callinfo\nans = \n      matlab: '7.12.0.635 (R2011a)'\n    proctime: 0.2545\n     procmem: 0\n    calltime: [2012 9 21 15 46 33.7852]\n        user: 'landaua'\n    hostname: 'esi-svhpc10'\n         pwd: '/mnt/hps/home/landaua/megData/twoG_static/S01_to_S05_trgtanalysis/Backup_24.8/S01_AB'\n\n>> test1.cfg.previous{1}.callinfo\nans = \n      matlab: '7.12.0.635 (R2011a)'\n    proctime: 0.2006\n     procmem: 0\n    calltime: [2012 9 21 15 46 30.2574]\n        user: 'landaua'\n    hostname: 'esi-svhpc10'\n         pwd: '/mnt/hps/home/landaua/megData/twoG_static/S01_to_S05_trgtanalysis/Backup_24.8/S01_AB'\n\n>> test1.cfg.previous{2}.callinfo\nans = \n      matlab: '7.12.0.635 (R2011a)'\n    proctime: 0.2545\n     procmem: 0\n    calltime: [2012 9 21 15 46 33.7852]\n        user: 'landaua'\n    hostname: 'esi-svhpc10'\n         pwd: '/mnt/hps/home/landaua/megData/twoG_static/S01_to_S05_trgtanalysis/Backup_24.8/S01_AB'\n\nLooking at these, I'd say that you have appended two copies of the same dataset. To zoom in, have a look at the actual data structures\n\n>> data_trgtOnstimOnBTrgtLNotDetected_sourceL.cfg.callinfo.proctime\nans =\n    0.2545\n\n\n>> data_trgtOnstimOnBTrgtLDetected_sourceL.cfg.callinfo.proctime\nans =\n    0.2006\n\nYour previous{1} and previous{2} are both equal to data_trgtOnstimOnBTrgtLDetected_sourceL, which has 46 trials, which means that 2*46=92 makes sense.\n\n>> isequal(test.trial{1}, test.trial{47})\nans =\n     1\n\nI'll close it as an invalid bug, if you disagree, please reopen."
+      - +@isprivate: "0"
+        commentid: "7535"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-22 14:32:44 +0200
+        thetext: |-
+          I added it as test script for future reference.
+
+          mbp> svn commit
+          Adding         test/test_bug1735.m
+          Adding  (bin)  test/test_bug1735.mat
+          Transmitting file data ..
+          Committed revision 6513.
+      - +@isprivate: "0"
+        commentid: "7649"
+        comment_count: "5"
+        who:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        bug_when: 2012-09-28 11:31:03 +0200
+        thetext: |-
+          I think I made some progress on this bug diagnosis:
+          I am not sure anymore that it is appenddata but rather ft_databrowser.
+
+          to witness it, I propose you run ft_appenddata on the two variables, and then open the data browser.
+
+          go to the trial number that should have the first in the second appended variable and compare it to another data browser where you display the first trial.
+
+          those are displayed as identical. When I plot the data directly from the structure (appended) - it actually does have the new data.
+
+          I really don't know what indices ft_databrowser uses. The reality is that in an appended dataset, it fails to count up to the correct trial to display
+
+          best,
+          Ayelet
+      - +@isprivate: "0"
+        commentid: "7705"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 16:31:52 +0200
+        thetext: "(In reply to comment #5)\n\n\nI have extended the test script to \n\n---------------\npart1 = data_trgtOnstimOnBTrgtLDetected_sourceL;\npart2 = data_trgtOnstimOnBTrgtLNotDetected_sourceL;\n\ncfg = [];\ncombined = ft_appenddata(cfg, part1, part2);\n\nassert(length(combined.trial)==79);\n\nN1 = size(part1.sampleinfo,1);\nN2 = size(part2.sampleinfo,1);\n\nfor i=1:N1\n  disp(i)\n  assert(isequal(part1.trial{i}, combined.trial{i}));\nend\n\nfor i=1:N2\n  disp(i)\n  assert(isequal(part2.trial{i}, combined.trial{i+N1}));\nend\n\n% the data in the two conditions should be different\nfor i=1:N1\n  for j=1:N2\n    assert(~isequal(part1.trial{i}, part2.trial{j}));\n  end\nend\n---------------\n\nWith this test on the (non) equality of the combined trials to the respective part1 and part2, no errors were found.\n\nmanzana> svn commit test_bug1735.m\nSending        test_bug1735.m\nTransmitting file data .\nCommitted revision 6611.\n\n\nI will try with the databrowser."
+      - +@isprivate: "0"
+        commentid: "7707"
+        comment_count: "7"
+        attachid: "333"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 16:35:20 +0200
+        thetext: |-
+          Created attachment 333
+          screenshot of databrowser that shows the problem
+
+          yup, this indeed reveals a problem. See attached screenshot with part1, part2 and in the figure with the  combined data the 33rd trial, which is expected to be the 1st from part2 but seems to be the 1st of the part1.
+
+          I guess it is a problem with sampleinfo...
+      - +@isprivate: "0"
+        commentid: "7715"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:09:22 +0200
+        thetext: |-
+          (I added Roemer to the CC, as I expect he might know more about this)
+
+          >> combined.sampleinfo
+          ans =
+                     1          51
+                    52         102
+                   103         153
+                   154         204
+                   205         255
+                   256         306
+                   307         357
+                   358         408
+                   409         459
+          ...
+                  1531        1581
+                  1582        1632
+                  1633        1683
+                     1          51         % this is where part2 starts
+                    52         102
+                   103         153
+          ...
+
+
+          I have added the following to the test script
+
+          try
+            ft_fetch_data(combined, 'begsample', 1, 'endsample', 50, 'allowoverlap', false);
+            status = false; % an error should be given by ft_fetch_data
+          catch
+            status = true;
+          end
+          assert(status, 'ft_fetch_data did not detect the error properly');
+
+          I detected two probems in ft_fetch_data:
+          1) allowoverlap did not get a default value, causing it to be empty, which is neither true nor false.
+          2) the short-cut in detecting that it falls inside one trial cause the overlap detection to fail
+
+
+          manzana> svn commit utilities/ft_fetch_data.m test/
+          Sending        test/test_bug1735.m
+          Sending        utilities/ft_fetch_data.m
+          Transmitting file data ..
+          Committed revision 6612.
+      - +@isprivate: "0"
+        commentid: "7716"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:12:25 +0200
+        thetext: "(In reply to comment #8)\n\nWith the combined dataset, ft_databrowser now prints in the command window\n\nWarning: samples present in multiple trials, using only the last occurence of each sample \n> In ft_fetch_data at 125\n  In ft_databrowser>redraw_cb at 1383\n  In ft_databrowser>keyboard_cb at 1175\n\nThat is some information to Ayelet that there is a problem. However, in my impression this data should not have been allowed to be plot-able with ft_databrowser in any case. Why does it allow for 100% overlap?\n\nThis \"feature\" of ft_databrowser requires discusison. I suggest to do it in the next FT meeting on Wednesday."
+      - +@isprivate: "0"
+        commentid: "7717"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:15:02 +0200
+        thetext: added Jorn and Eelke to CC, removed Johanna.
+      - +@isprivate: "0"
+        commentid: "7720"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:27:46 +0200
+        thetext: "(In reply to comment #10)\n\nOh, forgot to mention that that is to your apparent involvement to this function according to \n\nhttp://code.google.com/p/fieldtrip/source/list?path=/trunk/utilities/ft_fetch_data.m"
+      - +@isprivate: "0"
+        commentid: "7722"
+        comment_count: "12"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-10-01 17:46:44 +0200
+        thetext: "Sorry that this caused elaborate investigation. The overlap possibillity was added in order to browse segmented data where the last bit of a trial can correspond the first bit of the next trial, i.e. overlapping trials. The only ambiguity here would have been due to data at the edges being different because of filtering artifacts, or other trial specific preprocessing (e.g. demeaning). I added the key-value as exception management. \n\nIt never occurred to me that there would be a situation where the same number in sampleinfo refers to data of different origin. Now that I think of it, is this intended behaviour? Doesn't it make sense to create a 'non-decreasing' sampleinfo when appending? The true meaning of sampleinfo is lost anways. Let's discuss."
+      - +@isprivate: "0"
+        commentid: "12890"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 09:08:34 +0100
+        thetext: |-
+          (I am cleaning up old bugs)
+
+          This seems to have been resolved, the test script runs fine. If you disagree, please reopen this bug and specify what is still problematic.
+      - +@isprivate: "0"
+        commentid: "12947"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:37 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "317"
+        date: 2012-09-21 16:43:00 +0200
+        delta_ts: 2012-09-21 16:43:59 +0200
+        desc: a file with two parent structurse and 'test' a ft_appenddata output of those variable.
+        filename: forCraig.mat
+        type: application/octet-stream
+        size: "80346"
+        attacher:
+          +content: ayelet.landau
+          +@name: Ayelet N. Landau
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "333"
+        date: 2012-10-01 16:35:00 +0200
+        delta_ts: 2012-10-01 16:35:20 +0200
+        desc: screenshot of databrowser that shows the problem
+        filename: Screen shot 2012-10-01 at 16.32.53.png
+        type: image/png
+        size: "57430"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

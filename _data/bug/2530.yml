@@ -1,0 +1,249 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2530"
+    creation_ts: 2014-04-09 18:38:00 +0200
+    short_desc: qsubget possibly removes error and output log files too soon resulting in qsub sending error mails
+    delta_ts: 2019-08-10 12:29:13 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    cc:
+      - bugzilla
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13272"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-09 18:38:21 +0200
+        thetext: |-
+          Occasionally, i.e. in 1 out of 10 or 20 jobs, when I submit a job with qsubcellfun the following happens:
+          1) the outputfile/log-files are successfully found by qsubcellfun (and it continues normally)
+          2) I get an email stating the error and output log files could not be written successfully.
+
+          My guess is, that qsubget finds all the output files and deletes them, before writing of the log files is unfinished. I.e. it detects a successful job and processes it, while qsub is still writing the log files.
+
+          The log files are not humongous or anything, at max a 1000 or so lines of matlab output. This will undoubtedly partly be caused by our (dcc-cluster) fileserver not being connected by fiber ;).
+
+          This could possibly be easily avoided by putting a 'pausejava(sleep)' (sleep default is 0.01) after line 89 (the comment on line 89 already hints to this ;)). That is, let qsubget sleep a little before reading/deleting the job it has just found.
+
+          The most important incentive to avoid these emails, is that I freak out because I think I lost another day of computation ;). All in all I probably get about 10 each day. And everyone now and then they do signal something important ;)
+
+          I've added a the proposed sleep in my local version, but I cannot predict when the problem occurs again, so only after a few days of computing will I know.
+
+          If it already seems a sensible thing Robert, I can of course commit.
+      - +@isprivate: "0"
+        commentid: "13273"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-09 20:32:45 +0200
+        thetext: "waiting one second is rather arbitrary and might very well not prove to be very robust. I.e., the pigeons might take a bit more time than one second to get all bytes over.\n\nIn general (regardless of cluster backend) it would be better to avoid polling for the presence of the files, but rather ask (in case of torque with qstat) whether the job has finished. The job can be either in\n\nQ\nH\nR\nE\nC\n\nstates, where H is hold and E is exiting. In your case it would be relatively long in exiting state, copying the log files over. Once not in E but C state, it should be safe to parse/delete the files.\n\nHow about implementing a 'status' option in qsublist and use that to return either one of Q, R, C (where H==Q, i.e. not running yet, and E==R, i.e. not complete yet).\n\nOr perhaps better: implement a 'completed' option, with a boolean return value.\n\nThe \n  if exist(outputfile, 'file') && isfile(logout) && isfile(logerr)\ncould then be replaced by \n  if qsublist('completed', jobid)\n\nFor the non-torque systems (for which we don't have implementation and utility command details) it could remain as it is, i.e. the polling of the files would just move inside qsublist, but for torque it would use the qstat."
+      - +@isprivate: "0"
+        commentid: "13275"
+        comment_count: "2"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2014-04-09 21:02:39 +0200
+        thetext: "> For the non-torque systems (for which we don't have implementation\n> and utility command details) it could remain as it is, i.e. the \n> polling of the files would just move inside qsublist, but for torque\n> it would use the qstat.\n\nI'm worried that a qstat solution doesn't scale very well, as it will be called very frequently and depends on the same central service (torque) for all users. The current file polling does not have such potential issues and I therefore suggest to at least use:\n\n  if exist(outputfile, 'file') && isfile(logout) && isfile(logerr) && qsublist('completed', jobid)\n\ninstead of just:\n\n  if qsublist('completed', jobid)"
+      - +@isprivate: "0"
+        commentid: "13276"
+        comment_count: "3"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-04-09 22:52:48 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          Just adding myself to the conversation. I can test any solution you decide on on LSF and SGE.
+
+          I'm not sure if it's related (I didn't have time to debug), I have also received similar emails from LSF since a couple of weeks:
+
+          """
+          Dear username,
+
+          WARNING: writing output file 201130 failed for job /PHShome/username/projects/efsl/scripts/final/qsublog/gp902_rgs03_p50123_b116_j002.o
+          Error message: Input/output error
+          """
+      - +@isprivate: "0"
+        commentid: "13277"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-10 09:24:16 +0200
+        thetext: |-
+          (In reply to Marcel Zwiers from comment #2)
+
+          The comment from Marcel makes sense, we should not poll the torque server too often.
+
+          So the solution would be to implement qsublist('completed', jobid) with a check both on the files and (if present) on the job status.
+
+          @Gio, thanks for the offer. I'll assign it to you once I am done with the torque section.
+      - +@isprivate: "0"
+        commentid: "13300"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-11 11:06:08 +0200
+        thetext: |-
+          (I thought I submitted this comment yesterday morning already)
+          That's a much better idea! Let me know if there is anything I can do.
+      - +@isprivate: "0"
+        commentid: "13301"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-11 11:54:56 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #5)
+
+          well... you could implement it.
+      - +@isprivate: "0"
+        commentid: "13305"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-11 14:40:07 +0200
+        thetext: "Ah, great, I though you insisted on doing it yourself ;).\n\nI committed a change to qsublist (not qsubget yet), it now has an option 'completed', returning a boolean. \n\nFor torque, it parses qstat output. For the other systems, it check for the presence of the output and log files. \n\nThe parsing of qstat could perhaps be done more robustly. (now it's done using nested greps, perhaps awk could do a better job? Its magic as of yet eludes me).\n\nIs this what you had in mind Robert? If so, perhaps you could add commands for LSF and SGE? \n\nWe could implement it in qsubget, replacing:\n*****\nif exist(outputfile, 'file') && isfile(logout) && isfile(logerr) \n*****\nWith:\n*****\nif exist(outputfile, 'file') && qsubget('completed',jobid)\n*****\n\nKeeping the check on the outputfile prevents unnecessary calls to qstat, although the outputfile get's checked twice now in case the system isn't torque. \nIt would perhaps be prettier if I remove the check for the outputfile from the added section in qsubget, but I'm not entirely sure whether this file is ALWAYS present when the logfiles are..."
+      - +@isprivate: "0"
+        commentid: "13310"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-14 10:02:06 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #7)
+
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubget.m
+          Sending        qsub/qsublist.m
+          Transmitting file data ...
+          Committed revision 9402.
+
+
+          I cleaned up your code a bit and enabled it in qsubget. I have tested it on our cluster and it works fine.
+
+          @Gio, could you look at qsublist for lsf and sge?
+      - +@isprivate: "0"
+        commentid: "13325"
+        comment_count: "9"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-04-14 18:07:34 +0200
+        thetext: |-
+          Thanks for the clean patch.
+
+          I added support for LSF and SGE. I tested on both systems and it works fine. As mentioned by Roemer, the email message happens only occasionally, so I'll report back if this solution didn't work (but I'm pretty sure that it works well), so I closed the bug for now.
+
+          Note that SGE does not return the status of the finished job, it only returns 'z' (zombie) when the job has finished. To check the status, we should call qacct, however it takes some time (almost a second in my experience) before finished jobs are transferred to qacct (and qacct is not very fast), see:
+          http://arc.liv.ac.uk/pipermail/gridengine-users/2009-December/028370.html
+      - +@isprivate: "0"
+        commentid: "13368"
+        comment_count: "10"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-04-16 22:38:33 +0200
+        thetext: |-
+          (In reply to Marcel Zwiers from comment #2)
+          Hi Marcel,
+
+          I have a more general question. Why is polling more expensive than checking for the existence of files? Aren't I/O operations usually the bottleneck? Plus, I guess all the servers are using the same filesystem (in our setup, all the servers share the same NFS), so there might be some latencies there too.
+
+          I don't want to change the current implementation, I'm just curious about the comment that you made.
+
+          Thanks!
+          -g
+      - +@isprivate: "0"
+        commentid: "13381"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-17 10:43:21 +0200
+        thetext: "I getting a lot a of jobs that hang in the current implementation. All three files are present (output and log files), but for some reason were never collected. The jobs in question are no longer present in the cue (thus status cannot be polled), but this could be because they have finished quite some time ago (the jobs take 0.5 to 1.5 days, difficult to check). \n\nRobert, can you confirm that this is not happening at the DCCN? Then I can look into why it is happening over here at the DCC."
+      - +@isprivate: "0"
+        commentid: "13382"
+        comment_count: "12"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2014-04-17 10:57:09 +0200
+        thetext: |-
+          (In reply to Gio Piantoni from comment #10)
+
+          My reasoning was that the Torque server is typically quite loaded doing all sorts of tasks and that these tasks are probably not implemented using a proper multi-threaded design. This means that polling it with qstat -f calls may slow down the other processes and may take a relatively long time to return. Polling a file on the other end is a kernel task, which is typically a very scalable process and can be served by dedicated storage hardware (e.g. a netapp filer). A quick test seems to confirm this:
+
+          $ time ls marzwi_dccn_c354_p26632_b10_j052.o5294459
+          marzwi_dccn_c354_p26632_b10_j052.o5294459
+
+          real    0m0.006s
+          user    0m0.002s
+          sys     0m0.004s
+
+          $ time qstat -f 5294460
+          Job Id: 5294460.dccn-l014.dccn.nl
+          [..]
+
+          real    0m0.035s
+          user    0m0.009s
+          sys     0m0.011s
+      - +@isprivate: "0"
+        commentid: "13385"
+        comment_count: "13"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-18 11:18:05 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #11)
+
+          @Robert/Marcel:
+          Long term jobs I have started the last few days haven't hung so far. Probably the jobs that hung, were running already while my svn version got updated. Which could mean jobs at the DCCN that were running, hung as well (can be difficult to see in long term jobs with variable duration). Just a heads-up!
+      - +@isprivate: "0"
+        commentid: "20019"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

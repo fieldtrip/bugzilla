@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1389"
+    creation_ts: 2012-03-23 14:27:00 +0100
+    short_desc: cfg.preproc uneffective
+    delta_ts: 2012-04-02 16:26:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.barascud
+      +@name: n.barascud@ucl.ac.uk
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - n.barascud
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5651"
+        comment_count: "0"
+        who:
+          +content: n.barascud
+          +@name: n.barascud@ucl.ac.uk
+        bug_when: 2012-03-23 14:27:10 +0100
+        thetext: "The following code :\n\ncfg.demean       = 'yes';\ncfg.baselinewindow = [-.2 0];% in seconds\ncfg.hpfilter ='yes';\ncfg.hpfreq = 1;\ncfg.lpfilter ='yes';\ncfg.lpfreq = 30;\ndata = ft_preprocessing(cfg);\n\n\n\nWorks but gives the following warnings :\n\nWarning: The field cfg.demean is deprecated, please specify it as cfg.preproc.demean instead\nof cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\nWarning: The field cfg.baselinewindow is deprecated, please specify it as\ncfg.preproc.baselinewindow instead of cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\nWarning: The field cfg.hpfilter is deprecated, please specify it as cfg.preproc.hpfilter\ninstead of cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\nWarning: The field cfg.hpfreq is deprecated, please specify it as cfg.preproc.hpfreq instead\nof cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\nWarning: The field cfg.lpfilter is deprecated, please specify it as cfg.preproc.lpfilter\ninstead of cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\nWarning: The field cfg.lpfreq is deprecated, please specify it as cfg.preproc.lpfreq instead\nof cfg. \n> In ft_checkconfig at 438\n  In ft_rejectvisual at 229\n\n\n\nHowever, the following code just does nothing (data not filtered, not baseline-corrected) :\n\ncfg.preproc.demean       = 'yes';\ncfg.preproc.baselinewindow = [-.2 0];% in seconds\ncfg.preproc.hpfilter ='yes';\ncfg.preproc.hpfreq = 1;\ncfg.preproc.lpfilter ='yes';\ncfg.preproc.lpfreq = 30;\ndata = ft_preprocessing(cfg);\n\n\n\nThis happens on my machine (OSX) using the latest FT version (from svn), and has been reported to be replicable on Windows machines as well."
+      - +@isprivate: "0"
+        commentid: "5654"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-23 15:34:05 +0100
+        thetext: "Hi Nicolas,\n\nSorry for the confusion, but it seems you are mixing up 2 things.\n\nThe warning messages you get do not originate from your call to ft_preprocessing, but seem to originate from your call to ft_rejectvisual.\n\nSo, I cannot reproduce your problem (i.e. getting the warnings) when I do \n\ncfg = [];\ncfg.demean = 'yes';\ncfg.baselinewindow = [-.2 0];\ndata = ft_preprocessing(cfg, data); (or data = ft_preprocessing(cfg))\n\nWhen calling a function which does some manipulation on the data, such as ft_rejectvisual, but also ft_timelockanalysis etc, it is custom to define the preprocessing parameters in the lower level structure cfg.preproc. This is what the warnings are about. In the past, people could specify these parameters at the main level of the cfg, i.e. cfg.demean = 'yes'. Currently, it is not recommended anymore (as the warnings reflect)."
+      - +@isprivate: "0"
+        commentid: "5655"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-23 15:39:34 +0100
+        thetext: |-
+          some example code attached:
+
+
+
+          ok = true;
+
+          data = [];
+          data.trial{1} = randn(2,100)+10;
+          data.time{1}  = (-20:79)./100;
+          data.label    = {'1';'2'};
+
+          % this is how it should work
+          cfg = [];
+          cfg.demean = 'yes';
+          cfg.baselinewindow = [-inf 0];
+          data2 = ft_preprocessing(cfg, data);
+          ok = ok && all(mean(data.trial{1},2)~=mean(data2.trial{1},2));
+
+          % this is how it shouldn't work
+          cfg = [];
+          cfg.preproc.demean = 'yes';
+          cfg.preproc.baselinewindwo = [-inf 0];
+          data2b = ft_preprocessing(cfg, data);
+          ok = ok && all(mean(data.trial{1},2)==mean(data2b.trial{1},2));
+
+          % this is how it should work
+          cfg = [];
+          cfg.preproc.demean = 'yes';
+          cfg.preproc.baselinewindow = [-inf 0];
+          data3 = ft_timelockanalysis(cfg, data);
+          ok = ok && all(mean(data.trial{1},2)~=mean(data3.avg,2));

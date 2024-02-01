@@ -1,0 +1,402 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2888"
+    creation_ts: 2015-05-04 08:31:00 +0200
+    short_desc: filetype fcdc_buffer_offline reading problems
+    delta_ts: 2015-07-15 13:31:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1262"
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - ervin.poljac
+      - J.Farquhar
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15640"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-04 08:31:00 +0200
+        thetext: Ervin, a toolkit participant reported a problem with reading in data of the type 'fcdc_offline_buffer'. Some of it boils down to some messy automatic filetype detection issues + messy dataset2files conversion in ft_checkconfig. This can be easily fixed. However, upon fixing this, the issue just went to its next stage, preventing me (i.e. JM) to easily fix this. So I'd like to discuss this in a bit more detail in this thread.
+      - +@isprivate: "0"
+        commentid: "15647"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-04 14:27:37 +0200
+        thetext: |-
+          The data that has been sent to me by Ervin contains an empty binary header file.
+          @Ervin: can you explain how this came into existence? According to the test data we have on disk, and the low-level reading code, the binary header (i.e. the header with extension) should contain some data.
+      - +@isprivate: "0"
+        commentid: "15648"
+        comment_count: "2"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-04 15:17:29 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          With regard to (what it should be raw) data from 0001 file: Not sure why the header file (header without extension) is empty. The file header.txt is not empty, but it only contains channel information.
+
+          With regard to the data.mat file: I added another file (sliced.mat.zip) to the dropbox folder, it contains .mat data, header and events file. This is automatically created during data collection (experiment). Unfortunately, I am not familiar with the details, since I use some toolboxes I got from other people from or department.
+      - +@isprivate: "0"
+        commentid: "15649"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-04 15:38:30 +0200
+        thetext: are those toolboxes you use implemented by people you can consult with, or is this N'th hand information (and possibly diluted...)? The reason I ask is, because I want to get some insight as to whether there has been some tampering with the official data format on the DCC end :-)
+      - +@isprivate: "0"
+        commentid: "15650"
+        comment_count: "4"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-04 16:16:16 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #3)
+          I can ask Jason F. but I haven't seen him today. It is his toolbox: https://github.com/jadref/buffer_bci
+          I am not aware of all the details of how the data is processed before saving.
+      - +@isprivate: "0"
+        commentid: "15652"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-04 21:14:05 +0200
+        thetext: |-
+          Adding Jason to the CC'list of this issue:
+
+          @Jason: Ervin is experiencing problems reading in his data, which appears to be intended to be in the format 'fcdc_buffer_offline', which Stefan Klanke implemented at some point in the course of braingain. Since at this point in time I don't have any reason to suspect that Stefan contributed dysfunctional code, I would like you guys to check whether Ervin's data is according to the expected specs. Importantly, whether the lack of data in the binary header file (he sent us some data through dropbox to reproduce the issue) is according to what should be expected, or whether it is based on some local code change on your end, when the data are written to disk. If the latter is the case, I think it is best resolved on your end, rather than in the FieldTrip code.
+      - +@isprivate: "0"
+        commentid: "15664"
+        comment_count: "6"
+        attachid: "711"
+        who:
+          +content: J.Farquhar
+          +@name: Jason Farquhar
+        bug_when: 2015-05-06 13:54:37 +0200
+        thetext: |-
+          Created attachment 711
+          fixed header reader which falls back on .txt file if binary header isn't available
+      - +@isprivate: "0"
+        commentid: "15665"
+        comment_count: "7"
+        who:
+          +content: J.Farquhar
+          +@name: Jason Farquhar
+        bug_when: 2015-05-06 13:55:01 +0200
+        thetext: "Hi,\n\nThe lack of a binary header file is actually due to another bug in the 'recording' version realtime buffer binary which is the one which saves in the fcdc_offline format.  Essentially, this happens when buffer is killed (e.g. by <ctrl-c>) it doesn't finish writing the binary version of the file to disk so you end up with an empty file. \n\nAs the same information is in the .txt version of the file a simple work-around at load time is to use that version of the info.  I attach a modified version of 'read_buffer_offline_header.m' which does this work-around.\n\nJ"
+      - +@isprivate: "0"
+        commentid: "15666"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 14:05:46 +0200
+        thetext: Thanks Jason, that would have also been my suggested workaround, but I just wanted to check to be sure.
+      - +@isprivate: "0"
+        commentid: "15667"
+        comment_count: "9"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-06 14:26:00 +0200
+        thetext: |-
+          Thanks Jason!
+
+          So, replacing the existing read_buffer_offline_header.m should enable reading in the data? Or do I need an updated version of Fieldtrip, are there any other changes Jan-Mathijs?
+      - +@isprivate: "0"
+        commentid: "15668"
+        comment_count: "10"
+        who:
+          +content: J.Farquhar
+          +@name: Jason Farquhar
+        bug_when: 2015-05-06 14:42:32 +0200
+        thetext: |-
+          (In reply to ErvinPoljac from comment #9)
+          Yes, replacing with this version should fix the issues.  Can you try and report if it works?
+      - +@isprivate: "0"
+        commentid: "15669"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 14:44:32 +0200
+        thetext: |-
+          well, there are some loose ends with respect to the correct automatic detection of the fileformat. I intend to fix this soon, but you can already have a shot at it. When you run into problems you should be explicit in defining the filetype:
+
+          cfg.dataformat = 'fcdc_buffer_offline';
+          cfg.headerformat = 'fcdc_buffer_offline';
+      - +@isprivate: "0"
+        commentid: "15670"
+        comment_count: "12"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-06 16:31:12 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #11)
+
+          Despite explicit statements:
+          cfg.dataformat = 'fcdc_buffer_offline' and cfg.headerformat = 'fcdc_buffer_offline';
+          I still get the message: unsupported header format (unknown), so still not solved...
+      - +@isprivate: "0"
+        commentid: "15671"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 16:47:17 +0200
+        thetext: Did you try to explicitly specify cfg.headerfile and cfg.datafile (rather than the directory name in cfg.dataset). The issues I was referring to pertain to the non-robust way in which dataset2files tries to convert the directory name into the filenames pointing to the header and the samples respectively.
+      - +@isprivate: "0"
+        commentid: "15672"
+        comment_count: "14"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-06 17:04:52 +0200
+        thetext: |-
+          I did:
+          cfg.headerfile              = 'header';
+          cfg.datafile                = 'samples';
+
+          The full error message is:
+
+          evaluating trialfunction 'ft_trialfun_general'
+          Error using ft_read_header (line 2006)
+          unsupported header format (unknown)
+
+          Error in ft_trialfun_general (line 74)
+          hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);
+
+          Error in ft_definetrial (line 174)
+              [trl, event] = feval(cfg.trialfun, cfg);
+      - +@isprivate: "0"
+        commentid: "15673"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 17:07:00 +0200
+        thetext: "did you clear the dataset? \ni.e.\n\ncfg = [];\ncfg.datafile = fullfile(<the directory>,'samples');\ncfg.headerfile = fullfile(<the directory>, 'header.txt'); % perhaps without txt\ncfg.dataformat = 'fcdc_buffer_offline';\ncfg.headerformat = 'fcdc_buffer_offline';\n\nsome other stuff to be defined in the cfg\n\ncfg = ft_definetrial(cfg);\n\n\n?"
+      - +@isprivate: "0"
+        commentid: "15674"
+        comment_count: "16"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-06 17:30:58 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #15)
+
+          Yes, this seems to produce a bit different error:
+
+
+
+          Reference to non-existent field 'nSamplesPre'.
+
+          Error in ft_read_header (line 2082)
+          hdr.nSamplesPre = double(hdr.nSamplesPre);
+
+          Error in ft_trialfun_general (line 74)
+          hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);
+
+          Error in ft_definetrial (line 174)
+              [trl, event] = feval(cfg.trialfun, cfg);
+
+
+
+          So, it looks in the header file, but doesn't find what it needs?
+      - +@isprivate: "0"
+        commentid: "15676"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 21:23:04 +0200
+        thetext: |-
+          Hi Ervin,
+
+          I think it should work again now (when using the most recent fieldtrip) I just committed an extra fix to read_buffer_offline_header that ensures the nSamplesPre is also defined when only using the textile info. I don't know how in general FT is updated in the DCC, but tonight's ftp-version should contain the fix, or otherwise you could do a 'ft_version update' if you are running a local copy of fieldtrip
+      - +@isprivate: "0"
+        commentid: "15677"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-06 22:10:43 +0200
+        thetext: "I came across this myself when testing some realtime application, and made another small improvement to the filetype detection\n\nmbp> svn commit fileio/ft_filetype.m \nSending        fileio/ft_filetype.m\nTransmitting file data .\nCommitted revision 10380."
+      - +@isprivate: "0"
+        commentid: "15678"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 22:23:26 +0200
+        thetext: prutser
+      - +@isprivate: "0"
+        commentid: "15679"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-06 22:37:09 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #19)
+
+          wie ... wat ... waar ...?
+
+          Ik zat net lekker in mijn code, en dan komt jouw commit er tussen door fietsen!
+
+          werkt het nu wel allemaal?
+      - +@isprivate: "0"
+        commentid: "15680"
+        comment_count: "21"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-06 22:41:42 +0200
+        thetext: Voor mij werkt 't nog, ik hoop voor de jongens op het DCC ook. De woordkeus had meer betrekking op het feit dat jij laat op de avond nog zit te hobbyen.
+      - +@isprivate: "0"
+        commentid: "15681"
+        comment_count: "22"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-06 23:17:32 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #21)
+
+          In ieder geval hoopvol dat het bij jou werkt, morgen probeer ik met de nieuwe versie van ftp...
+      - +@isprivate: "0"
+        commentid: "15683"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-07 09:31:58 +0200
+        thetext: |-
+          I added a test script and some test data (about 10 seconds from sine2ft). There were still some cases that I was able to make more robust against misspecification of the filenames.
+
+          mac011> svn commit fileio/ test/ utilities/
+          Sending        fileio/ft_read_event.m
+          Sending        fileio/private/dataset2files.m
+          Sending        fileio/private/read_buffer_offline_header.m
+          Sending        utilities/private/dataset2files.m
+          Transmitting file data ....
+          Committed revision 10381.
+      - +@isprivate: "0"
+        commentid: "15684"
+        comment_count: "24"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-07 09:58:10 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #23)\n\nIf Mathijs is using the dataset I provided ('0001'), and it is working, then I don't know what I am doing wrong: I still get the error:\n\nWarning: Couldnt open binary header file : 0001/header \n> In fileio/private/read_buffer_offline_header at 116\n  In ft_read_header at 1214\n  In ft_trialfun_general at 78\n  In ft_definetrial at 174 \nReference to non-existent field 'nSamplesPre'.\n\nError in ft_read_header (line 2102)\nhdr.nSamplesPre = double(hdr.nSamplesPre);\n\nError in ft_trialfun_general (line 78)\nhdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);\n\nError in ft_definetrial (line 174)\n    [trl, event] = feval(cfg.trialfun, cfg);"
+      - +@isprivate: "0"
+        commentid: "15685"
+        comment_count: "25"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 10:14:47 +0200
+        thetext: |-
+          What you're doing wrong ( :-) ) is that you do not yet use the most up-to-date version of read_buffer_offline_header...
+
+          Line 117 of this file should not read:
+
+          hdr=txt
+
+          but it should read
+
+          hdr=copyfields(txt,HDR,fieldnames(txt));
+      - +@isprivate: "0"
+        commentid: "15686"
+        comment_count: "26"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 10:16:49 +0200
+        thetext: |-
+          What you're doing wrong ( :-) ) is that you do not yet use the most up-to-date version of read_buffer_offline_header...
+
+          Line 117 of this file should not read:
+
+          hdr=txt
+
+          but it should read
+
+          hdr=copyfields(txt,HDR,fieldnames(txt));
+      - +@isprivate: "0"
+        commentid: "15687"
+        comment_count: "27"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 10:17:22 +0200
+        thetext: sorry for the double post. Note that the HDR should read hdr
+      - +@isprivate: "0"
+        commentid: "15688"
+        comment_count: "28"
+        who:
+          +content: ervin.poljac
+          +@name: ErvinPoljac
+        bug_when: 2015-05-07 10:24:43 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #27)\n\nBut I replaced the read_buffer_offline_header with the new version! Anyway, this is much better, I think (after ft_preprocessing):\n\ndata = \n           hdr: [1x1 struct]\n         label: {64x1 cell}\n          time: {1x50 cell}\n         trial: {1x50 cell}\n       fsample: 2048\n    sampleinfo: [50x2 double]\n     trialinfo: [50x1 double]\n           cfg: [1x1 struct]\n\nThanks a lot!"
+      - +@isprivate: "0"
+        commentid: "15689"
+        comment_count: "29"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 11:12:17 +0200
+        thetext: To me, it sounds as if it's fixed, change status
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "711"
+      date: 2015-05-06 13:54:00 +0200
+      delta_ts: 2015-05-06 13:54:37 +0200
+      desc: fixed header reader which falls back on .txt file if binary header isn't available
+      filename: read_buffer_offline_header.m
+      type: text/plain
+      size: "6569"
+      attacher:
+        +content: J.Farquhar
+        +@name: Jason Farquhar
+      data: REMOVED

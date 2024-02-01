@@ -1,0 +1,54 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3404"
+    creation_ts: 2018-01-28 06:34:00 +0100
+    short_desc: ft_apply_montage makes up (missing) channels
+    delta_ts: 2018-02-11 22:56:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19225"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-28 06:34:43 +0100
+        thetext: "It seems that using ft_apply_montage in combination with ft_preprocessing can lead to the creation of spurious and incorrect data channels. The problem can be simulated as below. The expected behavior is that since there is no channel 3 in the data, the output after applying the montage (bipolar re-referencing) should not contain channel combinations with channel 3. Thus, only channel '1-2' should be in the output. In reality, we see all channels in the output including combinations involving channel 3. Moreover, channel '1-2' does not seem to reflect the combination of channel 1 and 2 given that this should produce a vector of 1.5s (average of 1 and 2). \n\nThe entire issue can obviously be avoided by not incorrectly specifying cfg.montage.labelold in the first place. But shouldn't ft_preprocessing check for matching labels between data.label and those in cfg.montage, and ideally prune the montage structure accordingly? Current behavior is, as epitomized by the simulation below, that entirely incorrect output is given without any indication of a problem. This error could easily sneak into an analysis and go unnoticed if people are not actively aware of a missing channel while using cfg.montage. \n\n\n% create data\ndata.label = {'1';'2';'4'}; % note chan 3 is missing\ndata.time{1,1} = 1:10;\ndata.trial{1,1} = [ones(1,10);ones(1,10)*2;ones(1,10)*3];\n\ndata.trial{1,1}:\n\n     1     1     1     1     1     1     1     1     1     1\n     2     2     2     2     2     2     2     2     2     2\n     3     3     3     3     3     3     3     3     3     3\n\n\n% create and apply montage\ncfg = [];\ncfg.montage.labelold = {'1';'2';'3';'4'}; % note the non-existing chan 3\ncfg.montage.labelnew = {'1-2';'2-3';'3-4'};\ncfg.montage.tra = zeros(3,4);\ncfg.montage.tra(1,1:2) = [-1 1];\ncfg.montage.tra(2,2:3) = [-1 1];\ncfg.montage.tra(3,3:4) = [-1 1];\ndata2 = ft_preprocessing(cfg, data)\n\ndata2:\n\n       fsample: 1\n    sampleinfo: [1 10]\n         trial: {[3×10 double]}\n          time: {[1 2 3 4 5 6 7 8 9 10]}\n         label: {3×1 cell}\n           cfg: [1×1 struct]\n           \ndata2.label:\n\n    {'1-2'}\n    {'2-3'}\n    {'3-4'}\n\ndata2.trial{1}:\n\n     1     1     1     1     1     1     1     1     1     1\n    -2    -2    -2    -2    -2    -2    -2    -2    -2    -2\n     3     3     3     3     3     3     3     3     3     3"
+      - +@isprivate: "0"
+        commentid: "19226"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-01-28 06:39:37 +0100
+        thetext: Addendum, output channel '1-2' is actually correct. I was confused by how ft_apply_montage spatially _averages_ channels, rather than how ft_apply_montage _subtracts_ channels. For clarity, the main and remaining problem is the creation of non-existing channels.

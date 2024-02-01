@@ -1,0 +1,183 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2365"
+    creation_ts: 2013-11-05 22:01:00 +0100
+    short_desc: Fourier output of time-frequency methods (mtmconvol, wavelet) does not work with variable-length trials
+    delta_ts: 2015-07-15 13:31:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: dean.wyatte
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - haiteng.jiang
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11863"
+        comment_count: "0"
+        attachid: "555"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2013-11-05 22:01:57 +0100
+        thetext: |-
+          Created attachment 555
+          bug data
+
+          Run attached code on attached data (5 trials worth, variable length) and note that cfg.output = 'fourier' does not work due to assignment mismatch issues. Data is not getting padded correctly (or something) if you inspect the assignment 'fourierspctrm(currrptind,:,:,:) = spectrum;' in the debugger. Same result for both mtmconvol and wavelet methods.
+
+          The code works fine with cfg.output = 'pow', so it is probably something wrong with the fftflag or keeprpt = 4 code branches in ft_freqanalysis.
+      - +@isprivate: "0"
+        commentid: "11864"
+        comment_count: "1"
+        attachid: "556"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2013-11-05 22:02:18 +0100
+        thetext: |-
+          Created attachment 556
+          bug script
+      - +@isprivate: "0"
+        commentid: "11865"
+        comment_count: "2"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2013-11-05 22:05:05 +0100
+        thetext: I should also note that cfg.output = 'fourier' works fine with method mtmfft (since the trials are averaged over), so it is specifically the time-frequency methods that return fourier spectra are broken for variable-length trials.
+      - +@isprivate: "0"
+        commentid: "11866"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-06 11:50:16 +0100
+        thetext: Hi Dean, thanks for the detailed bug report, we will follow this up asap.
+      - +@isprivate: "0"
+        commentid: "11899"
+        comment_count: "4"
+        who:
+          +content: haiteng.jiang
+          +@name: Haiteng Jiang
+        bug_when: 2013-11-11 13:42:33 +0100
+        thetext: "(In reply to comment #0)\n(In reply to comment #3)\nHi Robert & Dean ,\n   I just had a look . Indeed , the current ft_freqanalysis doesn't deal with different trial length very well. This problem can be solved if  we initialize the fourierspctrm  with  max trial length . Accordingly , we need to  change  ft_freqanalysis(cfg, data) at \n line 533;   ntoi = numel(toi) --> \n             ntoi = max(trllength); \n \nthen update the spectrm matrix with different trial length\n\n line 702   \n spectrum = permute(reshape(spectrum_mtmconvol,[nchan ntoi ntaper(1) nfoi]),[3 1 4 2]); --> \n spectrum = permute(reshape(spectrum_mtmconvol,[nchan trllength(itrial) ntaper(1) nfoi]),[3 1 4 2]);\n\n line 713   \n  fourierspctrm(currrptind,:,:,:) = spectrum;   -->    \n  fourierspctrm(currrptind,:,:,1:trllength(itrial)) = spectrum;\n\nThis will influence output 'pow ' as well, so we have to adapt :\n\nline 606  spectrum = reshape(permute(spectrum_mtmconvol(:,:,freqtapind{ifoi}),[3 1 2]),[ntaper(ifoi) nchan 1 ntoi]); --> \nspectrum = reshape(permute(spectrum_mtmconvol(:,:,freqtapind{ifoi}),[3 1 2]),[ntaper(ifoi) nchan 1 trllength(itrial)]);\n   @ Robert: I don't know debug the bug on the bug on our meta since I don't have edit right.  At  this moment , I do it on my desktop, which is kind of inconvenient . Coud you please point me the common way to do it in DCCN ? Thanks in advance."
+      - +@isprivate: "0"
+        commentid: "11901"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-11 14:43:23 +0100
+        thetext: "I am surprised to see that the option cfg.pad is not being used in the test script. \n\nBut the default is maxperlen, which should be ok. \n\nWhen I run the script, I see\n\n>> convol = ft_freqanalysis(cfg, data);\nthe input is raw data with 128 channels and 5 trials\nprocessing trials\ntrial 2, frequency 37 (37.06 Hz), 1 tapers\nSubscripted assignment dimension mismatch.\n\nError in ft_freqanalysis (line 713)\n      fourierspctrm(currrptind,:,:,:) = spectrum;\n \n713       fourierspctrm(currrptind,:,:,:) = spectrum;\n\nwhere \n\nK>> size(spectrum)\nans =\n           1         128          40        1150\n\nK>> size(fourierspctrm)\nans =\n           5         128          40        1151 \n\nthere is a one-sample difference. Looking at data.time{1} and data.time{2} I do see that they differ by one sample. \n\nBut then I also see that \ncfg.toi = 'all'\nwhich is not a supported option according to the documentation of ft_freqanalysis itself. The option is supported by the low-level code, but not the high level code.\n\nIf I change the test script into\ncfg.toi = 0:0.1:5\ncfg.pad = 'maxperlen'\n\nthen it computes just fine.  So it is not a code error, but an (uncaught) user error.\n\nPassing 'all' to the low-level code (ft_specest_mtmconvol) results in that function indeed returning \"all\" timebins, which are different in trial 1 and 2.\n\nShould we explicitly check for this user error?"
+      - +@isprivate: "0"
+        commentid: "11903"
+        comment_count: "6"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2013-11-11 21:45:56 +0100
+        thetext: |-
+          I had forgotten that cfg.toi = 'all' was unsupported -- I found it by looking through the source. Is the preferred calling convention for these methods then to find the longest trial and set cfg.toi accordingly to do the analysis on all timepoints? e.g.,
+
+          maxlen = max(cellfun(@length, data.time));
+          cfg.toi = data.time{cellfun(@length, data.time) == maxlen};
+
+          I can confirm that this works on my actual data, but it does seem like it would be easier to make a cfg.toi = 'all' option, to save user the trouble of having to do this (and maybe make it default, to match the default maxperlen padding).
+
+          Thanks Robert and Haiteng for working on this!
+      - +@isprivate: "0"
+        commentid: "15278"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 11:08:48 +0100
+        thetext: Since Haiteng won't be following up on this one, I will take over this one in order to get it resolved. @Haiteng, if you still feel like contributing to this relatively straightforward one, it's most welcome.
+      - +@isprivate: "0"
+        commentid: "15292"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 14:51:02 +0100
+        thetext: |-
+          looking into this a bit more I noticed that:
+
+          -ft_specest_mtmconvol supports 'all' as a timeoi specification
+          -the issue occurs when requesting 'fourier' in the output because it runs a different chunk of code in ft_freqanalysis. When asking for cfg.output = 'pow' with cfg.keeptrials results in some extra checking in ft_freqanalysis.
+      - +@isprivate: "0"
+        commentid: "15294"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:15:26 +0100
+        thetext: "[jansch@mentat003 fieldtrip]$ svn diff ft_freqanalysis.m\nIndex: ft_freqanalysis.m\n===================================================================\n--- ft_freqanalysis.m\t(revision 10200)\n+++ ft_freqanalysis.m\t(working copy)\n@@ -253,6 +253,16 @@\n         error('you must specify a smoothing parameter with taper = dpss');\n       end\n     end\n+    cfg = ft_checkconfig(cfg, 'required', 'toi');\n+    if ischar(cfg.toi) && strcmp(cfg.toi, 'all')\n+      % do an educated guess with respect to the requested time bins\n+      begtim  = min(cellfun(@min,data.time));\n+      endtim  = max(cellfun(@max,data.time));\n+      cfg.toi = linspace(begtim,endtim,round((endtim-begtim)./mean(diff(data.time{1})))+1);\n+      \n+    elseif ischar(cfg.toi)\n+      error('cfg.toi should be either a numeric vector, or can be ''all''');\n+    end\n     \n   case 'mtmfft'\n     cfg.taper       = ft_getopt(cfg, 'taper', 'dpss');\n[jansch@mentat003 fieldtrip]$ svn add test/test_bug2365.m\nA         test/test_bug2365.m\n[jansch@mentat003 fieldtrip]$ svn commit -m \"bugfix - added check for cfg.toi = 'all'\" ft_freqanalysis.m test/test_bug2365.m\nSending        ft_freqanalysis.m\nAdding         test/test_bug2365.m\nTransmitting file data ..\nCommitted revision 10202.\n[jansch@mentat003 fieldtrip]$"
+      - +@isprivate: "0"
+        commentid: "15694"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:20:39 +0200
+        thetext: regression function is failing due to a file permissions issue.
+      - +@isprivate: "0"
+        commentid: "15695"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:21:10 +0200
+        thetext: file permissions fixed, should now work also for users that are not in the same group as 'jansch'
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "555"
+        date: 2013-11-05 22:01:00 +0100
+        delta_ts: 2013-11-05 22:01:57 +0100
+        desc: bug data
+        filename: bugdata.mat
+        type: application/x-matlab-workspace
+        size: "6417596"
+        attacher: dean.wyatte
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "556"
+        date: 2013-11-05 22:02:00 +0100
+        delta_ts: 2013-11-05 22:02:18 +0100
+        desc: bug script
+        filename: bugscript.m
+        type: application/octet-stream
+        size: "329"
+        attacher: dean.wyatte
+        data: REMOVED

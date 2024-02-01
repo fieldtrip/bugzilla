@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1041"
+    creation_ts: 2011-10-14 11:32:00 +0200
+    short_desc: ft_freqdescriptives needs NaN amount of RAM
+    delta_ts: 2012-08-23 10:35:14 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1537"
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3532"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-10-14 11:32:25 +0200
+        thetext: |-
+          Output, independent of Linux or Windows:
+
+          the call to "ft_freqdescriptives" took 5 seconds and an estimated NaN MB
+      - +@isprivate: "0"
+        commentid: "3561"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-17 22:32:32 +0200
+        thetext: |-
+          I created a test script, but am not able to reproduce the problem. See fieldtrip/test/test_bug1041
+
+          Can you reproduce it? If so, can you update the test script and reassign to me?
+      - +@isprivate: "0"
+        commentid: "3582"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-10-18 13:55:28 +0200
+        thetext: "Could you check whether you comitted that test script? \n\njorhor@mentat312:~/FieldTrip/trunk/test\n505 $ svn up\nAt revision 4499.\njorhor@mentat312:~/FieldTrip/trunk/test\n506 $ ls *1041*\nls: *1041*: No such file or directory\n\n\nbtw: I get it for every call to freqdescriptives. Maybe it's platform related?\n>> load('H:\\common\\matlab\\fieldtrip\\data\\test\\freq\\meg\\freq_mtmfft_ctf275.mat')\n>> ft_freqdescriptives([], freq)\nthe input is freq data with 307 channels, 101 frequencybins and no timebins\nundoing the G3BR balancing\nthe call to \"ft_freqdescriptives\" took 0 seconds and an estimated NaN MB"
+      - +@isprivate: "0"
+        commentid: "3584"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-18 15:25:38 +0200
+        thetext: "(In reply to comment #2)\n> Could you check whether you comitted that test script? \n\nSorry, I indeed had forgotten. It is now.\n\nIt could well be a windows specific problem, I don't recall that I ever spent serious time on figuring out the memory function on windows. So probably there is something like\n\nifdef __WIN32__ \n  return NAN\nelse\n  do something smarter\nend"
+      - +@isprivate: "0"
+        commentid: "3605"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-10-19 12:24:24 +0200
+        thetext: |-
+          I guess it is line 49:
+
+          if isempty(strfind(which('memprofile'), mexext))
+           ...
+           output = nan;
+      - +@isprivate: "0"
+        commentid: "3608"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-19 12:43:46 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          so it is a feature, not a bug ;-)
+      - +@isprivate: "0"
+        commentid: "3609"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-10-19 14:43:35 +0200
+        thetext: "true, but can we remove that feature? :)\n\nwe could use the windows-specific function memory in Matlab:\n\n>> [uV sV] = memory\nuV = \n\n    MaxPossibleArrayBytes: 1.3207e+010\n    MemAvailableAllArrays: 1.3207e+010\n            MemUsedMATLAB: 1.0025e+009\n\n\nsV = \n\n    VirtualAddressSpace: [1x1 struct]\n           SystemMemory: [1x1 struct]\n         PhysicalMemory: [1x1 struct]\n\n\nso by comparing uV.MemUsedMATLAB before and after we can figure out how much memory the function used. Not quite sure how precise this will be though, because it relies on the windows' memory management."
+      - +@isprivate: "0"
+        commentid: "3620"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-19 16:53:30 +0200
+        thetext: "nice idea, but does not work. The memory need could be the highest in the middle, i.e. neither at the begin or end. That is why the linux/osx mex file runs a thread that \"measures\" the memory every second. \n\n\nin peer/src/memprofile.c there is\n\nvoid memprofile_sample(void) {\n        uint64_t rss, vs;\n        memlist_t *memitem;\n\n        if (getmem(&rss, &vs)!=0) {\n                rss = 0;\n                vs  = 0;\n        }\n...\n\nand the corresponding \"getmem\" function is in peer/src/util.c, which contains\n\n#if defined (PLATFORM_OSX)\nint getmem (uint64_t *rss, uint64_t *vs) {\n        task_t task = MACH_PORT_NULL;\n        struct task_basic_info t_info;\n        mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;\n        if (KERN_SUCCESS != task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count)) {\n                return -1;\n        }\n        *rss = t_info.resident_size;\n        *vs  = t_info.virtual_size;\n        return 0;\n}\n#elif defined(PLATFORM_WIN32) || defined(PLATFORM_WIN64)\nint getmem (uint64_t *rss, uint64_t *vs) {\n        /* no idea how to get the memory information on a windows computer */\n        *rss = 0;\n        *vs  = 0;\n        return -1;\n}\n#elif defined(PLATFORM_LINUX)\nint getmem (uint64_t *rss, uint64_t *vs) {\n        FILE *fp;\n        uint64_t val1 = 0, val2 = 0;\n        if ((fp = fopen(\"/proc/self/statm\", \"r\")) == NULL) {\n                DEBUG(LOG_ERR, \"could not open /proc/self/statm\");\n                return -1;\n        }\n        /* read the information from /proc/self/statm\n           size       total program size\n           resident   resident set size\n           share      shared pages\n           text       text (code)\n           lib        library\n           data       data/stack\n           dt         dirty pages (unused in Linux 2.6)\n         */\n        if (fscanf(fp, \"%llu%llu\", &val1, &val2 )!=2) {\n                DEBUG(LOG_WARNING, \"could not read all elements from /proc/self/statm\");\n                val1 = 0;\n                val2 = 0;\n        }\n        /* these seem to be in 4096 byte blocks */\n        *vs  = val1 * 4096;\n        *rss = val2 * 4096;\n        fclose(fp);\n        return 0;\n}\n#endif\n\n\nThe following might be a starting point for windows\nhttp://msdn.microsoft.com/en-us/library/ms683219.aspx"
+      - +@isprivate: "0"
+        commentid: "6866"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-07-26 11:46:09 +0200
+        thetext: Fixed for now by removing the memory statement under Windows; Windows implementation of getmem() is for the future.
+      - +@isprivate: "0"
+        commentid: "7141"
+        comment_count: "9"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-08-23 10:35:14 +0200
+        thetext: closing my bugs

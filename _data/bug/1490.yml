@@ -1,0 +1,372 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1490"
+    creation_ts: 2012-05-28 17:39:00 +0200
+    short_desc: Problem with reading Neuroscan 16bit file (again)
+    delta_ts: 2014-01-21 12:43:37 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1412
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1359"
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - arno
+      - jorn
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6184"
+        comment_count: "0"
+        attachid: "268"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-05-28 17:39:51 +0200
+        thetext: |-
+          Created attachment 268
+          problematic file
+
+          I got the attached file at the last SPM course. It doesn't convert properly with either 16bit or 32bit setting but it does convert OK in EEGLAB with 16bit setting.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "6186"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-29 11:17:00 +0200
+        thetext: |-
+          Hi Vladimir,
+          What do you mean with improper converting? It loads the data in fine when I do ft_read_data(file), and the same for the header/events. Although it does look extremely noisy... is that what you are referring to?
+
+          (CC: Robert, I assigned it to me in case it is related to my changes to loadcnt.m)
+      - +@isprivate: "0"
+        commentid: "6187"
+        comment_count: "2"
+        attachid: "269"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-05-29 11:22:36 +0200
+        thetext: |-
+          Created attachment 269
+          eeglab
+      - +@isprivate: "0"
+        commentid: "6188"
+        comment_count: "3"
+        attachid: "270"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-05-29 11:22:48 +0200
+        thetext: |-
+          Created attachment 270
+          spm
+      - +@isprivate: "0"
+        commentid: "6189"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-05-29 11:23:51 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          Hi Roemer,
+
+          I attached PDFs of what the data look like when converted in EEGLAB and in SPM. I hope you can appreciate the difference.
+
+          Best,
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "6190"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-29 12:04:05 +0200
+        thetext: "Hi Vladimir,\n\nThanks for the attachments, it took me a while, but I found the source of the problem. \nTurns out we enforce a 'blockread' of 1 in the low-level read-function from EEGLAB. Normally this is automatically determined. \n\nI need a little bit of executive decision on this, as I don't fully oversee the purpose of enforcing the blockread to be 1. Robert, are you aware of this being necessary in some cases? Maybe it was necessary for the old version of loadcnt but no longer?\n\n\n\n***\nJust for documentation purpose, the following did not affect the issue:\n- enforcing a blockread of 1 in the header as well (now automatically determined)\n- enforcing 16bit/32bit/auto read of header and data\n- using the old version of loadcnt and:\n    * enforcing a blockread of 1 for header as well\n    * enforcing 16bit/32bit/auto read of header and data\nwhich of course all totally make sense not to affect the issue since it's the blockread"
+      - +@isprivate: "0"
+        commentid: "6192"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-29 12:35:07 +0200
+        thetext: "(In reply to comment #5)\n\nI think the blockread was set to 1 to deal with the most common formats in the old implementation. Probably it can be disposed of now.\n\nI suggest that you make a test script, which includes the problematic file and some other files. The rest script could read the first part of each file and compare it to the known correct values. The correct values that serve as reference can also be in a file (but then a mat file). The correctness of the reference values should be verified using visual inspection.\n\nI have copied the available test files that I have to the shared test directory, see below.\n\nmanzana> pwd\n/home/common/matlab/fieldtrip/data/test/bug1490\n\nmanzana> ls -l \ntotal 203672\n-r-xr--r--  1 roboos  staff  19583149 May 29 12:24 0500.cnt\n-rwx------  1 roboos  staff  15127153 May 29 12:28 CS14_Sess1_V1_short-block.cnt\n-rw-r--r--  1 roboos  staff  45069561 May 29 12:25 Subject1_MP.cnt\n-rw-r--r--  1 roboos  staff  12803322 May 29 12:29 cba1ff01.cnt\n-rwxr-xr-x  1 roboos  staff  11683897 May 29 12:25 test.cnt\n\nThe test script could look like\n\npath= /home/common/matlab/fieldtrip/data/test/bug1490\nfilelist = {\n ...}\n\n% this file contains the reference solution that has been visually checked for correctness\nreference = load('/home/common/matlab/fieldtrip/data/test/bug1490.mat')\n\nhdr = {};\ndat = {};\n\nfor i=1:5\nfilename = fullfile(path, filelist{i})\nhdr{i} = ft_read_header(filename);\ndat{i} = ft_read_data(filename, ....); % only 10 seconds\nassert(isequal(hdr{i}.nSamples, reference.hdr{i}.nSamples); % idem for nchannels\nassert(isequal(dat{i}, reference.dat{i});\nend\n\nPlease see also test_bug1412.m and bug #1412."
+      - +@isprivate: "0"
+        commentid: "6198"
+        comment_count: "7"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-05-29 12:42:02 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          Here are two more files from my archives:
+          http://dl.dropbox.com/u/7732885/nscan.zip
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "6199"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-29 12:46:21 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          I have added them to the home/common test directory.
+      - +@isprivate: "0"
+        commentid: "6210"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-30 21:44:31 +0200
+        thetext: Transferring to Robert as I'm leaving to China tomorrow for a month, and this deserves a quicker fix :)
+      - +@isprivate: "0"
+        commentid: "6288"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-05 22:53:46 +0200
+        thetext: "I have added a test script for bug 1490 based on 8 different neuroscan cnt \ndatasets. \n\nThe test datasets are now:\n  '0500.cnt'\n  'cba1ff01.cnt'\n  'dronba4dh.cnt'\n  'Subject1_MP.cnt'\n  '1pas102_working_memory.cnt'\n  'CS14_Sess1_V1_short-block.cnt'\n  'sub1E3a.cnt'\n  'test.cnt'\nThese names should be recognizable to the external bug reporters.\n\nBased on that test script and data, I have made the following\ntwo changes: \n1) don't use blockread=1 but let loadcnt decide. \n2) use nums instead of numsamples.\n\nroboos@mentat001> svn commit fileio/ft_read_* test/test_bug1490.m \nSending        fileio/ft_read_data.m\nSending        fileio/ft_read_header.m\nAdding         test/test_bug1490.m\nTransmitting file data ...\nCommitted revision 5913."
+      - +@isprivate: "0"
+        commentid: "7071"
+        comment_count: "11"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-08-22 14:22:16 +0200
+        thetext: |-
+          Hi,
+
+          I tried to convert the same file and I get an error in SPM. Try:
+
+          hdr = ft_read_header('cba1ff01.cnt');
+
+          dat = ft_read_data('cba1ff01.cnt', 'header',  hdr, 'begsample',  105704, 'endsample', 206440,...
+                      'chanindx', 1:hdr.nChans, 'checkboundary', 1);
+
+          It should work as the samples are in bounds. I get:
+
+          ??? Subscripted assignment dimension mismatch.
+
+          Error in ==> loadcnt at 474
+                  dat(:, counter*h.channeloffset+1:counter*h.channeloffset+h.channeloffset) = ...
+
+          Error in ==> ft_read_data at 815
+                tmp = loadcnt(filename, 'sample1', sample1, 'ldnsamples', ldnsamples);
+
+          Nothing obvious I could figure out.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "7074"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 15:01:23 +0200
+        thetext: "(In reply to comment #9)\n\n> Transferring to Robert as I'm leaving to China tomorrow for a month, \n> and this deserves a quicker fix :)\n\nHmm, I did not live up to the expectations to fix it more quickly :-("
+      - +@isprivate: "0"
+        commentid: "7076"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 15:23:53 +0200
+        thetext: "(In reply to comment #11)\n\nthere is one sample difference around\n\n      tmp = loadcnt(filename, 'sample1', sample1, 'ldnsamples', ldnsamples);\n\nK>> dbstack\n  In fileio/private/loadcnt at 457\n> In ft_read_data at 815\n\nK>> endsample-begsample\nans =\n      100736\n\nK>> ldnsamples\nldnsamples =\n      100737\n\nLooking in loadcnt, it seems the data is represented in 40 sample blocks.\n\n------------------------\n\nanother issue is with \n\ndat1 = ft_read_data(filename, 'begsample', 1, 'endsample', 40);\ndat2 = ft_read_data(filename, 'begsample', 2, 'endsample', 41);\ndat3 = ft_read_data(filename, 'begsample', 1, 'endsample', 80);\n\nand plotting these, the dat2 is not what you would expect"
+      - +@isprivate: "0"
+        commentid: "7077"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 15:46:26 +0200
+        thetext: "loadcnt line 469\n\n\n      dat = zeros( h.nchannels, r.ldnsamples, 'single'); % FIXME see fieldtrip bug 1490\n      dat(:, 1:h.channeloffset) = fread(fid, [h.channeloffset h.nchannels], r.dataformat)';\n \n      counter = 1;\n      while counter*h.channeloffset < r.ldnsamples\n        dat(:, counter*h.channeloffset+1:counter*h.channeloffset+h.channeloffset) = ...\n          fread(fid, [h.channeloffset h.nchannels], r.dataformat)';\n        counter = counter + 1;\n\nthis has not the expected effect if r.ldnsamples is smaller than 40, the first line in which dat=zeros is then overruled by the second line (where the fread returns 40 samples). In case there are more than 40 samples desired, in the while loop where the remainder of the data is read, it is read in chuncks of 40 samples. So the reading will fail either \n1) if the begin of the requested segment is not aligned with the 40-sample blocks\n2) if the requested segment is not a multiple of 40 samples long\n\nVladimirs case is 'begsample',  105704, 'endsample', 206440, which fails on both accounts."
+      - +@isprivate: "0"
+        commentid: "7083"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-22 16:12:49 +0200
+        thetext: |-
+          not yet fixed, have to go now, but to summarize...
+
+          the problem with 'cba1ff01.cnt' is in loadcnt and has to be solved there in consultation with Arno. In that solution (that has to be merged into eeglab), also FT bugfix #1412 needs to be incorporated.
+
+          I have added some test cases to the script
+
+          manzana> svn commit test_bug1490.m
+          Sending        test_bug1490.m
+          Transmitting file data .
+          Committed revision 6395.
+      - +@isprivate: "0"
+        commentid: "10504"
+        comment_count: "16"
+        attachid: "475"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-05-21 23:19:56 +0200
+        thetext: |-
+          Created attachment 475
+          new problematic file
+      - +@isprivate: "0"
+        commentid: "10505"
+        comment_count: "17"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-05-21 23:23:03 +0200
+        thetext: |-
+          (In reply to comment #16)
+          Hi Robert,
+
+          I see this bug was left unfixed. I got a crash again this year with the line:
+
+          dat = ft_read_data('family1.cnt', 'begsample', 156039, 'endsample',  215140);
+
+          because the actual size of dat was different from the requested. I attach the file.
+
+          There was also another strange cnt which looked a weird with some kind of pulse artefacts.The strange thing was that it looked the same no matter if converted wit 16 or 32 bit setting. I also have that if you want to look.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "10541"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 14:00:40 +0200
+        thetext: with Vladimir over skype) is to move fieldtirp/fileio/private/loadcnt.m to fieldtrip/external/eeglan and merge it with the "official" eeglab version. That ensures that the flow of teh code and changes ot the code can be better tracked.
+      - +@isprivate: "0"
+        commentid: "10542"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 14:01:38 +0200
+        thetext: |-
+          (In reply to comment #18)
+
+          Here is a correction of the copy-and-paste;
+
+          there are two bugs related to neuroscan cnt, bug 1412 and bug 1490. My proposed
+          solution (discussed with Vladimir over skype) is to move
+          fieldtirp/fileio/private/loadcnt.m to fieldtrip/external/eeglan and merge it
+          with the "official" eeglab version. That ensures that the flow of teh code and
+          changes ot the code can be better tracked.
+      - +@isprivate: "0"
+        commentid: "11420"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-24 17:06:08 +0200
+        thetext: "(In reply to comment #19)\n\nI have implemented the solution as suggested. \n\nSee svn commit 8519 and 8526.\n\nNote that commit 8519 includes the loadcnt from the latest svn eeglab version.\n\nI also split the test_bug1490 script into two parts. The first part runs fine, the second (now disabled) needs to be fixed in eeglab and cannot be fixed here."
+      - +@isprivate: "0"
+        commentid: "12551"
+        comment_count: "21"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-01-21 12:43:37 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #20)
+          Just to remind that part b of the bug is still not fixed. I just got another complaint.
+
+          Vladimir
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "268"
+        date: 2012-05-28 17:39:00 +0200
+        delta_ts: 2012-05-28 17:39:51 +0200
+        desc: problematic file
+        filename: cba1ff01.cnt
+        type: application/octet-stream
+        size: "12803322"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "269"
+        date: 2012-05-29 11:22:00 +0200
+        delta_ts: 2012-05-29 11:22:36 +0200
+        desc: eeglab
+        filename: eeglab.pdf
+        type: application/pdf
+        size: "517044"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "270"
+        date: 2012-05-29 11:22:00 +0200
+        delta_ts: 2012-05-29 11:22:48 +0200
+        desc: spm
+        filename: spm.pdf
+        type: application/pdf
+        size: "88337"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "475"
+        date: 2013-05-21 23:19:00 +0200
+        delta_ts: 2013-05-21 23:19:56 +0200
+        desc: new problematic file
+        filename: family1.cnt
+        type: application/octet-stream
+        size: "9047964"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED

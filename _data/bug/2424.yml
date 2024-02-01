@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2424"
+    creation_ts: 2013-12-20 10:53:00 +0100
+    short_desc: ft_prepare_layout from sens rather than from elec/grad
+    delta_ts: 2014-03-12 12:19:56 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12393"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-20 10:53:58 +0100
+        thetext: "The component viewmode of the databrowser requires a layout to topographically plot the components. If a layout is not available, the function features a layout construction based on the elec- or grad-information and call ft_prepare_layout. However, there are a number of inconsistencies with other code in the databrowser code, and I think this can be improved by discussing ft_prepare_layout. First, I will paste the relevant databrowser code, and then I will indicate what might/could/should be done better together with things to discuss:\n\n    warning('No layout specified - will try to construct one using sensor positions');\n    try\n      tmpcfg = [];\n      tmpcfg.layout = [];\n      if isfield(data, 'grad')\n        tmpcfg.grad = data.grad;\n      elseif isfield(data, 'elec')\n        tmpcfg.elec = data.elec;\n      else\n        error('cannot infer sensor type');\n      end\n      cfg.layout = ft_prepare_layout(tmpcfg);\n    catch\n      cfg.layout = [];\n    end % try\n\n\nFirst of all, the error will never be printed, as it is caught - I guess such things can happen ;)\nMost importantly, however, grad- and elec-structures can also be defined in a cfg, and elecfile and gradfile should also be sensible fields to be checked. There is an ft_fetch_sens function which should be used instead of having the if-statement. However, the drawback here is that ft_prepare_layout explicitly needs .grad .elec, .elecfile or .gradfile but cannot handle .sens. In the light of recent MEG/EEG studies it makes sense to make the distinction between elec and grad, but this is a whole other topic (and one that will cause a lot of headache in future...). \n\nAs ft_prepare_layout does not dinstinguish between electrodes and gradiometers, would it make sense that ft_prepare_layout takes a .sens field rather than making the distinction between .elec and .grad? I cannot believe that it will ever make sense to mix electrodes and gradiometers in one single layout, so calling it .sens makes a lot of sens (haha!) to me."
+      - +@isprivate: "0"
+        commentid: "12394"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-20 11:09:13 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #0)
+
+          I agree that ft_fetch_sens should be used. And that the error makes no sense like this.
+
+          However, we never have a field that is called ".sens" as a mixed eeg/meg sensor definition is not possible in a single sensor description. It is possible that data.grad and data.elec both exist, in that case one is picked arbitrarily. But I am also not sure whether I understand your statement on sens...
+
+          Regarding where ft_fetch_sens gets called: would it not make sense (not sens) to do it like
+
+          if hasdata
+          cfg.layout = ft_prepare_layout(cfg, data)
+          else
+          cfg.layout = ft_prepare_layout(cfg)
+          end
+
+          or perhaps more safe
+
+          tmpcfg = []
+          try, tmpcfg.elec = cfg.elec; end
+          try, tmpcfg.grad = cfg.grad; end
+          try, tmpcfg.elecfile = cfg.elecfile; end
+          try, tmpcfg.gradfile = cfg.gradfile; end
+          if hasdata
+          cfg.layout = ft_prepare_layout(tmpcfg, data)
+          else
+          cfg.layout = ft_prepare_layout(tmpcfg)
+          end
+
+          to ensure that ft_prepare_layout does not mess with the other cfg options.
+
+          inside ft_prepare_layout there is still no call to ft_fetch_sens, but there is the whole sequence of if-elseif-elseif for all possible cases.
+      - +@isprivate: "0"
+        commentid: "12395"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-20 11:51:24 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\nyes, I agree that we never had a .sens field, but the case of mixed EEG/MEG is exactly my point. Using a .sens field would also make very explicit that you can *not* create a layout for mixed MEG/EEG data but have to choose. Additionally, ft_prepare_layout does not need to know whether we are dealing with electrodes or with gradiometers. it just needs to be concerned with sensors and their positions. Right now, it might seem that you can put in both and get a mixed layout out. The statement that one is 'arbitrarily' picked makes things even worse, imho. \n\n\nFor fixing the databrowser, I like the second code idea, I'll change that. And maybe ft_prepare_layout should then also be changed to use ft_fetch_sens"
+      - +@isprivate: "0"
+        commentid: "12398"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-20 14:02:28 +0100
+        thetext: "(In reply to Jörn M. Horschig from comment #2)\n\nyou can hand-craft a mixed layout, but cannot have it made automatically. \n\nThe 'arbitrary' refers to: if _you_ (i.e. user) want _me_ (i.e. ft_prepare_layout) to do something automatically without telling me what to do, I'll do my best, but you should not complain."
+      - +@isprivate: "0"
+        commentid: "13028"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-07 13:06:49 +0100
+        thetext: Assign to a named person, to keep it alive (and make someone feel responsible to fix it).
+      - +@isprivate: "0"
+        commentid: "13056"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-03-12 08:35:42 +0100
+        thetext: |-
+          ft_databrowser was fixed on that very same day already
+          http://code.google.com/p/fieldtrip/source/detail?spec=svn9283&r=9049
+
+          and as I saw now that ft_prepare_layout is not using ft_fetch_sens because it wants to explicitly print what field it creates the layout from (cfg.grad, data.elec, etc.), so I'll keep it at that without changing it to using ft_fetch_sens

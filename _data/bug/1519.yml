@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1519"
+    creation_ts: 2012-06-12 12:22:00 +0200
+    short_desc: ft_componentanalysis error when no IC are found
+    delta_ts: 2019-08-10 11:56:11 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: f.dipompeo
+      +@name: Francesco Di Pompeo
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6363"
+        comment_count: "0"
+        who:
+          +content: f.dipompeo
+          +@name: Francesco Di Pompeo
+        bug_when: 2012-06-12 12:22:05 +0200
+        thetext: |-
+          An error is generated in ft_componentanalysis when no Indipendent Component are found using fastICA. The error is due to a matrix product with empty matrix.
+          It is independent by the launch script or kind of data.
+          May be an ~isempty requirement before the calculation (if it is the only with this problem) is enough.
+
+          This is the command window:
+
+          Whitening...
+          Check: covariance differs from identity by [ 1.54801e-013 ].
+          Used approach [ defl ].
+          Used nonlinearity [ tanh ].
+          Using initial guess.
+          Starting ICA calculation...
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          IC 1 ........................................................................................................................................................................................................
+          Component number 1 did not converge in 200 iterations.
+          Too many failures to converge (6). Giving up.
+          ??? Error using ==> mtimes
+          Inner matrix dimensions must agree.
+
+          Error in ==> ft_componentanalysis at 605
+            comp.trial{trial} = scale * unmixing * data.trial{trial};
+
+          Error in ==> hcp_doICARMEG at 145
+            comp = ft_componentanalysis(cfg, data_meg);
+      - +@isprivate: "0"
+        commentid: "6370"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-12 16:19:30 +0200
+        thetext: |-
+          Hi Francesco
+
+          The error is indeed ugly. What is your suggested way of dealing with this? We could return a structure that is empty (which I'd find confusing and which will cause other errors later in the script) or in ft_componentanalysis return a more informative error like
+
+          error('the decomposition did not converse, no components could be extracted');
+      - +@isprivate: "0"
+        commentid: "6377"
+        comment_count: "2"
+        who:
+          +content: f.dipompeo
+          +@name: Francesco Di Pompeo
+        bug_when: 2012-06-13 01:48:37 +0200
+        thetext: "Robert, I think this is a very rare case when managing MEG data, but it can happens more often using many iterations. It is the first case for me in MEG/EEG analysis, but in other cases can happens often.\nAccording to my experience, the possible solutions are two:\n1) re-starting the current iteration with a different random state (perhaps the next one).\n2) Storing an empty structure. Please consider that in others analysis I perform (not MEG or EEG)  ICA is not converging often. In this case although FastICA returns an empty matrix I don't have big problems using my codes.   \nI think the first approach is more safe but I don't know if it's possible to implement it in fieldtrip.\nStopping the ICA analysis may be fastidious especially when, like in my case, you are analyzing many subjects or recordings and all the pipeline stops.\nThere are other solutions but according to me are less correct and elegant.\n\nLet me know what you think..."
+      - +@isprivate: "0"
+        commentid: "6378"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-13 09:02:10 +0200
+        thetext: "(In reply to comment #2)\n\nRe 1) I think this is something for the user to do, so the ft_componentanalysis function should not do it. The user knows better whether and how often he wants to restart, or whether some changes to the params or data are desired.\n\nRe 2) an empty structure would in the next analysis step not be recognized as valid fieldtrip data structure. So the consequence is that in the analysis pipeline the problem is shifted to a later step (e.g. sourceanalysis with method=mne will fail) which will confuse the user more than having an error at the location where the actual problem is.\n\nI suggest the user does\n\ntry\ncomp = ft_componentanalysis(cfg, data)\ncatch\n% the user interaction (re 1) goes here\nend\n\nand have changed the ft_componentanalysis function to give a meaningful error. \n\nmanzana> svn commit ft_componentanalysis.m \nSending        ft_componentanalysis.m\nTransmitting file data .\nCommitted revision 6046."
+      - +@isprivate: "0"
+        commentid: "6428"
+        comment_count: "4"
+        who:
+          +content: f.dipompeo
+          +@name: Francesco Di Pompeo
+        bug_when: 2012-06-18 16:10:53 +0200
+        thetext: "Hi Robert, sorry but I don't agree...\nThis is a bug of ft_component analysis since an empty result of fastica is not an error, but only a particular result! It can be due to the data but also, and in my experience more likely, to the choice of the starting random initialization. \nConsider that in the case in which many iteration are performed it is a real problem since you don't know why and when the problem can happen stopping your analysis may be running for a day.\nI don't know what you want to do, but in the case of HCP code we need a modified version, perhaps a special one.\nThanks, Francesco"
+      - +@isprivate: "0"
+        commentid: "6616"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-02 10:27:18 +0200
+        thetext: upon request I'll implement a workaround
+      - +@isprivate: "0"
+        commentid: "6617"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-02 10:40:28 +0200
+        thetext: "(In reply to comment #4)\n\nI have implemented megconnectome/analysis_functions/hcp_componentanalysis.m which does what you have requested. \n\nThe normal fieldtrip behavior remains the same, i.e. the ft function does not return an empty \"comp\" structure, but rather an informative error that fastica did not return any components. The hcp_componentanalysis wrapper restarts the decomposition as many times as you want. \n\n@Francesco: Please make your own further improvements to that function in github."
+      - +@isprivate: "0"
+        commentid: "19807"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:11 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

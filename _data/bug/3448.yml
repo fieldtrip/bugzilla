@@ -1,0 +1,119 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3448"
+    creation_ts: 2018-09-04 15:05:00 +0200
+    short_desc: dft filter (freq) increases the spectral power (freq) rather than decrease it
+    delta_ts: 2018-10-08 10:26:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: g.m
+      +@name: Georgios Michalareas
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19442"
+        comment_count: "0"
+        who:
+          +content: g.m
+          +@name: Georgios Michalareas
+        bug_when: 2018-09-04 15:05:58 +0200
+        thetext: "I have a single channel dataset. The data comes from a photodiode on a backprojection screen on which a 60 Hz projector is displaying stimuli. Naturally in the spectrum of the data thee is a small 60 hz peak. I applied a dft filter through ft_preprocessing and computed the spectrum again . I was expecting the peak to be gone at 60 Hz but instead the peak had been dramatically increased. It is not clear to me at all how this could happen. \n\ndata is in variable 'data' in attached file 'datafile4dft.mat'\n\nThe code to reproduce the problem is the following:\n\n%-----------------------------------------------------\nload  datafile4dft data\n\ncfg=[];\ncfg.dftfilter='yes';\ncfg.dftfreq=[60 120 ];\ndatadft=ft_preprocessing(cfg,data);\n\nfreqCfg              = [];\nfreqCfg.method       = 'mtmfft';\nfreqCfg.taper        = 'hanning';\nfreqCfg.foi          = [1:200];   \nfreqCfg.tapsmofrq    = 1;         \nfreqCfg.keeptrials   = 'yes';\nfreqCfg.feedback     = 'text';\n\nfreq=ft_freqanalysis(freqCfg, data);\nfreqdft=ft_freqanalysis(freqCfg, datadft);\n\nfigure;hold on;\nplot(freq.freq,squeeze(freq.powspctrm));\nplot(freqdft.freq,squeeze(freqdft.powspctrm));\nlegend('before dft','after dft');"
+      - +@isprivate: "0"
+        commentid: "19443"
+        comment_count: "1"
+        who:
+          +content: g.m
+          +@name: Georgios Michalareas
+        bug_when: 2018-09-04 15:10:45 +0200
+        thetext: |-
+          datafile4dft.mat is more than 1MB so attachement here failed. I uploaded in my gdrive and you can find it in this link:
+
+          https://drive.google.com/file/d/1Y9gmd3MLKAzM5y_OTdg87ZFtTlESNVKi/view?usp=sharing
+      - +@isprivate: "0"
+        commentid: "19463"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-24 20:45:07 +0200
+        thetext: |-
+          Hehe, I can only think of one person who does an fft on more than 800000 samples...
+
+          I think what you observe is the consequence of the fact that the frequency of the artifact is at 60.01, rather than at 60 Hz.
+
+          I noticed this when I trimmed the data to be 1200*600 samples long, and repeated the ft_freqanalysis, focussing on freqCfg.foi = [58:1./600:62];
+
+          Please confirm.
+
+          I don't think this is a failure of the dft-filter as such.
+      - +@isprivate: "0"
+        commentid: "19464"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-09-24 20:54:03 +0200
+        thetext: "In addition, the freq and freqdft are somewhat different outside the frequency notches, because ft_preproc_dftfilter trims the data to an integer number of cycles of the to-be-notched frequencies before estimating the dft-coefficients. This causes the 'outside' data to contribute to the difference.\n\nIf I do something like \n\ndata.trial{1} = data.trial{1}(1:600*1200);\ndata.time{1} = data.time{1}(600*1200);\n\nand then freqCfg.foi = 58:1./600:62;\n\nI observe the peak frequency to be slightly off 60 Hz.\n\nIf I do\n\ncfg.dftfreq = 60+[-10:10]./600;\ndatadft2 = ft_preprocessing(cfg, data);\n\nand then \n\nfreqdft2 = ft_freqanalysis(freqCfg,datadft2);\n\nit notches nicely."
+      - +@isprivate: "0"
+        commentid: "19478"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-08 09:41:12 +0200
+        thetext: can this be closed?
+      - +@isprivate: "0"
+        commentid: "19485"
+        comment_count: "5"
+        who:
+          +content: g.m
+          +@name: Georgios Michalareas
+        bug_when: 2018-10-08 09:59:32 +0200
+        thetext: |-
+          You are the best man,
+          thanks a lot!
+          Yes close it
+      - +@isprivate: "0"
+        commentid: "19489"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-08 10:26:00 +0200
+        thetext: .
+      - +@isprivate: "0"
+        commentid: "19490"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-10-08 10:26:26 +0200
+        thetext: .

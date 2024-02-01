@@ -1,0 +1,112 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3370"
+    creation_ts: 2017-11-14 18:31:00 +0100
+    short_desc: Interactive use of ft_topoplotER and subplots
+    delta_ts: 2018-01-26 09:51:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: heidi.solberg-okland
+      +@name: Heidi Solberg Økland
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19050"
+        comment_count: "0"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2017-11-14 18:31:15 +0100
+        thetext: "I am doing some coherence analyses on speech and MEG data these days, and have two different kinds of speech signals that I use for the coherence analysis. I've been using ft_topoplotER to plot single-subject sensor-level data like this:\n\nsubplot(2,1,1); \nft_topoplotER(cfg, Coh1)\nsubplot(2,1,2); \nft_topoplotER(cfg, Coh2)\n\nThe plots look fine and sensible, so that's not the issue. But today I wanted to use the mark-sensors-and-look-at-frequency-spectrum function (i.e. the interactive function), but it only worked for the bottom plot (Coh2)! When I tried marking and clicking on some sensors on the upper plot (Coh1) Matlab gives the following error:\n\nError using ft_singleplotER (line 363)\ncfg.refchannel is a not present in the (selected) channels)\n\nError in topoplot_common>select_singleplotER (line 1019)\n  ft_singleplotER(cfg, data{:});\n\nError in ft_select_channel>select_channel_multiple (line 148)\n      feval(funhandle, label, funargs{:});\n\nError in ft_select_range>evalCallback (line 332)\n    feval(funhandle, funargs{:}, val, cmenulab);\n\nError in ft_select_range (line 166)\n          evalCallback(callback, userData.range);\n \nError while evaluating figure WindowButtonDownFcn\n\nThis seems like a bug - would be great if you could look into it! I'm using the latest version of FT."
+      - +@isprivate: "0"
+        commentid: "19063"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-17 08:40:30 +0100
+        thetext: Does this also happen if you do ft_topoplotER(cfg, coh1, coh2); ?
+      - +@isprivate: "0"
+        commentid: "19074"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-20 15:27:25 +0100
+        thetext: "I tried to generate a function to replicate your problem, but I don't manage to do so. In particular, when I do \n\nsubplot(2,1,1);ft_topoplotER(cfg, coh1)\n\na new figure window is opened, rather than that the stuff is plotted as a subplot.\n\nThis suggests that you are either using some hand-crafted data to avoid this, or that you are not using the most recent version of fieldtrip"
+      - +@isprivate: "0"
+        commentid: "19076"
+        comment_count: "3"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2017-11-20 16:37:31 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #1 and #2)\n\nYou also need to call e.g.\n\nfigure(1); hold on\n\nbefore calling subplot in order to replicate the error. Sorry!\n\nAs for your previous comment - plotting two different coherence maps on the same topoplot doesn't work in my case, since the two coherence analyses I am plotting are computed using two different signals (auditory speech envelope and lip aperture, respectively). So then the refchannel is a mismatch for one of the coherence measures and I get an error:\n\nError using ft_singleplotER (line 363)\ncfg.refchannel is a not present in the (selected) channels)\n\nI'm copying in my full plotting script here so that you can get a better idea of what I'm doing:\n\nfigure(1); hold on\n    \n    cfg                  = [];\n    cfg.parameter        = 'cohspctrm';\n    cfg.xlim             = [0.5 10];\n    cfg.zlim             = [0 0.15];\n    cfg.layout           = 'neuromag306all.lay';\n    cfg.showlabels       = 'yes';\n    cfg.colorbar         = 'yes';\n    cfg.style            = 'straight';\n    \n    % Auditory coherence, gradiometers\n    cfg.refchannel       = 'AudEnv';\n    cfg.channel          = 'MEGGRAD';\n    subplot(2,1,1); \n    title('Auditory coherence gradiometers - subj_x');\n    ft_topoplotER(cfg, AudCoh)\n\n    % Lip coherence, gradiometers\n    cfg.refchannel       = 'LipEnv';\n    cfg.channel          = 'MEGGRAD';\n    subplot(2,1,2); \n    title('Lip coherence gradiometers - subj_x');\n    ft_topoplotER(cfg, LipCoh)"
+      - +@isprivate: "0"
+        commentid: "19080"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-21 09:18:29 +0100
+        thetext: |-
+          with the current state of the code I don't manage to get 2 topo's in a single figure with subplots, the way you describe.
+
+          Apparently, you are using an older version of the code, and the recent revamping of the code has got rid of this functionality.
+
+          Please confirm that you use an older version of the code.
+
+          I am not sure whether I want to spend time in getting this functionality 'back'. It was not in the design of the functions that it should work to begin with, and it seems to me that two separate figures would be also fine for exploration
+      - +@isprivate: "0"
+        commentid: "19096"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-23 14:23:40 +0100
+        thetext: |-
+          Hi Heidi,
+
+          Any update on this? I think that we should consider closing this bug, if you agree that with the current code we cannot even reproduce the issue
+      - +@isprivate: "0"
+        commentid: "19101"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-27 10:49:46 +0100
+        thetext: Closing, due to lack of user input. Please reopen if this can be constructively resolved, which at the moment does not seem to be the case.
+      - +@isprivate: "0"
+        commentid: "19102"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-27 10:50:03 +0100
+        thetext: Taking this, to keep an eye on it.

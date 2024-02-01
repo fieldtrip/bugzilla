@@ -1,0 +1,112 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1554"
+    creation_ts: 2012-06-25 12:36:00 +0200
+    short_desc: ft_sourceinterpolate does not work for grand average data
+    delta_ts: 2012-08-23 14:02:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1573"
+    everconfirmed: "1"
+    reporter:
+      +content: c.abel
+      +@name: Cornelius Abel
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - c.abel
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6548"
+        comment_count: "0"
+        who:
+          +content: c.abel
+          +@name: Cornelius Abel
+        bug_when: 2012-06-25 12:36:51 +0200
+        thetext: |-
+          Using ft_sourceinterpolate on sourcegrandaverage data gives me the following error:
+
+          cfg = [];
+          cfg.downsample    = 2;
+          cfg.parameter = 'avg.avg.pow';
+          sourceDiffInt= ft_sourceinterpolate(cfg, GANoNoise , mri);
+
+
+          ??? Error using ==> interpn at 155
+          Wrong number of input arguments or some dimension of V is less than 2.
+
+          Error in ==> ft_sourceinterpolate>my_interpn at 481
+            av(sel) = interpn(fv, ax(sel), ay(sel), az(sel), interpmethod);
+
+          Error in ==> ft_sourceinterpolate at 385
+                    av( sel) = my_interpn(fv, ax(sel), ay(sel), az(sel), cfg.interpmethod, cfg.feedback);
+
+          It seems that ft_sourceinterpolate cannot handle the 'avg.avg.pow' parameter because copying sourceDiffInt.avg.avg.pow to sourceDiffInt.avg.pow and using cfg.parameter = 'avg.pow' works fine :)
+
+          Digging in the sourcecode i found that in ft_sourceinterpolate line 282 functional.avg.pow is converted from a 1d vector to a 3d matrix while functional.avg.avg.pow is not!
+          Could it be that the corresponding function "parameterselection" is not using the cfg.parameter but some default?
+
+          Greetings,
+
+          Cornelius
+      - +@isprivate: "0"
+        commentid: "6828"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-18 13:32:56 +0200
+        thetext: probably there is something strange going on in ft_sourcegrandaverage first. I suggest to start there.
+      - +@isprivate: "0"
+        commentid: "6855"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 12:18:56 +0200
+        thetext: |-
+          the reason for the avg.avg.pow field is probably that when calling ft_sourcegrandaverage, cfg.parameter is set to 'avg.pow'
+          In itself this is not a bad move, howver sourcegrandaverage is setting avg.(cfg.parameter), resulting in avg.avg.pow
+          I think there needs to be a consent on how sourcegrandaverage should handle this. We gonna discuss this in the FT meeting today.
+
+          probably there also is something wrong in ft_sourceinterpolate as it should be able to handle this. I'll first fix the sourceinterpolate issue and then the sourcegrandaverage - both today if possible
+      - +@isprivate: "0"
+        commentid: "6860"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-07-25 15:16:50 +0200
+        thetext: "Dear Cornelius,\n\nthanks for reporting this.\n\nthe reason why it works with avg.pow but not with avg.avg.pow is that ft_checkdata reshapes avg.pow to match the dim-field. ft_checkdata does not bother about anything that is nested more than once (so any avg.avg will be ignored, which is indeed done by parameterselection)\n\nsince this is not an issue anymore after fixing sourcegrandaverage, I won't fix this bug directly. Rather, I fixed sourcegrandaverage.\n\nThanks for reporting this! \nBest,\nJörn\n\n\nsvn ci utilities/getsubfield.m utilities/setsubfield.m ft_sourcegrandaverage.m -m \"bugfix-#1554-avoiding supernested structures by explicitly avoiding avg.avg (other nested subfields are allowed but will be warned for)\"\nSending        ft_sourcegrandaverage.m\nSending        utilities/getsubfield.m\nSending        utilities/setsubfield.m\nTransmitting file data ...\nCommitted revision 6287."
+      - +@isprivate: "0"
+        commentid: "7211"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:10 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

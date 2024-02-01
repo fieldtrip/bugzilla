@@ -1,0 +1,181 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2142"
+    creation_ts: 2013-04-26 15:34:00 +0200
+    short_desc: memory issues with runica
+    delta_ts: 2014-06-18 12:33:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: brungio
+      +@name: Bruno L. Giordano
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - arno
+      - j.herring
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10319"
+        comment_count: "0"
+        attachid: "469"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2013-04-26 15:34:43 +0200
+        thetext: |-
+          Created attachment 469
+          see message
+
+          I am running some ICA cleanup of rather large datasets, and am finding some memory issues with runica.
+
+          The modified runicaBLG.m I am attaching basically inlines pcsquash.m inside runica and should allow to avoid at least one copy of the dataset in memory. There's another modification that also addresses memory limitations (demeaning within for loop instead of using matrix multiplication). You can find these modifications in runicaBLG by looking for BLG. I have a feeling that there might be more space for optimization in runica.m.....
+
+          Might be useful for other people (check available memory and go for modified function if memory not enough?).
+      - +@isprivate: "0"
+        commentid: "10403"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-07 10:05:32 +0200
+        thetext: |-
+          Hi Bruno,
+
+          I had a look at your changes. They look OK to me.
+
+          I would propose:
+
+          -do the mean subtraction in a for-loop.
+          -don't do the pcsquash inline, but either add an optional flag that specifies whether demean should be done, and/or do the for-loop demeaning in pcsquash, too.
+
+          Let me know what you think.
+      - +@isprivate: "0"
+        commentid: "10404"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-07 13:34:37 +0200
+        thetext: '@Arno: are these changes that can be considered for runica and pcsquash in eeglab, too?'
+      - +@isprivate: "0"
+        commentid: "10417"
+        comment_count: "3"
+        who:
+          +content: arno
+          +@name: Arnaud Delorme
+        bug_when: 2013-05-08 06:14:22 +0200
+        thetext: |-
+          Yes, the changes seem OK although I am not sure they will save RAM. The reason is that the data array is stored also on the caller. Therefore keeping a local copy in runica is not going to hurt.
+
+          I have tested this function against the runica.m function and I get the same results (after disabling the random seed).
+
+          I have checked these changes into EEGLAB.
+          Thanks,
+
+          Arno
+      - +@isprivate: "0"
+        commentid: "10433"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-09 14:26:24 +0200
+        thetext: |-
+          Thanks Arno!
+          I don't know myself (and I didn't check), but it could be that the memory consumption in this case is machine/operating system specific.
+
+          Forgive me my ignorance, but would it in anyway be possible for me to check out the updated files? I could of course make the changes in our local copy, but it would be nice to keep things synchronized. I assume Robert has svn-rights on your repository: would it be possible to add me (checkout rights only) as well?
+
+          Thanks,
+          JM
+      - +@isprivate: "0"
+        commentid: "11447"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-09-25 14:37:48 +0200
+        thetext: "If I may add myself to this discussion as I am having memory issues with running ICA on large datasets as well. Although I am mostly using fastICA the same problems seem to hold. \n\nI am currently trying to loop through chunks of my dataset (trials at the moment) running the ICA on each chunk and using the estimated mixing matrix as an initial guess for the ICA on the following chunk. This reduces the amount of required RAM quite drastically depending on the size of the chunks. However, I have a feeling this solution is too easy and might be problematic. \n\nCan you guys think of any objections against this? I could, for example, imagine that the chunk size has to be sufficiently large to get a good estimate but perhaps this does not matter as the estimation of the mixing matrix improves with each iteration over each chunk?"
+      - +@isprivate: "0"
+        commentid: "13360"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-16 13:53:53 +0200
+        thetext: 'Discussed at FT-meeting: update all eeglab function in fieldtrip/external to latest version.'
+      - +@isprivate: "0"
+        commentid: "13383"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-17 11:12:32 +0200
+        thetext: '@Robert: could you give me svn commit rights for ~/fieldtrip/external/eeglab. I don''t seem to be able to update the code to a newer version'
+      - +@isprivate: "0"
+        commentid: "13585"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-13 15:35:31 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #7)
+
+          you now have write access.
+      - +@isprivate: "0"
+        commentid: "13700"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-17 20:06:25 +0200
+        thetext: |-
+          Sending        eeglab/README
+          Sending        eeglab/binica.m
+          Sending        eeglab/floatread.m
+          Sending        eeglab/icadefs.m
+          Sending        eeglab/runica.m
+          Transmitting file data .....
+          Committed revision 9549.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "469"
+      date: 2013-04-26 15:34:00 +0200
+      delta_ts: 2013-04-26 15:34:43 +0200
+      desc: see message
+      filename: runicaBLG.m
+      type: text/plain
+      size: "65649"
+      attacher:
+        +content: brungio
+        +@name: Bruno L. Giordano
+      data: REMOVED

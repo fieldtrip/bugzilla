@@ -1,0 +1,312 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2185"
+    creation_ts: 2013-06-03 12:22:00 +0200
+    short_desc: 'enhancement: keep time dimension in ft_sourcegrandaverage.'
+    delta_ts: 2015-02-11 15:53:26 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=386
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2517
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2528
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2197
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2544
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - gopalar.ccf
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10589"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-06-03 12:22:12 +0200
+        thetext: "I have a source \nsource1 = \n\n        dim: [49 58 49]\n     inside: [65596x1 double]\n    outside: [73662x1 double]\n        pos: [139258x3 double]\n       time: [1 2]\n        pow: [139258x2 double]\n\nper subject, that I would like to average over subjects but keep the time dimension (in this example, 2 time points).  ft_sourcegrandaverage now sets \n\n  dat      = zeros(Nvoxel, Nsubject);\n\nbut then I get a crash later on line 158 \n    dat(:,i) = tmp(:);\nsince tmp(:) includes time dimension.\n\nAt a minimum, a more useful error message should be given if time is detected in the source structure, prior to reaching this line."
+      - +@isprivate: "0"
+        commentid: "10591"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-03 16:10:47 +0200
+        thetext: |-
+          sourcegrandaverage is ancient. The whole function might have to be reconsidered.
+
+          I do have some (related) good news: git seems to be in a decent state again. So we can probably move forward with the new source structure in a branch. As that is how I would like to address the sourcegrandaverage, i.e. make a new and clean implementation based on a more sane source structure.
+      - +@isprivate: "0"
+        commentid: "13190"
+        comment_count: "2"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-01 21:21:44 +0200
+        thetext: Has this been taken care of in the newer versions of fieldtrip?
+      - +@isprivate: "0"
+        commentid: "13191"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-01 23:15:55 +0200
+        thetext: "(In reply to Raghavan Gopalakrishnan from comment #2)\n\nHi Raghavan\n\nno, this has not yet been addressed due to lack of urgency and a dependency on restructuring the source data representation (which has been work-in-progress for a long time already).\n\nDo you have a clear example (i.e. with regards to input data) for which you would like to see this resolved? \n\nIn which function do you want to feed the data after ft_sourcegrandaverage? \n\nIt would help to have some concrete input to get this issue moving forward. E.g. it would help if you would contribute 2 (or more) source structures that you would want to append."
+      - +@isprivate: "0"
+        commentid: "13192"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-01 23:27:04 +0200
+        thetext: "I made some changes to start addressing this. Most important is that I removed the old implementation from ft_sourcegrandaverage (there was an explicit old an new section in the code) and that in the \"new\" section I switched to using ft_selectdata_new rather than ft_selectdata_old. The difference between ft_selectdata_new and ft_selectdata_old is that new only selects, whereas old would also concatenate. The concatenation (in case of keepindividual=yes) or averaging (in case keepindividual=no) is now explicitly done in ft_sourcegrandaverage.\n\nMoving both sections of code from old to new indicates that I want this to move forward and that I am willing to take some risks in temporary breaking stuff. Note that test_bug2185 is the only test script that calls sourcegrandaverage, and that it is also not used in the tutorials. \n\nmac011> svn commit utilities/ft_selectdata_new.m    \nSending        utilities/ft_selectdata_new.m\nTransmitting file data .\nCommitted revision 9327.\n\nmac011> svn commit ft_sourcegrandaverage.m test\nSending        ft_sourcegrandaverage.m\nAdding         test/test_bug2185.m\nTransmitting file data ..\nCommitted revision 9328."
+      - +@isprivate: "0"
+        commentid: "13193"
+        comment_count: "5"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-01 23:29:12 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #3)\nYes I would be glad to share some test data. It looks like this\n\nsource_timelock_stim{1}\n\nans = \n\n       time: [1x1500 double]\n        pos: [8196x3 double]\n     inside: [8196x1 double]\n    outside: [1x0 double]\n     method: 'average'\n        avg: [1x1 struct]\n        cfg: [1x1 struct]\n\nThe size is about 1 GB. How can I upload?\nAfter grandaverage, I would like to compute cluster based permutation statistics."
+      - +@isprivate: "0"
+        commentid: "13195"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-01 23:45:31 +0200
+        thetext: |-
+          (In reply to Raghavan Gopalakrishnan from comment #5)
+
+          Thanks for the additional info. Please look here for data sharing suggestions: http://fieldtrip.fcdonders.nl/faq/how_should_i_send_example_data_to_the_developers
+          Just pick the one most convenient for you.
+
+          I suggest you don't paste the link in bugzilla (as you don't want others to access the data) but email it to me directly using r.oostenveld at donders.ru.nl.
+      - +@isprivate: "0"
+        commentid: "13199"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-02 16:02:21 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          I received the data and copied it to /home/common/matlab/fieldtrip/data/test/bug2185.mat
+
+
+          On 02 Apr 2014, Raghavan Gopalakrishnan wrote:
+
+          The mat file has a cell matrix with 4 spatio temporal source reconstructed data using MNE. I would like to perform the following actions.
+
+          1. ft_sourcegrandaverage - grand avg the source (dipole) time series (within and between subjects)
+          2. It would also be great if the sources can be fed into the same function or different to compute the mean (or any other function) time series of an anatomical region of interest (Tzourio-Mazoyer et al 2002)
+          3. ft_sourcestatistics - Compute neighborhood matrix of sources and perform cluster based permutation stats.
+      - +@isprivate: "0"
+        commentid: "13221"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-03 18:25:51 +0200
+        thetext: "I have been working on it, making various improvements along the way.\n\nroboos@mentat001> svn commit \nSending        ft_sourcegrandaverage.m\nSending        test/test_bug2185.m\nSending        utilities/ft_datatype_source.m\nSending        utilities/ft_selectdata_new.m\nTransmitting file data ....\nCommitted revision 9341.\n\n\nCould you download the latest FT version (from ftp tonight, or from googlecode or github immediately) and have a look at the test_bug2185 script/function. As function it will not work for you, but you can copy-paste the relevant sections (at the bottom, where your data is loaded). I hope you can confirm that this is a step in the right direction in ft_sourcegrandaverage (with keep individual=yes/no).\n\nOh, in case you wonder where the test script is, see https://code.google.com/p/fieldtrip/source/browse/trunk/test/test_bug2185.m\n\nThe follow up of the analysis, i.e. doing something with the output of  ft_sourcegrandaverage still needs more work. Your point 1 and 3 have some methodological concerns (i.e. not MATLAB related per see), but your point 2 should be almost done. The code for ROI selection on the basis of an anatomical atlas is present, so I will first continue there."
+      - +@isprivate: "0"
+        commentid: "13226"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 11:36:47 +0200
+        thetext: |-
+          First thing to check is that ft_math can work with the newly formatted output of ft_sourceanalysis. It had problems with the mom field, which I just solved.
+
+          mac011> svn commit ft_math.m test/test_ft_math.m
+          Sending        ft_math.m
+          Sending        test/test_ft_math.m
+          Transmitting file data ..
+          Committed revision 9351.
+      - +@isprivate: "0"
+        commentid: "13227"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 11:44:32 +0200
+        thetext: "Hi Raghavan,\n\nI want to continue by ensuring that the ft_sourcegrandaverage output is compatible with ft_sourceplot. Am I correct that the source reconstruction is done on a cortical sheet? \n\nThe number of vertices matches with fieldtrip/template/sourcemodel/cortex_8196.surf.gii but the positions don't. Can you tell me a bit more about the cortical sheet?\n\nRobert"
+      - +@isprivate: "0"
+        commentid: "13228"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 11:46:48 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          Also the triangles of the FT template are inconsistent with your source model. Could you give me the triangle connectivity (i.e. the "tri" matrix in fieldtrip terminology)?
+      - +@isprivate: "0"
+        commentid: "13231"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 14:36:33 +0200
+        thetext: |-
+          I improved data selection for source structures, now supports time and frequency selection and averaging, and averaging over source positions. Furthermore I extended the support for {pos}_ori_time structures.
+
+          mac011> svn commit utilities/ft_selectdata_new.m test/test_bug2185.m
+          Sending        test/test_bug2185.m
+          Sending        utilities/ft_selectdata_new.m
+          Transmitting file data ..
+          Committed revision 9353.
+      - +@isprivate: "0"
+        commentid: "13232"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 14:39:56 +0200
+        thetext: "Although the original data structure does not lend itself for easy plotting, the test script shows that it is possible to do some stuff with the source reconstruction and visualise it. \n\n\nSofar the following functions are working on the new ft_sourcegrandaverage output representation:\n\n- ft_selectdata (new)\n- ft_math\n- ft_sourceinterpolate\n- ft_sourceplot\n\nThe following ones still need to be checked:\n\n- ft_appendsource\n- ft_sourcedescriptives\n- ft_sourcemovie\n- ft_sourceparcellate\n- ft_sourcestatistics\n- ft_sourcewrite"
+      - +@isprivate: "0"
+        commentid: "13236"
+        comment_count: "14"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-04 16:20:40 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #8)
+          I did download the new version of FT 20140403 and tested ft_sourcegrandaverage. It works well, except for ft_math as you have pointed out. The new version of ft_math will be available on FT version 20140404? I will address your other comments one by one.
+          Thanks very much.
+      - +@isprivate: "0"
+        commentid: "13238"
+        comment_count: "15"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-04 22:14:21 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #13)\nThere seems to be one more problem. \nWith ft_sourceinterpolate (and ft_sourcemovie and may be other functions you have listed).\nThe funparameter looks for field 'avg.pow'. However, the output of the new ft_sourcegrandaverage does not have the 'avg.pow' field. Looks like 'avg' field is now stripped and 'pow' field is now separate."
+      - +@isprivate: "0"
+        commentid: "13264"
+        comment_count: "16"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-08 21:02:16 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #13)
+          Any more improvements on this front?
+      - +@isprivate: "0"
+        commentid: "13266"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-08 22:39:23 +0200
+        thetext: |-
+          (In reply to Raghavan Gopalakrishnan from comment #16)
+
+          That the avg subfield is gone is part of the design. New source structures should be more similar to timelock and freq structures, and for example to the output of ft_sourcestatistics. That means that the avg and trial subfields have to be removed, the representation "flattened" and dimords better described.
+
+          I have been working on ft_selectdata, but encountered some problems. To address them, I should implement ft_selectdata from scratch (i.e. make a 3rd attempt at the function, after the "old" and the "new" implementation that we now have).
+
+          There is also the related report from Johanna that needs to be addressed with this change. I'll get to work on it tomorrow morning.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "13270"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-09 15:25:58 +0200
+        thetext: for reference, I copied the source model (with pnt and tri) to bug2185_sourcemodel.mat
+      - +@isprivate: "0"
+        commentid: "13389"
+        comment_count: "19"
+        who:
+          +content: gopalar.ccf
+          +@name: Raghavan Gopalakrishnan
+        bug_when: 2014-04-21 19:12:02 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #18)
+          Dear Robert,
+          I guess you have been working on this issue. Do you have any progress at this time? When do you anticipate the sourcegrandaverage and all related functions will go live?
+          Thanks,
+          Raghavan
+      - +@isprivate: "0"
+        commentid: "13391"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-22 09:46:44 +0200
+        thetext: |-
+          (In reply to Raghavan Gopalakrishnan from comment #19)
+
+          the implementation in ft_sourcegrandaverage is now complete, although there is a regression error according to the reported bug 2544. The updated code is also part of the fieldtrip release.
+
+          You can confirm that it works with the following example code and check the output data structures.
+
+          source = [];
+          source.pos = rand(1320,3);
+          source.time = 1:25;
+          source.avg.pow = rand(10*11*12,25);
+          source.inside = 1:660;
+          source.outside = 661:1320;
+
+          cfg = [];
+          cfg.parameter = 'pow';
+          cfg.keepindividual = 'no';
+          grandavg1 = ft_sourcegrandaverage(cfg, source, source)
+
+          cfg.keepindividual = 'yes';
+          grandavg2 = ft_sourcegrandaverage(cfg, source, source)
+
+          Having completed this specific issue in ft_sourcegrandaverage does not mean that source activity that is expressed as function of time can be used throughout field trip. There is code further down in the analysis pipeline that may need to be further extended.
+      - +@isprivate: "0"
+        commentid: "13624"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:50 +0200
+        thetext: closed several of my bugs that have been resolved
+      - +@isprivate: "0"
+        commentid: "15308"
+        comment_count: "22"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-11 15:49:33 +0100
+        thetext: The test script started failing, there is no time dimension anymore after ft_sourcegrandaverage. I'll look into it.

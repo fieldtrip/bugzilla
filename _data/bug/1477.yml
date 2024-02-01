@@ -1,0 +1,198 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1477"
+    creation_ts: 2012-05-15 14:16:00 +0200
+    short_desc: raw2timelock within utilities/ft_checkdata.m fails if trials do not cross timepoint 0
+    delta_ts: 2013-10-26 17:59:03 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: thomas.hartmann
+      +@name: Thomas Hartmann
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - jorn
+      - roemer.van.der.meij
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6106"
+        comment_count: "0"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-05-15 14:16:21 +0200
+        thetext: |-
+          hi,
+          in the latest version from the svn repository, ft_checkdata crashes when using raw2timelock whenever the trials processed do not include timepoint 0 (i.e., going from -0.5 to -0.1). i have tracked down the error to line number 1663:
+
+          time =  interp1(time, time, mint:mean(diff(time)):maxt, 'linear', 'extrap');
+
+          if this line is executed in the above mentioned case, the function expects data that is not there and crashes. removing that line does the trick for me but i do not know, of course, whether a better solution exists.
+
+          i have put the severity of this bug to "major" as the crash occurs as soon as ft_recjectvisual is called on respective data - a function used very often.
+
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "6107"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-05-16 07:07:11 +0200
+        thetext: |-
+          Hi Thomas,
+
+          Sorry that this causes problems for you. I remember that this particular line was actually incorporated to deal with some time axis issues, and when tested back then, it seemed to work fine. Obviously we did not anticipate all different types of input otherwise we would have caught this one.
+          I CC Jörn to this one, because he was involved in fixing the original bug.
+      - +@isprivate: "0"
+        commentid: "6110"
+        comment_count: "2"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-05-16 07:19:46 +0200
+        thetext: |-
+          hi jan,
+          no need to be sorry. i code myself, so i know how easy it is to miss a not so common usecase.
+
+          and as fieldtrip is open source in contrast to other analysis software, i can do a workaround myself and continue working.
+
+          so, thanks a lot for all the effort by you and all the other developers!
+
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "6121"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-05-16 09:30:56 +0200
+        thetext: |-
+          Hi Thomas,
+
+          I am sorry that this does not work for you, and for potentially having introduced this, but essentially this has fixed another bug ;) In the testscript that I made, the case where 0 is  not included is explicitly covered which works fine on my computer (I quickly checked). The extrapolation step should not really care whether there is 0 included in your data or not. Maybe there is some exceptional case for which this really does not work... Unfortunately, I'm on vacation, so I got no time to look into your issue further until the end of this month. If your problem is not fixed by then, I will try to fix it asap.
+      - +@isprivate: "0"
+        commentid: "6122"
+        comment_count: "4"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-05-16 09:44:47 +0200
+        thetext: |-
+          hi jörn,
+          maybe i was not accurate enough: i experience this bug when i only analyze pre-stimulus data, i.e. going from -.5 to -.1 . i have debugged the function to see the intermediate results. before the interpolation takes place, time has the correct values while afterwards time has extra values between the last timepoint in my data and (including) 0.
+
+          but honestly, i do not want to disturb your well earned vacation. the function works perfectly for me after i disabled the interpolation. and you are definitely right: this is a very special use case. so no need to hurry!
+
+          i just wanted to report the issue as i am sure the developers want to be informed about this, rather special, case.
+
+          i wish you great holidays!
+          thomas
+      - +@isprivate: "0"
+        commentid: "6240"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-04 11:16:23 +0200
+        thetext: |-
+          Hi Thomas,
+
+          after being fully relaxed from vacation, I can take this over again. Although this is indeed a special case, the function should be able to cover all cases, so I'm gonna think of a smart way and gonna let you know soon (i.e. this week).
+
+          Best,
+          Jörn
+      - +@isprivate: "0"
+        commentid: "6281"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-05 16:31:31 +0200
+        thetext: "It took a whole lot of time, this was really a nasty one.\nThe problem was, once again, a numerical rounding issue with Matlab. Since you are a programmer (and for possible future work on this), I'm gonna explain the rationale of the algorithm to you. The problem here is that within FieldTrip, trials in raw data can have different time axes, for example in might be possible that one trial covers -1s to -0.5s, another trial covers 0.5s to 1s. \nIn the first part of the code, we need to find out how many number of samples a combined time-axis would need. Therefore, we count the number of samples from the beginning to the end of the trial. However, in the given example, there are samples missing - still we want to have a continuous time-axis. Thus, we need to also cover -0.5s to 0.5s, though we don't have data. That is were the extrapolation comes in. The first part (the first for-loop) counts the number of samples before and after a reference point, which we decided to make 0. The sum of these two defines the total number of samples. In order to not include 0 directly, I made this temporary time-axis only up to eps, i.e. just not including zero.\n\nThe problem that your particular example resulted in was two-folded. \nOne: simply in some cases, eps will be treated similar as 0, e.g. if you type in -0.5:.25:-eps it will have the same number of samples as -0.5:.25:0, although strictly speaking the first should only have two elements. This is 'solved' now in a rather hacky way, by scaling eps with 2 times the order of magnitude of the signal. Also, a special case when 0 must be included is made. In the test-script we have, this shows to be robust (so far, despite the cases where values smaller than eps are on the time-axes).\n\nTwo: In case that there are only negative values (or positive), it should be accounted for the fact that there might be missing values around 0. Thus, in case the axis goes from -3 to -2, obviously -1 should not be included in the newly formed time-axis. When counting the number of elements before zero, we will get to 3, but the time-axis should only have 2 elements. This is now accounted for as well.\n\nThe more I fixed the function, the more strange time-axes I tested, the more counter-intuitive the code became... I hope this text makes it somewhat clear.\n\nPlease check with your data whether the new version works for you.\n\n510 $ svn ci ft_checkdata.m -m \"bugfix-#1477-raw2timelock can handle strictly positive or negative time-axes more reliable now\"\nSending        ft_checkdata.m\nTransmitting file data .\nCommitted revision 5909."
+      - +@isprivate: "0"
+        commentid: "7208"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:09 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "8548"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-05 10:47:44 +0100
+        thetext: |-
+          Oh yeah, managed to find a situation where raw2timelock fails, due to rounding issues yet again.
+          Will upload some data soon and check whether it can be patched.
+      - +@isprivate: "0"
+        commentid: "8551"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-05 10:51:17 +0100
+        thetext: |-
+          created some data in /home/common/matlab/fieldtrip/data/test/bug1477.mat
+
+          bug can be reproduced by:
+
+          tlck = ft_checkdata(data,'datatype','timelock');
+      - +@isprivate: "0"
+        commentid: "10636"
+        comment_count: "10"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 16:13:36 +0200
+        thetext: "Jorn, I couldn't find a way around the issue in bug 2106 without setting a precision limit on the sampling rate (requiring the return of fsample and some other changes throughout the code). \n\nSo, I tried to find a different way to determine a general time-axis in raw2timelock. I committed it just now, but left your old code there. Could you take a quick look and remove the old code if you don't see any issues? JM's 'test-script' works fine with the new code, and I also do not see an error with time-axis that end before t=0."
+      - +@isprivate: "0"
+        commentid: "10638"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-05 16:31:01 +0200
+        thetext: |-
+          looks fine to me, actually a much more comprehensible solution :) and I just realized that ft_checkdata is also called in raw2timelock and due to fixtimeaxis, numerical inaccuracies are now dealt with twice, once there and once in your new fix.
+
+          I guess you checked with bug1477.mat as well? test_ft_checkdata seems to run fine.
+      - +@isprivate: "0"
+        commentid: "10639"
+        comment_count: "12"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 16:39:18 +0200
+        thetext: The test-data worked fine. Cool, I'll delete the old code then (it will survive in svn anyways).

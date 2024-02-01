@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2841"
+    creation_ts: 2015-02-13 11:57:00 +0100
+    short_desc: ft_preprocessing doesn't select channels anymore
+    delta_ts: 2015-07-15 13:31:11 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: p.mostert
+      +@name: Pim Mostert
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15357"
+        comment_count: "0"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2015-02-13 11:57:58 +0100
+        thetext: |-
+          Since a couple of days, it appears that ft_preprocessing doesn't select the channels anymore as specified in cfg.channel.
+
+          % length(data.label) > 300
+          cfg = [];
+          cfg.channel = ft_channelselection('MEG', data.label);
+          % length(cfg.channel) == 274
+
+          newdata = ft_preprocessing(cfg, data)
+          % length(newdata.label) > 300
+
+          I'm pretty sure this worked just fine before. Is it a new policy, or just a bug?
+
+          Thanks,
+          Pim
+      - +@isprivate: "0"
+        commentid: "15358"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-13 12:17:11 +0100
+        thetext: "This works fine:\n\n>> cfg = [];\n>> cfg.dataset = 'Subject01.ds';\n>> cfg.channel = 'ML*';\n>> data1 = ft_preprocessing(cfg)\n\ndata1 = \n\n           hdr: [1x1 struct]\n         label: {71x1 cell}\n          time: {1x266 cell}\n         trial: {1x266 cell}\n       fsample: 300\n    sampleinfo: [266x2 double]\n          grad: [1x1 struct]\n           cfg: [1x1 struct]\n\nBut here it fails:\n\n>> cfg = [];\n>> cfg.channel = 'MLC*';\n\ndata2 = \n\n           hdr: [1x1 struct]\n       fsample: 300\n          grad: [1x1 struct]\n    sampleinfo: [266x2 double]\n         trial: {1x266 cell}\n          time: {1x266 cell}\n         label: {71x1 cell}\n           cfg: [1x1 struct]\n\nDefinitely a bug!"
+      - +@isprivate: "0"
+        commentid: "15359"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-13 12:30:40 +0100
+        thetext: |-
+          in revision 10217 another way of data selection was introduced, see
+          https://code.google.com/p/fieldtrip/source/diff?spec=svn10217&r=10217&format=side&path=/trunk/ft_preprocessing.m
+
+          In principle the data selection should work the same as before, but the call to rollback_provenance causes cfg.channel to be replaced by all channels that were selected by ft_selectdata (i.e. 'all').
+
+          The call to keepfields should also copy cfg.channel over into tmpcfg, and the subsequent code in which the channels are selected is obsolete.
+
+          I fixed it.
+
+          mac011> svn commit ft_preprocessing.m
+          Sending        ft_preprocessing.m
+          Transmitting file data .
+          Committed revision 10231.
+      - +@isprivate: "0"
+        commentid: "15360"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-13 13:17:09 +0100
+        thetext: |-
+          Pim, je wordt zo onderhand mijn persoonlijke bug-vanger!
+          Dank maar weer, en excuses voor het gepruts.
+      - +@isprivate: "0"
+        commentid: "15906"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:11 +0200
+        thetext: closed several bugs at once that were recently fixed

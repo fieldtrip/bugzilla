@@ -1,0 +1,116 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1813"
+    creation_ts: 2012-11-06 16:46:00 +0100
+    short_desc: 'ft_fetch_header: requires grad field in header'
+    delta_ts: 2012-12-31 11:46:26 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: joscha.schmiedt
+      +@name: Joscha Schmiedt
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - dlozanosoldevilla
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8150"
+        comment_count: "0"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2012-11-06 16:46:50 +0100
+        thetext: |-
+          ft_fetch_header checks sets the grad field of data to data.hdr.grad:
+
+          ...
+           %in data has been appended, the grad might be lost but inside of hdr
+           %there should be the grad
+           if ~isfield(hdr,'grad') && isfield(data, 'hdr')
+               hdr.grad=data.hdr.grad;
+           end
+          ...
+
+          However, not all types of headers contain a grad field.
+      - +@isprivate: "0"
+        commentid: "8155"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 09:55:41 +0100
+        thetext: |-
+          Thanks for the report, seems indeed incorrect. However, I cannot find the specific piece of code.
+
+          mac001> grep 'in data has been appended' fieldtrip/*.m
+          mac001> grep 'in data has been appended' fieldtrip/*/*.m
+
+          mac001> grep data.hdr.grad fieldtrip/*.m
+          mac001> grep data.hdr.grad fieldtrip/*/*.m
+          mac001> grep data.hdr.grad fieldtrip/*/*/*.m
+
+          all return empty.
+
+          The latest ft_fetch_header at line 63 has
+
+          % fill in hdr.grad or hdr.elec
+          if isfield(data, 'grad')
+            hdr.grad=data.grad;
+          elseif isfield(data, 'elec')
+            hdr.elec=data.elec;
+          end
+
+          Can you please clarify where you found this piece of code?
+      - +@isprivate: "0"
+        commentid: "8157"
+        comment_count: "2"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2012-11-07 10:05:58 +0100
+        thetext: |-
+          Sorry, should have included that info. The code snippet is from Lines 69-73 of utilities/ft_fetch_header.m, Version
+
+          % $Id: ft_fetch_header.m 6878 2012-11-06 15:01:28Z dieloz $¬
+      - +@isprivate: "0"
+        commentid: "8158"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 10:28:04 +0100
+        thetext: "(In reply to comment #2)\n\nMy apologies, I was looking at an old version myself and should have done an update.\n\nI just changed it into\n\n% retrieve the gradiometer and/or electrode information\nif isfield(data, 'grad')\n  hdr.grad = data.grad;\nelseif isfield(data, 'hdr') && isfield(data.hdr, 'grad')\n  hdr.grad = data.hdr.grad;\nend \nif isfield(data, 'elec')\n  hdr.elec = data.elec;\nelseif isfield(data, 'hdr') && isfield(data.hdr, 'elec')\n  hdr.elec = data.hdr.elec;\nend\n\nSending        fileio/private/ft_fetch_header.m\nTransmitting file data .\nCommitted revision 6882.\nmac001> svn update\nU    utilities/ft_fetch_header.m\nUpdated to revision 6883."
+      - +@isprivate: "0"
+        commentid: "8853"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:26 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

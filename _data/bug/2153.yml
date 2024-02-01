@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2153"
+    creation_ts: 2013-05-03 12:17:00 +0200
+    short_desc: Check read_brainvision_eeg.m
+    delta_ts: 2015-07-15 13:30:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: andrea.brovelli
+      +@name: Andrea Brovelli
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - j.schoffelen
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10377"
+        comment_count: "0"
+        who:
+          +content: andrea.brovelli
+          +@name: Andrea Brovelli
+        bug_when: 2013-05-03 12:17:52 +0200
+        thetext: |-
+          Dear all,
+
+          there might be a bug in the code read_brainvision_eeg.m
+
+          Line 64 now reads:
+            fseek(fid, hdr.NumberOfChannels*2*(begsample-1), 'cof');
+
+          And I think it should be (as for Line 79):
+            fseek(fid, hdr.NumberOfChannels*samplesize*(begsample-1), 'cof');
+
+          I did not check the rest of the code, though, because it seemed to work....
+
+          Thanks a lot
+
+          bye
+
+          Andrea
+      - +@isprivate: "0"
+        commentid: "10380"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-03 12:55:56 +0200
+        thetext: '*** Bug 2154 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "10394"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-07 06:42:17 +0200
+        thetext: "Hi Andrea, \nCould you be a bit more specific? What's going wrong in your case? Do you have a snippet of data that can be used by us to reproduce the problem?"
+      - +@isprivate: "0"
+        commentid: "10400"
+        comment_count: "3"
+        who:
+          +content: andrea.brovelli
+          +@name: Andrea Brovelli
+        bug_when: 2013-05-07 08:47:25 +0200
+        thetext: "(In reply to comment #2)\n\nHello Jan-Mathijs,\n\neven though the cfg.tfl is correct, the trial data I get take only half of the trial length at the time. So, imagine I have 3 trials of length 1000 points. The indeces of the data I get are:\n\n1 1000\n500 1500\n1000 2000\n\nThe number of trials is correct but the data is epoched incorrectly. If I change Line 64 as:\n\n  fseek(fid, hdr.NumberOfChannels*samplesize*(begsample-1), 'cof'); \n\nit works. The variable samplesize was set to 2.\n\nIf you look at Line 79 you'll see the same kind of script.\n\nI cant send you some figures this afternoon though.\n\nbye\n\nAndrea"
+      - +@isprivate: "0"
+        commentid: "10735"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-13 10:46:10 +0200
+        thetext: "I can see what the problem might be, if there are no channels selected the offset in the binary file is set by: fseek(fid, hdr.NumberOfChannels*2*(begsample-1), 'cof'); whereas if specific channels are selected the offset is set by  fseek(fid, hdr.NumberOfChannels*samplesize*(begsample-1) + (chanindx(chan)-1)*samplesize, 'bof');\n\nThe main difference being that samplesize is fixed to '2' in case no channels are selected. The samplesize, however, depends on hdr.BinaryFormat. Only in the case that hdr.BinaryFormat is 'int_16' the samplesize is 2. In case of 'int_32' and 'ieee_float_32' the samplesize is 4. In those cases the offset set by fseek will be half of that what it should be when no specific channels are selected. \n\nAs I am a brainvision user myself and never had these issues I looked into it. I didn't have issues because my datasets are stored in 'int_16' (samplesize=2).\n\nThis might also be related to bug2068. It could be that in that case the wrong data is read-in as well."
+      - +@isprivate: "0"
+        commentid: "10740"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-13 12:07:11 +0200
+        thetext: |-
+          I've made the change and committed it. I'll also try to find out if bug2068 is related.
+
+          Sending        read_brainvision_eeg.m
+          Transmitting file data .
+          Committed revision 8256.
+      - +@isprivate: "0"
+        commentid: "10742"
+        comment_count: "6"
+        who:
+          +content: andrea.brovelli
+          +@name: Andrea Brovelli
+        bug_when: 2013-06-13 12:33:09 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+          Excellent job !
+
+          Thanks a lot
+
+          Andrea
+      - +@isprivate: "0"
+        commentid: "10743"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-13 12:34:48 +0200
+        thetext: Yes, the boys are trained by the best...
+      - +@isprivate: "0"
+        commentid: "10997"
+        comment_count: "8"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-08-02 09:07:36 +0200
+        thetext: This bug is solved, bug2068 appears to be a duplicate of this bug.
+      - +@isprivate: "0"
+        commentid: "10999"
+        comment_count: "9"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-08-02 09:08:35 +0200
+        thetext: '*** Bug 2068 has been marked as a duplicate of this bug. ***'

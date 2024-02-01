@@ -1,0 +1,399 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1745"
+    creation_ts: 2012-09-26 15:50:00 +0200
+    short_desc: test_ft_prepare_localspheres.m fails
+    delta_ts: 2013-06-06 15:09:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7618"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-26 15:50:44 +0200
+        thetext: "Related to bug 1414: test-script fails after the update to make ft_headmodel_localspheres more robust (or strict is a better way to say it) to geometry input.  However, ft_prepare_headmodel was not updated to go along with this change.  ft_prepare_headmodel still creates a geometry structure of size 3 on line 209 in the call to prepare_shells, but then ft_headmodel_localspheres now crashes if given a geometry structure size greater than 1 (line 260 of ft_prepare_headmodel).\n\nWhere should the change be made?  \n1) In ft_headmodel_localspheres where if geometry is greater than size 1, then another key-value pair option for selection of which geometry?\nor\n\n2) in ft_prepare_headmodel in 'case localspheres' (near line 259) prior to call to ft_headmodel_localspheres?\nor\n\n3) require cfg.tissue to be set by user when calling ft_prepare_headmodel with option cfg.method='localspheres' and 'hasvolume && needbnd' is true?"
+      - +@isprivate: "0"
+        commentid: "7619"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-26 15:51:53 +0200
+        thetext: see bug 1679
+      - +@isprivate: "0"
+        commentid: "7754"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-02 17:01:59 +0200
+        thetext: |-
+          I've taken the new version of ft_prepare_headmodel from Robert and am creating a test_ft_prepare_headmodel, cycling over all cfg.method options in combination with all data input options.
+
+          I'm stuck on one question for now:
+          How should cfg.radius default be set, when the 'headshape' is in fact a mesh from the brain surface (rather than scalp)?  Should this option just be forbidden? or should the call to ft_headmodel_localspheres from ft_prepare_headmodel be smart enough to know to increase the radius and maxradius depending on the segmentation input?
+      - +@isprivate: "0"
+        commentid: "7946"
+        comment_count: "3"
+        attachid: "348"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 17:04:17 +0200
+        thetext: |-
+          Created attachment 348
+          ft_prepare_headmodel_new.m
+      - +@isprivate: "0"
+        commentid: "7947"
+        comment_count: "4"
+        attachid: "349"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 17:05:08 +0200
+        thetext: |-
+          Created attachment 349
+          test_ft_prepare_headmodel.m
+      - +@isprivate: "0"
+        commentid: "7948"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 17:06:16 +0200
+        thetext: "Hi Robert, \nCan we meet to discuss the 2 files I just attached?  I have many questions and comments (related to all the 'FIXME's in the code).  Thanks!"
+      - +@isprivate: "0"
+        commentid: "8004"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-26 13:27:52 +0200
+        thetext: |-
+          Hi Robert,
+          The ft_headmodel_(BEM) options currently work such that dipoli and openmeeg can handle a 1-shell vol input, via the "if isolatedsource" option, whereas bemcp does not have this option, and instead, bemcp requires that numel(geometry) must be 3. Is this correct/desired?
+      - +@isprivate: "0"
+        commentid: "8481"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-11-28 18:26:40 +0100
+        thetext: "Robert, in the old (current) version of ft_prepare_headmodel, the call to simbio and fns together looks like:\n\n    vol = feval(funname,geometry,'tissue',cfg.tissue,'tissueval',cfg.tissueval, ...\n      'tissuecond',cfg.tissuecond,'sens',cfg.sens, ...\n      'transform',cfg.transform,'unit',cfg.unit);\n\nHowever, none of these 6 inputs are used by simbio (all by fns).  Instead, ft_headmodel_simbio wants 'conductivity' (and it is not given it!).  \nBut based on the cfg options in ft_prepare_headmodel, which of these two inputs should it use?\n\n        vol = ft_headmodel_simbio(geometry,'conductivity',cfg.conductivity);\nor\n        vol = ft_headmodel_simbio(geometry,'conductivity',cfg.tissuecond);"
+      - +@isprivate: "0"
+        commentid: "8487"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-29 09:14:29 +0100
+        thetext: "(In reply to comment #7)\n\nSimbio will need a mesh with tetrahedral or hexahedral elements, where each element will have a scalar or tensor conductivity. I guess that the same applies to FNS. \n\nI suggest to \n- split the two altogether. \n- use cfg.conductivity in both, pass it as 'tissuecond' to fns and 'conductivity' to simbio\n- update the help in ft_headmodel_fns to specify the correct options (it now specifies one that is not used, and does not specify any one that is used).\n\nI also suggest not to include any tests pertaining to simbio or fns into test_ft_prepare_headmodel. The main reason for the general test of ft_prepare_headmodel is to ensure that it is and remains consistent with the old implementations like ft_prepare_bemmodel. The new implementations that have not been used yet (simbio, fns) are better tested in their respective specific test scripts."
+      - +@isprivate: "0"
+        commentid: "8533"
+        comment_count: "9"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-04 11:09:27 +0100
+        thetext: |-
+          Hi Robert,
+          Do you have (or can point me to) an ASA file that will past the test ft_filetype(cfg.hdmfile, 'asa_vol') that can be used for testing in the test_ft_prepare_headmodel?
+      - +@isprivate: "0"
+        commentid: "8534"
+        comment_count: "10"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-04 11:48:24 +0100
+        thetext: I've noticed in bemcp, dipoli, and openmeeg that if default conductivity values are used, then they are first assigned, then the order of the shells is rearranged if needed to 'inside first'.   Shouldn't the re-arranging occur first, and then if no conductivity set by user, then assign default cond values since the order is now certain?   Robert, did you have another way to know that the order was predetermined as outside-first (skull scalp brain)?
+      - +@isprivate: "0"
+        commentid: "8536"
+        comment_count: "11"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-04 13:00:41 +0100
+        thetext: For the use of concentricspheres in ft_prepare_headmodel, we added last week during the bug binge that a headshape can be entered as geometry.  This is 1-shell.  Should ft_headmodel_concentricspheres then also allow/set a default conductivity if length(vol.r)==1?
+      - +@isprivate: "0"
+        commentid: "8537"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-04 13:10:54 +0100
+        thetext: "(In reply to comment #9)\n\nSure. I have copied some to the test directory. I believe these were made with ASA version 2, which is a really old version. But since then I have not used ASA any more.\n\nroboos@mentat001> pwd\n/home/common/matlab/fieldtrip/data/test/original\n\nroboos@mentat001> ll -d */asa\ndrwxr-xr-x 2 roboos mrphys 4096 Dec  4 12:58 electrodes/asa\ndrwxr-xr-x 2 roboos mrphys 4096 Dec  4 12:57 headmodel/asa\ndrwxr-xr-x 2 roboos mrphys 4096 Dec  4 12:59 headshape/asa\ndrwxr-xr-x 2 roboos mrphys 4096 Dec  4 12:58 mri/asa\n\nI also added a test script for the reading. It contains\n\nelcfile = '/home/common/matlab/fieldtrip/data/test/original/electrodes/asa/standard_primed.elc';\nvolfile = '/home/common/matlab/fieldtrip/data/test/original/headmodel/asa/standard.vol';\nskinfile = '/home/common/matlab/fieldtrip/data/test/original/headshape/asa/standard_skin_14038.vol';\nmrifile = '/home/common/matlab/fieldtrip/data/test/original/mri/asa/standard.mri';\nelec = ft_read_sens(elcfile);\nvol  = ft_read_vol(volfile);\nskin = ft_read_headshape(skinfile);\nmri  = ft_read_mri(mrifile);\n\n----\nmac001> svn commit \nAdding         test/test_fileformat_asa.m\nSending        test/test_headmodel_interpolate.m\nTransmitting file data ..\nCommitted revision 7076.\n\nHmm, the test_headmodel_interpolate.m should not have been committed with this."
+      - +@isprivate: "0"
+        commentid: "8538"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-04 13:18:38 +0100
+        thetext: "(In reply to comment #10)\n\ncorrect, first ensure the order, then use the default conductivity (which implies a default order). You could use this one, which is in forward/private:\n\n% BOUNDING_MESH determines if a point is inside/outside a triangle mesh \n% whereby the bounding triangle mesh should be closed.\n%\n% [inside] = bounding_mesh(pos, pnt, tri)\n% ...\n\ne.g.\n\nisinside = false(nsurface);\nfor i=1:nsurface\npos = bnd(i).pnt(1,:);\nfor j=(i+1):nsurface\nif bounding_mesh(pos, bnd(j).pnt, bnd(j).tri)\n  isinside(i,j) = true;\n  isinside(j,i) = false;\nend\nend\nend\n\nand then \n[dum, order] = sort(sum(isinside, 2));\n\nif dum is unequal to 1:nsurface there is something wrong.\n\norder can subsequently be used to sort the surfaces."
+      - +@isprivate: "0"
+        commentid: "8539"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-04 13:19:23 +0100
+        thetext: |-
+          (In reply to comment #11)
+
+          yes. I suggest to set the one-shell default conductivity to 1.
+      - +@isprivate: "0"
+        commentid: "8599"
+        comment_count: "15"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-09 17:48:06 +0100
+        thetext: |-
+          (In reply to comment #13)
+          I found surface_nesting (inside forward/private) which does what you suggest.  However, the labels of 'outsidefirst' and 'insidefirst' seem backwards (opposite logic) to me.  I would think I'd need to call the code 'insidefirst' in order to actually get the order skin,skull,brain, whereas I'd conceptually call it outsidefirst.
+
+          The way that ft_headmodel_bemcp calls it however, is consistent: it calls surface_nesting with 'outsidefirst' option, then later ensures that the 3rd boundary is the skin.  So the code mathematically behaves ok, but conceptually the label seems backwards.
+      - +@isprivate: "0"
+        commentid: "8600"
+        comment_count: "16"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-09 18:14:09 +0100
+        thetext: |-
+          The default conductivity values for 4-shell dipoli and concentricspheres do not match.
+          dipoli has [1 1 1/80 1] * 0.33; %brain, inner-skull, outer-skull, skin
+          concentricspheres has [0.3300 1 0.0042 0.3300]; % brain, csf, skull, skin
+          Which value is correct for the second shell (1 or 0.33)?
+          Which label is correct (csf or inner-skull)?
+      - +@isprivate: "0"
+        commentid: "8601"
+        comment_count: "17"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-09 20:53:35 +0100
+        thetext: Related to the original title of this bug, test_ft_prepare_localspheres tries to compare the new and old way of using localspheres with cfg.headshape.  However, when we (Robert and I) discussed the new ft_prepare_headmodel at the last bug binge, we decided that only singlesphere and concentricspheres would allow a cfg.headshape (but not localspheres).   Is that decision still correct?  If so, then I guess I should remove that check from the test_ft_prepare_localspheres.  If not, then I will change the (new) ft_prepare_headmodel.
+      - +@isprivate: "0"
+        commentid: "8638"
+        comment_count: "18"
+        attachid: "391"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-12 09:43:40 +0100
+        thetext: |-
+          Created attachment 391
+          ft_prepare_headmodel_new.m
+
+          Updated (and finished?) ft_prepare_headmodel_new.m
+      - +@isprivate: "0"
+        commentid: "8639"
+        comment_count: "19"
+        attachid: "392"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-12 09:44:41 +0100
+        thetext: |-
+          Created attachment 392
+          test_ft_prepare_headmodel.m
+      - +@isprivate: "0"
+        commentid: "8744"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 09:55:21 +0100
+        thetext: |-
+          (In reply to comment #16)
+
+          [0.3300 1 0.0042 0.3300 for brain, csf, skull, skin is better and consistent with the use elsewhere (e.g. besa).
+      - +@isprivate: "0"
+        commentid: "8749"
+        comment_count: "21"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-18 10:21:41 +0100
+        thetext: |-
+          (In reply to comment #8)
+          I just realised I never implemented this part of comment 8(simbio/fns).  Working on it now.
+      - +@isprivate: "0"
+        commentid: "8752"
+        comment_count: "22"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-12-18 11:33:12 +0100
+        thetext: "(In reply to comment #8)\nCurrently, ft_headmodel_fns wants a segmentation (\"seg\") as input, not a mesh geometry.  The segmentation is of an old style (only a 3D matrix) so that within ft_headmodel_fns this is used:\n    mri = [];\n    mri.dim = size(seg);\n    mri.transform = eye(4);\n    mri.seg = uint8(seg);\n\nShall I just keep it like this and modify ft_prepare_headmodel accordingly (by requiring input_seg to be true, and extracting the 'seg' field as input to ft_headmodel_fns)?\n\nI have updated the help of ft_headmodel_fns as so, but welcome improvements:\n%   tissuecond       = matrix C [9XN tissue types]; where N is the number of \n%                      tissues and a 3x3 tensor conductivity matrix is stored\n%                      in each column.\n%   tissue           = see fns_contable_write\n%   tissueval        = match tissues of segmentation input\n%   transform        = 4x4 transformation matrix (default eye(4))\n%   units            = string (default 'cm')\n%   sens             = sensor information (for which ft_datatype(sens,'sens')==1)\n%   deepelec         = used in the case of deep voxel solution\n%   tolerance        = scalar (default 1e-8)"
+      - +@isprivate: "0"
+        commentid: "8753"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 11:43:23 +0100
+        thetext: |-
+          (In reply to comment #22)
+
+          > Shall I just keep it like this and modify ft_prepare_headmodel accordingly (by
+          > requiring input_seg to be true, and extracting the 'seg' field as input to
+          > ft_headmodel_fns)?
+
+          Yes, please keep it like this. Probably Lilla will also have a look at this once SIMBIO is completed.
+      - +@isprivate: "0"
+        commentid: "8910"
+        comment_count: "24"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-14 14:43:02 +0100
+        thetext: |-
+          Hi Robert,
+          Could you please respond on comment 17?  My thought is that cfg.headshape as a filename string should be allowed for input option to localspheres in ft_prepare_headmodel, in the same way that it can be for singlesphere and concentricspheres.  The old functionality seems to be that it was possible.  However, I agree that geometry.pnt=data.chanpos should not be allowed for localspheres.
+          Thanks!
+      - +@isprivate: "0"
+        commentid: "8912"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-14 14:58:28 +0100
+        thetext: |-
+          (In reply to comment #24)
+
+          yes, that should be allowed. Please note that Lilla is also working on this. Perhaps you can quickly convene (since you are on the same floor) and arrange who does what to ensure that no conflicts in the code arise because both of you making changes.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "8920"
+        comment_count: "26"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-14 17:20:42 +0100
+        thetext: I think my updated ft_prepare_headmodel is ready. Thus before committing, I'm testing it out on all test functions that call it.  Of ones I've looked at so far, most need minor changing to reflect updated allowed/banned inputs.
+      - +@isprivate: "0"
+        commentid: "8928"
+        comment_count: "27"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-15 14:22:59 +0100
+        thetext: "The new ft_prepare_headmodel.m is now committed.  I will keep an eye on dashboard just in case. \n\nbash-4.1$ svn commit ft_prepare_headmodel.m test/test_ft_prepare_localspheres.m test/test_ft_prepare_headmodel_new.m test/test_ft_prepare_singleshell.m test/test_bug1368.m test/test_bug1042.m test/test_bug1166.m test/test_bug70.m test/test_headmodel_localspheres_new_old.m test/test_bug1029.m test/test_bug686.m forward/ft_headmodel_localspheres.m\nSending        forward/ft_headmodel_localspheres.m\nSending        ft_prepare_headmodel.m\nSending        test/test_bug1029.m\nSending        test/test_bug1042.m\nSending        test/test_bug1166.m\nSending        test/test_bug1368.m\nSending        test/test_bug686.m\nSending        test/test_bug70.m\nSending        test/test_ft_prepare_headmodel_new.m\nSending        test/test_ft_prepare_localspheres.m\nSending        test/test_ft_prepare_singleshell.m\nSending        test/test_headmodel_localspheres_new_old.m\nTransmitting file data ............\nCommitted revision 7316."
+      - +@isprivate: "0"
+        commentid: "8930"
+        comment_count: "28"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-15 14:44:44 +0100
+        thetext: ft_prepare_headmodel updated and original purpose (as well as all other little things that came up along the way) of this bug are resolved.
+      - +@isprivate: "0"
+        commentid: "8933"
+        comment_count: "29"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-15 15:09:25 +0100
+        thetext: note that the dashboard emails are failing currently
+      - +@isprivate: "0"
+        commentid: "8959"
+        comment_count: "30"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-16 12:38:21 +0100
+        thetext: I deleted ft_fetch_headshape from the svn (r7332), since it is no longer used/called by anything.
+    attachment:
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "348"
+        date: 2012-10-19 17:04:00 +0200
+        delta_ts: 2012-12-12 09:43:40 +0100
+        desc: ft_prepare_headmodel_new.m
+        filename: ft_prepare_headmodel_new.m
+        type: text/plain
+        size: "31356"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "349"
+        date: 2012-10-19 17:05:00 +0200
+        delta_ts: 2012-12-12 09:44:41 +0100
+        desc: test_ft_prepare_headmodel.m
+        filename: test_ft_prepare_headmodel.m
+        type: text/plain
+        size: "7911"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "1"
+        +@isprivate: "0"
+        attachid: "391"
+        date: 2012-12-12 09:43:00 +0100
+        delta_ts: 2012-12-12 09:43:40 +0100
+        desc: ft_prepare_headmodel_new.m
+        filename: ft_prepare_headmodel_new.m
+        type: text/plain
+        size: "14067"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "1"
+        +@isprivate: "0"
+        attachid: "392"
+        date: 2012-12-12 09:44:00 +0100
+        delta_ts: 2012-12-12 09:44:41 +0100
+        desc: test_ft_prepare_headmodel.m
+        filename: test_ft_prepare_headmodel.m
+        type: text/plain
+        size: "10151"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED

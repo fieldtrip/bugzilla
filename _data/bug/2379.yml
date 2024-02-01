@@ -1,0 +1,392 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2379"
+    creation_ts: 2013-11-18 13:07:00 +0100
+    short_desc: sfactorization_wilson2x2 breaks
+    delta_ts: 2014-01-15 14:48:03 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - giorgos.michalareas
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11955"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-18 13:07:36 +0100
+        thetext: |-
+          when trying to understand how the whole magic works, I found that the method breaks in line 67:
+
+          gam = real(reshape(ifft(reshape(Sarr, [4*m N2]), [], 2),[2 2 m N2]));
+
+          For my data:
+
+          >> size(Sarr)
+
+          ans =
+
+               2     2    40    63
+
+          m = 40
+          N2 = 62
+
+
+          I think the crucial detail is to find out how size(Sarr, 4) could be 63. The freq-matrix goes from 1 to 32. I did some research and found that in revision 8712 a freq>1 was changed to freq ~=0 (along with some more fancy stuff):
+          http://code.google.com/p/fieldtrip/source/diff?path=/trunk/connectivity/private/sfactorization_wilson2x2.m&format=side&r=8712
+          As the code worked fine for me before SfN, I assume that this is the crucial change that causes this break.
+          Maybe N2 should now just be 2*numel(freq)-1 (or 2*N+1) rather than 2*N (because N is numel(freq)-1)?
+      - +@isprivate: "0"
+        commentid: "11956"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-18 13:35:56 +0100
+        thetext: does  the frequency axis of the input data contain the 0 Hz bin?
+      - +@isprivate: "0"
+        commentid: "11957"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-18 13:46:55 +0100
+        thetext: no, it goes from 1 to 32Hz
+      - +@isprivate: "0"
+        commentid: "11958"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-18 13:49:15 +0100
+        thetext: |-
+          OK, please include the 0 Hz bin and also more frequency bins at the upper edge.
+
+          The algorithm expects the 0 Hz in the input -> this should somehow be documented I guess.
+          Also, there should be a sufficient number of frequency bins -> see bug 2342
+      - +@isprivate: "0"
+        commentid: "11965"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-18 15:54:14 +0100
+        thetext: In general, I think the code should correctlly map the spectral densities onto the frequency axis. Since the function knows about the frequency axis, we could easily achieve this. If the frequency axis does not contain zero, we need to extrapolate (I think that with my recent changes this is not done anymore, causing it to break for Jörn) to zero. I suggest to build in a check on the frequency axis and extrapolate down to zero. This adds the prerequisite (which is also to be checked by the function) that the frequency bins are regular in their spacing...
+      - +@isprivate: "0"
+        commentid: "11966"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-18 16:06:47 +0100
+        thetext: If I can help in one way or the other, I would be happy to do so (as digging deeper into the code helps me understanding what is going on). But, if you are already working on this I won't try to interfere, so that's just something to keep in mind for later and other problems ;)
+      - +@isprivate: "0"
+        commentid: "12092"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-28 11:43:57 +0100
+        thetext: |-
+          I gave the issue some thought (and also Joachim Gross mentioned that the current code breaks if DC is not included in the frequency axis), and here's my verdict. Although I don't think that it is completely safe to leave out the DC-bin, the previous code was incorrect. I now changed the code such that the frequency axis is zero padded down to the DC-bin.
+          Keep your eyes open for any unwanted side effects...
+
+          (committed at revision 8876)
+      - +@isprivate: "0"
+        commentid: "12094"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-28 12:10:28 +0100
+        thetext: '''the previous code'' does that refer to the code that broke when not including 0Hz or the earlier version that seemed to worked fine without the DC bin?'
+      - +@isprivate: "0"
+        commentid: "12095"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-28 12:22:48 +0100
+        thetext: Yep. Note indeed that 'working fine' meant that it did not crash ;-). Question is whether it was fully correct. I think no.
+      - +@isprivate: "0"
+        commentid: "12114"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 10:26:59 +0100
+        thetext: Giorgos pointed out that we should also think about Nyquist....
+      - +@isprivate: "0"
+        commentid: "12120"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 11:46:58 +0100
+        thetext: "Georgios e-mailed this to JM\n\nIn line 76 of sfactorization_wilson2x2  there is the following code,\n%--------------------------------------------\nm   = size(cmbindx,1);\nN   = length(freq)-1;\nN2  = 2*N;\n \n% preallocate memory for the 2-sided spectral density\nSarr   = zeros(2,2,m,N2) + 1i.*zeros(2,2,m,N2);\nI      = repmat(eye(2),[1 1 m N2]); % Defining 2 x 2 identity matrix\n \n \n%Step 1: Forming 2-sided spectral densities for ifft routine in matlab\nfor c = 1:m\n  Stmp  = S(cmbindx(c,:),cmbindx(c,:),:);\n  for f_ind = 1:(N+1)\n    Sarr(:,:,c,f_ind) = Stmp(:,:,f_ind);\n    if freq(f_ind)~=0,\n      Sarr(:,:,c,2*N+2-f_ind) = Stmp(:,:,f_ind).';\n    else\n      % the input cross-spectral density is assumed to be weighted with a\n      % factor of 2 in all non-DC bins, therefore weight the DC-bin with a\n      % factor of 2 to get a correct two-sided representation\n      Sarr(:,:,c,f_ind) = Sarr(:,:,c,f_ind).*2;\n    end\n  end\nend\n%------------------------\n \nN is the number of frequencies EXCLUDING the zero frequency.\n \nIf I input a dataset that INCLUDES the zero frequency shouldn’t the Sarr have N2+1 frequencies and size:\nSarr   = zeros(2,2,m,N2+1) + 1i.*zeros(2,2,m,N2+1);\n???\n \nAnd then in the loop when the complex conjugate values are places for the negative frequencies in Sarr , then in pseudo code:\n \nLets assume that the apart from the 0 frequency there are 2 other frequencies [1 2] so that N=2 and N2=4\n \nif f_ind=1  then\n Sarr(:,:,c,1)=2*x;  %DC\nif f_ind=2  then\n Sarr(:,:,c,2)=x;  %DC\n Sarr(:,:,c,5)=x.’;  %DC\nif f_ind=3  then\n Sarr(:,:,c,3)=x;  %DC\n Sarr(:,:,c,4)=x.’;  %DC\n \n \nNow the way the positive and negative frequency coefficients are assigned is\nSarr(:,:,c,f_ind) = Stmp(:,:,f_ind);\nSarr(:,:,c,2*N+2-f_ind) = Stmp(:,:,f_ind).';\n \nWhich for\nif f_ind=2  then\n Sarr(:,:,c,2)=x;  %DC\n Sarr(:,:,c,4)=x.’;  %DC\nif f_ind=3  then\n Sarr(:,:,c,3)=x;  %DC\n Sarr(:,:,c,3)=x.’;  %DC\n \nSo it seems that one element dissapears and the Sarr matrix has one frequency missing. So is not Hermitean any more. So the ifft in the Plus operator will produce complex results which are then gonna be fed in the next iteration and so on and so on. I came across this because within the plus operator function after the command\n \ngam = ifft(g);\n \nthe variable gam was complex for combination (1,2) and (2,1), something unexpected for the inverse fourier transform of a hermitean set of frequency coefficients. I plotted the imaginary part of these coefficients and guess what. Pure zigzags with amplitude not that low (10^-5). I am not sure how strongly this can be related to the zigzags we get.\n \n \nShouldn’t the conjugate for the negative frequencies by assigned with something like\n \nSarr(:,:,c,(2*(N+1)+1)-f_ind) = Stmp(:,:,f_ind).';"
+      - +@isprivate: "0"
+        commentid: "12121"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 11:47:51 +0100
+        thetext: "(In reply to comment #10)\n\nJM e-mailed this back to Georgios:\n\nI yesterday pushed a change to fieldtrip which should correctly deal with the data when the DC-bin is not present in the input data (see bug 2379). Could you update to this version and see whether this makes more sense?\nThe basic code that builds the two-sided spectral densities from the one-sided spectrum I basically took over from the version of the algorithm that given to me by Mingzhou Ding, and I tried to make it a bit more computationally efificient. I believe that their code kind of assumed the DC bin to be in the data, so no problem there as long as our input data contains the DC-bin. Before I hadn't given it much thought, but with the recent revival of the zigzag-issue I realized that things were not totally correct. This led me to apply a different weighting to the DC bin (with a recent change to the factorization code which did a different weighting when freq(f_ind) was found to be 0: this is due to how in FieldTrip the spectral bins are weighted after the fft). This introduced the issue you describe, i.e. the one frequency bin dropping out if the DC bin is not present in the input data. Now I changed this such that the presence of the DC bin is verified, and if it's not there, the spectrum is zero-padded in the lower frequencies such that the one-sided spectrum S actually contains the DC-bin. The rest should be business as usual. The only remaining thing you started me wondering about is the representation of the Nyquist frequency bin. Typically, we don't go that high and don't include it in the input, but according to Martin we should probably include higher frequencies. Now, as far as I understand the discrete Fourier transform, both the DC and Nyquist are only present once in the Fourier representation of the data. \n\nSoo, if we have a 10 sample signal, sampled at 10 Hz, the frequency axis corresponding to the two-sided matrix (Sarr) should probably look like: [0 1 2 3 4 5 4 3 2 1]. \n\nIf the input frequency axis is [0 1 2 3 4 5], N=5 and N2=10\n\n for f_ind = 1:(N+1)\n    Sarr(:,:,c,f_ind) = Stmp(:,:,f_ind);\n    if freq(f_ind)~=0,\n      Sarr(:,:,c,2*N+2-f_ind) = Stmp(:,:,f_ind).';\n    else\n      Sarr(:,:,c,f_ind) = Sarr(:,:,c,f_ind).*2;\n    end\n\nFor f_ind==1 (frequency is 0) all is OK, because it maps to the first element in Sarr. Then for f_ind==2/3/4/5 it seems OK, because these bins map onto [2 10]/[3 9]/[4 8] and [5 7]. For f_ind==6 it maps twice onto the sixth element in Sarr, where first the original version is placed there, followed by the 'transpose'. I could imagine that this poses problems, when the last frequency bin in the input ~= Nyquist. The Nyquist bin is strictly real valued (is it?), but this is not true for an arbitrary frequency bin. Now the question is how bad this is and whether it can cause zigzags to some extent. Also, the question is whether we should either impose the input data to cover the full frequency range, or that we can leave it as is, or that we should make the middle element of Sarr strictly reall-valued, or that we have to make Sarr to have an odd number of frequency bins once Nyquist is not present in the input data.\nNote that your intuition is probably as good as mine, because once again I only used other peoples' code to get stuff implemented.\n\nAny thoughts are highly appreciated,"
+      - +@isprivate: "0"
+        commentid: "12122"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 11:48:43 +0100
+        thetext: "(In reply to comment #11)\n\nGeorgios replied this back to JM:\n\nHi JM,\n\nIn terms of the Nyquist I agree that THEORETICALLY the middle bin should be the Nyquist.\nOf course for MEG data the Nyquist frequency is in the ionosphere relative to the earthly frequency range we are investigating and which the current computing capacity of human kind can allow at the moment.\n\nIn practise the  fft function in MATLAB , produces a different representation according to the number of points of the inputs data.\n\nIf number of points is even then the Nyquist is included\nIf number of points is odd then the Nyquist is NOT included.\n\nThe ifft works with both versions of this representaion. \n\nIn any case, in both representations all the other frequencies , apart from the DC and the Nyquist,  must be represented in a hermitean way, meaning that the coefficients must exist for both the positive and the negative side of each frequency.\n\n\nIn the case of the spectral factorization, It is highly unlikely, at least for MEG data, to have an evenly spaced representation up to the Nyquist.\nIt is just not practical.  \n\n\nSo in such case , i.e. \nLet's say  we have frequencies [0 1 2 3 4 5] \nthe frequency representation in Sarr should be\n\n[0 1 2 3 4 5 -5 -4 -3 -2 -1]. \n\nand if it happens to have frequencies up to the Nyquist then it should be just in the middle \n\n\n[0 1 2 3 4 5 .....      Fnyquist      ......-5 -4 -3 -2 -1]. \n\nIf the representation is the way it is now i.e.\n\n[0 1 2 3 4 5 4 3 2 1]. \n\nand wee dont have the nyquist frequency then the symmetry of the frequency axis is just broken\nbecause the ifft function in the plus operator is assuming that the one in the middle is the nyquist, but is not .\n\nNo matter if the nyquist or not is ni the data , the ifft applied on a symmetric spectrum should produce a real number.\n\nSo practically I think the most appropriate would be to check if the Nyquist frequency is in the data,\nif NOT ,\n   then use the [0 1 2 3 4 5 -5 -4 -3 -2 -1].    representation\nif YES\n   then use the [0 1 2 3 4 5 ...  Fnyquist  ....-5 -4 -3 -2 -1].    representation\n\nWhat do you think?"
+      - +@isprivate: "0"
+        commentid: "12123"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 11:55:59 +0100
+        thetext: |-
+          Man, you rock!
+
+          Indeed if I do something like this:
+
+          x = randn(1,1000)
+          fx = fft(x);
+          ifx = ifft(fx);
+
+          all is well, ifx is real-valued
+
+          fNyquist is in fx(501), so if I now omit this one
+
+          ifx2 = ifft(fx([1:500 502:end]));
+
+          ifx2 is fine.
+
+          but if I now do
+
+          ifx3 = ifft(fx([1:500 503:end])); % emulating what we usually have,
+
+          it starts zigging and zagging.
+
+          This would indeed mean that your suggested change makes a lot of sense.
+
+          The question now is, how we determine whether the upper frequency is Nyquist without the need of starting to pass additional variables through various levels of code. Do you think we could just check whether the upper frequency bin is strictly real-valued?.
+      - +@isprivate: "0"
+        commentid: "12129"
+        comment_count: "14"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2013-11-29 13:04:44 +0100
+        thetext: |-
+          Hmm,
+          without having thought in depth about it, I think the best would be to pass the sampling frequency as an extra input argument.
+          If the cross spectral coefficient for the last frequency bin is real , then this does not necessarily mean that is the Nyquist.  So it can be either the Nyquist or a lower frequency at which the fouriers happened to completely aligned.
+
+          In the Nyquist case you would have to use [0 1 2 3 4 5 -4 -3 -2 -1]
+
+
+          In the other frequency case               [0 1 2 3 4 5 -5 -4 -3 -2 -1] . If for frequency 5 the coefficients are real then I dont think you can just remove one point in the middle i.e. [0 1 2 3 4 5 -4 -3 -2 -1] because then this is treated as the Nyquist and basically the data is unsampled .
+
+          I have to give it a deeper thought......
+      - +@isprivate: "0"
+        commentid: "12130"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 13:33:12 +0100
+        thetext: "I don't think it will happen often that the fourier coefficients are strictly real. If this is occasionally the case for the highest frequency bin (non-nyquist), and if by consequence we build the two-sided spectrum as [0 1 2 3 4 5 -4 -3 -2 -1], rather than [0 1 2 3 4 5 -5 -4 -3 -2 -1], in the former case it will still yield a symmetric spectrum, although it seems as if it has been obtained with a slightly different sampling frequency. As such I don't think that the algorithm cares about the exact sampling strategy, as long as the spectrum is symmetric. \n\nI would be a bit reluctant to impose the need for pushing the nyquist through several levels of code.\nEssentially, once the data has gone through ft_freqanalysis, details regarding the original sampling are lost."
+      - +@isprivate: "0"
+        commentid: "12131"
+        comment_count: "16"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-29 13:38:59 +0100
+        thetext: but the user who is calling ft_connectivityanalysis does (well, should) know, and we can impose the need to set cfg.Fs for granger connectivity
+      - +@isprivate: "0"
+        commentid: "12132"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 13:39:24 +0100
+        thetext: where would that be?
+      - +@isprivate: "0"
+        commentid: "12134"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-11-29 13:41:02 +0100
+        thetext: |-
+          in the call to ft_connectivityanalysis
+
+          but, JM, you are right in saying that the possibility for any fourier coefficient to be strictly real (i.e. imaginary componenent = 0) is low, it is mathematically actually 0
+      - +@isprivate: "0"
+        commentid: "12138"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 14:56:40 +0100
+        thetext: Perhaps we should build in some tolerance on the real-ness, but my point is that it is quite unlikely that all elements in a cross-spectral density matrix (at a given frequency bin) are real-valued, i.e. having a relative phase difference between all pairs of channels to be 0 or 180 degrees
+      - +@isprivate: "0"
+        commentid: "12139"
+        comment_count: "20"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2013-11-29 15:18:37 +0100
+        thetext: |-
+          I agree that is is extremely unlikely that between 2 sensors  all frequency spectral coefficients are exactly aligned for all trials. Saying that though I must say that MEG data has really really big volume conduction and i would not bet my laptop that it will never happen.
+
+          So , a quick solution could be the test for realness.
+          Would it be really a lot of work to add an additional optional input argument for the sampling frequency and if it exists then the Nyquist is inferred from it?
+      - +@isprivate: "0"
+        commentid: "12140"
+        comment_count: "21"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 15:24:08 +0100
+        thetext: It's not so much about how much work it is, but it's more about how much more ugly the code becomes...
+      - +@isprivate: "0"
+        commentid: "12156"
+        comment_count: "22"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-01 20:29:17 +0100
+        thetext: "/Users/jan/matlab/fieldtrip-svn/connectivity/private\njan2-mac:private jan$ svn commit -m \"enhancement - account for absence of Nyquist frequency bin, perform check based on spectral matrix being strictly real-valued\" sfactorization_wilson2x2.m sfactorization_wilson.m \nSending        sfactorization_wilson.m\nSending        sfactorization_wilson2x2.m\nTransmitting file data ..\nCommitted revision 8927.\n\nI tested it and it seems to run through fine, at least. Keep your eyes open anyways..."
+      - +@isprivate: "0"
+        commentid: "12342"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-12 12:58:54 +0100
+        thetext: 'runs through fine if you ask me. only andre still reported zigzags. this however is not the topic of this bug. Ergo: changing status.'
+      - +@isprivate: "0"
+        commentid: "12345"
+        comment_count: "24"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-12 16:25:53 +0100
+        thetext: no zigzag and still impressive connectivity in my data. I am happy as well. Now back to understanding the magic...
+      - +@isprivate: "0"
+        commentid: "12356"
+        comment_count: "25"
+        attachid: "575"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-13 14:43:35 +0100
+        thetext: "Created attachment 575\nzigzaggranger when not including DC bin\n\nIf Andre keeps on having zigzags, maybe he forgot the DC bin?\nIn any case, above is what I get without the DC bin. \nCries for a FAQ \"Why does my Granger look strange?\""
+      - +@isprivate: "0"
+        commentid: "12357"
+        comment_count: "26"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-13 14:53:08 +0100
+        thetext: |-
+          How does it look when the DC bin is included?
+
+          Why do you still use such a low amount of frequency bins?
+
+          The zigzag may occur due to a few things:
+          -too few frequency bins
+          -not including the DC
+          -the fact that mtmconvol does a DC subtraction prior to the fft, but this is the DC along the whole segment, not for each time window separately.
+
+          Craig has noticed this in the past as well, and therefore ended up looping over time bins and re-epoching, computing spectra with mtmfft etc. Hence my reply to the mailing list yesterday
+      - +@isprivate: "0"
+        commentid: "12358"
+        comment_count: "27"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-13 14:57:36 +0100
+        thetext: no worries, I am doing everything as I should ;)  When the DC bin is included, it looks beautifully, hence my comment from yesterday. For test purposes, I computed from 0 to Nyquist in 0.5Hz steps and then excluded the DC bin before computing Granger. Also in these plots I zoomed in to the FOIs because higher frequencies are not interesting for me
+      - +@isprivate: "0"
+        commentid: "12362"
+        comment_count: "28"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-13 15:09:13 +0100
+        thetext: Good, but I am still curious how it looks...
+      - +@isprivate: "0"
+        commentid: "12389"
+        comment_count: "29"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-19 13:28:54 +0100
+        thetext: "I guess this is a typo:\n\nSarr(:,:,1) = S(:,:,1).*2;\nfor f_ind = 2:N\n  Sarr(:,:,       f_ind) = S(:,:,f_ind);\n  Sarr(:,:,(N2+2)-f_ind) = S(:,:,f_ind).';\nend\n\n% the input cross-spectral density is assumed to be weighted with a\n% factor of 2 in all non-DC and Nyquist bins, therefore weight the \n% Nyquist bin with a factor of 2 to get a correct two-sided representation\nif mod(size(Sarr,3),2)==0\n  Sarr(:,:,:,N) = Sarr(:,:,:,N).*2;\nend\n\n\nAbove, Sarr is treated as a 3D matrix, below as a 4D matrix, causing the function to crash"
+      - +@isprivate: "0"
+        commentid: "12390"
+        comment_count: "30"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-19 14:10:47 +0100
+        thetext: yes typo. fixed.
+      - +@isprivate: "0"
+        commentid: "12391"
+        comment_count: "31"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-19 14:11:05 +0100
+        thetext: which was by the way in sfactorization_wilson, and not in sfactorization_wilson2x2
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "575"
+      date: 2013-12-13 14:43:00 +0100
+      delta_ts: 2013-12-13 14:43:35 +0100
+      desc: zigzaggranger when not including DC bin
+      filename: zigzaggranger.png
+      type: image/png
+      size: "9777"
+      attacher:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      data: REMOVED

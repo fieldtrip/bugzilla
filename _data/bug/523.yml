@@ -1,0 +1,204 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "523"
+    creation_ts: 2011-03-07 09:56:00 +0100
+    short_desc: strange problems in a sourceanalysis pipeline
+    delta_ts: 2011-03-16 17:11:58 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: jcwFTbugzilla
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1576"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-07 09:56:11 +0100
+        thetext: |-
+          Dear Jen,
+
+          Please create an attachment to this bug, which contains the non-interpolated source level data, so that I can have a look myself.
+      - +@isprivate: "0"
+        commentid: "1578"
+        comment_count: "1"
+        attachid: "27"
+        who:
+          +content: jcwFTbugzilla
+          +@name: J
+        bug_when: 2011-03-07 20:24:43 +0100
+        thetext: |-
+          Created attachment 27
+          sourcetemp.avg.pow (input to ft_sourceinterpolate) saved as a text file
+
+          Error message at matlab prompt when calling ft_volumenormalise:
+          --------------------------------
+
+          the input is volume data with dimensions [256 256 256]
+          not downsampling anatomy
+          not downsampling avg.pow
+          not downsampling inside
+          converting input coordinates from CTF into approximate SPM coordinates
+          ??? NaN's cannot be converted to logicals.
+
+          Error in ==> spm_create_vol>create_vol at 102
+          	if swapped,
+
+          Error in ==> spm_create_vol at 14
+          		v = create_vol(V(i));
+
+          Error in ==> volumewrite_spm at 67
+          Va         = spm_create_vol(Va);
+
+          Error in ==> ft_write_volume at 61
+              V = volumewrite_spm(filename, dat, transform, spmversion);
+
+          Error in ==> ft_volumenormalise at 219
+            ft_write_volume([cfg.intermediatename,'_' tmp '.img'], data, 'transform', interp.transform,
+            'spmversion', cfg.spmversion);
+
+          Error in ==> beamform_tse_commonfilter_v21spm2T1 at 181
+              sourcetempIntN = ft_volumenormalise(cfg, sourcetempInt);
+      - +@isprivate: "0"
+        commentid: "1579"
+        comment_count: "2"
+        attachid: "28"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-08 08:31:10 +0100
+        thetext: |-
+          Created attachment 28
+          test script
+
+          used to reproduce the problem, and to compare spm2 vs spm8
+      - +@isprivate: "0"
+        commentid: "1580"
+        comment_count: "3"
+        attachid: "29"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-08 08:32:07 +0100
+        thetext: |-
+          Created attachment 29
+          volumewrite_spm
+
+          fixed version, should be able to write volumes which come as boolean (writes them as double though)
+      - +@isprivate: "0"
+        commentid: "1583"
+        comment_count: "4"
+        attachid: "30"
+        who:
+          +content: jcwFTbugzilla
+          +@name: J
+        bug_when: 2011-03-08 21:18:23 +0100
+        thetext: |-
+          Created attachment 30
+          error message when using attachment #29
+      - +@isprivate: "0"
+        commentid: "1584"
+        comment_count: "5"
+        who:
+          +content: jcwFTbugzilla
+          +@name: J
+        bug_when: 2011-03-08 21:19:09 +0100
+        thetext: "the input is volume data with dimensions [256 256 256]\nnot downsampling anatomy\nnot downsampling avg.pow\nnot downsampling inside\nconverting input coordinates from CTF into approximate SPM coordinates\nperforming the normalisation\nwarping the invdividual anatomy to the template anatomy, using only linear transformations\nSmoothing by 0 & 8mm..\nCoarse Affine Registration..\nFine Affine Registration..\ncreating normalised analyze-file for anatomy\ncreating normalised analyze-file for inside\ncreating normalised analyze-file for avg.pow\nthe input is volume data with dimensions [181 217 181]\n??? Undefined function or method 'parameterselection' for input arguments of type 'struct'.\n\nError in ==> ft_volumewrite at 119\ncfg.parameter = parameterselection(cfg.parameter, volume);\n\nError in ==> beamform_tse_commonfilter_v21spm2T1 at 191\n    ft_volumewrite(cfg,sourcetempIntN);\n\n>>   cfg=[];\n    %cfg.parameter='pow';\n    cfg.filename=filename; \n    cfg.filetype='spm';\n    cfg.coordinates='spm';\n    cft.datatype='double';        \n    \n    ft_volumewrite(cfg,sourcetempIntN);\n\n??? Error using ==> ft_checkconfig at 157\nThe field cfg.parameter is required\n\n\nError in ==> ft_volumewrite at 78\ncfg = ft_checkconfig(cfg, 'required', {'filename', 'parameter'});\n\n>>   cfg=[];\n    cfg.parameter='avg_pow';\n    cfg.filename=filename; \n    cfg.filetype='spm';\n    cfg.coordinates='spm';\n    cft.datatype='double';        \n    \n    ft_volumewrite(cfg,sourcetempIntN);\nthe input is volume data with dimensions [181 217 181]\n??? Undefined function or method 'parameterselection' for input arguments of type 'struct'.\n\nError in ==> ft_volumewrite at 119\ncfg.parameter = parameterselection(cfg.parameter, volume);"
+      - +@isprivate: "0"
+        commentid: "1585"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-03-09 09:05:19 +0100
+        thetext: |-
+          Please update your fieldtrip version and try again. This should solve 2 issues
+
+          Judging from the line numbers in the error report you are using a slightly outdated version of ft_volumewrite (it has changed a bit, again)
+
+          There should be a file 'parameterselection' in fieldtrip/private, which apparently is not there, given the error message
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "27"
+        date: 2011-03-07 20:24:00 +0100
+        delta_ts: 2011-03-07 20:24:43 +0100
+        desc: sourcetemp.avg.pow (input to ft_sourceinterpolate) saved as a text file
+        filename: sourcetempInt.mat
+        type: text/plain
+        size: "21060052"
+        attacher:
+          +content: jcwFTbugzilla
+          +@name: J
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "28"
+        date: 2011-03-08 08:31:00 +0100
+        delta_ts: 2011-03-08 08:31:10 +0100
+        desc: test script
+        filename: testscript.m
+        type: application/octet-stream
+        size: "1987"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "29"
+        date: 2011-03-08 08:32:00 +0100
+        delta_ts: 2011-03-08 08:32:07 +0100
+        desc: volumewrite_spm
+        filename: volumewrite_spm.m
+        type: application/octet-stream
+        size: "2338"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "30"
+        date: 2011-03-08 21:18:00 +0100
+        delta_ts: 2011-03-08 21:18:23 +0100
+        desc: 'error message when using attachment #29'
+        filename: error_message_when_using_new_volumewrite_spm.txt
+        type: text/plain
+        size: "1696"
+        attacher:
+          +content: jcwFTbugzilla
+          +@name: J
+        data: REMOVED

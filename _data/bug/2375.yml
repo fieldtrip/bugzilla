@@ -1,0 +1,181 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2375"
+    creation_ts: 2013-11-13 17:17:00 +0100
+    short_desc: Problem with MEG localspheres when working in meters
+    delta_ts: 2014-02-24 10:56:29 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11908"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-13 17:17:45 +0100
+        thetext: |-
+          I'm switching SPM forward modeling to SI units and when I prepare local spheres with everything in meters I get all the spheres with identical origin and radius. Example input is attached, Run with:
+
+          vol                        = ft_prepare_headmodel(cfg, headshape);
+      - +@isprivate: "0"
+        commentid: "11909"
+        comment_count: "1"
+        attachid: "558"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-13 17:18:29 +0100
+        thetext: |-
+          Created attachment 558
+          Inputs for testing
+      - +@isprivate: "0"
+        commentid: "11977"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 14:34:31 +0100
+        thetext: |-
+          confirmed, I see
+
+          ...
+          channel = MRT44,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT45,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT46,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT47,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT51,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT52,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          channel = MRT53,  2562 surface points, center = [ 0.0 -0.0  0.1], radius =  0.1
+          ...
+
+          for all channels.
+      - +@isprivate: "0"
+        commentid: "11978"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 14:36:39 +0100
+        thetext: |-
+          ft_prepare_headmodel has the options
+
+          % LOCALSPHERES
+          %     cfg.grad
+          %     cfg.tissue            (see above; in combination with 'seg' input; default options are 'brain' or 'scalp')
+          %     cfg.feedback          (optional)
+          %     cfg.radius            (optional)
+          %     cfg.maxradius         (optional)
+          %     cfg.baseline          (optional)
+
+
+          which have empty defaults and are passed in line 347 like this
+
+          vol = ft_headmodel_localspheres(geometry, cfg.grad, 'feedback', cfg.feedback, 'radius', cfg.radius, 'maxradius', cfg.maxradius, 'baseline', cfg.baseline, 'singlesphere', cfg.singlesphere);
+
+          that means that ft_headmodel_localspheres is setting the defaults and that those are in the incorrect units.
+      - +@isprivate: "0"
+        commentid: "11979"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 14:58:18 +0100
+        thetext: "hmm, this is a user error. The cfg you specified has\n\n>> load('/home/common/matlab/fieldtrip/data/test/bug2375/localspheres_bug.mat');\n>> cfg\ncfg = \n        feedback: 'yes'\n    showcallinfo: 'no'\n            grad: [1x1 struct]\n          radius: 85\n       maxradius: 200\n          method: 'localspheres'\n         siunits: 'yes'\n\nSo you have specified a radius of 85 meter. All 2562 headshape points fall within that radius and therefore it uses all points for all channels. With this it works fine\n\n% fix the cfg and try again\ncfg = rmfield(cfg, 'radius');\ncfg = rmfield(cfg, 'maxradius');\nvol = ft_prepare_headmodel(cfg, headshape);"
+      - +@isprivate: "0"
+        commentid: "11980"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 15:02:37 +0100
+        thetext: "Had cyou specified cfg.units = 'mm' and had ft_prepare_headmodel passed it on to ft_headmodel_localspheres, then your cfg would have worked. But we don't want ft_headmodel_xxx functions to do unit conversions, and apparently ft_prepare_headmodel was already not passing on units to some (but not all) of the ft_headmodel_xxx. functions\n\nIt did trigger me to look at how units are passed to ft_headmodel_xxx functions. These now have it\n\nmac001> grep -l getopt.*unit ft_headmodel_*\nft_headmodel_concentricspheres.m\nft_headmodel_fns.m\nft_headmodel_localspheres.m\nft_headmodel_singlesphere.m\n \nand\n\nmac001> grep ft_headmodel.*unit ft_prepare_headmodel.m \nvol = ft_headmodel_singlesphere(geometry, 'conductivity', cfg.conductivity, 'unit', cfg.unit);\nvol = ft_headmodel_fns(data.seg, 'tissue', cfg.tissue, 'tissueval', cfg.tissueval, 'tissuecond', cfg.conductivity, 'sens', sens, 'transform', cfg.transform, 'unit', cfg.unit);\n\nSo there are 4 ft_headmodel_xxx functions that right now could do something with units, and 2 that actually get the units. I will remove the units as input option from all ft_headmodel_xxx functions."
+      - +@isprivate: "0"
+        commentid: "11981"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 15:24:40 +0100
+        thetext: |-
+          Do not allow the user to specify the units for the ft_headmodel_xxx functions, the geometry should be used to determine the units consistently:
+
+          mac001> svn commit
+          Sending        forward/ft_headmodel_concentricspheres.m
+          Sending        forward/ft_headmodel_fns.m
+          Sending        forward/ft_headmodel_infinite.m
+          Sending        forward/ft_headmodel_localspheres.m
+          Sending        forward/ft_headmodel_singlesphere.m
+          Sending        ft_prepare_headmodel.m
+          Transmitting file data ......
+          Committed revision 8817.
+
+          Oh, and of course the units should be SI if you want to ensure that the forward models return correctly scaled leadfields.
+      - +@isprivate: "0"
+        commentid: "11982"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-19 15:26:23 +0100
+        thetext: |-
+          Added test script.
+
+          mac001> svn commit test/test_bug2375.m
+          Adding         test/test_bug2375.m
+          Transmitting file data .
+          Committed revision 8818.
+      - +@isprivate: "0"
+        commentid: "12923"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:29 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "558"
+      date: 2013-11-13 17:18:00 +0100
+      delta_ts: 2013-11-13 17:18:29 +0100
+      desc: Inputs for testing
+      filename: localspheres_bug.mat
+      type: application/octet-stream
+      size: "232775"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

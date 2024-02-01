@@ -1,0 +1,101 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2971"
+    creation_ts: 2015-09-28 09:35:00 +0200
+    short_desc: ft_sourcestatistics throws away test data, even if specified in cfg.parameter
+    delta_ts: 2019-08-10 12:31:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16144"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2015-09-28 09:35:07 +0200
+        thetext: "In line 119, ft_sourcestatistics now only keeps (avg) freq or avg timelock data. However, I want to use sourcestatistics on second level .stat data (as specified by cfg.parameter). It used to keep this, but now throws it out. \n\nSimple solution is to add cfg.parameter to the ft_selectdata call in line 119. I suspect it used to do that before already.\n\nCheers,\nStephen"
+      - +@isprivate: "0"
+        commentid: "16145"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-28 09:39:15 +0200
+        thetext: |-
+          The code is (starting at line 117)
+
+          % ensure that the data in all inputs has the same channels, time-axis, etc.
+          tmpcfg = keepfields(cfg, {'frequency', 'avgoverfreq', 'latency', 'avgovertime', 'parameter'});
+          [varargin{:}] = ft_selectdata(tmpcfg, varargin{:});
+          % restore the provenance information
+          [cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});
+
+          where the call to keep fields the parameter should be copied over to tmpcfg.
+      - +@isprivate: "0"
+        commentid: "16151"
+        comment_count: "2"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2015-09-28 16:55:02 +0200
+        thetext: "True Robert, just adding cfg.parameter won't do it. \nFor now I make the following workaround. It is very memory inefficient though. \n\nft_sourceanalysis, starting at 117:\n\n% ensure that the data in all inputs has the same channels, time-axis, etc.\ntmpcfg = keepfields(cfg, {'frequency', 'avgoverfreq', 'latency', 'avgovertime', 'parameter'});\nvarargin_temp = varargin;\n[varargin_temp{:}] = ft_selectdata(tmpcfg, varargin{:});\nfor i = 1 : size(varargin_temp,2)\n    varargin_temp{i}.(cfg.parameter) = varargin{i}.(cfg.parameter);\nend\nvarargin = varargin_temp;\nclear varargin_temp"
+      - +@isprivate: "0"
+        commentid: "16161"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 15:43:52 +0200
+        thetext: "made test script\n\nmac011> svn commit test_bug2971.m \nAdding         test_bug2971.m\nTransmitting file data .\nCommitted revision 10728."
+      - +@isprivate: "0"
+        commentid: "16162"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 15:45:16 +0200
+        thetext: "mac011> svn commit ft_sourcestatistics.m \nSending        ft_sourcestatistics.m\nTransmitting file data .\nCommitted revision 10729.\n\nDon't pass cfg.parameter to ft_selectdata."
+      - +@isprivate: "0"
+        commentid: "16163"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-29 15:45:49 +0200
+        thetext: The exact problem cannot be reproduced and there seems to be an easy workaround.
+      - +@isprivate: "0"
+        commentid: "20093"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:09 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

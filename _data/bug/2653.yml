@@ -1,0 +1,83 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2653"
+    creation_ts: 2014-07-16 18:00:00 +0200
+    short_desc: ft_preprocessing returns NaNs if bsfilter is combined with precision = 'single'
+    delta_ts: 2015-02-11 10:40:18 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.urai
+      +@name: Anne Urai
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14156"
+        comment_count: "0"
+        who:
+          +content: a.urai
+          +@name: Anne Urai
+        bug_when: 2014-07-16 18:00:27 +0200
+        thetext: |-
+          If, in calling ft_preprocessing, cfg.precision = 'single' and cfg.bsfilter = 'yes', the output contains only NaNs in data.trial. This was not the case in older versions of FieldTrip, and might have something to do with a lower-level Matlab function.
+
+          No warning is output, so it took me a while to figure this out. Would be great if a warning was given, or even the script aborted, if those two input arguments are used together.
+
+          Thanks!
+      - +@isprivate: "0"
+        commentid: "14163"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 09:38:59 +0200
+        thetext: "Hi Anne,\n\nthanks for reporting. I can reproduce it with:\n\n----\ndata1 = [];\ndata1.trial{1} = randn(2,10000);\ndata1.time{1}  = (1:10000)/1000;\ndata1.label    = {'1';'2'};\n\ncfg = [];\ncfg.precision = 'single';\ncfg.bsfilter = 'yes';\ncfg.bsfreq = [40 60];\ndata2 = ft_preprocessing(cfg, data1);\n\ncfg = [];\ncfg.bsfilter = 'yes';\ncfg.bsfreq = [40 60];\ndata3 = ft_preprocessing(cfg, data2);\n----\n\nIn data2 it is still file, I guess because the conversion to single is done after filtering. The data3 contains nans, which I suppose is because the filter function cannot deal with single precision.\n\nI traced it down to filter_with_correction, which is called in ft_preproc_bandpassfilter. This then in turn calls fieldtrip/external/signal/filtfilt.m.\n\n\nThis is a drop-in replacement function for the Mathworks signal processing toolbox, i.e. it allows to filter independent of that toolbox being present.\n\nIf I remove the external/signal toolbox, I get this:\n\n>> rmpath /Users/roboos/matlab/fieldtrip/external/signal\n>> data3 = ft_preprocessing(cfg, data2);\npreprocessing\n73  [nchans, nsamples] = size(dat);\nError using filtfilt (line 81)\nInput arguments must be 'double'.\n\nError in filtfilt (line 81)\n    error(message('signal:filtfilt:NotSupported'));\n\nError in filter_with_correction (line 63)\n    filt = filtfilt(B, A, dat')';\n\nError in ft_preproc_bandstopfilter (line 268)\n  filt = filter_with_correction(B,A,dat,dir);\n\nError in preproc (line 330)\n    dat = ft_preproc_bandstopfilter(dat, fsample, cfg.bsfreq(i,:), cfg.bsfiltord, cfg.bsfilttype, cfg.bsfiltdir, cfg.bsinstabilityfix, cfg.bsfiltdf, cfg.bsfiltwintype,\n    cfg.bsfiltdev, cfg.plotfiltresp);\n\nError in ft_preprocessing (line 355)\n    [dataout.trial{i}, dataout.label, dataout.time{i}, cfg] = preproc(data.trial{i}(rawindx,:), data.label(rawindx),  data.time{i}, cfg, begpadding, endpadding);\n\n----\n\nSo the Mathworks version simply refuses to work on single precision data, whereas the drop-in replacement does allow it and fails numerically.\n\nI suggest we solve this by changing all ft_preproc_xxxfilter functions so that they always work with double precision. This is also done in ft_spectest_mtmfft, where at the end there is \n\nfunction [tap] = double_dpss(a, b, varargin)\ntap = dpss(double(a), double(b), varargin{:});\n\nHere we could do something similar."
+      - +@isprivate: "0"
+        commentid: "14165"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-17 09:45:42 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          mac011> svn commit preproc/
+          Sending        preproc/private/filter_with_correction.m
+          Transmitting file data .
+          Committed revision 9738.
+
+          It now works.
+      - +@isprivate: "0"
+        commentid: "15228"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:18 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

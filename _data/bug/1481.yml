@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1481"
+    creation_ts: 2012-05-17 19:12:00 +0200
+    short_desc: .balance not exist in senstype elec
+    delta_ts: 2017-03-14 12:49:52 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3229
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6147"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-05-17 19:12:54 +0200
+        thetext: |-
+          Line 182 of ft_rejectcomponent.m assumes tmp.balance exists, but this is only true for senstype 'grad' not 'elec'.  Thus, updating the elec.tra in this function does not work.
+
+          Also later on in lines 198 or so, tmp.balance is refered to again, but this is a necessary line with the match_str call to sort out which labels need to be kept. Should this be tmp.label in the case of 'elec' (rather than tmp.balance.(invcompfield).labelnew)?
+      - +@isprivate: "0"
+        commentid: "6148"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-05-18 12:10:09 +0200
+        thetext: |-
+          I tested further and realised this: If EEG 'rawdata' has already been average-rereferenced, and then passed into componentanalysis, and arbitrary numbers of components rejected, then the resulting 'rawdata_comprej' still has the property of being average re-referenced, as each component topography has zero mean over channels.  It can then be safely used for source localisation.
+
+          Thus, in the 'normal' case of using average re-referenced EEG data and 'normal' ICA for component rejection, then it doesn't matter to update the elec.tra, (so long as the ICA was run over all the channels used for average-reref).
+
+          However, in the more general case, (non ICA methods in ft_componentanalysis, or a montage other than average-reference), then I think that elec.tra should still be appopriately updated.
+      - +@isprivate: "0"
+        commentid: "7400"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-19 15:34:17 +0200
+        thetext: |-
+          hmmm, I did not look into the code for the eeg leadfield computation, but does this make use of a tra?
+          if the tra does not exist, does it then assume average rereferenced data?
+          I would think that removing components from the data should be always be represented in the tra (i.e. the original tra should be updated) otherwise the forward model may be incorrect.
+      - +@isprivate: "0"
+        commentid: "11413"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-09-24 16:29:38 +0200
+        thetext: |-
+          I created test_bug1481 which is sort of a placeholder: still to be tested here is to apply ft_apply_montage (via ft_preprocessing) to EEG data, then test if ft_rejectcomponent still works correctly.    JM understands this bug, so I reassign to him.
+
+          The original reason for the bug is not applicable to many people, since most EEG data will not have a .tra, but may in future versions.
+      - +@isprivate: "0"
+        commentid: "18471"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-08 15:17:25 +0100
+        thetext: "thanks for the test script. I used it with #3229 and it helped me to identify two improvements. \n\n[bug3229-chanpos 2e7e2cd] FIX - added missing default to ft_preprocessing, dealt with 'unknown' (needed for test script), reactivated test script for http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1481\n 3 files changed, 8 insertions(+), 6 deletions(-)\n rename test/{failed_bug1481.m => test_bug1481.m} (92%)\n\nI believe the issue to be resolved with the upcoming merge of https://github.com/fieldtrip/fieldtrip/pull/361 so I'll close this bug."

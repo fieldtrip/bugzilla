@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1986"
+    creation_ts: 2013-02-14 11:52:00 +0100
+    short_desc: wrong channel alignment by ft_combineplanar and ft_xxxgrandaverage when interpolated channels are present
+    delta_ts: 2015-07-15 13:27:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - gianpaolo.demarchi
+      - j.herring
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9431"
+        comment_count: "0"
+        attachid: "423"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-02-14 11:52:24 +0100
+        thetext: "Created attachment 423\nexemplary data file one subject\n\nDear fieldtrip developers,\nI noticed some peculiar results in some current tf data.\nthis bug might be related to http://bugzilla.fcdonders.nl/show_bug.cgi?id=1607 ,  but i think it is even more than just plotting issues.\n\nbasics: here at CIMeC (Trento) we have a Neuromag machine with 306 sensors (102magnetometers, 204 gradiometers). \nthis what i did:\nfirst i identify bad channels, which are unfortunately different across subjects, and then i remove them and do standard preprocessing and compute time frequency representations on the good channels.\nto look at sensor space data, i interpolate the missing channels using ft_channelrepair, this appends the interpolated channels at the end of the powsctrm and the label field.\nwhen i now compute the planar gradient using ft_combineplanar the result for individual subjects looks weird, e.g., alpha power is not just present at parietal sensors but also at one or two sensor at the front (non-adjacent) whereas not on other sensors (see figure non_reordered). I was first thinking that this might be a bad channel or an artifact (eye movement…) the magnetometer topographies, however, seemed right.\ni get similarly looking results when computing the grand average. again not only dominant alpha at the back of the head but also at two or three non-adjacent sensors frontally/temporally. \n\nafter some digging in the respective functions i think i found the reason. it is the result of wrong channel matching across gradiometers (within a subject) and all sensors (across subjects, always considering different appended channels in different subjects). it seems that appending interpolated data messes up the correct pairing in combineplanar (so indeed wrong pairs are combined)-  only the gradiometers but not the magnetometers are odd within a subject. similarly but for all sensors the grand average is affected (again wrong pairing of channels but over subjects). what happens is that the corresponding match_str function checks only if a channel is present but not for its position in the cell array, thus the result is a vector of 1:n, n being number of channels present. thus, the channels are chosen in the order of the input for averaging and combination, not by their label (as done for plotting)\n\nmy current solution is to reorder the data and label as in the default layout. the results look way more reasonable to me (figure 'reordered'). \nthis has now been tested on at least 4 different study sets and reordering improves data quality a lot.\nif the matching is really off, i wonder how many studies are affected.\n\ni attached an example containing tf data of one subject (chan_freq_time),  my reordering function and an example script that reproduces the results i described in regard to the planar gradient. with that you should be able to reproduce what i am talking about. i did not put anything together for the grand average, but the result is similar (well the channel selection is done in a similar way...)\n\njust to be thorough: i reproduced the same results with the most recent fieldtrip version and on MAC/Linux/Windows (good that different people in the lab use different machines). and talked to other people in our MEG lab, we think this might be really a major problem for sensor space data.\n\nbest\nphilipp"
+      - +@isprivate: "0"
+        commentid: "9471"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-02-19 12:18:40 +0100
+        thetext: "Hi Philipp,\nthanks for reporting this. We had some trouble with that in the past but thought to have resolved such problems. Good that you point us to the possible source of this misbehaviour. Someone of us will look into that quite soon, we'll discuss it in the FT-meeting tomorrow. So, from what I can see there might be two problems:\n\n1) ft_combineplanar does not combine the correct pairs or the relabeling goes wrong after succesful combination. \n\n2) ft_XXXgrandaverage does not take channel order into account.\n\nthanks also for the example code, this should make things easy for any of us to check this (I say this because I probably don't have time to look into this myself this week)"
+      - +@isprivate: "0"
+        commentid: "9496"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-02-20 16:55:29 +0100
+        thetext: |-
+          (In reply to comment #1)
+          Thanks Philip for your helpful comments and test script!
+
+          Indeed ft_combineplanar did not take care of different ordering in the horizontal and vertical channels. I changed the function to take care of this (rev. 7510). I will also check ft_XXXgrandaverage for this.
+      - +@isprivate: "0"
+        commentid: "9499"
+        comment_count: "3"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-02-20 17:35:29 +0100
+        thetext: |-
+          (In reply to comment #2)
+          thanks.
+      - +@isprivate: "0"
+        commentid: "9505"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-02-21 15:41:32 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          Fixed and committed in rev. 7519. ft_xxxgrandaverage indeed did not take different channel ordering across subjects into account. This could happen, for example, when interpolation of bad channels causes a change in the ordering.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "423"
+      date: 2013-02-14 11:52:00 +0100
+      delta_ts: 2013-02-14 11:52:24 +0100
+      desc: exemplary data file one subject
+      filename: channel_reorder.zip
+      type: application/zip
+      size: "4058968"
+      attacher:
+        +content: philipp.ruhnau
+        +@name: Philipp Ruhnau
+      data: REMOVED

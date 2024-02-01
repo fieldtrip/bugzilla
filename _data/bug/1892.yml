@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1892"
+    creation_ts: 2012-12-13 23:40:00 +0100
+    short_desc: configuration tracking and callinfo tracking collide
+    delta_ts: 2015-02-11 15:35:01 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1964"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8697"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-13 23:40:38 +0100
+        thetext: "global ft_default\nft_default = []\n\ncfg = []\ncfg.trackcallinfo = 'no'\ncfg.trackconfig = 'cleanup'\nft_sourceplot(cfg, mri);\n\nresults in \n\nUndefined function or variable 'ftohDiW7th_FuncTimer'.\n\nError in ft_postamble_provenance (line 44)\ncfg.callinfo.proctime = toc(ftohDiW7th_FuncTimer);\n\nError in ft_postamble (line 55)\n  evalin('caller', ['ft_postamble_' cmd]);\n\nError in ft_sourceplot (line 1309)\nft_postamble provenance\n\nwhich is due to trackconfig-cleanup removing the field trackcallinfo. \n\nInitially the provenance preamble knows that it should not track, but the provenance postamble does not know (and tries to access the timer).\n\nThere might be other fields in the pre/postambles that interfere with the cfg tracking."
+      - +@isprivate: "0"
+        commentid: "8698"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-13 23:42:09 +0100
+        thetext: |-
+          luckily the config tracking is not on by default.
+
+          should we consider moving the config tracking to a pre/postamble? Nowadays that would be the place where I'd expect it, but back when Saskia and I implemented we did not have that yet.
+      - +@isprivate: "0"
+        commentid: "9281"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-30 17:40:30 +0100
+        thetext: |-
+          (In reply to comment #1)
+          Do you mean to stop using the cfg-object? Or do you have something similar in mind?
+      - +@isprivate: "0"
+        commentid: "9283"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-30 17:45:38 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          I was considering moving the cfg object stuff that is now in ft_checkconfig to a pre+postamble.
+          Or more generally, I was thinking along the lines
+
+          ft_checkconfig currently does (from its documentation)
+
+          % 1: It checks whether the cfg contains all the required options, it gives
+          % a warning when renamed or deprecated options are used, and it makes sure
+          % no forbidden options are used. If necessary and possible, this function
+          % will adjust the cfg to the input requirements. If the input cfg does NOT
+          % correspond to the requirements, this function gives an elaborate warning
+          % message.
+          %
+          % 2: It controls the relevant cfg options that are being passed on to other
+          % functions, by putting them into substructures or converting them into the
+          % required format.
+          %
+          % 3: It controls the output cfg (data.cfg) such that it only contains
+          % relevant and used fields. The size of fields in the output cfg is also
+          % controlled: fields exceeding a certain maximum size are emptied.
+          % This part of the functionality is still under construction!
+
+          1 and 2 is appropriate, like ft_checkdata. For this it would only be called at the start
+
+          for 3 it currently needs to be called at the start and end of each FT function. That is also where we have the pre and postambles.
+      - +@isprivate: "0"
+        commentid: "9284"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-30 17:48:39 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          and actually it would make sense not to introduce yet another pre/postamble pair, but to make it part of the pair we have (as of recently) for the provenance.
+
+          The first part of the provenance implementation pertained to data md5 hashes. Eelke just added the usercfg (complementing the "used cfg"). The cfg object fits in the same corner.
+      - +@isprivate: "0"
+        commentid: "15303"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 15:35:01 +0100
+        thetext: "store the configuration tracking counter in a hidden field inside the object. This used to be cfg.trkcfgcount\n\nroboos@mentat003> svn commit utilities/ '@config/config.m' \\@config/access.m \nSending        @config/access.m\nSending        @config/config.m\nSending        utilities/ft_checkconfig.m\nTransmitting file data ...\nCommitted revision 10204."

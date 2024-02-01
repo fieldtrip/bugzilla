@@ -1,0 +1,129 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1924"
+    creation_ts: 2013-01-14 13:28:00 +0100
+    short_desc: implement the deymed EEG file format
+    delta_ts: 2013-04-23 12:06:29 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: madelonvollebregt
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8909"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-14 13:28:34 +0100
+        thetext: |-
+          It consists of a *.ini and a *.dat file.
+
+          Documentation is not available, but we can visualize it with the original (windows) software. Furthermore, we can read it into BESA and from there export it to EDF+ and/or to ascii format.
+      - +@isprivate: "0"
+        commentid: "8911"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-14 14:44:11 +0100
+        thetext: |-
+          The dat file seems to have a 512 bytes header, which also specifies the number of channels, the channel names and the sampling frequency. I have not yet found the calibration values, so at the moment it returns integer values (int16).
+
+          I have made a first implementation.
+
+          roboos@mentat001> svn commit . ../private/
+          Sending        fileio/ft_filetype.m
+          Sending        fileio/ft_read_data.m
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/private/dataset2files.m
+          Adding         fileio/private/inifile.m
+          Adding         fileio/private/read_deymed_dat.m
+          Adding         fileio/private/read_deymed_ini.m
+          Deleting       private/inifile.m
+          Transmitting file data ......
+          Committed revision 7306.
+
+          @Madelon, can you check and compare this new implementation with the EDF and the ascii files?
+      - +@isprivate: "0"
+        commentid: "8953"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 09:07:02 +0100
+        thetext: "I used the following to compare the dat to the edf:\n\n------------------------------------------------\n\ndatfile = 'R3.09.Dat';\nedffile = 'R3.09-export.edf';\n\nhdr1 = ft_read_header(datfile);\nhdr2 = ft_read_header(edffile);\n\ndat1 = ft_read_data(datfile);\ndat2 = ft_read_data(edffile);\n\nsel1 = (1:25600) + 512;\nsel2 = 1:25600;\n\nx = dat1(1,sel1);\ny = dat2(1,sel2);\n\nfigure\nplot(x, 'b')\nhold on\nplot(y, 'r')\n\nz = xcorr(x, y, 'coeff');\n\nfigure\nplot(z)\n\n[m, i] = max(z);\n\n------------------------------------------------\n\nThe 512 samples that I add to sel1 are experimentally determined, it shifts the two signals precisely over each other. Since it is not a multiple of 22 and since all channels are shifted with 512 samples, it suggests that there are additional channel headers following the general 512 byte header.\n\nThe total header seems 512+22528 bytes long. \nEach channel-header seems 1024 bytes long."
+      - +@isprivate: "0"
+        commentid: "8954"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 09:12:55 +0100
+        thetext: "(In reply to comment #2)\n\nI have adjusted the code for the 1024byte channel headers, the samples are now aligned.\n\nroboos@mentat001> svn commit \nSending        fileio/private/read_deymed_dat.m\nSending        fileio/private/read_deymed_ini.m\nTransmitting file data ..\nCommitted revision 7326."
+      - +@isprivate: "0"
+        commentid: "8955"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 09:48:10 +0100
+        thetext: |-
+          Fixed the calibration, which seems to be 1/4.
+
+          roboos@mentat001> svn commit
+          Sending        fileio/private/read_deymed_dat.m
+          Sending        fileio/private/read_deymed_ini.m
+          Transmitting file data ..
+          Committed revision 7328.
+      - +@isprivate: "0"
+        commentid: "8988"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 17:55:08 +0100
+        thetext: "I created a test script, which from now on will run automatically and detect any regression errors.\n\nroboos@mentat001> svn commit test_bug1924.m \nSending        test_bug1924.m\nTransmitting file data .\nCommitted revision 7338.\n\nIt might be desireable to also support the event file, but at this moment it does not have any priority. Therefore I now close this issue."
+      - +@isprivate: "0"
+        commentid: "10213"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:05:53 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10238"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:29 +0200
+        thetext: closed various bugs

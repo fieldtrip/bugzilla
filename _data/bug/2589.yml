@@ -1,0 +1,110 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2589"
+    creation_ts: 2014-05-22 16:15:00 +0200
+    short_desc: ft_selectdata detects second dimension of sampleinfo as channels
+    delta_ts: 2014-07-15 17:25:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: l.luther
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - l.luther
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13754"
+        comment_count: "0"
+        who:
+          +content: l.luther
+          +@name: ""
+        bug_when: 2014-05-22 16:15:05 +0200
+        thetext:
+      - +@isprivate: "0"
+        commentid: "13755"
+        comment_count: "1"
+        who:
+          +content: l.luther
+          +@name: ""
+        bug_when: 2014-05-22 16:17:21 +0200
+        thetext: In my 64 EEG channel data I extract 2 EOG channels of which I want to select one. When using ft_selectdata, it copies only 1 column of the sampleinfo, because it seems to assume that the 2 columns represent 2 channels (instead of the onset & offset sample numbers).
+      - +@isprivate: "0"
+        commentid: "13756"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 16:20:23 +0200
+        thetext: silly ft_selectdata!
+      - +@isprivate: "0"
+        commentid: "13757"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 16:26:10 +0200
+        thetext: |-
+          Hi Lisa,
+
+          I can confirm the problem you reported:
+
+          data = [];
+          for i=1:2
+            data.label{i} = num2str(i);
+          end
+
+          for i=1:7
+            data.trial{i} = randn(2,300);
+            data.time{i}  = (1:300)/300;
+          end
+
+          data.sampleinfo = randn(7, 2); % 7 trials, not 2 channels
+          data.trialinfo  = randn(7, 7); % 7 trials, 7 "triggers"
+
+          cfg = [];
+          cfg.channel = 1;
+          output = ft_selectdata(cfg, data);
+
+          assert(size(output.sampleinfo,1)==7);
+          assert(size(output.sampleinfo,2)==2); % this fails
+      - +@isprivate: "0"
+        commentid: "13758"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 16:39:20 +0200
+        thetext: "mac011> svn commit test/test_bug2589.m utilities/private/getdimord.m \nAdding         test/test_bug2589.m\nSending        utilities/private/getdimord.m\nTransmitting file data ..\nCommitted revision 9581.\n\n\nI solved the problem and made a small test script. I had to change the order in getdimord, i.e. first deal with known fields and only then become \"smart\". \n\nFurthermore, related to a change yesterday I also had to change rpt_unknown into rpt_other, otherwise the sampleinfo field would be stripped off by ft_selectdata. \n\nit will be on home/common in ~10 minutes"
+      - +@isprivate: "0"
+        commentid: "14128"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:09 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

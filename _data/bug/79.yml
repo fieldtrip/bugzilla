@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "79"
+    creation_ts: 2010-05-07 14:27:00 +0200
+    short_desc: ft_redefinetrial with overlapping trials (e.g. after ft_appenddata)
+    delta_ts: 2017-12-04 10:08:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3379
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "146"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2010-05-07 14:27:52 +0200
+        thetext: "Simulation of the bug using two datasets (1 contains zeros, 2 contains ones). The datasets are appended (e.g. cause system failure during recording) and then redefined (e.g. prior to the frequency analysis process). \n\nRedefinition has been attempted in two ways; 1) trl definition and 2) cfg.begsample & cfg.endsample specification. \n\n% stuff\nFs = 1200;\ncfg           = [];\ncfg.layout    = 'CTF275.lay';\ncfg.layout    = prepare_layout(cfg);\nlabel         = cfg.layout.label(1:273,1);\n\n% dataset 1; all ones\ndataset1.trial{1,1} = zeros(273,2400);\ndataset1.time{1,1}  = (0:1/Fs:2-1/Fs);\ndataset1.label      = label;\ndataset1.fsample    = Fs;\ndataset1.cfg.previous.previous.trl(1,1) = 1;\ndataset1.cfg.previous.previous.trl(1,2) = 2400;\ndataset1.cfg.previous.previous.trl(1,3) = 0;\n\n% dataset2; all zeros\ndataset2.trial{1,1} = ones(273,2400);\ndataset2.time{1,1}  = (0:1/Fs:2-1/Fs);\ndataset2.label      = label;\ndataset2.fsample    = Fs;\ndataset2.cfg.previous.previous.trl(1,1) = 1;\ndataset2.cfg.previous.previous.trl(1,2) = 2400;\ndataset2.cfg.previous.previous.trl(1,3) = 0;\n\n% append data\ncfg = [];\ndataset3 = ft_appenddata(cfg, dataset1, dataset2);\n\n% redefine trial with trl\ncfg = [];\ncfg.trl(1,1) = 1;\ncfg.trl(1,2) = 1200;\ncfg.trl(1,3) = 0;\ncfg.trl(2,1) = 1201;\ncfg.trl(2,2) = 2400;\ncfg.trl(2,3) = 0;\ndataset4 = ft_redefinetrial(cfg, dataset3);\n\n% result\n??? Error using ==> fetch_data at 114\nsome of the requested samples occur twice in the data\n\nwhen commenting line 113 and 114 in fetch_data, and thus, ignoring the error;\nboth trials in dataset4 solely contain 'ones' which means that dataset2 alone has been used for input\n\n% redefine trial with cfg.begsample and cfg.endsample\ncfg = [];\ncfg.begsample(1,1) = 1;\ncfg.endsample(1,1) = 1200;\ncfg.begsample(2,1) = 1201;\ncfg.endsample(2,1) = 2400;\ndataset5 = ft_redefinetrial(cfg, dataset3);\n\n% result\ntrial 1 has zeros (originating from dataset1)\ntrial 2 has ones (originating from dataset2)\ndisadvantage of this method is that one cannot cut trials in pieces (and create more trials) but only select a part from each trial"
+      - +@isprivate: "0"
+        commentid: "149"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-05-17 09:23:34 +0200
+        thetext: |-
+          The first question here is actually: What IS the bug.
+
+          Arjen's problem is related to the fact that when calling ft_redefinetrial on an  appended dataset (consisting of 2 or more different recordings), the appended trl-matrix contains 'overlapping' epochs. This is caught as an error in the low-level public/fetch_data. This feature of fetch_data also causes problems if a similar data structure is used in ft_databrowser (this is a separate bug assigned to Ingrid, but should be treated in this context as well).
+          Robert pointed out to a 'philosophical' problem related to this issue. This concerns the fact that in this context fieldtrip uses the trl-matrix which is stored somewhere in the history of cfgs to a data-structure. This is against fieldtrip-philosophy, in that each data-structure should be self-explanatory. Having to dig into the past (by calling findcfg(data.cfg, 'trl') could lead to the extraction of ambiguous or ill-defined trl-matrices (as we have seen). Yet, trl-matrices have been used extensively in the past to code for trial specific parameters in the 4th until 100th columns, and by taking care of the trl-matrix in each analysis step allows us to keep track of these parameters consistently. For future development this has to be reconsidered and possibly added as a higher level field in the data-structure. (in line with Martin Vincks proposal to deal with some things in the ft_spikeXXX functions).
+          For the time being I think a few changes need to be made to the existing code:
+
+          ft_appenddata: check explicitly whether the original data structures come from the same recording. If so, append the trl-matrices. If not, append them, but replace the first 2 columns either by nans (don't know what this will be doing to the rest of the code), or by an internally consistent description (at least with respect to the trl-matrix). The second option may also have unwanted side-effects though.
+          ft_redefinetrial: throw an error if the redefinition is based on a trl-matrix, and if the trl-matrix contained in the data is ambiguous/inconsistent/contains nans
+          ft_databrowser: ....
+
+          fetch_data: only do the overlapping samples check when this is needed
+
+          Final point related to ft_redefinetrial: Arjan mentions that it may be a desired option to be able to cut out more than one epoch out of a longer one. As of yet, this functionality does not exist as far as I know, but investigate whether this is desirable, and if so, implement it.
+      - +@isprivate: "0"
+        commentid: "154"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-05-19 13:57:28 +0200
+        thetext: |-
+          add fields to data structure:
+
+          trialdef (raw data only)
+          trialinfo (4th column of original trl matrix and upwards)
+
+          to ensure backward compatibility first build into checkdata the conversion from old-fashioned (containing cfg.previousxxx.trl) to new (containing .trialdef and .trialinfo)
+
+          etc....
+      - +@isprivate: "0"
+        commentid: "225"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-07-21 10:27:54 +0200
+        thetext: |-
+          Original issue does not exist anymore after upgrading code to use trialdef and trialinfo, rather than relying on data.cfg.previous.........
+          If appenddata is called with data from two different recordings, the trialdef will be removed

@@ -1,0 +1,62 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1777"
+    creation_ts: 2012-10-10 14:42:00 +0200
+    short_desc: ft_spike_xcorr nlags/size of .xcorr field
+    delta_ts: 2015-07-15 13:06:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bart.gips
+      +@name: Bart Gips
+    assigned_to:
+      +content: bart.gips
+      +@name: Bart Gips
+    cc:
+      - joscha.schmiedt
+      - martinvinck
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7881"
+        comment_count: "0"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-10 14:42:12 +0200
+        thetext: "Problem:\n=====================================\nft_spike_xcorr creates a stat.xcorr field of length cfg.maxlags*2, even though the help section says 2*maxlags+1. The 2*maxlags+1 makes sense: the result will give you -maxlag:maxlag, so maxlag lagging to maxlag leading.\n\nSo changing line 198:\ns     = zeros(nChans,nChans,2*nLags); \nto \ns     = zeros(nChans,nChans,2*nLags+1); (together with the other changes needed)\n\nmakes sense.\n\n======================================\nSecondly:\n\nA cross-correlation of two signals can only be of length equal to the sum of the lengths of the two signals minus 1.\nI.e. \nSignal A: 1 x M\nSignal B: 1 x N\n\nxcorr(A,B)= 1 x (M+N-1)\n\nSo if the user would want a full xcorr the user should be able to select this.\nRight now this is not the case.\nThis could be solved by either changing line 198 again:\ns     = zeros(nChans,nChans,2*nLags-1);\n(but this would disregard the first point I made)\n\nor by adding a special case\ne.g.\nif nLags>length(spike.trial{n})\ns     = zeros(nChans,nChans,2*length(spike.trial{n})-1);\nend\n========================================="
+      - +@isprivate: "0"
+        commentid: "15885"
+        comment_count: "1"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2015-07-15 13:06:30 +0200
+        thetext: |-
+          I agree that this is a problem. At the moment it's also not clear from the documentation what the lags actually mean, center of the bins or edges, and how the maxlag and binsize options make up the computation bins. The documentation says
+
+               stat.lags             = (2*nlags + 1) vector with lags in seconds.
+
+          The actual output is called stat.time and does not reach until cfg.maxlag but until cfg.maxlag-cfg.binsize/2.

@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2784"
+    creation_ts: 2014-12-16 02:51:00 +0100
+    short_desc: Error in ft_mvaranalysis
+    delta_ts: 2015-07-15 13:31:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: tyler.grummett
+      +@name: Tyler
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14953"
+        comment_count: "0"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2014-12-16 02:51:53 +0100
+        thetext: "Hello fieldtrip,\n\nI am getting the following error:\n\nError using  .* \nMatrix dimensions must agree.\n\nError in ft_mvaranalysis>catnan (line 479)\n    datamatrix(:,begsmp:endsmp) = datacells{trials(k)}(chanindx,:).*taper(ones(nchan,1),:);\n\nError in ft_mvaranalysis (line 385)\n        dat = catnan(tmpdata.trial, chanindx, rpt{rlop}, tap(m,:), nnans, dobvar);\n\n\n\nCalling the size function of the two segments of code reveals:\n\nsize( datacells{trials(k)}(chanindx,:)) = 123 500\nsize( taper(ones(nchan,1),:)) = 123 501\n\nI looked back to see how taper is created, and tracked it back to line 166 of the code: cfg.t_ftimwin = data.time{1}(end)-data.time{1}(1) + 1/data.fsample;\n\ncfg.t_ftimwin = 0.5010\n\ndata.fsample = 1000\ndata.time{1}(end) = 240.6270\ndata.time{1}(1) = 240.1270\n\nI apologise if this is a mistake that I have caused somehow with my data, but I thought I would submit a bug just to be sure.\n\nKind regards,\n\nTyler"
+      - +@isprivate: "0"
+        commentid: "15301"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 15:31:35 +0100
+        thetext: .
+      - +@isprivate: "0"
+        commentid: "15412"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 11:43:10 +0100
+        thetext: |-
+          [jansch@mentat002 fieldtrip]$ svn add test/test_bug2784.m
+          A         test/test_bug2784.m
+          [jansch@mentat002 fieldtrip]$ svn commit -m "enhancement - created test function" test/test_bug2784.m
+          Adding         test/test_bug2784.m
+          Transmitting file data .
+          Committed revision 10243.
+
+
+          So far I cannot reproduce, because I don't know the specifics of the data that was used to generate the error.
+
+          The test script tests two scenarios with dummy data that contains 2 trials of different length (500 vs 501 samples), with a slight shift in the time axis.
+          -a call to ft_mvaranalysis with an empty cfg leads to an error in the function (which is correct behavior -> different length time axes are not allowed).
+          -a call to ft_mvaranalysis with cfg.toi=0.25 and cfg.t_ftimwin=0.5 runs without error.
+      - +@isprivate: "0"
+        commentid: "15445"
+        comment_count: "3"
+        attachid: "704"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2015-02-24 04:17:39 +0100
+        thetext: |-
+          Created attachment 704
+          Data file containing four segments of data
+
+          Apologies for not providing more detail, I was aware that I had provided insufficient evident. Again apologies and I am willing to give you information you require to solve the issue.
+
+          I had a look at my data trying to be processed and the segment lengths were all 501 samples long, so unfortunately the problem isnt due to inconsistent segment lengths.
+
+          I have attached a small section of data (in order to comply with the file size limit). I still get the error with this section of data, so hopefully it should help in solving the issue.
+
+          Many thanks
+      - +@isprivate: "0"
+        commentid: "15446"
+        comment_count: "4"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2015-02-24 04:19:00 +0100
+        thetext: |-
+          (In reply to Tyler from comment #3)
+
+          wasnt*
+      - +@isprivate: "0"
+        commentid: "15448"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-24 09:30:04 +0100
+        thetext: |-
+          [jansch@mentat002 fieldtrip]$ svn commit -m "enhancement - made ft_mvaranalysis more robust" ft_mvaranalysis.m test/test_bug2784.m
+          Sending        ft_mvaranalysis.m
+          Sending        test/test_bug2784.m
+          Transmitting file data ..
+          Committed revision 10255.
+
+          I think the above changes have addressed your issue. Please get the latest version of FT (at least revision number 10255 or higher) and try whether it works for you.
+      - +@isprivate: "0"
+        commentid: "15449"
+        comment_count: "6"
+        who:
+          +content: tyler.grummett
+          +@name: Tyler
+        bug_when: 2015-02-24 10:14:20 +0100
+        thetext: Sure did work. Thank you :)
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "704"
+      date: 2015-02-24 04:17:00 +0100
+      delta_ts: 2015-02-24 04:17:39 +0100
+      desc: Data file containing four segments of data
+      filename: forfieldtrip.mat
+      type: text/plain
+      size: "803650"
+      attacher:
+        +content: tyler.grummett
+        +@name: Tyler
+      data: REMOVED

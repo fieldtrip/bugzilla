@@ -1,0 +1,67 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2641"
+    creation_ts: 2014-07-08 19:17:00 +0200
+    short_desc: Error in ft_checkconfig using ft_spiketriggeredspectrum
+    delta_ts: 2015-07-15 13:31:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2674
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: thomas.wunderle
+      +@name: Thomas Wunderle
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - bart.gips
+      - j.schoffelen
+      - joscha.schmiedt
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14074"
+        comment_count: "0"
+        who:
+          +content: thomas.wunderle
+          +@name: Thomas Wunderle
+        bug_when: 2014-07-08 19:17:54 +0200
+        thetext: "I'm trying to use \"ft_spiketriggeredspectrum\" to compute the phase of the LFP around a spike for a subsequent PPC analysis.\n\nUsing the following code, \n\ncfg = [];\ncfg.method = 'mtmconvol';\ncfg.foi             =  [2:2:100]\ncfg.t_ftimwin       = (1./cfg.foi)*3;\n[sts] = ft_spiketriggeredspectrum(cfg,lfp,FT_Spike);\n\n\nI get the error:\n\n\n??? Error using ==> ft_checkconfig at 205\nThe field cfg.progress is not allowed\n\nError in ==> ft_spiketriggeredspectrum_convol at 135\ncfg = ft_checkconfig(cfg, 'allowed', {'taper', 'borderspikes', 't_ftimwin', 'foi', 'spikechannel', 'channel', 'taperopt', 'rejectsaturation','tapsmofrq', 'warning'});\n\nError in ==> LaminarCoherence_Spike1 at 403\n[sts] = ft_spiketriggeredspectrum_convol(cfg,lfp,FT_Spike);\n\n%%%------------------------------------------------------------------\n\nIt seems that in ft_checkconfig the string 'progress' is missing.\nadding 'progress' to the code below fixes the bug for me\n\n\n-> Code from ft_checkconfig\n\n% % check for required fields, give error when missing\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nif ~isempty(allowed)\n  % there are some general options that should always be allowed\n  allowed = union(allowed, {\n    'trackconfig'\n    'checkconfig'\n    'checksize'\n    'showcallinfo'\n    'trackcallinfo'\n    'trackdatainfo'\n    'trackparaminfo'\n    'debug'\n  ---> 'progress'\n    });\n  fieldsused = fieldnames(cfg);\n  [c, i] = setdiff(fieldsused, allowed);\n  if ~isempty(c)\n    error('The field cfg.%s is not allowed\\n', c{1});\n  end\nend\n\n%%%-----------------------------------------------------------------------------\n\nBest,\nThomas"
+      - +@isprivate: "0"
+        commentid: "14099"
+        comment_count: "1"
+        who:
+          +content: thomas.wunderle
+          +@name: Thomas Wunderle
+        bug_when: 2014-07-10 11:13:02 +0200
+        thetext: P.S. FieldTrip version r8941 does not produce the error.
+      - +@isprivate: "0"
+        commentid: "15274"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 11:02:06 +0100
+        thetext: It seems that this issue has been fixed with Diego addressing 2674. Closing for now. Please feel free to re-open if the problem persists.

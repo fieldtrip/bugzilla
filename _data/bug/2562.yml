@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2562"
+    creation_ts: 2014-05-05 23:28:00 +0200
+    short_desc: time axes numerical imprecision with ft_redefinetrial overlap option
+    delta_ts: 2014-05-15 18:17:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - dlozanosoldevilla
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13488"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-05-05 23:28:55 +0200
+        thetext: |-
+          When using ft_redefinetrial to make overlaping time windows, offset2time produces a time axes with different numerical imprecision in "some" pieces of the time vector. Here one example:
+
+          % create raw structure
+          n = 100000;
+          data = [];
+          data.fsample = 1000;
+          data.label{1} = '1';
+          data.trial{1} = randn(1,n);
+          data.time{1} = (0:1:size(n,2)-1)./data.fsample;
+
+          % make pieces of 1sec with 50% overlaping
+          cfg        = [];
+          cfg.length = 1;
+          cfg.overlap = 0.5;
+          dat      = ft_redefinetrial(cfg, data);
+
+          First trial seem OK:
+           1./mean(diff(dat.time{1}))
+
+          ans =
+
+                  1000
+
+          But other trials have different numerical precision
+          >> 1./mean(diff(dat.time{8}))
+
+          ans =
+
+             1.0000e+03
+           This produces errors in ft_specest* functions because the sampling frequency is computed by 1./mean(diff(time))
+
+          No clue why sometimes happens with high offset values:
+
+          >> 1./mean(diff(offset2time(1, data.fsample, cfg.length*data.fsample)))
+
+          ans =
+
+                  1000
+
+          >> 1./mean(diff(offset2time(100, data.fsample, cfg.length*data.fsample)))
+
+          ans =
+
+                  1000
+
+          >> 1./mean(diff(offset2time(10000, data.fsample, cfg.length*data.fsample)))
+
+          ans =
+
+             1.0000e+03
+
+          Could somebody replicate it?
+      - +@isprivate: "0"
+        commentid: "13671"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-05-15 18:17:53 +0200
+        thetext: "After a long discussion/tests together with Robert, here some conclusions:\n\n- The core of the problem is related to the numerical precision to represent a long time vector. At some limit of preciosion (type \"eps\" in matlab), numerical precision results no longer accurate:\n\n>> (1+eps)\n\nans =\n\n    1.0000\n\n>> (1+eps)-1\n\nans =\n\n   2.2204e-16\n\n\nNow lets illustrate it with a time axes:\n\n% create raw structure\nn = 100000;\ndat = randn(1,n);\n\ndata = [];\ndata.fsample = 1000;\ndata.label{1} = '1';\ndata.trial{1} = dat;\ndata.time{1} = (0:1:size(dat,2)-1)./data.fsample;\n\n>> 1./mean(diff(data.time{1}))\n\nans =\n\n        1000\n\n\n>> 1./mean(diff(data.time{1}(1,3500:6000)))\n\nans =\n\n   1.0000e+03\n\n\nThe above example shows clearly the problem. The time inaccuracy exists in the time axes because it's very long. When we compute the sampling frequency as 1./mean(diff(data.time{1})), the inaccuracy \"disappear\" because the \"mean\" average. However, if the compute shorter periods, we can detect it.\n \nIn the following figure you can see the complex pattern of the inaccuracy:\n\ntime4000 = 4000/fsample + (0:(nsamples-1))/fsample;\n\nfigure;plot(diff(time4000)-1/1000, '.');\n\n\n\nTo put it stronger, let's redefine the data in multiple shorter epochs:\n\n% make pieces of 1sec with 50% overlaping\ncfg         = [];\ncfg.length  = 1;\ncfg.overlap = 0.5;\ndataover    = ft_redefinetrial(cfg, data);\n\nallfsample = zeros(1, length(dataover.time));\nfor i=1:length(dataover.time)\n  allfsample(i) = 1./mean(diff(dataover.time{i}));\nend\nfigure;plot(allfsample-1000, '.')\n\nNow you can see that the numerical imprecision is jumping in a range close to the eps.\n\n\n\nBOTTOM-LINE:\nAs fixetimeaxes function failed to fix the problem, I'll try to use the \"find\" solution Martin proposed http://bugzilla.fcdonders.nl/show_bug.cgi?id=1943"

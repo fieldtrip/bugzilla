@@ -1,0 +1,100 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3334"
+    creation_ts: 2017-08-22 20:52:00 +0200
+    short_desc: create ft_appendlayout
+    delta_ts: 2019-08-10 12:43:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3096
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3059
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - a.stolk8
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18854"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-08-22 20:52:54 +0200
+        thetext: "I have some extra time on my hands the coming weeks, so thinking of making an ft_appendlayout. (Could be I made an bugzilla/github thing on this previously, but couldn't find it)\n\nRight now, I'm thinking of capabilities as shown by the options below. The first two ways of specifying the appending will be my priority and implemented first, but might as well add some others. Any additional ideas? Terminlogy TBD\n\nEach layout will be transformed to normalized units in the total space of the appendlayouts given the below options, and then simply concatenated into one bigger layout.\n\nlay = ft_appendlayout(cfg,lay,lay,lay,...)\n\n(default is a rough 3:4 aspect ratio arrangement)\ncfg.nrows    = scalar, number of rows of appended layouts\ncfg.ncolumns = scalar, number of rows of appended layouts\nOR\ncfg.matrix   = boolean/index matrix (can be used to e.g. keep a center square empty)\nOR\ncfg.orthographic?? = 'S/ALP/I'  row-wise specification of orthographic viewpoint 'unfolding'\n\ncfg.shrinktosens  = scalar or Nlay vector, 0<>1 (1=electrodes on layout border+padding, 0.5=half the distance of current edge (outline/mask), 0=no squeeze) \ncfg.paddingwithin  = scalar, 0<>1, within layout padding on each side (fraction of layout box)\ncfg.paddingbetween = scalar, 0<>1, between layout padding on each side (fraction of layout box)\n\ncfg.keepoutline = yes/no (if no, cfg.squeezetosens cannot be used)\ncfg.keepmask    = yes/no\n\n\nAd cfg.shrinktosens: useful for depths in a full brain outline, where you'd like to keep some of the brain, but not all, as the sensors will be too small. Padding is added after cutting out the sensors. \n\nAd cfg.orthographic: I mean a 'box' type unfolding like (in the example)\n                        S\n                    A L P R\n                        I\n(this probably won't appear well in bugzilla, but in this case I mean anterior-left-posterior-right, with superior above posterior and inferior below posterior)\nI currently don't have an idea on how to make this happen, because the ortho viewpoint a layout originated from is not detectable from the lay. Layouts also don't contain cfg's, so even a 'dirty' peek would not work."
+      - +@isprivate: "0"
+        commentid: "18856"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 09:12:52 +0200
+        thetext: "I remember discussing it with you in relation to ECoG visualisation. That discussion is here at http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3059#c18 and subsequent comments.\n\nFor bug 3096 I already created some code that is in a (rather stale) branch at https://github.com/robertoostenveld/fieldtrip/tree/bug3096. Among others it attempts to support something like\n\ncfg.layout = {lay1, lay2, lay3}\nft_multiplotER(cfg, data)\n\nwhich touches upon your suggestion. The reason for 3096 to relate to layouts is that I came up with the idea to use the layout for graphical channel selection.\n\nWe should review the changes that I made in that branch and we should make a design decision. \n\nIn general I am fine with\nstat = ft_freqstatistics(cfg, allfreq{:})\nbecause that is simple MATLAB syntax, not FieldTrip specific.\n\nI could imagine the following to work (for various functions)\ncfg.elec = {elec_ecog, elec_shaft1, elec_shaft2};\nor\ncfg.elec = ft_appendsens(cfg, elec_ecog, elec_shaft1, elec_shaft2);\nwhich could be written as alleles{:} just like allfreq{:}.\n\nIdem for\ncfg.grad (consider sequential measurements with small sensor arrays) \nand you can consider similar use for\ncfg.headmodel (consider simultaneous EEG and MEG)\ncfg.sourcemodel (consider cortical sheet and some deeper brain structures)\n\nft_datatype_headmodel already supports it\nft_prepare_vol_sens already supports it\nft_compute_leadfield already supports it\nft_convert_units supports it\nft_prepare_layout supports it in my branch bug3096\nft_datatype_sens does not support it\n\nthere are other functions in forward that also support it (grep for \"iscell\")."
+      - +@isprivate: "0"
+        commentid: "18869"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-08-24 01:51:44 +0200
+        thetext: "Ha, it's good to see I was at least somewhat consistent in my ideas ;)\n\nUseful indeed for channel selection in databrowser.\n\nUsing cell-arrays sounds good. To get some additional control, shall we make an ft_appendlayout and call that from within ft_prepare_layout as you suggested with reasonable defaults? It's a similar operational level as ft_appendsens.\n\nShall I make it? (using your branch as some suggestions)\n\nHadn't thought of the comnt/scale yet. If desired to be kept, let's place them e.g. in the layout that's in the lower right. \n\nI now also remember the difficult situation of the neuromag sensor sets... \n\nOne way we might still be able to do the ortho unfolding of e.g. MEG sensors (you were a fan of this right?), would be to allow for all/subset of cfg options of ft_prepare_layout to be organized in cell-arrays (channel/viewpoint/projection/etc), like the multiple highlight sets in ft_topoplotXXX. This would keep the ortho viewpoint information while creating the individual layouts. However, then one might as well do it oneself, as the viewpoints have to specific by the user (and, as such, the user would know which is which)."
+      - +@isprivate: "0"
+        commentid: "18873"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-24 10:27:02 +0200
+        thetext: "(In reply to Roemer van der Meij from comment #2)\n\nYes, please start a new branch, taking some suggestions from my branch.\n\nI think cfg.layout in ft_prepare_layout is best handled like this (at the start), similar to the other functions \n\nif isfield(cfg, 'layout') && iscell(cfg.layout)\n  lay = {};\n  for i=1:numel(cfg.layout)\n  tmpcfg = cfg;\n  tmpcfg.layout = cfg.layout{i};\n  lay{i} = ft_prepare_layout(tmpcfg);\n  end\n  lay = ft_appendlayout([], lay{:});\n  return\nend\n\nIf advanced handling is needed, e.g. different left/right viewpoints, people should call it multiple times themselves.\n\nI think ft_appendlayout needs an option (or default behavior) to arrange the layouts in a nice way. Please don't start too fancy, horizontal/vertical is initially enough. But we should keep the 'unfoldedbox' option also in mind, i.e. as if you were to unfold a paper cube. \n\nSomething to consider: what happens in multi and topoplot if the same channel is present in two of the layouts that are appended? That would happen for the unfoldedbox version. \n\nSomething to consider: combining is one operation, making a subset selection is the reverse operation. We recently figured out that we don't have a selection making function for electrodes (I explicitly disabled it in ft_selectdata, since elec/grad/opto is not 100% robustly supported as \"data\"). Here the same applies, we don't have a subset selection function for layouts. The ft_selectdata should not be expected to work on layouts. We do have the option in the main FT functions to use cfg.channel to make a subset for subsequent processing/plotting. I would hope that to be enough here as well."
+      - +@isprivate: "0"
+        commentid: "18880"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-08-25 00:54:12 +0200
+        thetext: "Sounds good. \n\nAs a default, let's do a simple rectangle if >3 and horizontal otherwise as a start. \n\nRe: subselecting\nI like the fact that layouts are currently stable, and that 'selection' is done at the to-be-plotted-data level. It makes sense from the perspective of a reference map, which doesn't change after you do something with the data (unless it is a specific spatial transform such as grad->planar/etc), or if you select a subset of channels. Like viewing a picture of a heart doesn't change where it is in the body, and its useful to know exactly where it was (terrible analogy, I know). I'd argue the same could be said for elec/grad. They are (relatively) stable representations of all the electrodes/sensors.   \n\nRe: duplicate channels\nTo my great surprise, topoplotXXX and multiplotXXX deal with it fine already actually! (mostly). Added some coded to show it below. The interactive selection -> singleplotXXX doesn't deal well with it (duplicate channels only contribute to average once), but the singleplotXXX to topoplot works well again (duplicate channels are shown as duplicate). It is debatable whether or not duplicate channels should be counted more than once in the singleplotXXX average over channels. \nProblems with duplication could be deeper though, I still have to take a more thorough look.\n\n\n\n% load tutorial data\nload('dataFIC.mat')\n% get freq\ncfg              = [];\ncfg.output       = 'pow';\ncfg.channel      = 'MEG';\ncfg.method       = 'mtmconvol';\ncfg.taper        = 'hanning';\ncfg.foi          = 2:2:30;                     \ncfg.t_ftimwin    = ones(length(cfg.foi),1).*0.5;\ncfg.toi          = -0.5:0.05:1.5;               \nTFRhann = ft_freqanalysis(cfg, dataFIC);\n% mess with layout\ncfg = [];\ncfg.layout = 'CTF151';\nlay = ft_prepare_layout(cfg);\nlay.label(1:75) = lay.label(1);\n% plot topo\ncfg = [];\ncfg.baseline     = [-0.5 -0.1];\t\ncfg.baselinetype = 'absolute';\ncfg.xlim         = [0.9 1.3];   \ncfg.zlim         = 'maxabs';\ncfg.ylim         = [15 20];\ncfg.marker       = 'labels';\ncfg.layout       = lay;\nfigure \nft_topoplotTFR(cfg, TFRhann);\n% plot multiplot\ncfg = [];\ncfg.baseline     = [-0.5 -0.1]; \ncfg.baselinetype = 'absolute'; \ncfg.zlim         = 'maxabs';\t        \ncfg.showlabels   = 'yes';\t\ncfg.layout       = lay;\nfigure \nft_multiplotTFR(cfg, TFRhann);\n\n% mess with layout\ncfg = [];\ncfg.layout    = 'CTF151';\nlay = ft_prepare_layout(cfg);\nlay.pos     = cat(1,lay.pos,lay.pos(1:151,:));\nlay.width   = cat(1,lay.width,lay.width(1:151));\nlay.height  = cat(1,lay.height,lay.height(1:151));\nlay.label   = cat(1,lay.label,lay.label(1:151));\nlay.outline = cat(2,lay.outline,lay.outline);\nlay.mask    = cat(1,lay.mask,lay.mask);\nfor i = 5:8\n  lay.outline{i}(:,1) = lay.outline{i}(:,1)+1.2;\nend\nlay.mask{2}(:,1)   = lay.mask{2}(:,1)+1.2;\nlay.pos(154:end,1) = lay.pos(154:end,1)+1.2;\n% plot topo\ncfg = [];\ncfg.baseline     = [-0.5 -0.1];\t\ncfg.baselinetype = 'absolute';\ncfg.xlim         = [0.9 1.3];   \ncfg.zlim         = 'maxabs';\ncfg.ylim         = [15 20];\ncfg.marker       = 'labels';\ncfg.layout       = lay;\nfigure \nft_topoplotTFR(cfg, TFRhann);\n% plot multiplot\ncfg = [];\ncfg.baseline     = [-0.5 -0.1]; \ncfg.baselinetype = 'absolute'; \ncfg.zlim         = 'maxabs';\t        \ncfg.showlabels   = 'yes';\t\ncfg.layout       = lay;\nfigure \nft_multiplotTFR(cfg, TFRhann);"
+      - +@isprivate: "0"
+        commentid: "19657"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-27 23:21:06 +0100
+        thetext: "this is now implemented and documented in the layout tutorial. \n\nSee also https://github.com/fieldtrip/fieldtrip/issues/1023\n\nmac011> git commit -a\n[master 04d60ac] updated the layout tutorial with the schematic iEEG grid (combined sEEG and ECoG) - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3334 - https://github.com/fieldtrip/fieldtrip/issues/1023\n 9 files changed, 160 insertions(+), 4 deletions(-)\n create mode 100755 assets/img/tutorial/layout/SubjectUCI29_grids.png\n create mode 100644 assets/img/tutorial/layout/freq_layoutAll.png\n create mode 100644 assets/img/tutorial/layout/layoutAll.png\n create mode 100644 assets/img/tutorial/layout/layoutL.png\n create mode 100644 assets/img/tutorial/layout/layoutLAM.png\n create mode 100644 assets/img/tutorial/layout/layoutLPG.png\n create mode 100644 assets/img/tutorial/layout/layoutLTG.png\n create mode 100644 assets/img/tutorial/layout/layoutShafts.png"
+      - +@isprivate: "0"
+        commentid: "20539"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:43:49 +0200
+        thetext: "This closes a whole series of bugs that have recently been resolved (either FIXED/WONTFIX/INVALID). \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,142 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2883"
+    creation_ts: 2015-04-29 09:45:00 +0200
+    short_desc: 'error(''fixme: reorder data fields to match cfg.channel'');'
+    delta_ts: 2016-05-06 07:49:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: esther.florin
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15614"
+        comment_count: "0"
+        who:
+          +content: esther.florin
+          +@name: ""
+        bug_when: 2015-04-29 09:45:30 +0200
+        thetext: "cfg              = []; \ncfg.method       = 'dics';\ncfg.frequency    = 25;  \ncfg.grid         = grid; \ncfg.vol          = vol;\ncfg.dics.projectnoise = 'yes';\ncfg.dics.lambda       = 0;\n\nsourcePost_nocon = ft_sourceanalysis(cfg, freqPost);\n\nWithin ft_sourceanalysis the error-message above occured. The data is a CTF 275 channel MEG recording. I will upload the corresponding matlab inputs."
+      - +@isprivate: "0"
+        commentid: "15653"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-05 10:21:43 +0200
+        thetext: |-
+          Hi Esther,
+
+          I look forward to receiving the mat file. If they are too large as attachment, please use one of the methods listed here
+
+          http://www.fieldtriptoolbox.org/faq/how_should_i_send_example_data_to_the_developers
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "15655"
+        comment_count: "2"
+        who:
+          +content: esther.florin
+          +@name: ""
+        bug_when: 2015-05-05 12:51:16 +0200
+        thetext: |-
+          Hi Robert,
+          I had placed the .mat file on the ftp-server last week, when reporting the bug (bugreport_bug_2883). I also have send it now again.
+          Thank you,
+          Esther
+      - +@isprivate: "0"
+        commentid: "15656"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-05 13:02:16 +0200
+        thetext: |-
+          (In reply to esther.florin from comment #2)
+
+          thanks, I found it!
+
+          For reference, I copied it to /home/common/matlab/fieldtrip/data/test/bug2883.mat
+      - +@isprivate: "0"
+        commentid: "15965"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-21 16:05:00 +0200
+        thetext: |-
+          Hi Esther,
+          What is it you want to do.
+          I think the error is thrown to protect you against yourself, because the order of the channels in your data is different from the order of the channels in your pre-computed leadfields. Althought there seems to be some code in place (in ft_sourceanalysis) to match the channel order between data and precomputed leadfield, for some (no doubt valid) reason an error is thrown.
+
+          How is it possible that the channel order in the data has been shuffled around?
+          It looks as if your gradiometer array is 3d-order balanced, could this have led to a shuffled channel order?
+      - +@isprivate: "0"
+        commentid: "15966"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-21 16:14:09 +0200
+        thetext: |-
+          I would ensure that the channel order is the same in both the data and the leadfields. For this I would re-order the channel order:
+
+          % start from the time domain data, i.e. prior to calling ft_freqanalysis
+          [a,b] = match_str(data.grad.label,data.label);
+
+          tmpcfg = [];
+          tmpcfg.channel = data.label(b); % this shuffles the labels according to grad.label, and keeps only the overlapping channels: if you need the EEGs as well, you have to add these to the list, think about whether you really need to keep the references (once your data is 3d-order balanced, you don't need them anymore).
+          data = ft_selectdata(tmpcfg,data);
+
+          % then do spectral analysis, where I recommend using cfg.output = 'fourier', rather than 'powandcsd';
+
+          % then pre-compute the leadfields, think about whether you need the leadfields to be computed for the reference coils as well: if your input gradiometer description is 3d-order balanced then the balancing is automatically applied to the leadfields.
+
+          % then call ft_sourceanalysis.
+
+          Could you provide some feedback as to whether this has worked?
+      - +@isprivate: "0"
+        commentid: "16076"
+        comment_count: "6"
+        who:
+          +content: esther.florin
+          +@name: ""
+        bug_when: 2015-09-04 12:10:28 +0200
+        thetext: "Hi,\nsorry for the delay. The fix works. \nI am not clear, why using the 3rd order gradient correction (recommended by CTF) produces this problem. I first thought this was due to the fact that the data set was rather old and there might have been changes in the way things are saved. However, I have now tried a newer data set (the auditory data set you used for the workshop together with the brainstorm team) and I get the same error. \nThe order of the sensors is not really shuffled - the issue is that in one case the reference sensors are at the beginning and in the other at the end. I am not sure, why this is the case.\nBest wishes,\nEsther"
+      - +@isprivate: "0"
+        commentid: "16982"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-24 09:25:32 +0100
+        thetext: I consider this fixed right now, at least due to lack of activity in this bug it does not seem to be an urgent issue anymore. In the light of recent code changes, and explicit channel order checks I am not sure how 'real' this issue still is. I suggest to close, and reopen if need arises.

@@ -1,0 +1,303 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2597"
+    creation_ts: 2014-06-02 15:37:00 +0200
+    short_desc: ft_selectdata alphabetizes labels, this leads to wrong leadfield order with ft_prepare_leadfield
+    delta_ts: 2015-01-12 09:22:19 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - ababajan
+      - gianpaolo.demarchi
+      - j.schoffelen
+      - jorn
+      - martina.postorino
+      - monklefish+field
+      - n.lam
+      - r.oostenveld
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13791"
+        comment_count: "0"
+        attachid: "630"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-02 15:37:16 +0200
+        thetext: |-
+          Created attachment 630
+          example dataset
+
+          Dear ft developers,
+      - +@isprivate: "0"
+        commentid: "13792"
+        comment_count: "1"
+        attachid: "631"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-02 15:37:54 +0200
+        thetext: |-
+          Created attachment 631
+          example script
+      - +@isprivate: "0"
+        commentid: "13793"
+        comment_count: "2"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-02 15:52:00 +0200
+        thetext: "Sorry I hit the return button and instead of just uploading submitted the whole site...\n\nso here is the whole story:\n\nI recently wanted to create some inverse solutions of auditory ERFs (N1) which was elicited under different conditions. when I looked at one subject's ERFs from single conditions alone within some snippets the ERFs looked perfect (i.e., as they should for a simple sinusoidal sound).\nHowever, when I created scripts for the analysis running everything on a cluster the result for the group was horrible (both in terms of a temporal peak and the source distribution, which was now far from auditory). I checked and found that also on single subject level the solutions differed for 'one-subject-one-condition-snippets' and the overall analysis. \nI think I found the problem, which seems to be a combination of \nft_selectdata\nand\nft_prepare_leadfield\n\nft_selectdata (which I used in the overall analysis to separate trials from different conditions which I saved in one file) orders the sensor labels alphabetically (without any information of doing so)\nft_prepare_leadfield has a cfg.channel input, which, in terms of order, it seems to simply ignore. Instead the output seems to be ordered by the grad structure which is also needed as an input. \nclearly a leafield applied to data which are ordered differently will result in nonsense.\n\nWhen I reordered the data after ft_selectdata to the default order all of a sudden my clear ERFs re-appeared on source level.\n\nThree NBs:\n1) the selected data from above can be analyzed/plotted in sensor space and produce nice ERF peaks\n2) if the leadfield contained a label (or two label) field(s) it would be possible to check whether they are matching.\n3) as ft_selectdata only reorders the labels but not the grad.label field this could lead to problems elsewhere.\n\nSee my attached test_script and and dataset to reproduce the alphabetization and to create the leadfield for the two differently ordered data sets (the lf is identical it seems, event though it shouldn't)\n\nI hope I did not just overlooked something obvious\ncheers\nphilipp"
+      - +@isprivate: "0"
+        commentid: "13794"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-02 16:49:08 +0200
+        thetext: "Hi Philipp,\n\nthanks for reporting this, don't worry about the previous emails. \n\nWe will have a look at whether it is a consequence of the \"user script\" or a bug in the code. At least it sounds like an undesirable feature."
+      - +@isprivate: "0"
+        commentid: "13803"
+        comment_count: "4"
+        attachid: "632"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-03 22:47:36 +0200
+        thetext: |-
+          Created attachment 632
+          example script extended
+      - +@isprivate: "0"
+        commentid: "13804"
+        comment_count: "5"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-03 22:55:18 +0200
+        thetext: "hey all,\nI did some more testing and it turns out that within the fieldtrip pipeline everything works as it should.\n\nthe problem I described actually emerged for our own analysis, where we used precomputed filters directly on the data. as we did not know (this is what I think still needs fixing) that the data were ordered differently after ft_selectdata the filters and the data did not match and resulted in wrong inverse solutions. \nas my new test script shows fieldtrip seems to check for the order of the leadfield/filters (i found a label field in the cfg field in the leadfield, my bet is that this is checked?) and the solutions for both orders are identical.\n\nanyway, this is thus not a 'bug' i would say but still there needs to be either a warning in ft_selectdata or the data should be kept in the order of the input. In previous versions of fieldtrip this did not happen, which makes our error unfortunately likely to happen when one updates only irregularly (i.e., loosing track of what all has changed). so I think others could have this problem as well.\n\nsorry for making this potentially to big\ncheers\nphilipp"
+      - +@isprivate: "0"
+        commentid: "13805"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-04 10:30:36 +0200
+        thetext: |-
+          I think the reordering of the channel order is an undesirable feature. I came across this exact issue when running statistics on channel level data. Since the input data are passed through ft_selectdata and ft_appendXXX for a bunch of bookkeeping/selection operations on the data, the output now has the channels re-ordered, even when just a single input argument of 'rpt_chan_freq' data is provided. As a user I would expect the order of the channels to be unchanged after running the statistics.
+          Of course some amount of re-ordering may be necessary when multiple input arguments contain either different channels, or have them in a different order. Would it however be an idea to return the channels in the order according to the first input argument, provided each of the inputs has a full set of channels?
+      - +@isprivate: "0"
+        commentid: "13850"
+        comment_count: "7"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-17 09:27:23 +0200
+        thetext: "Dear Robert and JM,\nI would like to emphasize that the above described behavior created a lot of trouble in our own analyses, because we did not expect such behavior (and as I said applied the filters to the data). Also because the issue wasn't obvious from the results! \nThus, I think this reordering should be at least accompanied by a warning!\nIt would be better of course if the data were only reordered when there are different channels in to-be-appended data, i.e., when it is expected.\n\nThe issue JM described actually scares me a bit, as I do not know how much this can affect. \n\nThus my pledge: please at least add a warning to ft_selectdata!\n\nbest\nphilipp"
+      - +@isprivate: "0"
+        commentid: "13909"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-20 13:17:50 +0200
+        thetext: |-
+          Grrrr, I concur with Philipp. I guess as soon as you do something slightly out of the ordinary, things may go wrong terribly.
+          I came across this when using a estimated noise covariance where ft_selectdata had shuffled the labels, while I assumed the order of the channels to be the same as the order of the channels in the structure into which I plugged this covariance estimate(in the end of course my bad, because I did not explicitly check). Yet, I find it more and more reasonable for the user to rely on the expectation that the order of channels does not change by e.g. a call to ft_timelockanalysis for a covariance computation...
+      - +@isprivate: "0"
+        commentid: "13942"
+        comment_count: "9"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-06-25 14:33:02 +0200
+        thetext: "Discussed 25/06. \n\n\nThe order of the channels in the first data argument is more important than the order in the cfg.\nThe order of the channels in the N'th data argument is more important than the order in the (N+1)'th.\n\nNote that channel order is represented at more than one location in the data-objects:\n\ndata\nsensor representation\nlocalsphere head models\nleadfields\ncfg\nneighbours\nlayout\n\nglobal approach: think of a way of checking the whole code base whether we ourselves adhere to these laws.\nspecifically: fix it in ft_selectdata\n\nalso, add the laws to the code guidelines."
+      - +@isprivate: "0"
+        commentid: "13943"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-25 15:00:56 +0200
+        thetext: |-
+          added documentation on the guidelines page:
+
+          http://fieldtrip.fcdonders.nl/development/guidelines/code#avoid_changing_the_order_of_the_channels_in_the_data_if_possible
+      - +@isprivate: "0"
+        commentid: "13945"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-25 15:17:30 +0200
+        thetext: "(In reply to Philipp Ruhnau from comment #2)\nHi Philipp,\nWe discussed the issue in today's FT meeting and decided to adjust the behavior in ft_selectdata such that the order of the channels is not adjusted.\nI think that this change would to a large extent address your concerns. One thing that you mentioned in NB 2 of your comment 2, is that we might want to add a 'label'-field to leadfields in order to be able to explicitly match the order of the channels in (pre-computed) leadfields with the order of the channels in the numeric data. \nOne thing that still can go wrong when using precomputed leadfields in the way you do it in the example script provided (and which actually I am also using all the time), is that in providing cfg.channel = data.label before calling ft_prepare_leadfield, the order of the channels in the leadfield will be according to the grad-structure. I haven't checked this yet, but I would suspect that the order will be only according to the order in data.label when the function is called with a data argument in the input. \nIn order to really pre-empt any user scenario would indeed be to add a label to the leadfield ;-).\nLet's fix ft_selectdata first and take it from there."
+      - +@isprivate: "0"
+        commentid: "13946"
+        comment_count: "12"
+        attachid: "642"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-25 15:27:34 +0200
+        thetext: |-
+          Created attachment 642
+          twice the same leadfields but with channel order flipped
+      - +@isprivate: "0"
+        commentid: "13947"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-25 15:28:16 +0200
+        thetext: |-
+          I just ran a quick check (using some CTF data in my Matlab workspace), and created a leadfield twice,
+
+          once with ft_prepare_leadfield(cfg) (having cfg.channel = data.label)
+          and once with ft_prepare_leadfield(cfg, data) (having cfg.channel = 'MEG')
+
+          data.label was obtained with data.label = flipud(ft_channelselection('MEG',grad.label)); (i.e. flipping the order of the channels.
+
+          In the attached screenshot one can easily see that the channel order in the leadfields is flipped in the two instances, i.e. adhering to the order in the grad.label when no data argument is provided.
+      - +@isprivate: "0"
+        commentid: "13948"
+        comment_count: "14"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-06-25 15:43:13 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #11)
+          Dear Jan-Mathijs,
+          thanks for working on this, I really appreciate it.
+
+          Just one comment on my previous comment NB2:
+          it seems that there is in fact a label field in the leadfield structure (which I found out way later), yet it is called leadfield.cfg.channel ...
+          and indeed that one is ordered after the grad (as is the leadfield), as you showed in your example...
+          I did not check whether leadfield.cfg.channel changes with data input, but I would suspect...
+          best
+          philipp
+      - +@isprivate: "0"
+        commentid: "13949"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-25 15:54:59 +0200
+        thetext: |-
+          (In reply to Philipp Ruhnau from comment #14)
+
+          Indeed, leadfield.cfg.channel changes with the order of the channels. It sounds as if this information should be ideally represented at a higher level, i.e. leadfield.label, rather than leadfield.cfg.channel
+      - +@isprivate: "0"
+        commentid: "13979"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-01 13:38:20 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - output the channels in the same order as the first data input argument, don't reorder" utilities/ft_selectdata.m test/test_bug2597.m
+          Sending        test/test_bug2597.m
+          Sending        utilities/ft_selectdata.m
+          Transmitting file data ..
+          Committed revision 9682.
+      - +@isprivate: "0"
+        commentid: "14014"
+        comment_count: "17"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-07-04 10:07:21 +0200
+        thetext: awesome, thanks JM!
+      - +@isprivate: "0"
+        commentid: "14055"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-07 09:35:28 +0200
+        thetext: '*** Bug 2639 has been marked as a duplicate of this bug. ***'
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "630"
+        date: 2014-06-02 15:37:00 +0200
+        delta_ts: 2014-06-02 15:37:16 +0200
+        desc: example dataset
+        filename: testdata.mat
+        type: application/x-matlab-workspace
+        size: "453167"
+        attacher:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "631"
+        date: 2014-06-02 15:37:00 +0200
+        delta_ts: 2014-06-02 15:37:54 +0200
+        desc: example script
+        filename: label_order_lf.m
+        type: text/x-matlab
+        size: "1218"
+        attacher:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "632"
+        date: 2014-06-03 22:47:00 +0200
+        delta_ts: 2014-06-03 22:47:36 +0200
+        desc: example script extended
+        filename: label_order_lf.m
+        type: text/x-matlab
+        size: "2461"
+        attacher:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "642"
+        date: 2014-06-25 15:27:00 +0200
+        delta_ts: 2014-06-25 15:27:34 +0200
+        desc: twice the same leadfields but with channel order flipped
+        filename: leadfields.png
+        type: image/png
+        size: "211071"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED

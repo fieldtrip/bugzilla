@@ -1,0 +1,72 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2080"
+    creation_ts: 2013-03-26 16:21:00 +0100
+    short_desc: without any warning/message ft_volumesegment throws away csf, white and gray when cfg.output also contains brain
+    delta_ts: 2018-03-10 21:39:13 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9965"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-26 16:21:24 +0100
+        thetext: "when the user desires ambiguous output parameter, either an error or a warning about the decision of the algorithm should be thrown (brain is defined as csf+white+gray)\n\nexample:\n\ncfg           = [];\ncfg.output    = {'brain', 'skull','scalp', 'csf', 'gray', 'white'};\nsegmentedmri  = ft_volumesegment(cfg, mris);\nthe input is volume data with dimensions [256 256 256]\nperforming the segmentation on the specified volume\ncreating scalpmask\nsmoothing anatomy with a 5-voxel FWHM kernel\nthresholding anatomy at a relative threshold of 0.100\ncreating brainmask\nsmoothing brainmask with a 5-voxel FWHM kernel\nthresholding brainmask at a relative threshold of 0.500\ncreating skullmask\nK>> segmentedmri\n\nsegmentedmri = \n\n          dim: [256 256 256]\n    transform: [4x4 double]\n     coordsys: 'mni'\n         unit: 'mm'\n        brain: [256x256x256 logical]\n        skull: [256x256x256 logical]\n        scalp: [256x256x256 logical]\n          cfg: [1x1 struct]\n\nK>>"
+      - +@isprivate: "0"
+        commentid: "10259"
+        comment_count: "1"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-04-23 12:29:22 +0200
+        thetext: "(In reply to comment #0)\nhi Jorn,\n\nyes, this is true. The reason is for this to avoid overlapping segmentations. If your binary masks overlap you will have problems in the subsequent computations (because it will be ambiguous to which tissue a voxel belongs to.) \n\nIf you want to have a binary mask for brain and also for csf, white, and gray, skull and skin I suggest the following:\n\ncfg           = [];\ncfg.output    = {'csf', 'gray', 'white'};\ntpm  = ft_volumesegment(cfg, mris);    \n\nThis will give the probabilistic representation (not the binary mask!) of the csf, gray, white tissues. \n\ncfg           = [];\ncfg.output    = 'brain';\nbrain  = ft_volumesegment(cfg, tpm); \n\nYou will get the binary brain mask.\n\ncfg           = [];\ncfg.output    = {'skull','scalp', 'csf', 'gray', 'white'};\nfivetissueseg  = ft_volumesegment(cfg, tpm);\n\nYou will get the binary mask for all other 5 tissues.\n\nI think this is the most efficient way to do, because all binary masks (except of skin) are based on the tissue probability mask (tpm) but that takes the longest time to compute. So, if you compute that first, you can use it as an input, and you will get faster your other two segmentations.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "10267"
+        comment_count: "2"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-04-23 14:51:22 +0200
+        thetext: "I have added a few extra line in the documentation of ft_volumesegment: \n\n It is not possible to request tissue-probability map (tpm)  in combination with binary masks\n  (brain, scalp or skull) or skull-stripped anatomy. The output will return only the probabilistic\n  maps in segment.gray, white and csf. However, when a segmentation with the probabilistic gray, white\n  and csf representations is available, it is possible to use it as input for brain or skull binary mask.\n  For example:\n    cfg           = [];\n    cfg.output    = {'tpm'};\n    segment_tpm   = ft_volumesegment(cfg,mri);\n    cfg.output    = {'brain'};\n    segment_brain = ft_volumesegment(cfg,segment_tpm);\n\nAnd I ensured that when a segmentation is the input, it contains a probabilistic segmentation of the csf, white and gray matter (in contrast with a binary representation). (in line 234-238)\n\nAnd I will try to commit this now.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "10289"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-04-25 09:51:22 +0200
+        thetext: changes have been committed

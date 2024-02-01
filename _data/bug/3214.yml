@@ -1,0 +1,163 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3214"
+    creation_ts: 2016-11-30 15:16:00 +0100
+    short_desc: ft_selectdata fails to select trials from freq due to unsupported cumtapcnt
+    delta_ts: 2017-01-17 11:29:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: tobias.stdgl
+      +@name: Tobias
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18027"
+        comment_count: "0"
+        who:
+          +content: tobias.stdgl
+          +@name: Tobias
+        bug_when: 2016-11-30 15:16:37 +0100
+        thetext: "ft_selectdata, used on output from ft_freqanalysis:\n\n******************************\n\nError using ft_selectdata>getselection_rpt (line 1135)\nFIXME this is not yet implemented for mtmconvol with keeptrials and varying number of tapers per\nfrequency\n\nError in ft_selectdata (line 302)\n    [selrpt{i}, dum, rptdim{i}, selrpttap{i}] = getselection_rpt(cfg, varargin{i}, dimord{j});\n\n******************************\n\nError occurs although 1 Hanning taper was used for freqanalysis. \nError occurs only, if number of trials == number of frequencies. \n\nif number of trials == number of frequencies\nin ft_selectdata, line 1130:  \ndimtok = \n\n    'rpttap'    'chan'    'freq'    'time'\n\nif number of trials ~= number of frequencies\nin ft_selectdata, line 1130: \ndimtok = \n\n    'rpt'    'chan'    'freq'    'time'\n\n\n\n%%% code used in fieldtrip@dccn:\n\ncfg              = [];\ncfg.output       = 'fourier';\ncfg.channel      = 'MEG';\ncfg.method       = 'mtmconvol';\ncfg.taper        = 'hanning';\ncfg.keeptrials = 'yes'\ncfg.foi          = 0:2:40;  %%20 freqs!                     \ncfg.t_ftimwin    = ones(length(cfg.foi),1).*.5;  \ncfg.toi          = 0:0.05:2;                  \ntfr = ft_freqanalysis(cfg, data); %%data has 20 trials!\n\ncfg=[];\ncfg.trials = 1:5;\ntfr_sel=ft_selectdata(cfg,tfr);"
+      - +@isprivate: "0"
+        commentid: "18029"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 15:18:52 +0100
+        thetext: |-
+          This reproduces it
+
+          %% try to simulate some data
+
+          data = [];
+          data.label = {'1', '2', '3'};
+          for i=1:20
+            data.trial{i} = randn(3,2000);
+            data.time{i} = (1:2000)/1000;
+          end
+
+          %% this is what was done according to the bug report
+
+          cfg              = [];
+          cfg.output       = 'fourier';
+          cfg.channel      = 'all';
+          cfg.method       = 'mtmconvol';
+          cfg.taper        = 'hanning';
+          cfg.keeptrials = 'yes';
+          cfg.foi          = 0:2:40;  %% 20 freqs!
+          cfg.t_ftimwin    = ones(length(cfg.foi),1).*.5;
+          cfg.toi          = 0:0.05:2;
+          tfr = ft_freqanalysis(cfg, data); %% data has 20 trials!
+
+          %% and here is the bug
+
+          cfg = [];
+          cfg.trials = 1:5;
+          tfr_sel = ft_selectdata(cfg,tfr);
+      - +@isprivate: "0"
+        commentid: "18030"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 15:19:47 +0100
+        thetext: "The error is due to cumtapcnt being a ones(20,20) matrix, whereas it should have been a ones(20,1) vector.\n\n\ntfr = \n\n  struct with fields:\n\n            label: {'1'  '2'  '3'}\n           dimord: 'rpttap_chan_freq_time'\n             freq: [2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 40]\n             time: [1×41 double]\n    fourierspctrm: [20×3×20×41 double]\n        cumtapcnt: [20×20 double]\n              cfg: [1×1 struct]"
+      - +@isprivate: "0"
+        commentid: "18031"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 15:23:48 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          sorry, my previous comment is incorrect. It should be a ntrials * nfoi matrix. In this case it happens to be 20*20, but the error also persists with a different number of trials (or frequencies), i.e. when not equal.
+      - +@isprivate: "0"
+        commentid: "18032"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 15:27:58 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          ... I should be more careful before typing. The problem only happens when nfreq==ntrial. I will not type anything more until I figured out what is really the problem.
+      - +@isprivate: "0"
+        commentid: "18033"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 15:59:28 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+          ok, I figured it out and fixed it.
+          mac011> git push upstream master
+          Counting objects: 17, done.
+          Delta compression using up to 4 threads.
+          Compressing objects: 100% (17/17), done.
+          Writing objects: 100% (17/17), 2.90 KiB | 0 bytes/s, done.
+          Total 17 (delta 12), reused 0 (delta 0)
+          remote: Resolving deltas: 100% (12/12), completed with 7 local objects.
+          To github.com:fieldtrip/fieldtrip.git
+             9df289a..cf9f395  master -> master
+
+          this involves the following smaller changes.
+
+          commit cf9f3955b0b777829f7f8ed5ab018bd22c159020
+              added test script, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3214
+
+          commit 670506dd83c2701ba25c6353fd549cdde4f63a2f
+              improve the dimord detection for cumtapcnt and cumsumcnt, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3214
+
+          commit e7075a18ed1313f2618cf708c902d3cf0fb0527e
+              FIX - always pass the data through ft_checkdata, don't assume the length ot be the number of trials, but explicitly take cumtapcnt as ntrl*nfreq or ntrl*1. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3214
+
+          commit 607cb9221c9cfa001e0c4b3b42e5b97a3ab53f9d
+              ensure that cumtapcnt and cumsumcnt are column vectors, consistent with the implementation in freqanalysis
+      - +@isprivate: "0"
+        commentid: "18034"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-12-01 16:09:33 +0100
+        thetext: I hope it now works.
+      - +@isprivate: "0"
+        commentid: "18200"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:47 +0100
+        thetext: closed multiple bugs that were resolved some time ago

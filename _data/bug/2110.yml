@@ -1,0 +1,85 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2110"
+    creation_ts: 2013-04-11 16:03:00 +0200
+    short_desc: ft_spiketriggeredaverage doesn't correctly select trials
+    delta_ts: 2019-08-10 12:03:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - bart.gips
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10060"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2013-04-11 16:03:33 +0200
+        thetext: "I originally had (15) long trials (150 seconds) that each had partial artifact rejections, resulting in many (90) shorter trials which may or may not include the trigger event.  So when I tried to run a spike-triggered average on a time window around the trigger (just happened to be the first thing I tried, don't know if other analyses will have the same problem), it seems to get confused about which trials to use, eventually throwing this error:\n\n>> processing trial 15 of 90 (16 spikes)\n>> Index exceeds matrix dimensions.\n\n>> Error in ft_spiketriggeredaverage (line 157)\n>>   spikesmp = find(data.trial{i}(spikesel,:));\n\nIt turns out that the line\n\n>> data = ft_selectdata(cfgSelect,data);\n\ncorrectly cut the data down to the subset of 15 trials that contained the trigger event and desired latencies, but the loop\n\n>> for i=1:ntrial\n\nis still based on the original number of (90) trials.  I also tried preselecting those trials by listing their indices in cfg.trials, but it gave the exact same error, since ntrial is defined by \n\n>> ntrial = length(data.trial);\n\nbefore ft_selectdata is called.  I imagine that's probably the fix:  just redefine ntrial again after ft_selectdata.\n\nThanks,\nTeresa"
+      - +@isprivate: "0"
+        commentid: "10061"
+        comment_count: "1"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-04-11 16:07:58 +0200
+        thetext: |-
+          Hi Teresa
+
+          You are right. This is something of a recent release, I guess, because I didn't see this selectdata piece of code before.
+
+          I'll correct it.
+      - +@isprivate: "0"
+        commentid: "10062"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-04-11 16:11:16 +0200
+        thetext: redefined ntrial after selectdata, should fix the bug.
+      - +@isprivate: "0"
+        commentid: "10063"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-04-11 16:11:24 +0200
+        thetext: committed
+      - +@isprivate: "0"
+        commentid: "19936"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:53 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

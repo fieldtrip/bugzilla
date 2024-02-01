@@ -1,0 +1,275 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "780"
+    creation_ts: 2011-06-28 14:24:00 +0200
+    short_desc: filter instability
+    delta_ts: 2013-04-23 12:06:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - johanna.zumer
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2436"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-28 14:24:54 +0200
+        thetext: |-
+          On 24 Jun 2011, at 16:04, litvak.vladimir@gmail.com wrote:
+
+          Hi Robert,
+
+          I've been getting several complaints recently about filter instability that we discussed before (twice in the past week). So it is not so uncommon after all. You mentioned at the time that this could be circumvented by combining two filters. Would it be possible to implement that to put this to rest once and for all?
+
+          Thanks,
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "2437"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-28 14:25:34 +0200
+        thetext: |-
+          On 26 Jun 2011, at 10:53, Vladimir Litvak wrote:
+
+          Hi Robert,
+
+          I'm not at HBM. Maybe next year. Yes, there is an error now, but the
+          problem is that it happens quite often and not for some weird
+          settings. See:
+
+          http://www.jiscmail.ac.uk/cgi-bin/wa.exe?A2=SPM;c8cd3970.1106
+          http://www.jiscmail.ac.uk/cgi-bin/wa.exe?A2=SPM;3b25fefb.1106
+
+          I remember that when we first discussed it you said that it's possible
+          to avoid the problem by combining two filters with odd and even order.
+          So what I was asking is if that'd be possible to implement that
+          solution to avoid people complaining.
+
+          Vladimir
+
+          =============================
+
+          On Sun, Jun 26, 2011 at 3:45 PM, Robert Oostenveld
+          <r.oostenveld@donders.ru.nl> wrote:
+          Hi Vladimir
+
+          Stefan was the  expert on filtering and he made preproc/private/filter_with_correction. That is used in
+
+          mbp> grep with_corr *.m
+          ft_preproc_bandpassfilter.m:filt = filter_with_correction(B,A,dat,dir);
+          ft_preproc_bandstopfilter.m:filt = filter_with_correction(B,A,dat,dir);
+          ft_preproc_highpassfilter.m:filt = filter_with_correction(B,A,dat,dir);
+          ft_preproc_lowpassfilter.m:filt = filter_with_correction(B,A,dat,dir);
+
+          The filter_with_correction should give an error if the filter is instable. Could you provide a clear case of instability that is not caught by this low-level function?
+      - +@isprivate: "0"
+        commentid: "2438"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-28 14:28:51 +0200
+        thetext: "In the first SPM mail it is not clear to me whether the filter function throws an explicit error, or whether it returns NaNs. It would be good to stop with the debugget at the begin of preproc_bandpassfilter and to know the exact inputs (includiong the data) to that function.\n\nThe second mail is more explicit about the details and there the instability is correctly \"caught\" as error, including instructions on how to resolve it. That one allowed me to reproduce it as follows:\n\n>> dat = randn(1,1000);\n>> ft_preproc_highpassfilter(dat, 1000, 0.1) \n\npoles =\n\n   1.0032 + 0.0021i\n   1.0032 - 0.0021i\n   0.9996 + 0.0042i\n   0.9996 - 0.0042i\n   0.9960 + 0.0021i\n   0.9960 - 0.0021i\n\n??? Error using ==> filter_with_correction at 42\nCalculated filter coefficients have poles on or outside the unit circle and will not be stable. Try a higher cutoff frequency or\na different type/order of filter.\n\nError in ==> ft_preproc_highpassfilter at 79\nfilt = filter_with_correction(B,A,dat,dir);\n\nIn the code I have now found the piece where I had implemented the repeated application of the filters, see ft_preproc_bandstopfilter. It also contains the comment from Stefan Klanke. \n\nThe problem (or at least one problem that I understand) with the repeated lower-order filtering is that the filter order in the result is not correct. You specify the frequency at which the 3 dB point should be, i.e. the corner point in the transfer function. If you do two filters in succession, the corner point is not 3 dB down (i.e. the spectral content is attenuated with a factor of 2x), but twice that amount. The consequence is also that the exact specification of the passband is not controlled any more, i.e. the 3dB point shifts into the passband.\n\nI feel that Stefans point is correct, i.e. the repeated application does not solve the problem in the desired way. Perhaps better would be to automatically reduce the filter order, i.e. like\n\n>> ft_preproc_highpassfilter(dat, 10000, 0.01, 5)\n>> ft_preproc_highpassfilter(dat, 10000, 0.01, 4)\n>> ft_preproc_highpassfilter(dat, 10000, 0.01, 3) \n\nthe 5 and 4 fail, but the 3 works. \n\nIf you agree with the proposed solution, this would have to be implemented with a try-catch around the filter_with_correction in each of the lp/hp/bp/bs functions."
+      - +@isprivate: "0"
+        commentid: "2439"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-06-28 14:36:25 +0200
+        thetext: "It's likely that the first mail pertains to older SPM version before the instability detection was implemented. \n\nWhat are the consequences of reducing filter order? Does it also change the attenuation? If the results are not dramatically affected then perhaps we should do it automatically. Or perhaps you should make it an option that at least in SPM will be enabled by default but at least the user will know that filter order can change.\n\nVladimir\n\n(In reply to comment #2)\n> In the first SPM mail it is not clear to me whether the filter function throws\n> an explicit error, or whether it returns NaNs. It would be good to stop with\n> the debugget at the begin of preproc_bandpassfilter and to know the exact\n> inputs (includiong the data) to that function.\n> \n> The second mail is more explicit about the details and there the instability is\n> correctly \"caught\" as error, including instructions on how to resolve it. That\n> one allowed me to reproduce it as follows:\n> \n> >> dat = randn(1,1000);\n> >> ft_preproc_highpassfilter(dat, 1000, 0.1) \n> \n> poles =\n> \n>    1.0032 + 0.0021i\n>    1.0032 - 0.0021i\n>    0.9996 + 0.0042i\n>    0.9996 - 0.0042i\n>    0.9960 + 0.0021i\n>    0.9960 - 0.0021i\n> \n> ??? Error using ==> filter_with_correction at 42\n> Calculated filter coefficients have poles on or outside the unit circle and\n> will not be stable. Try a higher cutoff frequency or\n> a different type/order of filter.\n> \n> Error in ==> ft_preproc_highpassfilter at 79\n> filt = filter_with_correction(B,A,dat,dir);\n> \n> In the code I have now found the piece where I had implemented the repeated\n> application of the filters, see ft_preproc_bandstopfilter. It also contains the\n> comment from Stefan Klanke. \n> \n> The problem (or at least one problem that I understand) with the repeated\n> lower-order filtering is that the filter order in the result is not correct.\n> You specify the frequency at which the 3 dB point should be, i.e. the corner\n> point in the transfer function. If you do two filters in succession, the corner\n> point is not 3 dB down (i.e. the spectral content is attenuated with a factor\n> of 2x), but twice that amount. The consequence is also that the exact\n> specification of the passband is not controlled any more, i.e. the 3dB point\n> shifts into the passband.\n> \n> I feel that Stefans point is correct, i.e. the repeated application does not\n> solve the problem in the desired way. Perhaps better would be to automatically\n> reduce the filter order, i.e. like\n> \n> >> ft_preproc_highpassfilter(dat, 10000, 0.01, 5)\n> >> ft_preproc_highpassfilter(dat, 10000, 0.01, 4)\n> >> ft_preproc_highpassfilter(dat, 10000, 0.01, 3) \n> \n> the 5 and 4 fail, but the 3 works. \n> \n> If you agree with the proposed solution, this would have to be implemented with\n> a try-catch around the filter_with_correction in each of the lp/hp/bp/bs\n> functions."
+      - +@isprivate: "0"
+        commentid: "2442"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-28 16:06:54 +0200
+        thetext: "YeP, reducing filter order reduces the attenuation. Designing a filter with a very steep cutoff is non trivial. If needed, someone should spend some time on extending the options for ft_preproc_xxxfilter to add another type of filter which is able to have a steeper cutoff and stronger attenuation. But I don't see the scientific reason for trying to make the attenuation so large.\n\nHow should the interface look like for making this optional? Should we change the functions to key-value style, or just have a few keyvals at the end of the existing list, or just add an extra input argument like this\n\nfunction [filt] = ft_preproc_bandpassfilter(dat, Fs, Fbp, N, type, dir, instabilityfix)\n\nif nargin<7\ninstabilityfix = 'reduce'; % can be 'reduce' or 'split'\nend\n\n...\n\ntry\nfilt = filter_with_correction(B,A,dat,dir);\ncatch ME\nswitch instabilityfix\ncase 'reduce'\nwarning('...)\nfilt = ft_preproc_bandpassfilter(dat, Fs, Fbp, N-1, type, dir, instabilityfix);\ncase 'split'\n% here comes the repeated filtering that is already in bandstopfilter   \notherwise\nretrow(ME)\nend % case\nend % try-catch"
+      - +@isprivate: "0"
+        commentid: "2443"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-06-28 16:11:49 +0200
+        thetext: "(In reply to comment #4)\n> YeP, reducing filter order reduces the attenuation. Designing a filter with a\n> very steep cutoff is non trivial. If needed, someone should spend some time on\n> extending the options for ft_preproc_xxxfilter to add another type of filter\n> which is able to have a steeper cutoff and stronger attenuation. But I don't\n> see the scientific reason for trying to make the attenuation so large.\n> \n\nThere is one reason I know about. I talked to Burkhard Maess at last Biomag and he mentioned that when he does ERFs he always designs high-pass filters by hand to have very high attenuation because otherwise the baseline is not flat enough. So when you want to use filtering instead of baseline correction you need to make sure that low frequencies and DC are very strongly attenuated. \n\n> How should the interface look like for making this optional? Should we change\n> the functions to key-value style, or just have a few keyvals at the end of the\n> existing list, or just add an extra input argument like this\n> \n\nI don't mind. Whatever you think is most consistent with other interfaces in FT.\n\nVladimir\n\n> function [filt] = ft_preproc_bandpassfilter(dat, Fs, Fbp, N, type, dir,\n> instabilityfix)\n> \n> if nargin<7\n> instabilityfix = 'reduce'; % can be 'reduce' or 'split'\n> end\n> \n> ...\n> \n> try\n> filt = filter_with_correction(B,A,dat,dir);\n> catch ME\n> switch instabilityfix\n> case 'reduce'\n> warning('...)\n> filt = ft_preproc_bandpassfilter(dat, Fs, Fbp, N-1, type, dir, instabilityfix);\n> case 'split'\n> % here comes the repeated filtering that is already in bandstopfilter   \n> otherwise\n> retrow(ME)\n> end % case\n> end % try-catch"
+      - +@isprivate: "0"
+        commentid: "2444"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-06-28 16:15:39 +0200
+        thetext: "Maybe also add a third option 'error' with the present behavior.\n\nVladimir\n\n(In reply to comment #5)\n> (In reply to comment #4)\n> > YeP, reducing filter order reduces the attenuation. Designing a filter with a\n> > very steep cutoff is non trivial. If needed, someone should spend some time on\n> > extending the options for ft_preproc_xxxfilter to add another type of filter\n> > which is able to have a steeper cutoff and stronger attenuation. But I don't\n> > see the scientific reason for trying to make the attenuation so large.\n> > \n> \n> There is one reason I know about. I talked to Burkhard Maess at last Biomag and\n> he mentioned that when he does ERFs he always designs high-pass filters by hand\n> to have very high attenuation because otherwise the baseline is not flat\n> enough. So when you want to use filtering instead of baseline correction you\n> need to make sure that low frequencies and DC are very strongly attenuated. \n> \n> > How should the interface look like for making this optional? Should we change\n> > the functions to key-value style, or just have a few keyvals at the end of the\n> > existing list, or just add an extra input argument like this\n> > \n> \n> I don't mind. Whatever you think is most consistent with other interfaces in\n> FT.\n> \n> Vladimir\n> \n> > function [filt] = ft_preproc_bandpassfilter(dat, Fs, Fbp, N, type, dir,\n> > instabilityfix)\n> > \n> > if nargin<7\n> > instabilityfix = 'reduce'; % can be 'reduce' or 'split'\n> > end\n> > \n> > ...\n> > \n> > try\n> > filt = filter_with_correction(B,A,dat,dir);\n> > catch ME\n> > switch instabilityfix\n> > case 'reduce'\n> > warning('...)\n> > filt = ft_preproc_bandpassfilter(dat, Fs, Fbp, N-1, type, dir, instabilityfix);\n> > case 'split'\n> > % here comes the repeated filtering that is already in bandstopfilter   \n> > otherwise\n> > retrow(ME)\n> > end % case\n> > end % try-catch"
+      - +@isprivate: "0"
+        commentid: "9485"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 15:12:31 +0100
+        thetext: "I just implemented the suggestions for comment 5 and 6. \n\nmbp> git commit\n[bug780 b7cd0e8] enhancement - implemented the three variations for dealing with filter instabilities as suggested in http://bugzilla.fcdonders.nl/show_bug.cgi?id=780. Also added a test script.\n 1 files changed, 62 insertions(+), 0 deletions(-)\n create mode 100644 test/test_bug780.m\n\nI made the change in my (new) git version, so now have to figure out how to get them pushed to svn..."
+      - +@isprivate: "0"
+        commentid: "9486"
+        comment_count: "8"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-02-20 15:22:35 +0100
+        thetext: |-
+          (In reply to comment #7)
+          I don't see the commit in my SVN, but it's good you finally got to look at this. Please don't forget the scaling issues as well.
+      - +@isprivate: "0"
+        commentid: "9490"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 16:28:07 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          I forgot to commit some files
+
+          mbp> git commit preproc/
+          [bug780 5c75c4f] enhancement - implemented the three variations for dealing with filter instabilities as suggested in http://bug illa.fcdonders.nl/show_bug.cgi?id=780 (part two of the commit)
+           5 files changed, 126 insertions(+), 53 deletions(-)
+      - +@isprivate: "0"
+        commentid: "9491"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 16:28:54 +0100
+        thetext: |-
+          (In reply to comment #9)
+
+          mbp> git checkout master
+          mbp> git merge bug780
+          Updating 07622d0..5c75c4f
+          Fast-forward
+           preproc/ft_preproc_bandpassfilter.m      |   32 +++++++++++++--
+           preproc/ft_preproc_bandstopfilter.m      |   55 +++++++++++++-------------
+           preproc/ft_preproc_highpassfilter.m      |   48 ++++++++++++++++++-----
+           preproc/ft_preproc_lowpassfilter.m       |   30 ++++++++++++--
+           preproc/private/filter_with_correction.m |   14 +++----
+           test/test_bug780.m                       |   62 ++++++++++++++++++++++++++++++
+           6 files changed, 188 insertions(+), 53 deletions(-)
+           create mode 100644 test/test_bug780.m
+      - +@isprivate: "0"
+        commentid: "9492"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 16:30:52 +0100
+        thetext: "(In reply to comment #10)\n\nmbp> git push\nCounting objects: 22, done.\nDelta compression using up to 2 threads.\nCompressing objects: 100% (13/13), done.\nWriting objects: 100% (13/13), 2.65 KiB, done.\nTotal 13 (delta 11), reused 0 (delta 0)\nTo git@github.com:oostenveld/fieldtrip.git\n   07622d0..5c75c4f  master -> master\n\nthis makes them visible on \nhttps://github.com/oostenveld/fieldtrip/commits/master\n\nPS sorry for the lengthy report on git, but I want to track all of this, as it is the first time to get some development from git back into svn. There will be more of these comments ..."
+      - +@isprivate: "0"
+        commentid: "9493"
+        comment_count: "12"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-02-20 16:31:07 +0100
+        thetext: |-
+          (In reply to comment #10)
+          Still don't see it. Have you switched to git now? Does it take time to sync with SVN?
+      - +@isprivate: "0"
+        commentid: "9495"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 16:53:44 +0100
+        thetext: "(In reply to comment #12)\n\n> Does it take time to sync with SVN?\n\nYes, because it takes some time for me to figure out with google how to do it ;-)\n\nWe are (or I am) exploring git as alternative way of contributing. Some external collaborators prefer it. We are not planning to switch over completely, but  if we can accept both (more loose) git and (more tight) svn contributions, then that might help in strengthening the development team.  \n\nSince this bug is well defined and affects only some files, I considered it a good test case for the git->svn update direction."
+      - +@isprivate: "0"
+        commentid: "9500"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 18:00:48 +0100
+        thetext: "(In reply to comment #11)\n\nAfter pushing them to github.com/oostenveld/fieldtrip, I had to get them into svn.\n\nmac001>  git remote add oostenveld git@github.com:oostenveld/fieldtrip.git\nmac001>  git pull oostenveld master\n\nthis gets the changes from oostenveld/fieldtrip into my local fieldtrip-github-svn copy, i.e. the copy that is linked to the svn repository. \n\nmac001>  git svn rebase\nmac001>  git svn dcommit\n\nthis pushes the changes to svn. \nhttp://code.google.com/p/fieldtrip/source/detail?r=7512 and\nhttp://code.google.com/p/fieldtrip/source/detail?r=7513\nrepresent the two git commits in the svn version.\n\nAnd finally \n\nmac001> git push\n\npushes the same changes to fieldtrip/fieldtrip. \n\n@Vladimir, you should now see them in svn."
+      - +@isprivate: "0"
+        commentid: "9719"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-08 12:00:38 +0100
+        thetext: there seems to be no further work related to this request.
+      - +@isprivate: "0"
+        commentid: "9850"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-17 09:25:54 +0100
+        thetext: |-
+          I noticed defaults to be missing and the functionality not yet being available to the high-level user.
+
+          allow the specification of instabilityfix for the low-level filters in the high-level cfg, provide documentation
+
+          roboos@mentat001> svn commit
+          Sending        ft_preprocessing.m
+          Sending        preproc/ft_preproc_bandpassfilter.m
+          Sending        preproc/ft_preproc_bandstopfilter.m
+          Sending        preproc/ft_preproc_highpassfilter.m
+          Sending        preproc/ft_preproc_lowpassfilter.m
+          Sending        private/preproc.m
+          Transmitting file data ......
+          Committed revision 7679.
+
+          See also a few previous commits for the low-level code. Note that instead of 'none', the default behavior is now triggered by 'no'. That wording fits better in the documentation.
+      - +@isprivate: "0"
+        commentid: "10228"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:01 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10253"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:31 +0200
+        thetext: closed various bugs

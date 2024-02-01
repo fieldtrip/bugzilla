@@ -1,0 +1,322 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2964"
+    creation_ts: 2015-09-21 14:32:00 +0200
+    short_desc: add support for blackrock data
+    delta_ts: 2021-09-06 11:11:02 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc: https://www.fieldtriptoolbox.org/tag/blackrock/
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - anwutz
+      - awutz
+      - eternalzxc1205
+      - jens.klinzing
+      - lwang
+      - r.oostenveld
+      - saskia.haegens
+      - vitoria.piai
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16125"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-21 14:32:27 +0200
+        thetext: |-
+          blackrock microsystems is the follow-up of cyberkinetics. FieldTrip seem to have some native support for (some of) this fileformat, but it appears windows (i.e. platform) specific.
+          Nowadays, blackrock has a version-controlled matlab-based toolbox (hosted on git) that seems platform independent.
+          JM is going to implement support for this using the external code. He has been in touch with the blackrock people, and they have pointed him to some example data, which JM will put on /home/common/matlab/fieldtrip for future reference and testing.
+
+          @Saskia: the cyberkinetics support seems to have been implemented by you, but the code mentions here and there that it is still work in progress. Are you still working on this?
+          @Robert: you may have some other example data around, which you promised to locate.
+      - +@isprivate: "0"
+        commentid: "16126"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-22 10:27:12 +0200
+        thetext: |-
+          I came across
+          http://www.fieldtriptoolbox.org/getting_started/cyberkinetics
+          and
+          http://www.fieldtriptoolbox.org/development/read_neuroshare
+
+          Could you keep it up to date when you make changes?
+
+          PS neuroshare is a dead end, so the development project can be closed
+      - +@isprivate: "0"
+        commentid: "16127"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-22 14:03:27 +0200
+        thetext: Sure!
+      - +@isprivate: "0"
+        commentid: "16130"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-24 14:11:30 +0200
+        thetext: |-
+          progress report:
+
+          -created page getting_started/blackrock
+          -unlinked getting_started/cyberkinetics and linked to blackrock in case users end up there anyway
+          -added support for reading header info from LFP files in ft_read_header.m (+updated ft_filetype and ft_hastoolbox).
+      - +@isprivate: "0"
+        commentid: "16447"
+        comment_count: "4"
+        who:
+          +content: lwang
+          +@name: liang wang
+        bug_when: 2015-11-26 14:34:34 +0100
+        thetext: |-
+          Hi Fieldtrip folks
+
+          I am wondering if Fieldtrip has updated codes for converting Blackrock data to a compatible format for analysis. Currently I met a problem using Neuroshare library (particular for mexprog.dll). If you have one (even a beta version), could you please send me a OSX 64bit version. Thanks a lot.
+
+          Best,
+          Liang
+      - +@isprivate: "0"
+        commentid: "16802"
+        comment_count: "5"
+        who:
+          +content: anwutz
+          +@name: ""
+        bug_when: 2016-02-11 00:13:16 +0100
+        thetext: "Hey Fieldtrippers, hey JM,\n\nI guess we got this to work. It needs some edits in ft_read_data and ft_read_event. I worked on Windows 64 with Matlab 64 and fieldtrip-20160128. I only concentrated on the LFP data (blackrock_nsx) and used the Spike data (blackrock_nev) only to get the event time stamps. Here are my edits:\n\n1) ft_read_data\nThis is almost fully implemented for the 'blackrock_nsx'. The existing versions already makes use of the low-level functions of the NPMK toolbox. \n\nFrom line 1280:\norig = openNSx(filename, 'duration', [begsample endsample]);\n\nand then simply insert:\ndat = double(orig.Data);\n\nThis works great for segmented data (ft_definetrial first). For the entire continuous recording I ran into \"Out of Memory\" issues. This can be circumvented by reading groups of channels in a for-loop but still takes pretty long. \n\n%     chan_groups=ceil(linspace(1,hdr.nChans+1,10));\n%     for iter=1:numel(chan_groups)-1\n%     %tmp=openNSx(filename,'channels',chan_groups(iter):chan_groups(iter+1)-1, 'duration', [begsample endsample]);  \n%     dat(chan_groups(iter):chan_groups(iter+1)-1,:)=double(tmp.Data);\n%     end\n\n2) ft_read_header\nI think this was already up to date. From line 2121 it should read: \n\n case 'blackrock_nsx'\n    ft_hastoolbox('NPMK', 1);\n    \n    % ensure that the filename contains a full path specification,\n    % otherwise the low-level function fails\n    [p,f,e] = fileparts(filename);\n    if ~isempty(p)\n      % this is OK\n    elseif isempty(p)\n      filename = which(filename);\n    end\n    orig = openNSx(filename, 'noread');\n    \n    hdr        = [];\n    hdr.orig   = orig;\n    hdr.Fs     = orig.MetaTags.SamplingFreq;\n    hdr.nChans = orig.MetaTags.ChannelCount;\n    hdr.nSamples    = orig.MetaTags.DataPoints;\n    hdr.nSamplesPre = 0;\n    hdr.nTrials     = 1; \n    hdr.label       = deblank({orig.ElectrodesInfo.Label})';\n    hdr.chanunit    = deblank({hdr.orig.ElectrodesInfo.AnalogUnits})';\n \n3) ft_read_event\nI inserted a case to read the event markers from the .nev file:\n\n    case {'blackrock_nev', 'blackrock_nsx'}\n    % use the NPMK toolbox for the file reading\n    ft_hastoolbox('NPMK', 1); \n     \n    % this prevents read of spike waveform & automatic save of .nev file to .mat file  \n    orig = openNEV(filename, 'noread', 'nosave');\n    \n    if orig.MetaTags.SampleRes ~= 30000\n    error('sampling rate is different from 30 kHz')\n    end \n    \n% here one has to account for different sampling frequencies\n    eventCodeTimes = double((orig.Data.SerialDigitalIO.TimeStamp)./(orig.MetaTags.SampleRes/1000));\n    eventCodes = double(orig.Data.SerialDigitalIO.UnparsedData); \n\n% probably not necessary for all but we often have pins up    \n    eventCodes2= eventCodes-min(eventCodes)+1;\n    \n    for k=1:numel(eventCodes2)\n    event(k).type      = 'trigger';\n    event(k).sample    = eventCodeTimes(k);      \n    event(k).value     = eventCodes2(k); \n    event(k).duration  = 1;\n    event(k).offset    = [];\n    end\n\n4) I wrote my own trial function because header and triggers come from different files (header: .nsx file, triggers from .nev file). The rest is standard:\n\ncfg=[];\ncfg.dataset='file.nsx';\ncfg.eventfile='file.nev';\n\nfunction trl=blackrock_to_ft_trialfun(cfg)\n\nhdr=ft_read_header(cfg.dataset);\nevent=ft_read_event(cfg.eventfile);\ntrl=[];\n\n for i=1:length(event)\n  if strcmp(event(i).type, cfg.trialdef.eventtype)\n    % it is a trigger, see whether it has the right value\n    if ismember(event(i).value, cfg.trialdef.eventvalue)\n      % add this to the trl definition\n      begsample     = event(i).sample - cfg.trialdef.prestim*hdr.Fs;\n      endsample     = event(i).sample + cfg.trialdef.poststim*hdr.Fs - 1;\n      offset        = -cfg.trialdef.prestim*hdr.Fs;  \n      trigger       = event(i).value; % remember the trigger (=condition) for each trial\n      trl(end+1, :) = [round([begsample endsample offset])  trigger]; \n    end\n  end\nend\n\nI believe there is a more convenient solution to this. An important additional edit would take care of the different sampling frequencies for the different .nsx-files. I worked with .ns2 which samples with 1kHz. \nI hope this helps!\nAndi"
+      - +@isprivate: "0"
+        commentid: "16811"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-12 10:03:47 +0100
+        thetext: "(In reply to anwutz from comment #5)\nHi Andi,\n\nI have created a blackrock branch on my fork of the fieldtrip repository on Github :o). (github.com/schoffelen/fieldtrip)\n\nI don't know the extent to which you are familiar with git (I am not much familiar with it, we have just moved over from svn to git, so I am still on the steep end of the learning curve). Anyway, it should be possible for you to clone this particular branch so that you can contribute directly. I believe the best way to go about it would be that suggested changes by you can be put in my branch by a 'pull request', and once we are both happy with how it works, we can push it to fieldtrip. \nThis being said, I have looked at your suggestions, and I am happy with the change to ft_read_data (which I have included (in a slightly revised version) in the git-branch.\n\nBottome line: I suggest to leave the looping over channels to a higher level, i.e. based on the decision of the user, who can specify a subset of channels to be read in cfg.channel, prior to calling ft_preprocessing. \n\nWith respect to ft_read_event, I think we need to try and make the code more generic. I was playing around with some testdata I got from the blackrock people, and in combination with the documentation about the file format, I don't understand why you have to correct the offset (and create the variable eventCodes2). The way I see it (in the testdata I used), is that there are specific events with value 65535 65534 etc that have a particular meaning, referring to comments, tracking info etc (whatever that means). Also, I guess that if spike data has been recorded, the spiking events are also represented in the 'orig' data structure. The bottom line is, that for ft_read_event I would like to see some intelligence in distinguishing between the different things:\n\n-spike timings -> these should NOT go into the event structure\n-special events 65535 65534 etc, these might go into the event structure, but this can probably be accompanied with some more information (e.g. the text of a comment or the type of the tracking event)\n-experimental triggers and button presses, these should go into the event structure, and may need to be offset corrected.\n\nWhat are your thoughts on this?"
+      - +@isprivate: "0"
+        commentid: "16814"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-15 09:30:31 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #6)\n\nHi JM and Andi,\n\nDifferent sampling rates are annoying, as they don't fit well into the original design philosophy. \n\nI don't know the blackrock details, but want to share two considerations: \n\n1) Use ft_read_header/data and ft_preprocessing on each file separately, i.e. don't treat a collection of nix files as a \"dataset\", but simply treat one file at a time and use ft_appenddata. The disadvantage is that trl/samples in ft_definetrial don't index clearly into the combined data. \n\n2) look at the EDF implementation. EDF consists of a single file that can contain channels with different sampling rates. \n\nRegarding looping over channels instead over trials, that is supported in ft_preprocessing with the cfg.method option."
+      - +@isprivate: "0"
+        commentid: "16825"
+        comment_count: "8"
+        who:
+          +content: anwutz
+          +@name: ""
+        bug_when: 2016-02-16 00:27:56 +0100
+        thetext: "Dear JM and others in the list,\n\nI have looked into your git-branch and in particular into ft_read_event using our data here. Here are some general specifics of the blackrock system with regard to sampling frequencies. Further below, I'll try to provide some more details to your suggestions/ questions about spikes/ events. \n\nA) Sampling frequencies \nBlackrock data comes in two different file formats \n\na) .nev (sampled at 30 kHz) contains the events and spikes (more on this below)\nb) .nsx - contains the LFP and are analog filtered by the Amplifier (cut-off: 0.3 - 7.5 kHz). These files can come in 6 different formats depending on the sampling frequency\n\n1) .ns1 - 500 Hz\n2) .ns2 - 1 kHz\n3) .ns3 - 2 kHz\n4) .ns4 - 10 kHz\n5) .ns5 - 30 kHz\n\nall of these can also be digitally filtered. We checked with the guys from blackrock about this. They apply a Butterworth filter only in the forward direction (I guess this means phase distortions). This leaves us with\n\n6) .ns6 - 30 kHz raw data (no digital filter)\n\nBottom line: The different sampling frequencies can be dissociated based on the file format (.ns1 - .ns6). Usually, only one of these different file formats will be analysed and one would often start off with the .ns6 files anyways to avoid the phase shift. \n\n2) Spikes/ Events\n\na) Correcting for the offset\nIf in your example data the events that you send are exactly those that your record, then never mind about correcting the offset. I just joined the group here but I noticed that the trigger codes that should be sent are offset by some pins being up at the time of recording. In other words, my proposed correction would make sure that the sent/recorded codes match (sent code \"1\" = recorded code \"1\").\n\nB) Specific events \n\nIn my data, I don't have these specific events referring to comments, tracking info, etc. So it's hard for me to implement an efficient method that dissociates these codes. However, I do want to point to the following distinction:\n\nAfter: orig = openNEV(filename, 'noread', 'nosave');\n\norig.Data has the following fields:\n\n    SerialDigitalIO: [1x1 struct]\n             Spikes: [1x1 struct]\n           Comments: [1x1 struct]\n          VideoSync: [1x1 struct]\n           Tracking: []\n     TrackingEvents: [1x1 struct]\n     PatientTrigger: [1x1 struct]\n           Reconfig: [1x1 struct]\n\n\nThe experimental codes are stored in \"SerialDigitalIO\", the Spikes are stored in \"Spikes\" and so on. So, I guess the different event reasons (sent triggers, Spikes, Comments, etc.) are already dissociated in the orig data structure. Referring only to SerialDigitalIO will hence only give us the experimental event codes we want. Am I missing something here? \n\nIn my opinion, it would be valuable to include the Spike-TimeStamps in the Event structure (maybe in a separate field?) for Spike-triggered analysis. The issue here is that Spike-Timing and Spike-Electrode are stored in two separate fields:\n\norig.Data.Spikes.TimeStamp\norig.Data.Spikes.Electrode\n\nMaybe a No_Electrode x No_Samples - Boolean with Spike events (1) and else (0) was a good thing to have here?\n\nC) One question about one of your changes: \nfs             = orig.MetaTags.SampleRes;\neventCodeTimes = double(timestamps)./double(fs); % express in seconds\n\nwhich was before expressed in samples with 1000 Hz frequency:\n\ndouble((orig.Data.SerialDigitalIO.TimeStamp)./(orig.MetaTags.SampleRes/1000));\n\nI did this in order to account for the different sampling frequencies between .nev (30 kHz) and .ns2 file (1 kHz). How do I account for consistency between files with different sampling frequencies if we express the timestamps in seconds (not samples)?\n\nOn a similar note, the expression of TimeStamps in Seconds (not Samples) is already present in the orig data structure under: \n\norig.Data.SerialDigitalIO.TimeStampSec\n\nI can try to implement more generic code in future. In my view, accounting for Spikes and different sampling frequencies are the most urgent modifications.\n\nBest,\nAndi"
+      - +@isprivate: "0"
+        commentid: "18108"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:39:27 +0100
+        thetext: |-
+          Hi Andi,
+
+          I would like to see this carried forward, but at the moment don't have much time to spend on it myself. Have there been some new insights, new code on your end which we could try and incorporate into FieldTrip? We could work of the blackrock branch on my FT fork (but let me know before you start working on this, so that I can make an update pull with respect to FT-master (otherwise we may end up with a bunch of conflicts in the end, which I'd rather solve now, than later).
+      - +@isprivate: "0"
+        commentid: "18109"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:40:18 +0100
+        thetext: 'As a general comment: I addressed my previous comment to Andi, but if other people on the CC-list of this bug have code/insights to share, feel free to do so.'
+      - +@isprivate: "0"
+        commentid: "18785"
+        comment_count: "11"
+        who:
+          +content: awutz
+          +@name: ""
+        bug_when: 2017-07-01 16:29:29 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #10)\n\nHi Jan-Mathijs, hi all,\n\nfirst of all many apologies for my very, very long response time for this one. Unfortunately the bugzilla was still linked to an old email address that I only check once in a while. Going through my ~1600 unread emails, I found your comment. \n\nOn the other hand, the timing is not so bad, because workload seems a little lighter on my side and I will likely find some time in the next 1-2 weeks to look over this again.\n\nI will see in which terms my current code corresponds with what we already have. The reading-in is working for me but you mentioned you wanted to have this implemented in a more generic way. I will likely need some guidance from your side.\n\nBest,\nAndi"
+      - +@isprivate: "0"
+        commentid: "18787"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-07-04 22:31:00 +0200
+        thetext: |-
+          (In reply to awutz from comment #11)
+
+          OK, I suggest that you make an inventory of what might not be working for you, or what you think might be relevant functionality that people might need.
+
+          I kind of lost track of this myself, and there's no priority for me to work on this now. I'd be happy to assist though.
+
+          One possible outcome could be, that we verify that the current state of the code has some basic functionality, that we document what is not yet there, and leave it at that.
+
+          PS: we have moved our code repository over to github: github.com/fieldtrip/fieldtrip.git
+
+          The idea behind this is that it would make collaborations easier (e.g. we could work on code in a separate branch).
+      - +@isprivate: "0"
+        commentid: "18793"
+        comment_count: "13"
+        who:
+          +content: awutz
+          +@name: ""
+        bug_when: 2017-07-06 20:01:44 +0200
+        thetext: "Hi Jan-Mathijs, hi all,\n\nI am not so familiar with GitHub, so I would need a word (or two) explaining how to work there. Also, I can only provide edits for reading in LFP data. I have not looked into Spikes yet, maybe I can contribute here later. \n\nBlackrock data comes with two files: .NEV and .NSx\n.NEV contain the trigger time stamps at 30K Hz sampling\n.NSx contain the data with different sampling frequencies (depending on file type between 500 Hz-30k Hz)\n\nIn my view, edits would have to be made for \n\n1) ft_read_data (reads in data from .NSx files; was already approved (see above) but I am not sure if it is implemented yet)\n\n2) ft_read_event (reads trigger/event info from .NEV file)\n\nI edited ft_read_event to output time stamps in seconds. The mapping to the data with different sampling frequencies is taken care of later when calling ft_definetrial with a blackrock_to_ft_trialfun. \n\nI also try to add some functionality to dissociate different trigger reasons (Comments, Spikes, etc.). There is a field called InsertionReason. I am not sure yet that this is what we need. In my data, there is only the value '1'. But I also have only triggers in my data (no spikes, comments). I will check back with other people in my lab and will update in case. Anyways, this field is copied into the event output as event.type.  \n\n3) blackrock_to_ft_trialfun\nI can contribute this trial function."
+      - +@isprivate: "0"
+        commentid: "18796"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-07-07 09:50:55 +0200
+        thetext: |-
+          (In reply to awutz from comment #13)
+
+          Hi Andi,
+
+          Here's a link that should get you started.
+
+          http://www.fieldtriptoolbox.org/development/git
+
+          I am also still learning, but once you get the hang of it, git is a powerful tool, which keeps the development clean.
+
+          It took me some time this morning, but I had an old (sleeping) branch on my own fieldtrip fork, called blackrock, which contained some of the changes you mentioned in your previous comment.
+
+          Particularly, it has some code in ft_read_data that should support the NsX files, and there's some stuff in ft_read_event. In particular I am not sure about the correctness of the latter.
+
+          I think it would be great if you could have a look at all this.
+
+          The recipe to follow would be:
+
+          -create an account on github.com (if you don't have one already)
+          -fork the fieldtrip repository from github.com/fieldtrip/fieldtrip.git
+          -clone your fork to a computer that you use to work on
+          -pull the blackrock branch from my fieldtrip fork (i.e. github.com/schoffelen/fieldtrip.git)
+          -start playing.
+      - +@isprivate: "0"
+        commentid: "18799"
+        comment_count: "15"
+        who:
+          +content: awutz
+          +@name: ""
+        bug_when: 2017-07-09 18:26:11 +0200
+        thetext: |-
+          Hi Jan-Mathijs,
+
+          I followed your instructions for git until the pull-request. Is there an approval from your side needed at this point? I can't get any further (i.e. I cannot pull the blackrock branch). I am using SourceTree to interface with git.
+      - +@isprivate: "0"
+        commentid: "19305"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-10 22:06:54 +0100
+        thetext: Anybody on the CC-list to this bug. What's the status, and what needs to be done in order to finalize this?
+      - +@isprivate: "0"
+        commentid: "19315"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-15 10:50:35 +0100
+        thetext: Closing for now, due to perceived lack of interest and priority by people on the CC list. Feel free to constructively reopen.
+      - +@isprivate: "0"
+        commentid: "19581"
+        comment_count: "18"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-12 10:55:00 +0100
+        thetext: closing time. Feel free to reopen once needed
+      - +@isprivate: "0"
+        commentid: "20576"
+        comment_count: "19"
+        attachid: "886"
+        who:
+          +content: eternalzxc1205
+          +@name: Zhu
+        bug_when: 2021-09-06 09:44:21 +0200
+        thetext: "Created attachment 886\nft_read cann't read Blackrock NEV file. mexprog didn't defined.\n\nHi,I'm a new comer on matlab and data analysis. Nowadays, I found one paper said FieldTrip is compatible for Blackrock data. So I tried. I used NEV data, and wrote as the website (https://www.fieldtriptoolbox.org/getting_started/blackrock/). But it failed. There was a hint \"mexprog hasn't defined\". \nAnd it didn't successfully call the NPMK toolbox,the NEV file hadn't been read.(NPMK toolbox added to path)\nIf I loaded Mat file,there were NEV in workspace.But failed either, and \"mexprog hasn't defined\".\nSo,how to solve this? I skipped some important process or the data has to transform to Neuroshare format or else?\n\n(script as following)\nclear; clc; close all;\naddpath D:\\Action\\Analysis\\Toolbox\\fieldtrip-20210904\\fieldtrip-20210904\\\nft_defaults\nfilename = 'D:\\Action\\Analysis\\cell\\sorted\\m06cat003.nev';\nhdr = ft_read_header(filename, 'headerformat', 'neuroshare');\nspike = ft_read_spike(filename, 'spikeformat', 'neuroshare');"
+      - +@isprivate: "0"
+        commentid: "20577"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-09-06 10:07:01 +0200
+        thetext: "Dear Zhu\n\nBlackrock has multiple file formats with different versions as detailed on https://github.com/BlackrockNeurotech/NPMK/blob/master/NPMK/Users%20Guide.pdf \n\nNeuroshare (see http://neuroshare.sourceforge.net) has not been updated or maintained since about 10 years and I don't expect it to work on recent (64 bit) computers and/or MATLAB versions. I will update the online documentation and remove neuroshare as to not confuse people with outdated instructions.\n\nDavid Kluger from Blackrock wrote us by email some time ago: \n\n> Thanks for following up. I read the thread. As we are also unaware of who the end user will be and what they intend to do with FieldTrip/Blackrock products, we are uncertain of the development on our end that will be needed. If a user comes to you asking for further Blackrock support, perhaps we can delegate some development time based on this request. Feel free to notify us if our services could be useful, preferably through an email to support@blackrockmicro.com.\n\nTo move forward with this, I suggest you contact support@blackrockmicro.com and ask them to help you."
+      - +@isprivate: "0"
+        commentid: "20578"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-09-06 10:32:24 +0200
+        thetext: I have updated the website, see https://github.com/fieldtrip/website/commit/453ce21efe480b42bab6ba36bad6f67ebb3d633d and the two relevant pages on the website on https://www.fieldtriptoolbox.org/tag/blackrock/
+      - +@isprivate: "0"
+        commentid: "20579"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-09-06 10:55:51 +0200
+        thetext: |-
+          I had a quick look at the .nev file format and the NPMK toolbox. The openNEV function returns the data in a format that strongly resembles the FieldTrip spike representation, so I added support for it in https://github.com/fieldtrip/fieldtrip/commit/249cf2105e7d983fc72a5cebdb45e509fb375e6e
+
+          it will be included in the next release, but you can already try it out from the master branch.
+      - +@isprivate: "0"
+        commentid: "20580"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-09-06 11:11:02 +0200
+        thetext: It turned out that the blackrock_nsx format was already supported in the corresponding  code. I have now added both spikes and LFPs to the documentation overview on https://www.fieldtriptoolbox.org/getting_started/blackrock/
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "886"
+      date: 2021-09-06 09:44:00 +0200
+      delta_ts: 2021-09-06 09:46:23 +0200
+      desc: ft_read cann't read Blackrock NEV file. mexprog didn't defined.
+      filename: fieldtrip20210904-nev.png
+      type: image/png
+      size: "33961"
+      attacher:
+        +content: eternalzxc1205
+        +@name: Zhu
+      data: REMOVED

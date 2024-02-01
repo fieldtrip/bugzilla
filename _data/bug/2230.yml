@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2230"
+    creation_ts: 2013-08-01 13:20:00 +0200
+    short_desc: 'ft_connectivity_granger/csd2transfer: redesign handling of blockwise and blockwise/conditional'
+    delta_ts: 2014-01-15 14:45:11 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - andrembastos
+      - craig.richter
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10991"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-01 13:20:46 +0200
+        thetext: |-
+          Right now, blockwise is dealt with in a different way than blockwise/conditional, which is a bit weird.
+
+          for conditional we need to factorize the csd matrix a few times, once with all 3 blocks, and once with only 2 of the blocks (the third block consisting of the chunk of channels that is to be partialed out). Note that a 'block' can consist of just a single channel.
+
+          for block we need only a specification of which channels belong to which block, but we need to factorize only once (the full matrix containing all channels).
+
+          at the moment ft_connectivityanalysis behaves inconsistently, where cfg.block should contain different information when doing blockwise, compared to conditional (blockwise).
+
+          proposed changes (not backward compatible):
+
+          -cfg.conditional = 'yes' (was a 3-column matrix specifying in the first 2 columns the (directional) block-pair, and in the 3d column the block that is partialed out). It would be safe to assume that the user would want all block pairs (bi-directional) with all other blocks partialed out. This can be done automatically.
+
+          -cfg.blockindx = nlabelx1 numeric, indexing the block to which each input channel belongs. If not specified, defaults to 1:nlabel (meaning that in case of conditional all channel pairs should be computed, partialing out the rest) (was a cell-array with in the first column the labels, and in the second the indices)
+
+          -cfg.block = 'yes'/'no' (default: 'no') if cfg.blockindx is specified (and different from 1:nlabel).
+
+          The following scenarios are possible:
+
+          cfg.block='yes',cfg.conditional='yes' -> blockwise conditional
+          cfg.block='no',cfg.conditional='no' -> blockwise conditional (where some blocks only have 1 channel)
+          cfg.block='yes',cfg.conditional='no' -> blockwise (taken care of by ft_connectivity_granger)
+          cfg.block='no', cfg.conditional='no' -> 'normal case'
+
+          functions to be changed:
+
+          ft_connectivityanalysis
+          ft_connectivity_granger
+          ft_connectivity_csd2transfer
+      - +@isprivate: "0"
+        commentid: "10992"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-01 13:38:06 +0200
+        thetext: |-
+          hmm, the block thing may be solved more elegantly, when doing it cfg.neighbours style,
+          i.e. provide a struct-array:
+
+          cfg.block(i).name = 'name-of-block'
+          cfg.block(i).label = {}; % containing the list of labels that belong to that block
+
+          if cfg.block is not specified when cfg.conditional='yes', it defaults to:
+
+          cfg.block(i).name = 'labelx';
+          cfg.block(i).label = {'labelx'};
+
+          etc.
+      - +@isprivate: "0"
+        commentid: "11059"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-07 16:27:16 +0200
+        thetext: "bash-4.1$ svn commit -m \"enhancement - updated experimental code pertaining to blockwise and blockwise conditional granger causality\" ft_connectivityanalysis.m private/blockindx2cmbindx.m connectivity/ test/test_ft_connectivityanalysis.m \nSending        connectivity/ft_connectivity_csd2transfer.m\nSending        connectivity/ft_connectivity_granger.m\nSending        connectivity/private/blockwise_conditionalgranger.m\nSending        connectivity/private/sfactorization_wilson.m\nSending        ft_connectivityanalysis.m\nAdding         private/blockindx2cmbindx.m\nSending        test/test_ft_connectivityanalysis.m\nTransmitting file data .......\nCommitted revision 8383."
+      - +@isprivate: "0"
+        commentid: "11060"
+        comment_count: "3"
+        attachid: "500"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-07 16:28:08 +0200
+        thetext: |-
+          Created attachment 500
+          testscript for connectivityanalysis
+      - +@isprivate: "0"
+        commentid: "11061"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-08-07 16:33:12 +0200
+        thetext: |-
+          Andre,
+          Please check out the last part of the testscript that I just attached. If you grab the latest version of Fieldtrip (through googlecode, or ft_version) then probably you can figure out how you can specify the cfg to do blockwise and blockwise conditional granger. On simple examples the conditional seems to work quite nice, although I don't understand really the blockwise (non-conditional) results too well. A lot of spurious things seem to go on there, even leaking to nodes that are essentially unconnected in the simulation. I checked and re-checked the code, but all seems OK.
+
+          I noticed that the multivariate decomposition starts working pretty badly once too many channels are included. I won't favour averaging csd across channels within a ROI (because of polarity differences and/or because each ROI won't let itself be accurately described by just a single component). Perhaps projecting the N channels per ROI onto a lower dimensional subspace (e.g. do PCA on the time domain data and keep only the largest X components: take care not first to do the ft_channelnormalise in this case).
+      - +@isprivate: "0"
+        commentid: "11524"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-09 16:02:14 +0200
+        thetext: This has been redesigned. Consider fixed for the moment. Feel free to re-open if needed.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "500"
+      date: 2013-08-07 16:28:00 +0200
+      delta_ts: 2013-08-07 16:28:08 +0200
+      desc: testscript for connectivityanalysis
+      filename: test_ft_connectivityanalysis.m
+      type: text/plain
+      size: "18206"
+      attacher:
+        +content: j.schoffelen
+        +@name: Jan-Mathijs Schoffelen
+      data: REMOVED

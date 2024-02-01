@@ -1,0 +1,117 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1293"
+    creation_ts: 2012-01-27 12:17:00 +0100
+    short_desc: number of output arguments requested by user should overrule nargout
+    delta_ts: 2012-10-29 13:44:57 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - dlozanosoldevilla
+      - marcel.zwiers
+      - n.a.kloosterman
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4994"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-01-27 12:17:27 +0100
+        thetext: |-
+          The handling of the outputs, how many, and whether outputs should be handed back or not should  be improved. At the moment the number of output arguments is determined by looking at the function to be executed, not by looking at the number thaht is requested by the user from qsubcellfun.
+
+          So if you use cfg.outputfile in ft_preprocessing, you will still get the raw data sent back to you if you use qsubcellfun. That poses a memory bottleneck that makes it impossible to e.g. preprocess 100 subjects with large datasets in parallel.
+      - +@isprivate: "0"
+        commentid: "6286"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-05 21:30:16 +0200
+        thetext: Diego ran exactly into this problem, while preprocessing 60 subjects with 3GB of data per subject...
+      - +@isprivate: "0"
+        commentid: "6336"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-06-11 11:01:00 +0200
+        thetext: "(In reply to comment #1)\n\nHi Robert,\n\nI run again my cfg{61,1} measuring the memory before crash with memtic-memtoc and I think your accumulating memory suspicion was right because I'm got an estimated memory use of 8387.172 MB\n\nmemtic\ntry\nqsubcellfun(@ft_preprocessing, cfg,'memreq', 4*1024^3, 'timreq', 3000);\ncatch\nmemtoc\nend\n\n...\njob dieloz_mentat298_p2534_b3_j006 returned, it required 6.4 minutes and 1.5 GB\nWarning: adding /home/common/matlab/fieldtrip/external/ctf toolbox to your Matlab\npath \n> In qsubget at 152\n  In qsubcellfun at 322\njob dieloz_mentat298_p2534_b3_j008 returned, it required 9.9 minutes and 3.0 GB\nWarning: adding /home/common/matlab/fieldtrip/external/ctf toolbox to your Matlab\npath \n> In qsubget at 152\n  In qsubcellfun at 322\njob dieloz_mentat298_p2534_b3_j007 returned, it required 9.4 minutes and 3.0 GB\nWarning: adding /home/common/matlab/fieldtrip/external/ctf toolbox to your Matlab\npath \n> In qsubget at 152\n  In qsubcellfun at 322\nWarning: cleaning up all scheduled and running jobs, don't worry if you see warnings\nfrom \"qdel\" \n> In qsublist at 111\n  In qsubcellfun>cleanupfun at 430\n  In onCleanup>onCleanup.delete at 61\nqdel: Request invalid for state of job MSG=invalid state for job - COMPLETE 185008.dccn-l014.dccn.nl\nqdel 185008.dccn-l014.dccn.nl: Signal 42\nqdel: Request invalid for state of job MSG=invalid state for job - COMPLETE 185002.dccn-l014.dccn.nl\nqdel 185002.dccn-l014.dccn.nl: Signal 42\nqdel: Request invalid for state of job MSG=invalid state for job - COMPLETE 185000.dccn-l014.dccn.nl\nqdel 185000.dccn-l014.dccn.nl: Signal 42\nqdel: Request invalid for state of job MSG=invalid state for job - COMPLETE 184999.dccn-l014.dccn.nl\nqdel 184999.dccn-l014.dccn.nl: Signal 42\n\nEstimated memory use is 8387.172 MB\n\n\nI tried to submit only 5 jobs (cfg{5,1}) with qsubcellfun but I got a crash. \n\nIs it what you needed to know?\n\nDiego"
+      - +@isprivate: "0"
+        commentid: "7514"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 22:42:18 +0200
+        thetext: "I have made changes to parts of the code dealing with the output arguments. The user requested number now takes precedence, which means that you can request zero output arguments and the remote execution will not pass the too large raw data back.\n\nI first implemented and tested it on the plane using the engine distibuted computing, but also ported it to peer and qsub.\n\nmbp> svn commit \nSending        engine/enginecellfun.m\nSending        engine/enginefeval.m\nSending        engine/private/fexec.m\nSending        engine/private/getcustompwd.m\nTransmitting file data ....\nCommitted revision 6504.\n\nmbp> svn commit qsub peer\nSending        peer/peercellfun.m\nSending        peer/peerfeval.m\nSending        qsub/qsubcellfun.m\nSending        qsub/qsubfeval.m\nTransmitting file data ....\nCommitted revision 6506."
+      - +@isprivate: "0"
+        commentid: "7598"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-09-25 17:48:25 +0200
+        thetext: "(In reply to comment #3)\nHi Robert,\n\nI run the qsubcellfun to send 18 jobs (run ICA) and I got the following error (and also a diary output problem, see below):\n\n> In qsubget at 152\n  In qsubcellfun at 327\n  In script_prll_ICA at 61\nWarning: cleaning up all scheduled and running jobs, don't worry if you see warnings from \"qdel\" \n> In qsublist at 111\n  In qsubcellfun>cleanupfun at 435\n  In onCleanup>onCleanup.delete at 61\n  In script_prll_ICA at 61\n??? The left hand side is initialized and has an empty range of indices.\nHowever, the right hand side returned one or more results.\n\nError in ==> fexec at 153\n  [argout{:}] = feval(fname, argin{:});\n\nError in ==> qsubexec at 54\n  [argout, optout] = fexec(argin, optin);\n\n\nI checked the jobs periodically with qstat and everything goes fin till certain point (no clue why) on were the runica is displayed on my matlab command window like if I were running the ICA for a single job (no parallel processing) and then I get the error. Do you have a clue?\n\nMy matlab command window looks like this:\n\nsubmitting job dieloz_mentat315_p19182_b1_j001... qstat job id 792312.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j002... qstat job id 792313.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j003... qstat job id 792314.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j004... qstat job id 792315.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j005... qstat job id 792316.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j006... qstat job id 792317.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j007... qstat job id 792318.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j008... qstat job id 792319.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j009... qstat job id 792320.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j010... qstat job id 792321.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j011... qstat job id 792322.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j012... qstat job id 792323.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j013... qstat job id 792324.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j014... qstat job id 792325.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j015... qstat job id 792326.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j016... qstat job id 792327.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j017... qstat job id 792328.dccn-l014.dccn.nl\nsubmitting job dieloz_mentat315_p19182_b1_j018... qstat job id 792329.dccn-l014.dccn.nl\njob dieloz_mentat315_p19182_b1_j006 returned, it required NaN seconds and NaN GB\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n% an error was detected inside MATLAB, the diary output of the remote execution follows \n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\ndetected   6 visual artifacts\nrejected    6 trials completely\nrejected    0 trials partially\nretained    6 trials with artifacts outside critical window\nresulting 194 trials\nthe input is raw data with 273 channels and 200 trials\nselecting 0 trials\nWarning: the input trl-matrix contains more than 3 columns, but the data\nalready has a trialinfo-field. Keeping the trialinfo from the data \n> In ft_redefinetrial at 271\n  In ft_rejectartifact at 483\n  In prll_ICA at 4\n  In qsub/private/fexec at 153\n  In qsubexec at 54\nthe call to \"ft_redefinetrial\" took 2 seconds and required the additional allocation of an estimated 1480 MB\nthe call to \"ft_rejectartifact\" took 3 seconds and required the additional allocation of an estimated 1490 MB\nthe input is raw data with 273 channels and 194 trials\nresampling data\nresampling data in trial 194 from 194\noriginal sampling rate = 600 Hz\nnew sampling rate = 300 Hz\nthe call to \"ft_resampledata\" took 9 seconds and required the additional allocation of an estimated 0 MB\nthe input is raw data with 273 channels and 194 trials\nselecting 273 channels\nbaseline correcting data \nscaling data with 1 over 0.000000\nconcatenating data..................................................................................................................................................................................................\nconcatenated data matrix size 273x355020\nstarting decomposition using runica\nWarning: adding /home/common/matlab/fieldtrip/external/eeglab toolbox to your\nMatlab path \n\nInput data size [273,355020] = 273 channels, 355020 frames/nFinding 273 ICA components using logistic ICA.\nDecomposing 4 frames per ICA weight ((74529)^2 = 355020 weights, Initial learning rate will be 0.001, block size 64.\nLearning rate will be multiplied by 0.9 whenever angledelta >= 60 deg.\nMore than 32 channels: default stopping weight change 1E-7\nTraining will end when wchange < 1e-07 or after 512 steps.\nOnline bias adjustment will be used.\nRemoving mean of each channel ...\nFinal training data range: -3.47117 to 2.86648\nComputing the sphering matrix...\nStarting weights are the identity matrix ...\nSphering the data ...\nBeginning ICA training ...\nstep 1 - lrate 0.001000, wchange 402.44138088, angledelta  0.0 deg\nstep 2 - lrate 0.001000, wchange 289.30866131, angledelta  0.0 deg\nstep 3 - lrate 0.001000, wchange 290.96979574, angledelta 91.3 deg\nstep 4 - lrate 0.000900, wchange 273.73393602, angledelta 117.3 deg\nstep 5 - lrate 0.000810, wchange 254.79142209, angledelta 115.3 deg\nstep 6 - lrate 0.000729, wchange 226.72054170, angledelta 112.6 deg\nstep 7 - lrate 0.000656, wchange 195.90640633, angledelta 110.4 deg\nstep 8 - lrate 0.000590, wchange 163.94002342, angledelta 108.1 deg\nstep 9 - lrate 0.000531, wchange 127.48439725, angledelta 106.5 deg\nstep 10 - lrate 0.000478, wchange 98.87792824, angledelta 106.3 deg\nstep 11 - lrate 0.000430, wchange 77.30215031, angledelta 105.7 deg\nstep 12 - lrate 0.000387, wchange 58.48954891, angledelta 106.2 deg\nstep 13 - lrate 0.000349, wchange 45.75225550, angledelta 106.7 deg\nstep 14 - lrate 0.000314, wchange 36.11570805, angledelta 107.7 deg\nstep 15 - lrate 0.000282, wchange 28.84309071, angledelta 107.5 deg\nstep 16 - lrate 0.000254, wchange 23.22127577, angledelta 107.7 deg\nstep 17 - lrate 0.000229, wchange 18.82916254, angledelta 108.4 deg\nstep 18 - lrate 0.000206, wchange 15.00133342, angledelta 109.3 deg\nstep 19 - lrate 0.000185, wchange 12.44075971, angledelta 110.1 deg\nstep 20 - lrate 0.000167, wchange 10.30357568, angledelta 111.5 deg\nstep 21 - lrate 0.000150, wchange 8.53823619, angledelta 112.2 deg\nstep 22 - lrate 0.000135, wchange 7.17036395, angledelta 112.7 deg\nstep 23 - lrate 0.000122, wchange 6.14979789, angledelta 113.6 deg\nstep 24 - lrate 0.000109, wchange 5.17366061, angledelta 114.0 deg\nstep 25 - lrate 0.000098, wchange 4.45516555, angledelta 114.6 deg\nstep 26 - lrate 0.000089, wchange 3.76067393, angledelta 114.9 deg\nstep 27 - lrate 0.000080, wchange 3.24575410, angledelta 115.1 deg\nstep 28 - lrate 0.000072, wchange 2.84701254, angledelta 115.8 deg\nstep 29 - lrate 0.000065, wchange 2.46272102, angledelta 115.9 deg\nstep 30 - lrate 0.000058, wchange 2.18563897, angledelta 116.7 deg\nstep 31 - lrate 0.000052, wchange 1.91439390, angledelta 117.5 deg\nstep 32 - lrate 0.000047, wchange 1.67990399, angledelta 117.3 deg\nstep 33 - lrate 0.000042, wchange 1.49274855, angledelta 117.9 deg\nstep 34 - lrate 0.000038, wchange 1.30099320, angledelta 118.0 deg\nstep 35 - lrate 0.000034, wchange 1.13663877, angledelta 118.2 deg\nstep 36 - lrate 0.000031, wchange 1.00203709, angledelta 118.1 deg\nstep 37 - lrate 0.000028, wchange 0.88113947, angledelta 118.8 deg\nstep 38 - lrate 0.000025, wchange 0.77500390, angledelta 118.8 deg\nstep 39 - lrate 0.000023, wchange 0.68008091, angledelta 118.7 deg\nstep 40 - lrate 0.000020, wchange 0.59377648, angledelta 119.1 deg\nstep 41 - lrate 0.000018, wchange 0.52431585, angledelta 118.6 deg\nstep 42 - lrate 0.000016, wchange 0.46353469, angledelta 119.1 deg\nstep 43 - lrate 0.000015, wchange 0.41306245, angledelta 119.1 deg\nstep 44 - lrate 0.000013, wchange 0.35548031, angledelta 119.2 deg\nstep 45 - lrate 0.000012, wchange 0.31157486, angledelta 119.1 deg\nstep 46 - lrate 0.000011, wchange 0.27266633, angledelta 119.5 deg\nstep 47 - lrate 0.000010, wchange 0.23276355, angledelta 119.7 deg\nstep 48 - lrate 0.000009, wchange 0.20019512, angledelta 119.3 deg\nstep 49 - lrate 0.000008, wchange 0.17179321, angledelta 119.3 deg\nstep 50 - lrate 0.000007, wchange 0.14571792, angledelta 119.5 deg\nstep 51 - lrate 0.000006, wchange 0.12284781, angledelta 119.0 deg\nstep 52 - lrate 0.000006, wchange 0.10468602, angledelta 119.6 deg\nstep 53 - lrate 0.000005, wchange 0.08479758, angledelta 119.4 deg\nstep 54 - lrate 0.000005, wchange 0.06894017, angledelta 118.7 deg\nstep 55 - lrate 0.000004, wchange 0.05559961, angledelta 118.1 deg\nstep 56 - lrate 0.000004, wchange 0.04405093, angledelta 117.7 deg\nstep 57 - lrate 0.000003, wchange 0.03402639, angledelta 117.1 deg\nstep 58 - lrate 0.000003, wchange 0.02654883, angledelta 116.2 deg\nstep 59 - lrate 0.000003, wchange 0.01994777, angledelta 115.5 deg\nstep 60 - lrate 0.000002, wchange 0.01472416, angledelta 113.5 deg\nstep 61 - lrate 0.000002, wchange 0.01091069, angledelta 113.0 deg\nstep 62 - lrate 0.000002, wchange 0.00790096, angledelta 111.9 deg\nstep 63 - lrate 0.000002, wchange 0.00568395, angledelta 110.5 deg\nstep 64 - lrate 0.000002, wchange 0.00408469, angledelta 109.1 deg\nstep 65 - lrate 0.000001, wchange 0.00287520, angledelta 107.4 deg\nstep 66 - lrate 0.000001, wchange 0.00198869, angledelta 105.7 deg\nstep 67 - lrate 0.000001, wchange 0.00139273, angledelta 105.3 deg\nstep 68 - lrate 0.000001, wchange 0.00095863, angledelta 103.5 deg\nstep 69 - lrate 0.000001, wchange 0.00066648, angledelta 102.0 deg\nstep 70 - lrate 0.000001, wchange 0.00044974, angledelta 100.1 deg\nstep 71 - lrate 0.000001, wchange 0.00030938, angledelta 99.5 deg\nstep 72 - lrate 0.000001, wchange 0.00020732, angledelta 97.6 deg\nstep 73 - lrate 0.000001, wchange 0.00014066, angledelta 95.8 deg\nstep 74 - lrate 0.000001, wchange 0.00009587, angledelta 95.0 deg\nstep 75 - lrate 0.000001, wchange 0.00006537, angledelta 93.7 deg\nstep 76 - lrate 0.000000, wchange 0.00004392, angledelta 92.2 deg\nstep 77 - lrate 0.000000, wchange 0.00002961, angledelta 91.0 deg\nstep 78 - lrate 0.000000, wchange 0.00001992, angledelta 89.6 deg\nstep 79 - lrate 0.000000, wchange 0.00001358, angledelta 87.6 deg\nstep 80 - lrate 0.000000, wchange 0.00000922, angledelta 86.6 deg\nstep 81 - lrate 0.000000, wchange 0.00000613, angledelta 84.7 deg\nstep 82 - lrate 0.000000, wchange 0.00000419, angledelta 83.1 deg\nstep 83 - lrate 0.000000, wchange 0.00000293, angledelta 81.0 deg\nstep 84 - lrate 0.000000, wchange 0.00000197, angledelta 79.6 deg\nstep 85 - lrate 0.000000, wchange 0.00000137, angledelta 77.7 deg\nstep 86 - lrate 0.000000, wchange 0.00000095, angledelta 75.5 deg\nstep 87 - lrate 0.000000, wchange 0.00000066, angledelta 73.2 deg\nstep 88 - lrate 0.000000, wchange 0.00000047, angledelta 70.2 deg\nstep 89 - lrate 0.000000, wchange 0.00000033, angledelta 67.7 deg\nstep 90 - lrate 0.000000, wchange 0.00000024, angledelta 64.9 deg\nstep 91 - lrate 0.000000, wchange 0.00000017, angledelta 62.5 deg\nstep 92 - lrate 0.000000, wchange 0.00000012, angledelta 59.2 deg\nstep 93 - lrate 0.000000, wchange 0.00000013, angledelta 60.0 deg\nstep 94 - lrate 0.000000, wchange 0.00000009, angledelta 57.2 deg\nSorting components in descending order of mean projected variance ...\napplying the mixing matrix to the sensor description\nthe call to \"ft_componentanalysis\" took 4656 seconds and required the additional allocation of an estimated 802 MB\nsaving /home/electromag/dieloz/MEG/VOGBNZ_3016028.01/participants/VOGBNZdielozS08/Session2/raw_data/delay_rt/VOGBNZdielozS08_delay_rt_meg_icaW.mat\nWarning: Using 'state' to set RAND's internal state causes RAND, RANDI, and RANDN\nto use legacy random number generators. \n> In qsubget at 152\n  In qsubcellfun at 327\n  In script_prll_ICA at 61\nWarning: cleaning up all scheduled and running jobs, don't worry if you see warnings from \"qdel\" \n> In qsublist at 111\n  In qsubcellfun>cleanupfun at 435\n  In onCleanup>onCleanup.delete at 61\n  In script_prll_ICA at 61\n??? The left hand side is initialized and has an empty range of indices.\nHowever, the right hand side returned one or more results.\n\nError in ==> fexec at 153\n  [argout{:}] = feval(fname, argin{:});\n\nError in ==> qsubexec at 54\n  [argout, optout] = fexec(argin, optin);"
+      - +@isprivate: "0"
+        commentid: "7600"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-25 23:10:34 +0200
+        thetext: |-
+          Hi Diego,
+
+          I just fixed it late this afternoon, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=1742
+          Hope it also resolves your issue. If not, please reopen the other bug.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "7758"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-10-02 18:21:40 +0200
+        thetext: |-
+          (In reply to comment #5)
+          Solved! It works perfectly
+          Diego
+      - +@isprivate: "0"
+        commentid: "8019"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:44:57 +0100
+        thetext: changed the status of several bugs that were RESOLVED some time ago to CLOSED

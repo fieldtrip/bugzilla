@@ -1,0 +1,244 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2830"
+    creation_ts: 2015-02-09 11:27:00 +0100
+    short_desc: error in ft_sourcestatistics (spm_bwlabel CONN must be 6, 18 or 26)
+    delta_ts: 2015-02-11 10:40:36 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15180"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:27:57 +0100
+        thetext: |-
+          The following error occurs when doing source statistics on 3D volume data, using code that still worked I think last week:
+
+          Error using spm_bwlabel
+          spm_bwlabel: CONN must be 6, 18 or 26
+
+          Error in clusterstat (line 189)
+                [posclusobs, posnum] = spm_bwlabel(tmp, 2*numdims); % use spm_bwlabel for 2D/3D data to avoid usage of image
+                toolbox
+
+          Error in ft_statistics_montecarlo (line 358)
+            [stat, cfg] = clusterstat(cfg, statrand, statobs);
+
+          Error in ft_sourcestatistics (line 191)
+              [stat, cfg] = statmethod(cfg, dat, design);
+
+          Note that the input source still has a source.avg.
+      - +@isprivate: "0"
+        commentid: "15181"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:29:50 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #0)
+          Sorry, the input is not 3D volume data, but source data with .pos
+      - +@isprivate: "0"
+        commentid: "15182"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:32:03 +0100
+        thetext: |-
+          In clusterstat.m:189, when breaking on this error, I find that
+
+          K>> size(tmp)
+          ans =
+                 13662           1
+
+          which I think should have been 3D at this point. Also, numdims==2.
+      - +@isprivate: "0"
+        commentid: "15183"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:34:19 +0100
+        thetext: |-
+          (Line numbers are(In reply to Eelke Spaak from comment #2)
+          Should be line 182, not 189 (I had some uncommitted local changes which I now reverted for the purposes of debugging this issue.)
+      - +@isprivate: "0"
+        commentid: "15184"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:39:16 +0100
+        thetext: The error persists if I explicitly convert the input structures to volume before calling ft_sourcestatistics.
+      - +@isprivate: "0"
+        commentid: "15185"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-09 11:43:09 +0100
+        thetext: "can you do \ncfg.debug='saveonerror'\nand send me the mat file?"
+      - +@isprivate: "0"
+        commentid: "15186"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:47:37 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+          Would love to, but if I specify this I still get the same error and it does not look like any file is generated? Should it pop up in the current working directory?
+      - +@isprivate: "0"
+        commentid: "15187"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-09 11:54:28 +0100
+        thetext: "(In reply to Eelke Spaak from comment #6)\n\nsaveonerror should be handled by a pre/postamble and implement a try-catch. If it detects an error, it should save it to a file in /tmp and print the file name to screen. After that, the error is re-thrown.\n\nIf saveonerror also does not work, that makes for a 2nd bug. \n\nPlease give me the full input that you pass to the function from your script (e.g. in common/temporary)."
+      - +@isprivate: "0"
+        commentid: "15188"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:54:36 +0100
+        thetext: |-
+          Unfortunately I'm under some pressure to get some figures rather quickly, so for now I've reverted my working copy using:
+
+          svn merge -r HEAD:10136 .
+
+          This results in normal operation again. Note that before that I reverted to revision 10137 (the big ft_selectdata) commit. In this case I did not get the mentioned error, but the code was still not working correctly: it seems that the data structure inside clusterstat() was again a 1D-vector (and so it was doing inefficient clustering using connectivity matrices) rather than a 3D array (which allows efficient image-based clustering).
+      - +@isprivate: "0"
+        commentid: "15189"
+        comment_count: "9"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-09 11:58:49 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+          It's there now (/home/common/temporary/bug2830). I think the code snippet I added should reproduce the bug. It's almost certainly not dependent on the statfun I'm using, but in any case I'm providing that one as well.
+      - +@isprivate: "0"
+        commentid: "15191"
+        comment_count: "10"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2015-02-09 16:05:57 +0100
+        thetext: |-
+          hey,
+          i have the same problem here. and i think i found the problematic piece of code:
+
+          https://github.com/fieldtrip/fieldtrip/commit/8bcdb8f3c82bb261e98a09b124e76287371e9d25
+
+          line 148 in ft_statistics_montecarlo now looks for a dim field. if it finds one, it is assumed that the data is 3D. the problem is that ft_freqstatistics always adds a dim field to the input structures (line 134).
+
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "15194"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-10 15:23:14 +0100
+        thetext: "I just started looking at it and can reproduce it with the provided data. \n\nI also was ale to reproduce the saveonerror not working: I just reported that in a separate bug 2832."
+      - +@isprivate: "0"
+        commentid: "15196"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-10 16:22:57 +0100
+        thetext: "I found and fixed it. It had to do with \n  cfg.dim=[npos 1]\nrather than \n  cfg.dim=[nx ny nz]\n\nI realise that generic n-dimensional clustering of regular source data is not supported at the moment. E.g. what if it is a volumetric representation with source.dim = [10 1 1], i.e. a 3D volume that represents a strip of voxels? Or what if the dimensions are voxels [nx ny nz] by time by frequency? \n\n\nmac011> svn commit\nSending        ft_sourcestatistics.m\nSending        ft_statistics_montecarlo.m\nSending        private/clusterstat.m\nAdding         test/test_bug2830.m\nTransmitting file data ....\nCommitted revision 10192."
+      - +@isprivate: "0"
+        commentid: "15197"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-10 16:30:35 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #12)
+          I don't know too much about the scaffolding around it, but I know that bwlabel supports data of arbitrary dimensionality (and hence arbitrary neighbourhood).
+      - +@isprivate: "0"
+        commentid: "15198"
+        comment_count: "14"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-10 16:30:57 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #13)
+          bwlabeln that it is (note the n)
+      - +@isprivate: "0"
+        commentid: "15199"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-10 16:31:56 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #14)
+
+          Indeed. When ndim>3 it should switch to that (from the image processing toolbox).
+      - +@isprivate: "0"
+        commentid: "15201"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-10 16:49:24 +0100
+        thetext: "the code was already in place in the low-level clusterstat, but in ft_sourcestatistics I had to add cfg.origdim to enable it. Seems to be working fine (at least it runs, I did not check whether it makes sense).\n\n\nmac011> svn commit \nSending        ft_sourcestatistics.m\nSending        private/clusterstat.m\nSending        test/test_bug2830.m\nTransmitting file data ...\nCommitted revision 10193."
+      - +@isprivate: "0"
+        commentid: "15202"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-10 16:50:11 +0100
+        thetext: fixed.
+      - +@isprivate: "0"
+        commentid: "15241"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:36 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

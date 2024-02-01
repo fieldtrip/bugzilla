@@ -1,0 +1,79 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3414"
+    creation_ts: 2018-02-26 15:46:00 +0100
+    short_desc: tutorial on ECoG analysis not working, issue with ft_timelockbaseline
+    delta_ts: 2018-03-02 14:56:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: d.rimskyrobert
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19273"
+        comment_count: "0"
+        who:
+          +content: d.rimskyrobert
+          +@name: ""
+        bug_when: 2018-02-26 15:46:53 +0100
+        thetext: "When running the tutorial for ECoG data processing (or when analyzing my own data), running the line ft_timelockbaseline removes several fields that are crucial for easy plotting using ft_singleplotER later on. I'm fairly certain this used to work in October. \n\n% load trial info\nload('NY394_trl.mat');\n\n% load and segment data\ncfg            = [];\ncfg.dataset    = 'NY394_VisualLoc_R1.edf';\ncfg.trl        = trl; % from NY394_trl.mat\ncfg.continuous = 'yes';\nepoch_data = ft_preprocessing(cfg);\n\n% skipped trial selection, not useful here, but got the bug when I ran it for \n% safety\n\ncfg         = [];\ncfg.channel = 'EEG*'; % select 'EEG' channles\nepoch_data_clean = ft_selectdata(cfg,epoch_data);\n\n% calculate ERPs\ncfg                  = [];\ncfg.keeptrials       = 'yes'; % keep trials for statistics\ncfg.preproc.lpfilter = 'yes';\ncfg.preproc.lpfreq   = 30;    % smooth ERP with low-pass filter\ncfg.preproc.hpfilter = 'yes';\ncfg.preproc.hpfreq   = 1;     % reduce slow drifts\ncfg.preproc.detrend  = 'yes';\n \ncfg.trials = find(epoch_data_clean.trialinfo == 3); % select only 'object' trials (event code 3)\nERP_object = ft_timelockanalysis(cfg, epoch_data_clean);\n \ncfg.trials = find(epoch_data_clean.trialinfo == 7); % select only 'face' trials (event code 7)\nERP_face   = ft_timelockanalysis(cfg, epoch_data_clean);\n \n% baseline correction\ncfg          = [];\ncfg.baseline = [-.3 -.05];\n \nERP_object_bl = ft_timelockbaseline(cfg,ERP_object);\nERP_face_bl   = ft_timelockbaseline(cfg,ERP_face);\n\ncfg           = [];\ncfg.parameter = 'avg';\ncfg.xlim      = [-.3 .6];\ncfg.channel   = 'EEG IO_03-REF'; % other responsive channels: 'EEG PT_04-REF', 'EEG IO_02-REF', 'EEG IO_04-REF', 'EEG SO_01-REF', 'EEG SO_02-REF''EEG SO_03-REF'\n \nfigure, ft_singleplotER(cfg,ERP_object_bl,ERP_face_bl) % this bugs.\n\nBest,\nDaphné Rimsky-Robert"
+      - +@isprivate: "0"
+        commentid: "19277"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-28 09:27:22 +0100
+        thetext: |-
+          This now fails, because the data structures that contain the single trial ERP (constructed as per cfg.keeptrials = 'yes' when calling ft_timelockanalysis) now only still contains a 'trial'-field, and no 'avg'-field anymore. This is intended, because it makes the data representation more internally consistent.
+
+          doing something like this should solve it:
+
+          cfg = [];
+          cfg.avgoverrpt = 'yes';
+          ERP_object_bl_avg = ft_selectdata(cfg, ERP_object_bl);
+
+          etc.
+
+          and use cfg.parameter = 'trial' when calling ft_singleplotER
+      - +@isprivate: "0"
+        commentid: "19278"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-28 09:35:08 +0100
+        thetext: I have updated the tutorial.
+      - +@isprivate: "0"
+        commentid: "19282"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-02 14:56:30 +0100
+        thetext: .

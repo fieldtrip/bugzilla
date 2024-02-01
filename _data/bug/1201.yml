@@ -1,0 +1,260 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1201"
+    creation_ts: 2011-11-30 12:22:00 +0100
+    short_desc: cluster randomization broken when 'freq_time', or 'chan_freq_time' with nchan = 1
+    delta_ts: 2014-05-14 20:08:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - b.reuderink
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4353"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-11-30 12:22:14 +0100
+        thetext: "This used to work fine half a year ago. Now, in the case of 'chan_freq_time' with nchan = 1, a neighbors-structure is necessary. This cannot be constructed when there is only one channel, ft_prepare_neighbor throws a 'no neighbors found' error. Ft_freqstatistics used to be able to handle empty neighborhood structures. \n\nIf I change the data to 'freq_time', ft_freqstatistics stills throws an error, it checks for the presence of a neighborhood structure. If this check is commented out, the function fails when selecting data, cause it still tries to select channels. What has happened here, is the dimord 'freq_time' no longer supported?"
+      - +@isprivate: "0"
+        commentid: "4361"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-30 14:26:01 +0100
+        thetext: |-
+          hm, sounds like I introduced that one, although I don't know why it does not work when there are no neighbours.
+
+          Just to be sure, if data dimord does not contain 'chan', no neighbours should be required, right? That's an easy fix (by extending the if-statement in line 107).
+
+
+          About the other stuff, JM restrucuted ft_freqstatistics in May, revision 3499. Probably something went wrong there and this option is not fully supported anymore. I would propose you copy the exact error message here or fix it yourself ;) I am only doing channel-clustering at the moment, so I have no clue what might go wrong
+      - +@isprivate: "0"
+        commentid: "4362"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-30 14:26:48 +0100
+        thetext: just to make it clear, I only introduced the necessity of neighbours, not that clusterstats on 'freq_time' does not work anymore
+      - +@isprivate: "0"
+        commentid: "4374"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-11-30 18:38:52 +0100
+        thetext: Nope, no neighbour-selection if 'freq_time' :). I'll try to post a proper error message later one, but 'freq_time' fails at the select data call (thought it was because of trying to select non-existing channels).
+      - +@isprivate: "0"
+        commentid: "4428"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-12-06 12:56:22 +0100
+        thetext: I don't quite follow the discussion (requires much in-depth knowledge). Jörn, can I regard this bug as a defect by a developer, and assign it to you?
+      - +@isprivate: "0"
+        commentid: "4436"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-07 09:30:23 +0100
+        thetext: sure, I could look into that, would give me some insight into how this function actually works ;) Though I guess it's really a stupid mistake
+      - +@isprivate: "0"
+        commentid: "4437"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-07 09:36:00 +0100
+        thetext: Roemer, could you quickly post a snippet of code to run this the way you encountered the error? I'll then fix it before the FT meeting.
+      - +@isprivate: "0"
+        commentid: "4438"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-07 10:49:58 +0100
+        thetext: "For the case of \"freq_time\"\n\n% make fake dataset\nfreq = cell(1,10);\nfor idat = 1:10\n  freq{idat}.label = {'singlechan'};\n  freq{idat}.dimord = 'freq_time';\n  freq{idat}.powspctrm = rand(10,30);\n  freq{idat}.freq = 1:10;\n  freq{idat}.time = 0.1:0.1:3;\n  freq{idat}.cfg = [];\nend\n\n% do stats\ncfg = [];\ncfg.method      = 'montecarlo';\ncfg.statistic   = 'depsamplesT';\ncfg.alpha       = 0.05; \ncfg.correctm    = 'cluster'; \ncfg.clusterstatistic = 'maxsum';\ncfg.clusterthreshold = 'parametric';\ncfg.numrandomization = 500;\ncfg.design = [ones(1,5) ones(1,5).*2; 1:5 1:5;];\ncfg.ivar   = 1;\ncfg.uvar   = 2;\nstat = ft_freqstatistics(cfg,freq{:});\n\n\n***********************************\n***********************************\n***********************************\n\n\nAnd for the case of 'chan_freq_time' with one channel\n\n% make fake dataset\nfreq = cell(1,10);\nfor idat = 1:10\n  freq{idat}.label = {'singlechan'};\n  freq{idat}.dimord = 'chan_freq_time';\n  freq{idat}.powspctrm = rand(1,10,30);\n  freq{idat}.freq = 1:10;\n  freq{idat}.time = 0.1:0.1:3;\n  freq{idat}.cfg = [];\nend\n\n% do stats\ncfg = [];\ncfg.method      = 'montecarlo';\ncfg.statistic   = 'depsamplesT';\ncfg.alpha       = 0.05; \ncfg.correctm    = 'cluster'; \ncfg.clusterstatistic = 'maxsum';\ncfg.clusterthreshold = 'parametric';\ncfg.numrandomization = 500;\ncfg.design = [ones(1,5) ones(1,5).*2; 1:5 1:5;];\ncfg.ivar   = 1;\ncfg.uvar   = 2;\nstat = ft_freqstatistics(cfg,freq{:});"
+      - +@isprivate: "0"
+        commentid: "4440"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-12-07 11:21:12 +0100
+        thetext: Assigned bug to Jörn (defect by developer).
+      - +@isprivate: "0"
+        commentid: "4459"
+        comment_count: "9"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-07 12:43:12 +0100
+        thetext: Oh, BTW, the 'chan_freq_time' version also (most likely) suffer from the same bug if you have multiple channels, but have cfg.avgoverchan = 'yes' (no neighbours there either).
+      - +@isprivate: "0"
+        commentid: "4489"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-09 14:22:01 +0100
+        thetext: |-
+          Are you sure that freq_time worked in an earlier version? I cannot find any change that might have caused this to not work anymore. statistics_montecarlo and findclusters have not changed since a long time
+
+          I kinda hacked my way through chan_freq_time now, but the problem is that findcluster explicitly expects a 3D matrix. I could add a dummy dimension to make it work - but before I do that I need feedback from codemaster RO ;)
+
+          btw chan_freq_time should work now. I don't like the change though, but I couldn't think of a better way to include this. Could you check whether it works for you as well?
+      - +@isprivate: "0"
+        commentid: "4490"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-09 14:34:02 +0100
+        thetext: I don't remember when it did actually. It worked fine when it was implicit though (only 1 channel in chan_freq_time, and no neighbours), which would be the same if cfg.avgoverchan = yes I think. All of the situations should be handled by the same code I assume. I assume it's just the requirement of neighbours when no neighbours are there.
+      - +@isprivate: "0"
+        commentid: "4491"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-09 14:57:36 +0100
+        thetext: |-
+          oh, the freq_time case has nothing to do with neighbours -  the code crashes in findclusters because it expects a 4D matrix, but without channels it is 3D (freq_time_rpt)
+
+          Any chan_freq_time case should work again (neighbours are only required if nchannels > 1 or ~avgoverchan)
+      - +@isprivate: "0"
+        commentid: "4492"
+        comment_count: "13"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-12-09 15:16:56 +0100
+        thetext: Hmmm, are you sure you committed? I just ran the test code and it still fails in clusterstat.m when it requires the neighbour-struct at line 197
+      - +@isprivate: "0"
+        commentid: "4494"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-09 15:47:55 +0100
+        thetext: |-
+          oh right, my fault, I also changed that function actually
+          please try again in a few minutes ;)
+      - +@isprivate: "0"
+        commentid: "4693"
+        comment_count: "15"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-01-06 15:52:20 +0100
+        thetext: Roemer, does it work for you?
+      - +@isprivate: "0"
+        commentid: "4698"
+        comment_count: "16"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-01-09 10:54:26 +0100
+        thetext: |-
+          If you run the first piece of test code, there's an error. The second piece of test code works fine.
+          (see previous comment)
+      - +@isprivate: "0"
+        commentid: "4702"
+        comment_count: "17"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-01-09 11:32:57 +0100
+        thetext: |-
+          hm strange, back then I was so sure that it should work... but I had problems with my repository anyway, so maybe committing didn't work or something.
+
+          Anyway, for now I decided to add a dummy channel dimension in case the channel dimension is absent.
+
+          60 $ svn ci ft_freqstatistics.m -m "bugfix-#1201- freqstatistics can handle single channel data wo channel dimension (again)"
+          Sending        ft_freqstatistics.m
+          Transmitting file data .
+          Committed revision 5099.
+
+          And I commited a testscript using your two example scripts (which runs fine now)
+          63 $ svn add test_ft_freqstatistics.m
+          A         test_ft_freqstatistics.m
+          jorhor@mentat301:~/FieldTrip/trunk/test
+          64 $ svn ci test_ft_freqstatistics.m -m "enhancement - testscript for freqstatistics"
+          Adding         test_ft_freqstatistics.m
+          Transmitting file data .
+          Committed revision 5100.
+      - +@isprivate: "0"
+        commentid: "7202"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:08 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "13137"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-22 09:42:29 +0100
+        thetext: "around http://code.google.com/p/fieldtrip/source/detail?r=9306 (might be one earlier or later) the test script test_ft_freqstatistics started failing.\n\nTurns out it is due to a freq structure with dimord=freq_time, which is apparently the topic of this bug.\n\nI am not sure whether the data structure in the test script should work. There is a discrepancy:\n\nfreq = cell(1,10);\nfor idat = 1:10\n  freq{idat}.label = {'singlechan'};  %%%% here \n  freq{idat}.dimord = 'freq_time';    %%%% and here\n  freq{idat}.powspctrm = rand(10,30);\n  freq{idat}.freq = 1:10;\n  freq{idat}.time = 0.1:0.1:3;\n  freq{idat}.cfg = [];\nend\n\n\nIf I remove the label field, the test fails because it is not freq data.\nIf I change the dimord into chan_freq_time, it all works fine.\n\n@Roemer: Why is this test script supposed to work on this data?"
+      - +@isprivate: "0"
+        commentid: "13138"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-24 08:54:59 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #19)\n\nI looked at the discussion thread of this bug. There seems no clear reason why dimord freq_time without chan should be supported. It is not a freq structure according to the definition in the help of ft_datatype_freq and it will also not be supported by most other functions. Therefore I will remove support for freq_time from the test script.\n\nroboos@mbp> svn commit \nSending test_ft_freqstatistics.m\nCommitted revision 9309."
+      - +@isprivate: "0"
+        commentid: "13141"
+        comment_count: "21"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-03-24 14:27:19 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #19)\nI encountered a situation at the time, I think on the mailinglist or via a friend, where they wanted to do ft_freqstatistics with cfg.avgoverchan = 'yes'. \n\nI can't remember why dimord = 'freq_time' made sense at the time. I think, from the current perspective, cfg.avgoverchan = yes would lead to a powspctrm of (1,x,y), and as such the dimord would be 'chan_freq_time'. \n\nRemoving 'freq_time' from the test script makes sense.\n\nThis reminds me of our existential dimord-debate a number of weeks back ;)"
+      - +@isprivate: "0"
+        commentid: "13622"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:50 +0200
+        thetext: closed several of my bugs that have been resolved

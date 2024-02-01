@@ -1,0 +1,73 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2420"
+    creation_ts: 2013-12-12 08:55:00 +0100
+    short_desc: beamformer tutorial test scripts need excessive resources on torque
+    delta_ts: 2014-03-12 12:19:57 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12335"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-12 08:55:27 +0100
+        thetext: "I frequently get \n\nPBS Job Id: 4361735.dccn-l014.dccn.nl\nJob Name:   test_tutorial_beamformer20131122\nExec host:  dccn-c016/8\nAborted by PBS Server \nJob exceeded some resource limit (walltime, mem, etc.). Job was aborted\nSee Administrator for help\n\nor\n\nPBS Job Id: 4357570.dccn-l014.dccn.nl\nJob Name:   test_tutorial_beamformer\nExec host:  dccn-c018/13\njob deleted\nJob deleted at request of root@dccn-l014.dccn.nl\njob violates resource utilization policies\n\nalthough I have repeatedly been increasing time and memory estimates. A tutorial should not be taking more than 2 hours, and should be able to run on a \"normal\" machine. My feeling is that these test scripts take much more resources than they used to do. Perhaps something changed in the code that makes specifically these test scripts inefficient. \n\nto do: run the scripts (or one of them) and profile the code. Where is most time spent, and which part requires the most memory? Subsequently the FT code and tutorial on the wiki has to be fixed to ensure that the suggested pipeline is actually feasible under normal conditions. If needed the test scripts (also the historical ones) might need a small update to reduce the resource requirements. I can imagine that downsampling the MRI prior to segmentation would resolve a lot."
+      - +@isprivate: "0"
+        commentid: "12338"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-12 12:15:35 +0100
+        thetext: I am running the profiler since 10 in the morning. The testscript is still at computing the leadfields. Computing the sourcemodel took about 30 minutes, resulting in 1.5 million dipoles inside and 9 million dipoles outside the brain. This is a grid of 200 x 200 x 200. After tightening, 1.5 million are still inside. The gridsize is 1mm. I guess we can safe a lot of down by making it 10mm? is this truly what is suggested in the tutorial? I'm gonna check.
+      - +@isprivate: "0"
+        commentid: "12343"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-12 13:16:58 +0100
+        thetext: |-
+          yap, prepare_headmodel does know how to handle cfg.grid.resolution. Since no unit-field is present, it assumes the same units as the vol does have. In one FT meeting without you, Robert, we discussed and proposed that the sensor-description takes precedence, see bug 1832, last comment. Robert, do you agree with that?
+
+          As a fix for this bug, I would propose that the tutorial should explicitly specify cfg.grid.unit = 'cm'
+      - +@isprivate: "0"
+        commentid: "12344"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-12-12 14:20:23 +0100
+        thetext: "yep, that was it, now it takes 600seconds, of which 80% are spent in ft_volumesegment. I added cfg.grid.unit to various locations on the wiki, because imho this is good practice and makes things more explicit. \nI am a bit lost in the MNE tutorial, because the grid there is defined by sourcespace.pnt. I guess cfg.grid.unit should then be sourcespace.unit, right?\nAlso note my question in the last post ;)"

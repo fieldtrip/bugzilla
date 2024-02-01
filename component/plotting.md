@@ -1,0 +1,5 @@
+---
+title: plotting
+---
+
+{% include component %}

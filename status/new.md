@@ -1,0 +1,5 @@
+---
+title: New
+---
+
+{% include status %}

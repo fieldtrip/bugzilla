@@ -1,0 +1,148 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1567"
+    creation_ts: 2012-06-28 10:50:00 +0200
+    short_desc: improve the detection of BrainVision *.dat files
+    delta_ts: 2015-07-15 13:21:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - johanna.zumer
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6592"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-28 10:50:27 +0200
+        thetext: |-
+          this was a problem encountered at the workshop in Krakow.
+
+          Some people have *.vhdr, *.vmrk and *.dat, and specify the dat file as cfg.dataset. FieldTrip then cannot autodetect the format. If they specify the vhdr the detection is fine.
+
+          Usually at the DCCN the *.vhdr and *.vmrk files are complemented with a *.eeg file or with a *.seg file. Either one of the three should work -> just check for the presence of the triplet.
+
+          TODO make test case with three examples
+
+          test01.vhdr
+          test01.vmrk
+          test01.dat
+
+          test01.vhdr
+          test01.vmrk
+          test01.seg
+
+          test01.vhdr
+          test01.vmrk
+          test01.eeg
+
+          and ensure that either one of these files is autodetected properly. Also see the dataset2files function (which is a.o. used in ft_checkconfig to assign the datafile and headerfile given the dataset).
+      - +@isprivate: "0"
+        commentid: "9929"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 15:17:50 +0100
+        thetext: upon having fixed this, please adapt http://fieldtrip.fcdonders.nl/getting_started/brainvision appropriately
+      - +@isprivate: "0"
+        commentid: "12443"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-08 16:42:10 +0100
+        thetext: The bug seems to be solved at the moment, I will create a test-script on the three types of file formats.
+      - +@isprivate: "0"
+        commentid: "12456"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-09 11:04:39 +0100
+        thetext: "I've added a test-script for this bug that attempts to load data from all the test cases mentioned above. \n\nIt currently fails on two accounts:\n\n1. if cfg.dataset is set with a marker-file (*.vmrk).\nThis appears to fail becuase dataset2files does not have a case to handle 'brainvision-vmrk' file formats. However, do we intend to allow users to specify a marker file as a dataset? We currently allow and support to specify the data itself and the headerfile.\n\n2. if cfg.dataset is set with a .dat file that has an ascii data format and is vectorized.\nThis appears to fail in read_brainvision_vhdr.m at line 88: fid = fopen(hdr.DataFile, 'rt');\n\nfopen cannot open the file because hdr.DataFile only contains the filename, not the full location. fopen therefore cannot find the file."
+      - +@isprivate: "0"
+        commentid: "12457"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-09 16:56:53 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #3)
+
+          I would not worry about case "1". It has never been an issue, people seem to be happy specifying the vhdr or eeg/dat file as dataset name.
+
+          I consider your item "2" is a user error. If you specify the name of a file without path, and that file is not in the pwd, reading fails for all file formats (not only brainvision).
+      - +@isprivate: "0"
+        commentid: "12459"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-09 17:26:41 +0100
+        thetext: Sorry, I just realised I was not clear enough about problem 2. Problem 2 also occurs if you specify a full path in cfg.dataset because fopen in read_brainvision_vhdr uses hdr.DataFile, which appears to only contain the filename (not full file path).
+      - +@isprivate: "0"
+        commentid: "12461"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-09 19:31:28 +0100
+        thetext: |-
+          (In reply to Jim Herring from comment #5)
+
+          ah, that makes more sense. Yes, that can be considered as a bug.
+      - +@isprivate: "0"
+        commentid: "12477"
+        comment_count: "7"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-13 12:43:49 +0100
+        thetext: |-
+          One of the two cases within the same if-statement was already adding the full path to the filename so I moved that line of code outside of the if-statement so it can by used by both cases. The bug is thereby fixed.
+
+          Sending        fileio/private/read_brainvision_vhdr.m
+          Sending        test/test_bug1567.m
+          Transmitting file data ..
+          Committed revision 9094.
+      - +@isprivate: "0"
+        commentid: "12500"
+        comment_count: "8"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-15 15:15:09 +0100
+        thetext: Problem should be fixed now.

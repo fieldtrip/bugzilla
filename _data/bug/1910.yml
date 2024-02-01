@@ -1,0 +1,122 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1910"
+    creation_ts: 2012-12-21 11:56:00 +0100
+    short_desc: Problem with converting old style CTF grad
+    delta_ts: 2012-12-31 11:46:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8778"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-21 11:56:40 +0100
+        thetext: "When doing\n\ngrad = ft_datatype_sens(grad) \n\nwith the CTF grad in the attached mat file I get:\n\n>> ft_datatype_sens(grad)\nundoing the custom balancing\nWarning: the linear projection for the montage is not full-rank, the resulting data will have reduced dimensionality \n> In ft_apply_montage at 91\n  In utilities\\private\\undobalancing at 37\n  In utilities\\private\\channelposition at 39\n  In ft_datatype_sens at 126\nWarning: cannot determine channel positions and orientations \n> In ft_datatype_sens at 131\n\nThe second warning results in grad.chanpos and grad.chanori being all NaNs. This comes down to the fact that line 125 in ft_datatype_sens says \n\nif isequal(sens.label(:), lab(:))\n\nwhereas the order of labels in the two lists is not the same (the reference sensors come first in one and last in the other). Should be easy to fix."
+      - +@isprivate: "0"
+        commentid: "8779"
+        comment_count: "1"
+        attachid: "397"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-21 11:57:43 +0100
+        thetext: |-
+          Created attachment 397
+          Problematic struct
+      - +@isprivate: "0"
+        commentid: "8783"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-21 12:22:15 +0100
+        thetext: "made test script\n\nmac001> svn commit test/test_bug1910.m \nAdding         test/test_bug1910.m\nTransmitting file data .\nCommitted revision 7246."
+      - +@isprivate: "0"
+        commentid: "8785"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-21 12:35:05 +0100
+        thetext: "(In reply to comment #2)\n\n\nI changed it into\n        % sensor description is a MEG sensor-array, containing oriented coils\n        [chanpos, chanori, lab] = channelposition(sens, 'channel', 'all');\nand then\n        % the channel order can be different\n        [selsens, selpos] = match_str(sens.label, lab);\n        sens.chanpos = nan(length(sens.label), 3);\n        sens.chanori = nan(length(sens.label), 3);\n        % insert the determined position/orientation on the appropriate rows\n        sens.chanpos(selsens,:) = chanpos(selpos,:);\n        sens.chanori(selsens,:) = chanori(selpos,:);\n        if length(selsens)~=length(sens.label)\n          warning('cannot determine the position and orientation for all channels');\n        end\n\n\nit is an interesting test case, because the custom montage removes a channel.\nK>> setdiff(lab, lab(selpos))\nans = \n    'MRO31'\nFor that channel the position is determined, but subsequently not used any more."
+      - +@isprivate: "0"
+        commentid: "8786"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-21 12:36:50 +0100
+        thetext: |-
+          (In reply to comment #3)
+          Many users might have systems with missing sensors so this should definitely be handled well.
+      - +@isprivate: "0"
+        commentid: "8787"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-21 12:39:22 +0100
+        thetext: "fixed it:\n\nmac001> svn commit utilities/ft_datatype_sens.m \nSending        utilities/ft_datatype_sens.m\nTransmitting file data .\nCommitted revision 7247.\n\nupdated the test script with an assert(isnan(...)):  \n\nmac001> svn commit test/test_bug1910.m \nSending        test/test_bug1910.m\nTransmitting file data .\nCommitted revision 7249"
+      - +@isprivate: "0"
+        commentid: "8788"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-21 12:49:22 +0100
+        thetext: "(In reply to comment #4)\n\nI think it is handled properly. \n\nThe surprise was that the channel is first missing and then reappears in determining the positions. So I expected the position for 287 channels but then got 288 positions, i.e. it was not just a reordering of the channels."
+      - +@isprivate: "0"
+        commentid: "8831"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:21 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "397"
+      date: 2012-12-21 11:57:00 +0100
+      delta_ts: 2012-12-21 11:57:43 +0100
+      desc: Problematic struct
+      filename: grad_bug.mat
+      type: application/octet-stream
+      size: "202595"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

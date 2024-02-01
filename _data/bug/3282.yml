@@ -1,0 +1,111 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3282"
+    creation_ts: 2017-04-13 15:01:00 +0200
+    short_desc: which fails as system command on windows for openmeeg
+    delta_ts: 2017-04-13 15:02:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2368
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: antonakakismar
+      +@name: Marios Antonakakis
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      +@isprivate: "0"
+      commentid: "18556"
+      comment_count: "0"
+      who:
+        +content: antonakakismar
+        +@name: Marios Antonakakis
+      bug_when: 2017-04-13 15:01:15 +0200
+      thetext: |-
+        This is solved with the following change
+
+        function prefix = om_checkombin
+
+        % Check if OpenMEEG binaries are installed and work.
+        %
+        % Copyright (C) 2010-2017, OpenMEEG developers
+
+        % $LastChangedBy: alegra $
+        % $LastChangedDate: 2010-09-30 11:15:51 +0200 (Thu, 30 Sep 2010) $
+        % $Revision$
+
+        % start with an empty return value
+        prefix = '';
+
+        % check whether the binary is on the path
+        if ismac || isunix
+            [status, result] = system('which om_assemble');
+            if status>0
+                % which has failed
+                show_error(result);
+            end
+            % figure out where it is installed
+            openmeeg_bin = fileparts(result);
+            openmeeg_lib = fullfile(fileparts(openmeeg_bin), 'lib');
+        end
+
+        % check whether the binary can be executed
+        [status, result] = system('om_assemble');
+
+        % the failure might be due to the libraries not being found
+        if status>0
+            if ismac
+                prefix = ['export DYLD_LIBRARY_PATH=' openmeeg_lib ' && '];
+                [status, result] = system([prefix 'om_assemble']);
+            elseif isunix
+                prefix = ['export LD_LIBRARY_PATH=' openmeeg_lib ' && '];
+                [status, result] = system([prefix 'om_assemble']);
+            elseif ispc
+                % don't know how to determine this on Windows
+                show_error(result);
+            end
+        end
+
+        if status>0
+            show_error(result);
+        end
+
+        if nargout==0
+            clear prefix
+        end
+
+
+        function show_error(result)
+        disp('==============================================================================');
+        disp('OpenMEEG binaries are not correctly installed')
+        disp(' ')
+        disp('Visit the OpenMEEG website for instructions')
+        disp('http://openmeeg.github.io/')
+        disp(' ')
+        disp('See also the installation instructions on')
+        disp('http://www.fieldtriptoolbox.org/faq/how_do_i_install_the_openmeeg_binaries')
+        disp('==============================================================================');
+        disp(result);
+        error('OpenMEEG not found')

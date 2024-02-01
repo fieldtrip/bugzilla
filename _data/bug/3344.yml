@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3344"
+    creation_ts: 2017-09-14 16:23:00 +0200
+    short_desc: ft_preprocessing error with g.tec files
+    delta_ts: 2017-12-08 15:35:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: omri.manor
+    assigned_to: omri.manor
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18915"
+        comment_count: "0"
+        who:
+          +content: omri.manor
+          +@name: ""
+        bug_when: 2017-09-14 16:23:03 +0200
+        thetext: |-
+          Hello everyone,
+
+          I recently started using a g.tec EEG and a simulink module to record the data. Simulink outputs the data as a .mat file.
+
+          I used the following script to define trials and preprocess (see below). It seems that ft_definetrial runs and epochs my data, but then crashes at ft_preprocessing.
+
+              cfg=[];
+              cfg.trialfun='mytrlfunction' ;
+              cfg.datafile=currDataFile;
+              cfg.trialdef.preStimTime=0.5;
+              cfg.outputMode='fieldtrip';
+              cfg=ft_definetrial(cfg);
+
+              cfg.continuous='yes';
+              cfg.detrend='yes';
+              dataRaw1=ft_preprocessing(cfg);
+
+          And I get this error:
+          unsupported header format "matlab"
+
+          Error in ft_error (line 39)
+            ft_notification(varargin{:});
+
+          Error in ft_read_header (line 2325)
+                  ft_error('unsupported header format "%s"', headerformat);
+
+          Error in ft_preprocessing (line 395)
+            hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat, 'coordsys', cfg.coordsys, 'coilaccuracy',
+            cfg.coilaccuracy, 'checkmaxfilter', istrue(cfg.checkmaxfilter));
+
+          From the error in ft_read_header, it seems that the file isn't recognized as a g.tec file and so it think that it cannot read the mat file.
+
+          Has anybody tried preprocessing with g.tec?
+
+          Thank you everyone
+      - +@isprivate: "0"
+        commentid: "19079"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-20 20:27:47 +0100
+        thetext: "saving the data as a 'mat' file does not guarantee that FieldTrip understands the format, in how the variables are represented in the file. \n\nI think that you need to write some dedicated code for this, to be incorporated into:\n\nft_read_data\nft_read_event\nft_read_header\nft_filetype"
+      - +@isprivate: "0"
+        commentid: "19094"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-23 11:37:02 +0100
+        thetext: I think that this needs to be followed up by Omri. If there is insufficient interest, I suggest to close this bug, in order not to clog the whole system with things that have an apparent low priority. I'd happy to provide pointers for getting this solved.
+      - +@isprivate: "0"
+        commentid: "19134"
+        comment_count: "3"
+        who:
+          +content: omri.manor
+          +@name: ""
+        bug_when: 2017-12-08 10:27:26 +0100
+        thetext: Indeed, it seems that fieldtrip is not compatible with gTec data saved with SimuLink (rather than gRecorder). We resolved our problem by adapting ft_preprocessing and ft_read_header with in-house code. If there is no interest in this bug, I guess you can just close it.
+      - +@isprivate: "0"
+        commentid: "19135"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-12-08 14:44:48 +0100
+        thetext: |-
+          Well, if you have a clean fix, I suggest that you contribute your adapted version through a git "Pull Request"
+
+          see www.fieldtriptoolbox.org/development/git for instructions
+      - +@isprivate: "0"
+        commentid: "19136"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-12-08 15:35:21 +0100
+        thetext: My suggestion to close this bug was mostly inspired by the ~ 2 months of silence on your end. If you have a solid solution, we would greatly appreciate any contributions that improve the code

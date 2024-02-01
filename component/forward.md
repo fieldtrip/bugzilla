@@ -1,0 +1,5 @@
+---
+title: forward
+---
+
+{% include component %}

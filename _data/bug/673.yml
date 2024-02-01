@@ -1,0 +1,101 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "673"
+    creation_ts: 2011-05-17 12:21:00 +0200
+    short_desc: output of ft_dipolefitting is incorrect
+    delta_ts: 2011-07-13 14:47:01 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: c.micheli
+      +@name: Cristiano Micheli
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2138"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2011-05-17 12:21:59 +0200
+        thetext: |-
+          Hi,
+
+          ft_dipolefitting works really well but the output is rather inconsistent.
+
+          With
+          cfg.numdipoles = 2;
+          cfg.symmetry    = 'x';
+          cfg.model = 'regional';
+
+          ft_dipolefitting gives the wrong output in dipole.dip.pos.
+
+          At line 385-6 of ft_dipolefitting:
+            dip.pos = grid.pos(grid.inside(indx),:);          % note that for a symmetric dipole pair this results in a vector
+            dip.pos = reshape(dip.pos, cfg.numdipoles, 3);    % convert to a Nx3 array
+
+          where grid.pos is a 8360x6 matrix, dip.pos becomes a 1x6 vector (1x3 for the first dipole and 1x3 for the second dipole).
+          But reshape in Matlab is column-major, so dip.pos after reshape is in the wrong order. I suggest:
+            dip.pos = reshape(pos, 3, cfg.numdipoles)';
+
+          Example:
+
+          dip.pos = [1 2 3 4 5 6];
+          wrongreshape = reshape(dip.pos, cfg.numdipoles, 3);
+          wrongreshape
+               1     3     5
+               2     4     6
+
+          goodreshape = reshape(dip.pos, 3, cfg.numdipoles)';
+               1     2     3
+               4     5     6
+
+          Line 391 should then become:
+            fprintf('found minimum after scanning on grid point [%g %g %g; %g %g %g]\n', dip.pos(1,1), dip.pos(1,2), dip.pos(1,3), dip.pos(2,1), dip.pos(2,2), dip.pos(2,3));
+
+          Otherwise don't reshape at all but keep dimensions consistent.
+          An example of (non-critical) inconsistency is:
+          cfg.model = 'moving';
+          cfg.numdipoles = 2;
+          cfg.symmetry = [];
+
+          The output is
+          dipole.dip(1)
+              pos: [2x3 double]
+              mom: [6x1 double]
+
+          Sorry for the somewhat cryptic message.
+          Thanks for your help!!!
+      - +@isprivate: "0"
+        commentid: "2660"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:47:01 +0200
+        thetext: changed the status for a whole bunch of resolved bugs to CLOSED

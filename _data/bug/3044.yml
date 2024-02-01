@@ -1,0 +1,102 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3044"
+    creation_ts: 2016-01-15 09:30:00 +0100
+    short_desc: problem reading past the end of the file with EDF
+    delta_ts: 2016-06-14 16:18:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: a.stolk8
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16622"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 09:30:27 +0100
+        thetext: |-
+          Arjen reported a problem reading all the way to the end of the file, which is fixed if he trims hdr.nSamples a bit.
+
+          I received a 1GB large test file and will try to reproduce.
+      - +@isprivate: "0"
+        commentid: "16623"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 09:36:01 +0100
+        thetext: "Yup, I also encounter the problem.\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n>> hdr = ft_read_header('CA0081A7_1-1+.edf')\nWarning: Skipping \"EDF Annotations\" as continuous data channel because of inconsistent sampling frequency (270 Hz) \n> In read_edf (line 295)\n  In ft_read_header (line 681) \n\nhdr = \n\n             Fs: 1000\n         nChans: 81\n          label: {81x1 cell}\n       nSamples: 7200000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n       chantype: {81x1 cell}\n       chanunit: {81x1 cell}\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n>> dat = ft_read_data('CA0081A7_1-1+.edf', 'chanindx', 1);\nError using read_edf>readLowLevel (line 470)\nfailed reading CA0081A7_1-1+.edf\n\nError in read_edf (line 411)\n      buf = readLowLevel(filename, offset, blocksize); % see below in subfunction\n\nError in ft_read_data (line 622)\n    dat = read_edf(filename, hdr, begsample, endsample, chanindx);\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\n>> dat = ft_read_data('CA0081A7_1-1+.edf', 'chanindx', 1, 'begsample', 7200000-10, 'endsample', 7200000);\nError using read_edf>readLowLevel (line 465)\nfailed seeking CA0081A7_1-1+.edf\n\nError in read_edf (line 411)\n      buf = readLowLevel(filename, offset, blocksize); % see below in subfunction\n\nError in ft_read_data (line 622)\n    dat = read_edf(filename, hdr, begsample, endsample, chanindx);"
+      - +@isprivate: "0"
+        commentid: "16624"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 10:35:19 +0100
+        thetext: "the length of the file is inconsistent with the number of data blocks that it contains\n\nfile size = 1117782016 bytes\nheader size = 21248 bytes (according to the file itself)\n\nthat leaves 1117760768 bytes for data. \n\nSee http://www.edfplus.info/specs/edf.html\n\nThe header specifies that there are 72000 blocks of 0.100 seconds each, which means that\n\nK>> floor(1117760768/72000)\nans =\n       15524\n\nK>> 1117760768 - 15524*72000\nans =\n       32768\n\nthere would  be 32768 bytes not accounted for (assuming a block size of 15524).\n\nIn fact the block size is sum(0.1*EDF.SampleRate) times two bytes (which means 100 samples per block for most channels and 27 samples for the annotation), which is 16254 samples. \n\nThat means the file should be \nint32(16254*72000 + EDF.HeadLen) = 1170309248 \nbytes long. So there are \n\n1170309248 - 1117782016 = 52527232\nbytes missing.\n\nLet me parse the actual and expected file size with thousand separators:\n\n1.170.309.248 expected\n1.117.782.016 actual\n   52.527.232 difference\n\nso there are about 52 MB missing at the end of the file. Either the header was incorrectly written, or the file was truncated somehow.\n\nIn short: the file is corrupt. In principle FT could be made to deal with that by adjusting the EDF.NRec field (and giving a warning). Since you have a solution and since it seems a one time corruption, I will not bother with that myself."
+      - +@isprivate: "0"
+        commentid: "16631"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-15 19:30:03 +0100
+        thetext: Thanks so much for looking into this! It remains strange that the same file could be read a couple of months ago. Assuming nothing changed in the code, it may well have been, as you suggest, that the file became corrupted by copying over from one place to another. Let's assume this for the moment. Thank you very much again.
+      - +@isprivate: "0"
+        commentid: "16632"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-01-15 19:59:08 +0100
+        thetext: Just managed to get access to the original file which was indeed slightly smaller than the one we've been looking at. So you were right - as usual - in that this may have been caused by a copy-error.
+      - +@isprivate: "0"
+        commentid: "16636"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-17 10:23:15 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #4)
+
+          > So you were right - as usual -
+
+          :-P
+      - +@isprivate: "0"
+        commentid: "17532"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:18:24 +0200
+        thetext: Hereby I am closing several bugs that have been resolved for some time (WONTFIX, WORKSFORME, etc.). If you disagree, please reopen and explain.

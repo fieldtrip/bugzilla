@@ -1,0 +1,131 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1142"
+    creation_ts: 2011-11-11 11:11:00 +0100
+    short_desc: the cfg history is not fully kept in e.g. the artifact handling
+    delta_ts: 2011-12-07 22:11:25 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    dependson: "951"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - eelke.spaak
+      - s.vanpelt
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3889"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:11:02 +0100
+        thetext: "Following yesterdays BBM of David, Stan and I gave it a try to see whether the analysis protocol is fully documented in data.cfg.previous.previous...\n\nIt turned out that it was cut of at ft_rejectartifact, i.e. the details of the preceding ft_preprocessing were not stored. \n\nThis issue is one that I recently also came across when building in the \"ft_postable history\". The role of the ft_artifact_xxx functions and of the  ft_rejectartifact function has changed over time: in the old days they were called prior to preprocessing, but now they are often used after preprocessing. These functions still allow either to work on only a cfg, or on a cfg and data. \n\nLooking at\nmanzana> grep -L 'ft_postamble history' *.m\nthere are quite some functions that don't seem to keep the history. \n\nThere is also bug 951 about the plotting functions having inconsistent return values. Ideally a matlab figure could be traced back to the full analysis details.\n\nAnother area where I know that the cfg history is lost is in the construction of the volume conduction models and leadfields. E.g. ft_prepare_leadfield produces a grid, which is added to cfg for sourceanalysis. But after sourceanalysis you cannot check what the cfg parameters were of ft_prepare_leadfield or of the headmodel that went into it."
+      - +@isprivate: "0"
+        commentid: "3990"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-14 09:00:22 +0100
+        thetext: I created an initial test script that goes over all possible options for the artifact pipeline. See fieldtrip/test/test_bug1142.m
+      - +@isprivate: "0"
+        commentid: "4058"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:42 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4226"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-23 14:12:04 +0100
+        thetext: Added this bug to Eelke as well, since it is related to bug 1142.
+      - +@isprivate: "0"
+        commentid: "4262"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-26 02:32:14 +0100
+        thetext: "we should discuss in the FT meeting how to deal with the genetic handling of the cfg in the following types of functions\n\n- ft_definetrial\n- ft_artifact_xxx\n- etc\nwhich are called in succession and which modify the cfg\n\n- ft_prepare_layout\n- ft_prepare_sourcemodel\n- ft_prepare_headmodel\nwhich create a \"helper structure\" that is added to another cfg \n\nThere are perhaps other general cases that are currently not properly dealt with."
+      - +@isprivate: "0"
+        commentid: "4455"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-07 12:11:36 +0100
+        thetext: "at this moment the ft_prepare functions behave like this\n\nfunction [atlas] = ft_prepare_atlas(filename)\nfunction [bnd] = ft_prepare_mesh(cfg, mri)\nfunction [bnd] = ft_prepare_mesh_new(cfg, data)\nfunction [grid, cfg] = ft_prepare_leadfield(cfg, data)\nfunction [grid, cfg] = ft_prepare_sourcemodel(cfg, vol, sens)\nfunction [lay] = ft_prepare_layout(cfg, data)\nfunction [neighbours] = ft_prepare_neighbours(cfg, data)\nfunction [vol, cfg] = ft_prepare_bemmodel(cfg, mri)\nfunction [vol, cfg] = ft_prepare_concentricspheres(cfg)\nfunction [vol, cfg] = ft_prepare_localspheres(cfg, mri)\nfunction [vol, cfg] = ft_prepare_singleshell(cfg, mri)\nfunction [vol] = ft_prepare_headmodel(cfg, data)\n\nso some of them return a cfg as second output argument. For most functions this is undocumented behaviour, but ft_prepare_sourcemodel and the ft_prepare functions for the old headmodels documents it. \n\nThe internal use of the output cfg can be found as follows\n\nmanzana> grep cfg].*=.*ft_prepare *.m\nft_dipolefitting.m:  [grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\nft_headmodelplot.m:    [sourcegrid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\nft_megrealign.m:[grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\nft_prepare_bemmodel.m:function [vol, cfg] = ft_prepare_bemmodel(cfg, mri)\nft_prepare_bemmodel.m:%   [vol, cfg] = ft_prepare_bemmodel(cfg, mri), or\nft_prepare_bemmodel.m:%   [vol, cfg] = ft_prepare_bemmodel(cfg, seg), or\nft_prepare_bemmodel.m:%   [vol, cfg] = ft_prepare_bemmodel(cfg, vol), or\nft_prepare_bemmodel.m:%   [vol, cfg] = ft_prepare_bemmodel(cfg)\nft_prepare_concentricspheres.m:function [vol, cfg] = ft_prepare_concentricspheres(cfg)\nft_prepare_concentricspheres.m:%   [vol, cfg] = ft_prepare_concentricspheres(cfg)\nft_prepare_leadfield.m:function [grid, cfg] = ft_prepare_leadfield(cfg, data)\nft_prepare_leadfield.m:[grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\nft_prepare_localspheres.m:function [vol, cfg] = ft_prepare_localspheres(cfg, mri)\nft_prepare_localspheres.m:%   [vol, cfg] = ft_prepare_localspheres(cfg, seg), or\nft_prepare_localspheres.m:%   [vol, cfg] = ft_prepare_localspheres(cfg, mri), or\nft_prepare_localspheres.m:%   [vol, cfg] = ft_prepare_localspheres(cfg)\nft_prepare_singleshell.m:function [vol, cfg] = ft_prepare_singleshell(cfg, mri)\nft_prepare_singleshell.m:%   [vol, cfg] = ft_prepare_singleshell(cfg, seg), or\nft_prepare_singleshell.m:%   [vol, cfg] = ft_prepare_singleshell(cfg, mri), or\nft_prepare_singleshell.m:%   [vol, cfg] = ft_prepare_singleshell(cfg)\nft_prepare_sourcemodel.m:function [grid, cfg] = ft_prepare_sourcemodel(cfg, vol, sens)\nft_sourceanalysis.m:  [grid, cfg] = ft_prepare_leadfield(cfg, data);\nft_sourceanalysis.m:  [grid, cfg] = ft_prepare_leadfield(cfg, data);\nft_sourceanalysis.m:  [grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\n\nNone of them seems too severe to change to a single output argument, so I will change the following\n\nmanzana> grep -l cfg].*=.*ft_prepare *.m\nft_dipolefitting.m\nft_headmodelplot.m\nft_megrealign.m\nft_prepare_bemmodel.m\nft_prepare_concentricspheres.m\nft_prepare_leadfield.m\nft_prepare_localspheres.m\nft_prepare_singleshell.m\nft_prepare_sourcemodel.m\nft_sourceanalysis.m"
+      - +@isprivate: "0"
+        commentid: "4456"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-07 12:14:23 +0100
+        thetext: "for consistency and backward compatibility of end-users code, I have changed the ft_prepare* functions API into\n\nfunction [atlas, cfg] = ft_prepare_atlas(filename)\nfunction [vol, cfg] = ft_prepare_bemmodel(cfg, mri)\nfunction [vol, cfg] = ft_prepare_concentricspheres(cfg)\nfunction [vol, cfg] = ft_prepare_headmodel(cfg, data)\nfunction [lay, cfg] = ft_prepare_layout(cfg, data)\nfunction [grid, cfg] = ft_prepare_leadfield(cfg, data)\nfunction [vol, cfg] = ft_prepare_localspheres(cfg, mri)\nfunction [bnd, cfg] = ft_prepare_mesh(cfg, mri)\nfunction [bnd, cfg] = ft_prepare_mesh_new(cfg, data)\nfunction [neighbours, cfg] = ft_prepare_neighbours(cfg, data)\nfunction [vol, cfg] = ft_prepare_singleshell(cfg, mri)\nfunction [grid, cfg] = ft_prepare_sourcemodel(cfg, vol, sens)\n\nI have changed the documentation not to mention the second (cfg) output argument. \n\nI have changed the other FT functions not to ask for the second output argument."
+      - +@isprivate: "0"
+        commentid: "4472"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-07 22:11:25 +0100
+        thetext: |-
+          I have made the changes to th eft_prepare_xxx functions. Except for the ft_prepare_mesh (and new) function, all now return in their output the cfg, including the previous history.
+
+          What remains to be done is ft_definetrial and ft_artifact_xxx.
+
+          manzana> svn commit
+          Sending        ft_dipolefitting.m
+          Sending        ft_headmodelplot.m
+          Sending        ft_megrealign.m
+          Sending        ft_prepare_bemmodel.m
+          Sending        ft_prepare_concentricspheres.m
+          Sending        ft_prepare_headmodel.m
+          Sending        ft_prepare_layout.m
+          Sending        ft_prepare_leadfield.m
+          Sending        ft_prepare_localspheres.m
+          Sending        ft_prepare_mesh.m
+          Sending        ft_prepare_mesh_new.m
+          Sending        ft_prepare_neighbours.m
+          Sending        ft_prepare_singleshell.m
+          Sending        ft_prepare_sourcemodel.m
+          Sending        ft_sourceanalysis.m
+          Transmitting file data ...............
+          Committed revision 4955.

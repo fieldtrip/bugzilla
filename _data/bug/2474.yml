@@ -1,0 +1,128 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2474"
+    creation_ts: 2014-02-17 15:25:00 +0100
+    short_desc: Crash in ft_compute_leadfield because of number types
+    delta_ts: 2014-02-24 10:56:27 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12847"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-02-17 15:25:46 +0100
+        thetext: "I recently started seeing a new crash:\n\nError using  * \nMTIMES is not supported for one sparse input and one single input.\nIn file \"C:\\spm12\\external\\fieldtrip\\forward\\ft_compute_leadfield.m\" (v9183), function \"ft_compute_leadfield\" at line 247.\n\nThe line is:\n\nlf = sens.tra * lf;\n\n\nand the crash happens because lf is single and sens.tra is sparse double. Converting lf to double fixes it but I'm not sure where the correct place for the fix is. I'll provide an example."
+      - +@isprivate: "0"
+        commentid: "12848"
+        comment_count: "1"
+        attachid: "594"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-02-17 15:34:00 +0100
+        thetext: |-
+          Created attachment 594
+          Data example
+
+          ft_compute_leadfield(pos, sens, vol, 'reducerank', 2, 'dipoleunit', 'nA*m', 'chanunit', chanunits);
+      - +@isprivate: "0"
+        commentid: "12849"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-02-17 15:36:32 +0100
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #1)
+          I also chased how sens.tra becomes sparse and that happens in ft_prepare_vol_sens
+      - +@isprivate: "0"
+        commentid: "12856"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 09:39:47 +0100
+        thetext: "(In reply to Vladimir Litvak from comment #2)\n\nI can confirm the bug.\n\nThere is a reason for tra being sparse (computational speed), but not a reason for something being single.\n\nI see that pos is single precision, and also this: \n\n>> vol.bnd\nans = \n    tri: [5120x3 double]\n    pnt: [2562x3 single]\n    nrm: [2562x3 double]"
+      - +@isprivate: "0"
+        commentid: "12857"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 09:40:27 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #3)\n\nfurthermore, sens also contains single precision fields\n\n>> sens\n\nsens = \n\n     balance: [1x1 struct]\n     chanori: [280x3 double]\n     chanpos: [280x3 single]\n    chantype: {280x1 cell}\n    chanunit: {280x1 cell}\n     coilori: [464x3 double]\n     coilpos: [464x3 single]\n    coordsys: 'neuromag'\n       label: {280x1 cell}\n    labelorg: {306x1 cell}\n         tra: [280x464 double]\n        type: 'neuromag306'\n        unit: 'm'"
+      - +@isprivate: "0"
+        commentid: "12858"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 10:01:47 +0100
+        thetext: |-
+          mac001> svn commit utilities/ forward/private/ test/test_bug2474.m
+          Sending        forward/private/ft_datatype_headmodel.m
+          Sending        forward/private/ft_datatype_sens.m
+          Adding         test/test_bug2474.m
+          Sending        utilities/ft_struct2double.m
+          Sending        utilities/ft_struct2single.m
+          Transmitting file data .....
+          Committed revision 9208.
+
+          I changed it such that ft_datatype_headmodel and ft_datatype_sens force the conversion of single precision into double precision. These two will be called in ft_prepare_vol_sens, which should hence happen prior to ft_compute_leadfield. It would be inefficient to do the conversion inside each call to ft_compute_leadfield.
+
+          The test script now works. Note that it requires version='upcoming' for the sens. How to document and communicate that to the users is still an open issue.
+      - +@isprivate: "0"
+        commentid: "12918"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:27 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "594"
+      date: 2014-02-17 15:34:00 +0100
+      delta_ts: 2014-02-17 15:34:00 +0100
+      desc: Data example
+      filename: bug.mat
+      type: text/plain
+      size: "375212"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

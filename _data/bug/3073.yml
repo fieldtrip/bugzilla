@@ -1,0 +1,132 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3073"
+    creation_ts: 2016-02-19 10:45:00 +0100
+    short_desc: correct computation of coh and plv fails with fourier input
+    delta_ts: 2016-05-05 20:29:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: daniel.haehnke
+      +@name: Daniel Hähnke
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16847"
+        comment_count: "0"
+        who:
+          +content: daniel.haehnke
+          +@name: Daniel Hähnke
+        bug_when: 2016-02-19 10:45:08 +0100
+        thetext: |-
+          Hello,
+
+          I downloaded the most recent version of fieldtrip for a new computer and wanted to compute PLV.
+          Here is the code that I used:
+
+          cfg.method = 'plv';
+          cfg.channelcmb = {'AD01' 'AD02'};
+          ft_connectivityanalysis(cfg, data)
+
+          data is a structure with a field 'fourierspctrm'.
+
+          The error I get is the following:
+
+          Matrix dimensions must agree.
+
+          Error in ft_connectivityanalysis (line 860)
+              if all(size(varout) == size(nrpt))
+
+
+          I'm absolutely sure that this is an issue of this version, since an older version that I'm using, 20151019, does not suffer from this bug.
+
+          Regards,
+
+          Daniel
+      - +@isprivate: "0"
+        commentid: "16849"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 11:00:03 +0100
+        thetext: I cannot reproduce it. Please add some data so that we can look into it.
+      - +@isprivate: "0"
+        commentid: "16862"
+        comment_count: "2"
+        who:
+          +content: daniel.haehnke
+          +@name: Daniel Hähnke
+        bug_when: 2016-02-19 12:27:01 +0100
+        thetext: I can't upload it here, since the file is too big. Here is a link to Google Drive https://drive.google.com/file/d/0B00Xa5d3xaB9SGN4TW42TU1lSkU/view?usp=sharing
+      - +@isprivate: "0"
+        commentid: "16864"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 13:23:46 +0100
+        thetext: |-
+          OK, I can reproduce it.
+          It seems to be caught in this error only with TF-data (I initially tried to reproduce on freq-only data). Also, it runs without error if you DON't specify a channelcmb in the cfg.
+          Yet, I stumbled onto something far more serious, and this relates to how the individual trials are handled. There's a major bug at the moment that now the coh/plv is computed per trial and averaged later on. This leads to all-ones when just a single taper per trial is used.
+      - +@isprivate: "0"
+        commentid: "16867"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 13:34:28 +0100
+        thetext: |-
+          Hi Daniel, my version of fieldtrip on github.com/schoffelen/fieldtrip should contain a fixed version (as well as the github.com/fieldtrip/fieldtrip.git repository).
+
+          Could you update your code and see whether it works again?
+
+          Sorry for the inconvenience
+      - +@isprivate: "0"
+        commentid: "16875"
+        comment_count: "5"
+        who:
+          +content: daniel.haehnke
+          +@name: Daniel Hähnke
+        bug_when: 2016-02-19 14:39:32 +0100
+        thetext: |-
+          That resolves it, thanks!
+
+          By the way, I also tested version 20160205, which has the bug, and 20160101, which doesn't. So the bug must have appeared somewhere in between these versions. You probably have a handy version tracker software that shows you when in appeared ;)
+      - +@isprivate: "0"
+        commentid: "16882"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-20 13:00:27 +0100
+        thetext: |-
+          (In reply to Daniel Hähnke from comment #5)
+
+          Well, I kind of know when I caused it, somewhere in January. Since it's fixed now, I do not want to spend too much extra time on it.

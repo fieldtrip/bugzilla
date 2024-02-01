@@ -1,0 +1,132 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2320"
+    creation_ts: 2013-10-14 13:13:00 +0200
+    short_desc: Interactivity and subplot
+    delta_ts: 2015-10-06 01:22:37 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: aya
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - n.lam
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11573"
+        comment_count: "0"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-14 13:13:32 +0200
+        thetext: |-
+          Hello, I do a subplot over several dataset like this :
+
+          for i=1:nb_data
+              subplot(subx,suby,i);
+              ft_singleplotTFR(cfg, data{i}.freqlog);
+          end
+
+          I have set cfg.interactive = 'yes'; but when I use the interactivity (ie make a rectangle and clicking it), the data used for doing the topoplot is always the last data plotted and not the data I have selected.
+      - +@isprivate: "0"
+        commentid: "11600"
+        comment_count: "1"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-10-17 18:28:24 +0200
+        thetext: I'm actually familiar with this problem.  If you use ft_singleplotTFR multiple times, each time with a different dataset. It seems that somehow the most recent (or in my case, if I remember correctly, the first) dataset chosen is kept in memory, and always plotted each time the function is called, unless a the clear command is used.
+      - +@isprivate: "0"
+        commentid: "11609"
+        comment_count: "2"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-21 09:41:55 +0200
+        thetext: |-
+          (In reply to comment #1)
+          In my case topoplot plot the last data of the figure. However the interactivity works fine when instead of doing subplots I plot each singleplot in a new figure.
+
+          for i=1:nb_data
+              figure;
+              ft_singleplotTFR(cfg, data{i}.freqlog);
+          end
+      - +@isprivate: "0"
+        commentid: "11633"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-10-23 10:52:45 +0200
+        thetext: "Hi both,\nWhile writing this, I've become increasingly sure this should be possible to implement, and not too difficult. Right now, it won't work, as 'data' for the interactivity is attached to the figure window (matlab's way of making gui's), and this is always the last one, it overwrites the rest. However, it should be possible to attach the data with a unique identifier, so the correct one is used. \n\nTo be a bit more certain that this could work, when you select e.g. time/freq points in the interactive bit, does it select the proper frequencies/timepoints (even though it used the incorrect data)?"
+      - +@isprivate: "0"
+        commentid: "11645"
+        comment_count: "4"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-23 14:57:46 +0200
+        thetext: "(In reply to comment #3)\nI've done some test and the results are weird.\n\nIf I change the time of the first subplot (the one I want to see the topoplot) and that I select times that aren't on the last TFR plotted, it throws me an error.\n\n\nIf I change the frequency of the first subplot (the one I want to see the topoplot) and that I select frequencies that aren't on the last TFR plotted, it still plots the topoplot of the last TFR plotted. It says : \n\nthe call to \"ft_singleplotTFR\" took 0 seconds\nthe call to \"ft_singleplotTFR\" took 0 seconds\nselected cfg.xlim = [0.222367 0.566460]\nselected cfg.ylim = [501.464642 566.334729]\n\nHowever, those frequencies doesn't exist. It's like it didn't care that I have changed the frequencies on the first subplot.\n\n\nI hope it'll help you."
+      - +@isprivate: "0"
+        commentid: "11671"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-10-24 16:38:35 +0200
+        thetext: Ah, thanks, that's what I was worried about. It selects based on the cursor position in the figure window, and not on the current axis. It could still be possible, but will require a more work. I'm gonna contemplate whether there is an handy solution.
+      - +@isprivate: "0"
+        commentid: "11675"
+        comment_count: "6"
+        who:
+          +content: aya
+          +@name: ""
+        bug_when: 2013-10-25 09:06:13 +0200
+        thetext: |-
+          (In reply to comment #5)
+          Great! thanks
+
+          What you said seems true for the frequency axis but not for the time axis since it threw me an error when I selected times which didn't exist for the last subplot. That's why I considered it was 'weird'.
+      - +@isprivate: "0"
+        commentid: "12738"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-01-29 15:21:38 +0100
+        thetext: |-
+          Sorry for my humongously late response, I was caught up in things. I've changed the interactive mode to work together with subplots. Everything should work properly now!
+
+          Could one of you check whether it's working properly in your cases?
+      - +@isprivate: "0"
+        commentid: "16175"
+        comment_count: "8"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-10-06 01:22:37 +0200
+        thetext: Closing old resolved bugs

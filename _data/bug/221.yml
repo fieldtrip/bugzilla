@@ -1,0 +1,70 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "221"
+    creation_ts: 2010-11-15 18:39:00 +0100
+    short_desc: ft_freqstatistics (montecarlo) should throw error if receiving input from ft_freqgrandaverage
+    delta_ts: 2010-11-17 09:45:05 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "434"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-11-15 18:39:46 +0100
+        thetext: "The same holds for ft_timelockstatistics I assume. In case on gives output from ft_freqgrandaverage to ft_freqstatistics with cfg.method = montecarlo, it results in the rather non-informative error in statistics_montecarlo:\n\n??? Error using ==> statistics_montecarlo at 217\ncould not determine the parametric critical value for clustering\n\nError in ==> statistics_wrapper at 285\n    [stat, cfg] = statmethod(cfg, dat, cfg.design, 'issource',issource);\n\nError in ==> ft_freqstatistics at 127\n  [stat, cfg] = statistics_wrapper(cfg, varargin{:}); \n\n\nA dimord-check somewhere along the line should throw an error at the appropriate function, and one that is more informative, e.g.: \"input from ft_freq/timelockgrandaverage not supported\"."
+      - +@isprivate: "0"
+        commentid: "435"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-11-15 20:25:20 +0100
+        thetext: The error is not non-informative, but results from the fact that 'the parametric critical value for clustering' could not be determined. Output of ft_freqgrandaverage can be swallowed (and should be) if cfg.keepindividual = 'yes'. This results in a dimord of 'subj_chan_freq(_time)', and works just fine (last time I checked. The error is most likely caused by the fact that the specific 'statfun' doesn't have a snippet of code included which can actually perform the parametric threshold computation. In general this holds for those statfuns which have not been contributed by Eric.
+      - +@isprivate: "0"
+        commentid: "436"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-11-16 09:43:57 +0100
+        thetext: Hmmm, in this case that wasn't true apparently. The input was two structures, each with a dimord of 'subj_etc..', using 'depsamplesT' as statfun. I will look into it further, as probably something else went wrong then.
+      - +@isprivate: "0"
+        commentid: "440"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-11-16 17:47:09 +0100
+        thetext: Ouch, after some debugging it appeared the end-user just accidentally switched the cfg.ivar and cfg.uvar variables, making the design matrix bogus. I will look into a better error message, see what is going one.

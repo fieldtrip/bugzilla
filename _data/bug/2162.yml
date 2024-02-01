@@ -1,0 +1,67 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2162"
+    creation_ts: 2013-05-13 09:41:00 +0200
+    short_desc: avoid eval and feval in main fieldtrip functions
+    delta_ts: 2014-03-06 15:38:22 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10436"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-13 09:41:17 +0200
+        thetext: "making a deployed/compiled fieldtrip version is much easier if there are no unknown dependencies. If \n\nfunname = sprintf('something_%s'. cfg.method) \nfeval(funname)\n\nis done. the compiler does not know what function dependencies (e.g. from private) to include. Therefore it is to be preferred not to use eval/feval. There are exceptions, where it does make more sense (e.g. trialfun, statfun).\n\nWhen I search for possible occurences of the problem, I see\n \n\nmac001> grep eval\\( *.m\nft_compile_mex.m:  eval(cmd);\n\nthis is OK use\n\nft_databrowser.m:  feval(funhandle, funcfg, seldata);\nft_databrowser.m:    eval([code{icomm} ';']);\n\nthis is OK use\n\nft_definetrial.m:    trl   = feval(cfg.trialfun, cfg);\nft_definetrial.m:    [trl, event] = feval(cfg.trialfun, cfg);\n\nthis is OK use\n\nft_freqanalysis.m:  [freq] = feval(sprintf('ft_freqanalysis_%s',lower(cfg.method)), cfg, data);\n\nTO BE FIXED,  freqanalysis it could be hard-coded, like in ft_megplanar. Looking at the code in more detail, it only pertains to the old implementtaions. Should those not be deleted completely? They have been deprecated for some time. -> TODO discuss with Roemer\n\n\nft_megplanar.m:  %planarmontage = eval([fun '(cfg, data.grad)']);\nft_megplanar.m:      planarmontage = eval([fun '(cfg, data.grad)']);\n\nThis is the perfect example\n\nft_prepare_layout.m:      eval(['img = ',tmp.name,';']);\n\nI suspect that this can be avoided.\n\nft_rejectartifact.m:    cfg = feval(sprintf('artifact_%s', cfg.artfctdef.type{type}), cfg, data);\nft_rejectartifact.m:    cfg = feval(sprintf('artifact_%s', cfg.artfctdef.type{type}), cfg);\n\nI think this is old-style calling syntax that should be reconsidered anyway. Similar to ft_freqanalysis.\n\nft_sensorrealign.m:      elec_realigned = ft_transform_sens(feval(cfg.warp, norm.m), elec_original);\n\nThis can probably be replaced by ft_warp_apply or so.\n\nft_sourcedescriptives.m:  if isfield(source, 'avg'   ) && isfield(source.avg   , 'pow'), source.avg .pow = feval(cfg.transform, source.avg .pow); end\nft_sourcedescriptives.m:  if isfield(source, 'avgA'  ) && isfield(source.avgA  , 'pow'), source.avgA.pow = feval(cfg.transform, source.avgA.pow); end\nft_sourcedescriptives.m:  if isfield(source, 'avgB'  ) && isfield(source.avgB  , 'pow'), source.avgB.pow = feval(cfg.transform, source.avgB.pow); end\nft_sourcedescriptives.m:  if isfield(source, 'trial' ) && isfield(source.trial , 'pow'), for i=1:length(source.trial ), source.trial (i).pow = feval(cfg.transform, source.trial (i).pow); end; end\nft_sourcedescriptives.m:  if isfield(source, 'trialA') && isfield(source.trialA, 'pow'), for i=1:length(source.trialA), source.trialA(i).pow = feval(cfg.transform, source.trialA(i).pow); end; end\nft_sourcedescriptives.m:  if isfield(source, 'trialB') && isfield(source.trialB, 'pow'), for i=1:length(source.trialB), source.trialB(i).pow = feval(cfg.transform, source.trialB(i).pow); end; end\nft_sourcedescriptives.m:  if isfield(source, 'avg'   ) && isfield(source.avg   , 'noise'), source.avg .noise = feval(cfg.transform, source.avg .noise); end\nft_sourcedescriptives.m:  if isfield(source, 'avgA'  ) && isfield(source.avgA  , 'noise'), source.avgA.noise = feval(cfg.transform, source.avgA.noise); end\nft_sourcedescriptives.m:  if isfield(source, 'avgB'  ) && isfield(source.avgB  , 'noise'), source.avgB.noise = feval(cfg.transform, source.avgB.noise); end\nft_sourcedescriptives.m:  if isfield(source, 'trial' ) && isfield(source.trial , 'noise'), for i=1:length(source.trial ), source.trial (i).noise = feval(cfg.transform, source.trial (i).noise); end; end\nft_sourcedescriptives.m:  if isfield(source, 'trialA') && isfield(source.trialA, 'noise'), for i=1:length(source.trialA), source.trialA(i).noise = feval(cfg.transform, source.trialA(i).noise); end; end\nft_sourcedescriptives.m:  if isfield(source, 'trialB') && isfield(source.trialB, 'noise'), for i=1:length(source.trialB), source.trialB(i).noise = feval(cfg.transform, source.trialB(i).noise); end; end\n\nthis is not to be touched.\n\nft_wizard.m:      assignin('base', wizard_var(wizard_i).name, eval(wizard_var(wizard_i).name));\nft_wizard.m:      varargout{1}.(wizard_var(wizard_i).name) = eval(wizard_var(wizard_i).name);\n\nthis is not to be touched."
+      - +@isprivate: "0"
+        commentid: "10437"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-13 09:43:08 +0200
+        thetext: "(In reply to comment #0)\n\nso in short \n\n1) ft_prepare_layout and ft_sensorrealign should be checked in more detail.\n\n2) ft_freqanalysis and ft_rejectartifact seem to use it in old backward-compatibility sections of the code. There we have to discuss whether those sections can be removed altogether."
+      - +@isprivate: "0"
+        commentid: "12719"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-29 14:27:53 +0100
+        thetext: |-
+          removed the eval statement in ft_prepare_layout.
+
+          ft_sensorrealign still uses an feval, to feval a particular cfg.warp. don't know well how to avoid it there.
+
+          I would argue for now that it is probably unlikely that this function will be extensively used in deployed mode. If this will become a problem in the future, we can address it then.

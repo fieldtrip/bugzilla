@@ -1,0 +1,159 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2158"
+    creation_ts: 2013-05-07 15:11:00 +0200
+    short_desc: strange behaviour of ft_math
+    delta_ts: 2014-01-29 13:28:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10407"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2013-05-07 15:11:25 +0200
+        thetext: |-
+          Hi guys,
+
+          I think something is wrong with ft_math. It does things that I'm sure are quite wrong with elementary operations.
+
+          Have a look at the toy example below...
+          (running DCCN version of ft from /home/common from a torque interactive session)
+
+          @@@BEGIN@@@
+
+          % make a couple of fake ft structures
+
+          test1=[];
+          test1.label={'chan1';'chan2';'chan3'};
+          test1.freq=1:4;
+          test1.time=1:2;
+          test1.dimord='chan_freq_time';
+          test1.powspctrm=ones(length(test1.label),length(test1.freq),length(test1.time));
+          test1.cfg.randomfieldname='something has to go here otherwise the provenance fails';
+
+          test2=test1;
+          test2.powspctrm=3*test1.powspctrm;
+
+          %powspctrm of test1 is all 1s, test2 is all 3s
+          test1.powspctrm
+          test2.powspctrm
+
+          %do some math on them
+          cfg=[];
+          cfg.operation='add';
+          cfg.parameter='powspctrm';
+
+          test3=ft_math(cfg,test2,test1);
+
+          %this should repeatedly add 1 and 3, producing 4s
+          test3.powspctrm %I get 6s
+
+          cfg.operation='subtract';
+
+          test4=ft_math(cfg,test2,test1);
+
+          %this should subtract 1 from 3, producing 2s
+          test4.powspctrm %I get 0s
+
+          cfg.operation='add';
+
+          test5=ft_math(cfg,test1,test2);
+          %if this doesn't produce 4s, at least maybe it'll produce the same output as test3
+          test5.powspctrm %nope!
+
+          @@@END@@@
+
+          What's going on here? Am I using the function completely wrongly?
+      - +@isprivate: "0"
+        commentid: "10408"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-07 15:27:11 +0200
+        thetext: confirmed here, definitely a bug
+      - +@isprivate: "0"
+        commentid: "10409"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-07 15:35:31 +0200
+        thetext: |-
+          line 48 read:
+          varargin{i} = ft_checkdata(varargin{1}, 'datatype', type);
+
+          where of course the varargin{1} should have been varargin{i}.
+
+          Fixed now in rev 8108, should be available in the /home/common/ release in a few minutes.
+      - +@isprivate: "0"
+        commentid: "10411"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-05-07 15:59:04 +0200
+        thetext: |-
+          Good spot Eelke! beat me to it.  #
+          But I also found the bug in the 'add' and 'multiply' sections, that also should loop over 'i' but instead use varargin{2}
+
+          I'll fix that....
+      - +@isprivate: "0"
+        commentid: "10412"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-05-07 16:10:08 +0200
+        thetext: |-
+          fixed, svn r8109.
+
+          I also noticed the 'nth' subfunction does not work for 21, 22 , 23... but then can't just do rem(n,10) as it won't work for 11, 12, 13...  Surely this problem has been solved before elsehwere?
+      - +@isprivate: "0"
+        commentid: "10415"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-05-07 16:19:33 +0200
+        thetext: '''nth'' subfunction enhanced now. svn 8110.'
+      - +@isprivate: "0"
+        commentid: "12667"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:38 +0100
+        thetext: changing lots of bugs from resolved to closed.

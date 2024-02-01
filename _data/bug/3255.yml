@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3255"
+    creation_ts: 2017-02-17 00:50:00 +0100
+    short_desc: align_ctf2spm does not support spm12
+    delta_ts: 2019-08-10 12:42:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3228
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "3228"
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - brungio
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18412"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-17 00:50:00 +0100
+        thetext: |-
+          Because there is no template in the mini spm12 version. I have copied over the spm8 template. Also added another spm function (spm_check_version.m), and adjusted align_ctf2_spm.m to accomodate the spm8 template. So it runs now. However, ideally we use the spm12 template instead of the spm8 template.
+
+          In order to use an spm12 template, we need to know which file it is going to be. SPM12 has a folder called 'canonical'. Potential candidates include the files of single_subj_T1.nii, avg152T1.nii, and avg305T1.nii. There is also the folder 'toolbox', with subfolder 'OldNorm' including the file of T1.nii. Does anyone know which file we need?
+      - +@isprivate: "0"
+        commentid: "18413"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-17 09:05:56 +0100
+        thetext: "Agreed: we have to find out which spm12 template to use. \n\nsingle_subj_T1 is definitely not it. \n\ncanonical/avg152 is reasonably crisp, avg305 is more blurry, but OldNorm/T1 is even more blurry. I suspect the last one to have been convolved with a smoothing kernel. The T1 also covers the top of the head better.\n\n... the spm12 OldNorm/T1 is the same as the spm8/templates/T1. \n\nI asked a room mate (spm8 user). Together we think that in spm12 the wish is to move to Dartel rather than the old (but still supported) normalization method. I think Bruno (CC) would know. \n\nHow about including it (and only that file) as fieldtrip/external/spm12/toolbox/OldNorm/T1.nii and point to that location in ft_volumenormalise line 137."
+      - +@isprivate: "0"
+        commentid: "18414"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-17 09:07:02 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          i.e. my idea is that our mini-spm12 should retain the exact structure of spm12, but simply comprise a subset.
+      - +@isprivate: "0"
+        commentid: "18420"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-17 17:44:33 +0100
+        thetext: Agreed, and thanks for the swift response. Will do as suggested and adjust my PR.
+      - +@isprivate: "0"
+        commentid: "18421"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-18 03:20:38 +0100
+        thetext: |-
+          References to the spm12 template have been updated/added, in align_ctf2spm and ft_volumenormalise.
+
+          However, this does not imply that both functions now fully support spm12. Namely, both ft_volumenormalise and align_ctf2spm (with opt=2) call 'spm_normalise', a function that is not present in spm12. Similarly, 'spm_affreg' is not present but called by align_ctf2spm with opt=1. This issue is related to the DARTEL implementation, which is currently under construction. As soon DARTEL (spm12) is implemented in ft_volumenormalise, align_ctf2spm needs to be updated accordingly.
+      - +@isprivate: "0"
+        commentid: "18422"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-20 09:09:59 +0100
+        thetext: I have merged https://github.com/fieldtrip/fieldtrip/pull/336 into the master. The correct template is now selected by default, and an informative error is given that spm12 is not yet supported.
+      - +@isprivate: "0"
+        commentid: "18423"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-02-20 20:14:28 +0100
+        thetext: ..
+      - +@isprivate: "0"
+        commentid: "20322"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:52 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20522"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:42:07 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

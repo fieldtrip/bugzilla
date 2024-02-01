@@ -1,0 +1,210 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2625"
+    creation_ts: 2014-06-27 13:57:00 +0200
+    short_desc: ft_freqanalysis seems to ignore cfg.channel
+    delta_ts: 2014-08-12 13:40:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2053
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2051
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2596
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2054
+      - http://bugzilla/show_bug.cgi?id=2646
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2668
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2673
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - dlozanosoldevilla
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13961"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-06-27 13:57:00 +0200
+        thetext: |-
+          cfg		= [];
+          cfg.keeptrials	= 'yes';
+          cfg.output	= 'pow';
+          cfg.channel	= 'LFP10';
+          ...
+          out = ft_freqanalysis(cfg, datain);
+
+          I have 4 channels data in datain, and when I select 1 channel using cfg.channel and pass that to ft_freqanalysis, what gets returned is 4 channels of data (out.label is a 4 cell string, out.powspctrm has 'rpt_chan_freq_time' with chan = 4). This has changed recently, before out was the selected channel's data only....
+
+          This is using the latest (as of today) master branch via github...
+      - +@isprivate: "0"
+        commentid: "13962"
+        comment_count: "1"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-06-27 14:22:51 +0200
+        thetext: A little bit of digging shows ft_freqanalysis@228 rollback_provenance is where cfg.channel gets reset from a single channel back to my 4 channels...
+      - +@isprivate: "0"
+        commentid: "13964"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-27 14:49:50 +0200
+        thetext: "(In reply to Ian Andolina from comment #1)\n\nthanks for the report and pointing to the possible location where it goes wrong. I do currently not understand why there is not also \n\ntmpcfg.channel = cfg.channel;\n\nprior to ft_selectdata, i.e. have ft_selectdata also handle channel selection.\n\n\nWe will make a small test script to figure it out."
+      - +@isprivate: "0"
+        commentid: "13980"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-01 14:28:29 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          The problem is that rollback_provenance fills the input cfg with the data.cfg configuration options. If data.cfg.channel = 'all' and cfg.channel=1, then line 76 will update the cfg.channel='all
+
+          AFAIK rollback_provenance should track rather than change cfg options right?
+      - +@isprivate: "0"
+        commentid: "13987"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-02 13:39:53 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #3)
+          all data selections should be done at once using ft_selectdata and calling rollback_provenance. Multiple ft_selecdata calls wih rollback_provenance updates cfgs
+      - +@isprivate: "0"
+        commentid: "13992"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-02 15:50:59 +0200
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #4)\n\nIt's important to document other potential cases on where the call of rollback_provenance could be more complicated to resolve (at least elegantly). Robert pointed us an example in ft_sourceinterpolate:\n\ntmpcfg = keepfields(cfg, {'downsample'});\n    orgcfg.parameter = cfg.parameter;\n    tmpcfg.parameter = 'anatomy';\n    anatomical = ft_volumedownsample(tmpcfg, anatomical);\n    [cfg, anatomical] = rollback_provenance(cfg, anatomical);\n    cfg.parameter = orgcfg.parameter; % restore the original parameter, it should not be anatomy \n\n\nHere the original cfg parameter should be stored and put it back afterwards. I'll check all rollback_provenance cases to look for exceptions:\n\n\ngrep rollback_provenance *.m | grep -v ':%' \n\nft_freqanalysis.m:[cfg, data] = rollback_provenance(cfg, data);\nft_math.m:[cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\nft_prepare_mesh.m:  [cfg, mri] = rollback_provenance(cfg, mri);\nft_sourcegrandaverage.m:[cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\nft_sourceinterpolate.m:    [cfg, anatomical] = rollback_provenance(cfg, anatomical);\nft_sourceplot.m:  [cfg, data] = rollback_provenance(cfg, data);\nft_timelockanalysis.m:  [cfg, data] = rollback_provenance(cfg, data);\nft_volumenormalise.m:  [cfg, mri] = rollback_provenance(cfg, mri);\nft_volumereslice.m:  [cfg, mri] = rollback_provenance(cfg, mri);\nft_volumesegment.m:  [cfg, mri] = rollback_provenance(cfg, mri);\nft_volumewrite.m:  [cfg, volume] = rollback_provenance(cfg, volume);"
+      - +@isprivate: "0"
+        commentid: "13993"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-02 15:55:55 +0200
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #5)\n\nMore explicit with: \n\nbash-4.1$ grep -B 1 rollback_provenance *.m | grep -v ':%' \n\nft_freqanalysis.m-% restore the provenance information\nft_freqanalysis.m:[cfg, data] = rollback_provenance(cfg, data);\n--\nft_math.m-% restore the provenance information\nft_math.m:[cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\n--\nft_prepare_mesh.m-  mri = ft_volumedownsample(tmpcfg, mri);\nft_prepare_mesh.m:  [cfg, mri] = rollback_provenance(cfg, mri);\n--\nft_sourcegrandaverage.m-[varargin{:}] = ft_selectdata(tmpcfg, varargin{:});\nft_sourcegrandaverage.m:[cfg, varargin{:}] = rollback_provenance(cfg, varargin{:});\n--\nft_sourceinterpolate.m-    anatomical = ft_volumedownsample(tmpcfg, anatomical);\nft_sourceinterpolate.m:    [cfg, anatomical] = rollback_provenance(cfg, anatomical);\n--\nft_sourceplot.m-  data = ft_volumedownsample(tmpcfg, data);\nft_sourceplot.m:  [cfg, data] = rollback_provenance(cfg, data);\n--\nft_timelockanalysis.m-  data = ft_selectdata(tmpcfg, data);\nft_timelockanalysis.m:  [cfg, data] = rollback_provenance(cfg, data);\n--\nft_volumenormalise.m-  mri = ft_volumedownsample(tmpcfg, mri);\nft_volumenormalise.m:  [cfg, mri] = rollback_provenance(cfg, mri);\n--\nft_volumereslice.m-  mri = ft_volumedownsample(tmpcfg, mri);\nft_volumereslice.m:  [cfg, mri] = rollback_provenance(cfg, mri);\n--\nft_volumesegment.m-  mri = ft_volumedownsample(tmpcfg, mri);\nft_volumesegment.m:  [cfg, mri] = rollback_provenance(cfg, mri);\n--\nft_volumewrite.m-  volume = ft_volumedownsample(tmpcfg, volume);\nft_volumewrite.m:  [cfg, volume] = rollback_provenance(cfg, volume);"
+      - +@isprivate: "0"
+        commentid: "14009"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-03 17:36:34 +0200
+        thetext: "when discussing this with Diego, I searched and found the potentially affected files using this linux code:\n\nmac011> grep -l ft_channelselection `grep -l ft_selectdata.*cfg *.m`\n\nft_channelrepair.m\nft_componentanalysis.m\nft_connectivityanalysis.m\nft_connectivityplot.m\nft_denoise_pca.m\nft_denoise_synthetic.m\nft_freqanalysis.m\nft_freqdescriptives.m\nft_freqstatistics.m\nft_megplanar.m\nft_megrealign.m\nft_multiplotER.m\nft_preprocessing.m\nft_rejectvisual.m\nft_removetemplateartifact.m\nft_singleplotER.m\nft_timelockanalysis.m \n\nNote that not all are using rollback_provenance yet. E.g. ft_channelrepair.m uses selectdata the old way.\n\nThese are the ones that also call rollback_provenance:\n\nmac011> grep -l ft_channelselection `grep -l ft_selectdata.*cfg *.m` > out\nmac011> grep -l rollback_provenance `cat out`\n\nft_freqanalysis.m\nft_freqstatistics.m -> this is locally modified on my computer\nft_timelockanalysis.m"
+      - +@isprivate: "0"
+        commentid: "14010"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-03 17:37:02 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          note that the introduction of rollback_provenance in ft_timelockanalysis was done here https://code.google.com/p/fieldtrip/source/detail?r=9617
+      - +@isprivate: "0"
+        commentid: "14013"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-03 18:11:33 +0200
+        thetext: "mac011> svn commit ft_timelockanalysis.m \nSending        ft_timelockanalysis.m\nTransmitting file data .\nCommitted revision 9691."
+      - +@isprivate: "0"
+        commentid: "14097"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-09 17:45:19 +0200
+        thetext: |-
+          I just solved the still open issue for ft_freqanalysis. I noticed that it was still failing because of test_bug1409 giving an error due to the mismatch between channels in the lead field (after ft_prepare_leadfield->151) and channels in the freq data (after ft_freqanalysis->183, including refs).
+
+          mac011> svn commit ft_freqanalysis.m utilities/
+          Sending        ft_freqanalysis.m
+          Adding         utilities/copyfields.m
+          Sending        utilities/keepfields.m
+          Sending        utilities/removefields.m
+          Transmitting file data ....
+          Committed revision 9717.
+      - +@isprivate: "0"
+        commentid: "14146"
+        comment_count: "11"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-07-16 12:20:44 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+          rollback_provenance updated as in ft_freqanalysis
+          Sending        ft_timelockanalysis.m
+          Transmitting file data .
+          Committed revision 9735.
+      - +@isprivate: "0"
+        commentid: "14222"
+        comment_count: "12"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-08-04 17:04:51 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #11)
+
+          Some functions updated:
+
+          Sending        ft_channelrepair.m
+          Sending        ft_componentanalysis.m
+          Sending        ft_connectivityplot.m
+          Sending        ft_megplanar.m
+          Sending        ft_rejectvisual.m
+          Transmitting file data .....
+          Committed revision 9762.
+
+          To be discussed (not implemented yet because I'm not sure):
+
+          ft_connectivityanalysis.m - channel combinations/partial channels + trl selection in one shoot
+          ft_denoise_pca.m          - old style code + 2 types of data selection: referencedata + data
+          ft_denoise_synthetic.m    - old style code + 2 types of data selection: referencedata + data
+          ft_freqdescriptives.m     - jackknife selection with selectdata_old but not in new
+          ft_freqstatistics.m       - channel intersection yes/no + trial selection
+          ft_megrealign.m           - 2 type of data selection: data + rest
+          ft_multiplotER.m          - a lot to consider
+          ft_preprocessing.m        - old style code: channel/trial indexing difficult to reconcile
+          ft_removetemplateartifact.m - 2 type of data selection: data + template
+          ft_singleplotER.m         - a lot to consider

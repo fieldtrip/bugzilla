@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2755"
+    creation_ts: 2014-11-05 23:35:00 +0100
+    short_desc: ft_convert_units ignores grid.resolution
+    delta_ts: 2015-02-11 10:40:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1983
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marc.lalancette
+      +@name: Marc Lalancette
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - marc.lalancette
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14766"
+        comment_count: "0"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-05 23:35:34 +0100
+        thetext: |-
+          ft_prepare_leadfield calls prepare_headmodel before ft_prepare_sourcemodel.  prepare_headmodel may call ft_convert_units to convert cfg.grid units, for example when using cfg.siunits = 'yes', but the grid may not have been "constructed" yet, for example:
+          cfg.grid.resolution = 1;
+          cfg.grid.unit = 'cm';
+
+          Because ft_convert_units ignores the resolution field, the grid will not be as the user intended, e.g. with siunits = 'yes', it becomes a grid with 1 m resolution.
+
+          By the way, I just found and started using siunits='yes' now, to minimize the number of explicit conversions in my code.  I think it should be mentioned in the documentation of ft_prepare/compute_headmodel.  Without this option, lead field units and thus projected power and moment units are "unusual", as I found out a little while ago and mentioned in a post: http://mailman.science.ru.nl/pipermail/fieldtrip/2014-September/008438.html
+
+          I also noted that while ft_compute_leadfield has options to specify units (chanunit, dipoleunit), ft_prepare_leadfield does not provide access to them, so I still have to "manually" convert to get say fT/Am.  I'm guessing this is still on the to-do list related to http://bugzilla.fcdonders.nl/show_bug.cgi?id=686
+      - +@isprivate: "0"
+        commentid: "14767"
+        comment_count: "1"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-06 00:11:39 +0100
+        thetext: |-
+          Fix:
+
+          ft_convert_units line 191, insert:
+          if isfield(obj, 'resolution'), obj.resolution = scale * obj.resolution; end
+          % x,y,zgrid can also be 'auto'
+          if isfield(obj, 'xgrid') && ~ischar(obj.xgrid),      obj.xgrid = scale * obj.xgrid; end
+          if isfield(obj, 'ygrid') && ~ischar(obj.ygrid),      obj.ygrid = scale * obj.ygrid; end
+          if isfield(obj, 'zgrid') && ~ischar(obj.zgrid),      obj.zgrid = scale * obj.zgrid; end
+
+
+          Not sure if there are other potential grid fields that should also be converted.
+      - +@isprivate: "0"
+        commentid: "14768"
+        comment_count: "2"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-06 00:13:30 +0100
+        thetext: |-
+          (In reply to Marc Lalancette from comment #1)
+          Actually, dipole grid is a bit lower, so insert at line 216.
+      - +@isprivate: "0"
+        commentid: "14774"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-08 12:33:14 +0100
+        thetext: "(In reply to Marc Lalancette from comment #2)\n\nthanks, done.\n\nmac011> svn commit forward/ft_convert_units.m \nSending        forward/ft_convert_units.m\nTransmitting file data .\nCommitted revision 9941."
+      - +@isprivate: "0"
+        commentid: "15244"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:39 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

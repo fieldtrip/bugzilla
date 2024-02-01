@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2575"
+    creation_ts: 2014-05-12 20:37:00 +0200
+    short_desc: Setting channel types based on labels
+    delta_ts: 2014-07-15 17:25:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13561"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-12 20:37:52 +0200
+        thetext: "I noticed that ft_chantype only works for 1020 EEG labels (not sure if it's always been the case, I don't think so because in SPM automatic channel type setting also worked for Biosemi). Looking around line 544 in ft_chantype I see that it checks 1020 labels 3 times which I think is redundant, it's enough to only compare with 1005. But instead I suggest to have:\n\ntype(match_str(label, ft_senslabel(ft_senstype(input)))) = {'eeg'};  \n\nThis will work for any EEG label set. I tried it and it seems to work well. Do you see any problems with it?\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "13562"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-13 09:40:48 +0200
+        thetext: "I suspect that it works for Biosemi because of lines 86 and further:\n\nif isfield(input, 'chantype')\n  % start with the provided channel types\n  type = input.chantype(:);\nelse\n  % start with unknown type for all channels\n  type = repmat({'unknown'}, numchan, 1);\nend\n\nThis only has effect if the input is a header or grad structure, not if it only channel labels. \n\nThe 1005 system indeed includes all 1010 and 1020 labels, also the M, A and T channels, so the 3 calls could be changed by a single one.\n\nI am not sure whether your suggestion will always work. ft_senstype is not so robust, due to unusual combinations of channel labels, e.g. a mix of system specific labels (like EGI or Biosemi) with a subset of 1020 labels. \n\nHow about changing line 544 it into\n\nelseif ft_senstype(input, 'eeg') && islabel\n  % use an external helper function to define the list with EEG channel names\n  type(match_str(label, ft_senslabel('eeg1005'))) = {'eeg'};          % this includes all channels from the 1010 and 1020 arrangement\n  type(match_str(label, ft_senslabel(ft_senstype(input)))) = {'eeg'}; % this will work for biosemi, egi and other detected channel arrangements"
+      - +@isprivate: "0"
+        commentid: "13578"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-13 13:17:21 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          I'm not sure it'll work so well because it'll detect any channel whose name matches one of the 1005 labels in any system. I suspect you can have names like C3 or P3 also in something which is not 1020. In most cases it'll be benign but who knows...
+      - +@isprivate: "0"
+        commentid: "13579"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-13 13:44:10 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #2)
+
+          Agreed. But it would only be for systems with ft_senstype=eeg, and for those I would assume that almost all channels have chantype=eeg anyway. Furthermore, this has been the behaviour for some time now and would not change. The only change is that non-1020 channels can also be marked as chantype=eeg.
+      - +@isprivate: "0"
+        commentid: "13654"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-15 08:38:41 +0200
+        thetext: |-
+          mac011> svn commit fileio/ft_chantype.m
+          Sending        fileio/ft_chantype.m
+          Transmitting file data .
+          Committed revision 9534.
+
+          See https://code.google.com/p/fieldtrip/source/detail?r=9534 for details
+
+          I hope you agree with the solution.
+      - +@isprivate: "0"
+        commentid: "13655"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-15 08:38:55 +0200
+        thetext: see previous comment
+      - +@isprivate: "0"
+        commentid: "14136"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:12 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

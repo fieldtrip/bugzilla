@@ -1,0 +1,190 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2511"
+    creation_ts: 2014-03-25 12:44:00 +0100
+    short_desc: ft_read_headshape error in line 888 since last change to function
+    delta_ts: 2014-06-30 14:06:04 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: vitoria.piai
+      +@name: Vitoria Piai
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13145"
+        comment_count: "0"
+        who:
+          +content: vitoria.piai
+          +@name: Vitoria Piai
+        bug_when: 2014-03-25 12:44:34 +0100
+        thetext: When using ft_sourceplot for my beamformer results, I'm getting an error in line 888 of ft_read_headshape ("unknown" file format is unknown). The function from FT version 2013/12/31 plots the results without any errors, but the current mentat version gives the error (last change to ft_read_headshape is from February 27th).
+      - +@isprivate: "0"
+        commentid: "13150"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 14:13:53 +0100
+        thetext: |-
+          Hi Vitoria
+
+          see http://code.google.com/p/fieldtrip/source/list?path=/trunk/fileio/ft_read_headshape.m&start=9251 for change details.
+
+          the change from 27 Feb only pertains to adding a line
+          shape = ft_struct2double(shape);
+          to the bottom, i.e. not to line 888.
+
+          also the change before that does not explain it.
+
+          Can you provide a bit more details, i.e. which file are you trying to read (or which file is ft_sourceplot trying to read)?
+      - +@isprivate: "0"
+        commentid: "13152"
+        comment_count: "2"
+        who:
+          +content: vitoria.piai
+          +@name: Vitoria Piai
+        bug_when: 2014-03-25 14:49:41 +0100
+        thetext: "Hi Robert, \n\nI'm copying a test file + data to common/temporary. You should be able to find out the details needed in there. If not, please let me know.\n\nGroetjes, Vitória"
+      - +@isprivate: "0"
+        commentid: "13154"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 15:19:42 +0100
+        thetext: "for reference, I have copied the data file to /home/common/matlab/fieldtrip/data/test/bug2511.mat and the script to test_bug2511.m\n\n\nroboos@mentat001> svn commit test_bug2511.m \nAdding         test_bug2511.m\nTransmitting file data .\nCommitted revision 9311."
+      - +@isprivate: "0"
+        commentid: "13155"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 15:32:40 +0100
+        thetext: "the full data is not needed to reproduce, this is enough:\n\n>> ft_read_headshape('surface_l4_both.mat')\nError using ft_read_headshape (line 888)\nunknown fileformat \"unknown\" for head shape information\n \n>> ft_filetype('surface_l4_both.mat')\nWarning: could not determine filetype of surface_l4_both.mat \n> In fileio/private/warning_once at 158\n  In ft_filetype at 1189 \n\nans =\n\nunknown\n\n>> load('surface_l4_both.mat')\nError using load\nUnable to read file surface_l4_both.mat: No such file or directory.\n\nit turns out that in http://code.google.com/p/fieldtrip/source/detail?r=9257 the file was removed. I.e. the file does not exist, and hence ft_read_headshape cannot read it. The error message is a bit cryptic, though. I have improved the warning/error message:\n\nmac001> svn commit ft_filetype.m \nSending        ft_filetype.m\nTransmitting file data .\nCommitted revision 9312.\n\nThe remaining question is: why was the file removed from fieldtrip?"
+      - +@isprivate: "0"
+        commentid: "13156"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 15:34:35 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          > The remaining question is: why was the file removed from fieldtrip?
+
+          The page http://fieldtrip.fcdonders.nl/template/anatomy suggests that other files are to be used for this type of visualization.
+      - +@isprivate: "0"
+        commentid: "13241"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-06 13:40:50 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          The following documentation should still be updated
+
+          http://fieldtrip.fcdonders.nl/tutorial/beamformer
+          http://fieldtrip.fcdonders.nl/tutorial/beamformingextended
+
+          and the following test scripts
+
+          roboos@mentat001> grep -l surface_l4 *.m
+          test_bug2511.m
+          test_tutorial_beamformer20120321.m
+          test_tutorial_beamformer20131122.m
+          test_tutorial_beamformer.m
+          test_tutorial_beamforming_extended.m
+
+          @JM, you changed the mat files, could you also do these?
+      - +@isprivate: "0"
+        commentid: "13307"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-11 19:58:41 +0200
+        thetext: |-
+          I completed the test script, replacing the surface file with the correct one. It runs fine and the result looks nice.
+
+          Another fix needed in the test script was that it was not reading the actual data from the mat file. Now it does.
+
+          roboos@mentat001> svn commit test_bug2511.m
+          Sending        test_bug2511.m
+          Transmitting file data .
+          Committed revision 9400.
+      - +@isprivate: "0"
+        commentid: "13331"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-15 13:48:20 +0200
+        thetext: updated test functions and wiki, and changed occurrences of _l4_ into _white_
+      - +@isprivate: "0"
+        commentid: "13641"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:56 +0200
+        thetext: closed several of my bugs that have been resolved
+      - +@isprivate: "0"
+        commentid: "13969"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-30 09:41:53 +0200
+        thetext: "For reference: Jan-Mathijs pruned the variables in the file to a more manageable size. Subsequently, I copied the pruned version to home/common, keeping the original with a different name. The original is interesting because of the large amount of provenance details.  \n\nroboos@mentat003> mv bug2511.mat bug2511_orig.mat\nroboos@mentat003> mv bug2511_02.mat bug2511.mat"
+      - +@isprivate: "0"
+        commentid: "13971"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-30 09:44:25 +0200
+        thetext: OK, I don't think disk space is an issue, but we could still consider only to keep one of the 3 variables in the file. Each of the variables seems equally big and contains the same amount of (15) previous cfg's. I suspect the only way in which they differ is the numeric data (and of course by consequence some of the cfg details).
+      - +@isprivate: "0"
+        commentid: "13974"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-30 14:06:04 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "bugfix - fixed bug that was introduced by recent change to ft_sourceinterpolate/ft_sourceplot, cause test_bug2511 to break" test/test_bug2511.m ft_sourceinterpolate.m ft_sourceplot.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourceplot.m
+          Sending        test/test_bug2511.m
+          Transmitting file data ...
+          Committed revision 9680.

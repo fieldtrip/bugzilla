@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2472"
+    creation_ts: 2014-02-12 12:52:00 +0100
+    short_desc: void* does not work on VC2010
+    delta_ts: 2014-02-24 10:56:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12823"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-12 12:52:33 +0100
+        thetext: |-
+          On 12 Feb 2014, at 12:07, Arian van Dorsten wrote:
+
+           Hierbij een 2-tal wijzigingen om e.e.a. onder VS2010 te laten compileren:
+
+          file: endianutil.c
+          error: 'void *' : unknown size
+
+          ln 155:
+          //            ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, (void *)ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */
+                     ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */
+
+          ln 232:
+
+          //            ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, (void *)ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */
+                     ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */
+      - +@isprivate: "0"
+        commentid: "12824"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-12 12:52:55 +0100
+        thetext: "Bedankt voor de suggestie. Die (void *) staat er vast niet voor niets, dus ik probeer het even te begrijpen. Hieronder mijn gedachtengang...\n\nIk zie de volgende \n\nmac001> grep ft_swap_data *.c\nendianutil.c:void ft_swap_data(UINT32_T numel, UINT32_T datatype, void *data) {\nendianutil.c:           ft_swap_data(edef->type_numel, edef->type_type, (char *) buf + offset);\nendianutil.c:           ft_swap_data(edef->value_numel, edef->value_type, (char *) buf + offset + wst*edef->type_numel);\nendianutil.c:                   ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, (void *)ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */\nendianutil.c:           ft_swap_data(edef->type_numel, edef->type_type, (char *) buf + offset);\nendianutil.c:           ft_swap_data(edef->value_numel, edef->value_type, (char *) buf + offset + wst*edef->type_numel);\nendianutil.c:                   ft_swap_data(ddef->nchans*ddef->nsamples, ddef->data_type, (void *)ddef + sizeof(datadef_t)); /* ddef+1 points to first data byte */\n\ndus momenteel lijkt de (void *) niet consistent gebruikt te worden, en is er soms een (char *) in gebruik.\n\nUit http://code.google.com/p/fieldtrip/source/list?path=/trunk/realtime/src/buffer/src/endianutil.c&start=8285\nmaak ik op dat het in\nhttp://code.google.com/p/fieldtrip/source/browse/trunk/realtime/src/buffer/src/endianutil.c?spec=svn8285&r=8285\ngebeurt is. Dat is een commit van mij. Er staat weinig commentaar bij en het combineert verschillende (niet gerelateerde) problemen in een commit als \"merged changes related to bug 1114, 2209,\n1961 and 1792 into the svn repository\". Tja, ik ben niet altijd even netjes in het toevoegen van commentaar :-(\n\nMaar http://bugzilla.fcdonders.nl/show_bug.cgi?id=1961 lijkt het meest waarschijnlijk hiermee te maken te hebben. Het betreft een stukje code (streaming naar/van arduino) wat een tijd low-priority op een hoekje van mijn laptop heeft gestaan. Weinig details dus. Ik herinner me nog wel dat op de arduino er iets aan de hand was met de endianness, volgens mij was dat http://bugzilla.fcdonders.nl/show_bug.cgi?id=1970 waar ik verder geen tijd aan wou besteden. \n\nIk denk dat onder sommige compilers (misschien die voor de arduino, wat een aangepaste gcc is)  de expressie ddef+sizeof(datadef_t) niet mag, omdat het verschillende types zijn. Ik denk dat de typecast (void *)ddef daarmee te maken heeft, omdat je bij een (void*) wel een getal mag optellen, mits de void* bestaat. Op VS2010 lijkt void* niet te bestaan. Als ik in \nhttp://code.google.com/p/fieldtrip/source/diff?spec=svn8285&r=8285&format=side&path=/trunk/realtime/src/buffer/src/endianutil.c&old_path=/trunk/realtime/src/buffer/src/endianutil.c&old=7123\nkijk, zie ik dat een paar wijzigingen zijn gedaan waarin de (void*) is toegevoegd, terwijl op andere plekken in dezelfde file toen al (char*) werd gebruikt om hetzelfde probleem op te lossen.\n\nBen je het er mee eens dat de juiste oplossing zou zijn om void* te vervangen in char*?"
+      - +@isprivate: "0"
+        commentid: "12825"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-12 12:53:15 +0100
+        thetext: |-
+          On 12 Feb 2014, at 12:41, Arian van Dorsten wrote:
+
+          Ja (char*) is een prima oplossing lijkt me.
+      - +@isprivate: "0"
+        commentid: "12826"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-12 12:55:44 +0100
+        thetext: "mac001> svn commit endianutil.c \nSending        endianutil.c\nTransmitting file data .\nCommitted revision 9196.\n\nsee http://code.google.com/p/fieldtrip/source/detail?r=9196"
+      - +@isprivate: "0"
+        commentid: "12937"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:34 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

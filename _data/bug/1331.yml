@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1331"
+    creation_ts: 2012-02-15 08:45:00 +0100
+    short_desc: more informative job id
+    delta_ts: 2012-04-11 16:48:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5292"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-02-15 08:45:43 +0100
+        thetext: "The job name in SGE now is the jobid generated automatically (qsubfeval.m @ 123):\n\njobid = generatejobid(batch); \nIn my case, it consists of username_servername_pXXX_bX_JXXX. However, when checking qstat with many jobs, it's not clear which process is running. \n\nWe could add the name of the function to the jobid:\njobid = [varargin{1} '_' generatejobid(batch)]\n\nI cannot think of any problem with it (maybe function names with spaces?) and it'd make qstat more informative."
+      - +@isprivate: "0"
+        commentid: "5293"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-15 09:20:47 +0100
+        thetext: "good idea. \n\nFor torque it does not help that much, because in the qstat display the job name is truncated after 12 characters or so. So you don't see the latter part. \n\nThe only thing that I am concerned about is that we plan to move to function handles instead of strings. That will allow execution of stuff like this (think of this being a single m-file)\n\nfunction [y] = mainfunction(x)\ny = @subfunction;\nfunction z = subfunction(x)\nz = x^2;\nend % subfunction\nend % mainfunction\n\nIf I save this to test_bug1331.m, then\n\n>> test_bug1331\nans = \n    @test_bug1331/subfunction\n\n>> func2str(test_bug1331)\nans =\ntest_bug1331/subfunction\n\nSimilar issues might arise for functions inside objects. \n\nSo it is doable, but would require something like\nprivate/warning_once.m:function out = fixname(toolbox)\nto replace the '/' by a valid character for the filenames."
+      - +@isprivate: "0"
+        commentid: "5294"
+        comment_count: "2"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-02-15 09:46:43 +0100
+        thetext: |-
+          Hi Robert,
+
+          Thanks for the feedback! Indeed the truncation is the problem, because qstat only show:
+          username_server...
+          username_server...
+          username_server...
+          username_server...
+
+          That's whay the varargin{1} would go first, so that you see:
+          ft_freqanalysis...
+          ft_dipolefittin...
+          ft_sourceanalys...
+          power_username_...
+
+          But you're right about subfunctions etc, I did not think about that. That would make things more complicated.
+
+          Best,
+          G
+      - +@isprivate: "0"
+        commentid: "5295"
+        comment_count: "3"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2012-02-15 10:36:32 +0100
+        thetext: Robert, with torque, you see the end of the jobname with qstat (or qstat -l), and the start when you use qstat -a, right?
+      - +@isprivate: "0"
+        commentid: "5296"
+        comment_count: "4"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-02-15 10:44:04 +0100
+        thetext: |-
+          You're right, truncation is not a big problem. In SGE, you can see the full job name with:
+          qstat -r
+          But the main question is whether to include the Matlab function name into the jobname at all.
+      - +@isprivate: "0"
+        commentid: "5298"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-15 11:37:38 +0100
+        thetext: "(In reply to comment #3)\n\nThat is correct, see below.\n\n\n1004 # qstat -a\n\ndccn-l014.dccn.nl: \n                                                                         Req'd  Req'd   Elap\nJob ID               Username Queue    Jobname          SessID NDS   TSK Memory Time  S Time\n-------------------- -------- -------- ---------------- ------ ----- --- ------ ----- - -----\n373530.dccn-l014     eminij   interact STDIN               --      1   0   30gb 48:00 Q   -- \n373540.dccn-l014     eminij   interact STDIN               --      1   0   16gb 48:00 Q   -- \n373544.dccn-l014     eminij   interact STDIN               --      1   0    2gb 48:00 Q   -- \n373586.dccn-l014     eminij   long     eminij_mentat318  11486   --   -- 161061 14:03 R 10:33\n373587.dccn-l014     eminij   long     eminij_mentat318  11552   --   -- 161061 14:03 R 10:33\n373589.dccn-l014     eminij   long     eminij_mentat318  11914   --   -- 161061 14:03 R 10:33\n373592.dccn-l014     eminij   long     eminij_mentat318  12459   --   -- 161061 14:03 R 10:33\n373627.dccn-l014     stewhi   interact STDIN             14828   --   --   15gb 48:00 R 00:38\nroot@dccn-l014:~\n\n1005 # qstat -l\nJob id                    Name             User            Time Use S Queue\n------------------------- ---------------- --------------- -------- - -----\n373530.dccn-l014.dccn.nl   STDIN            eminij                 0 Q interactive    \n373540.dccn-l014.dccn.nl   STDIN            eminij                 0 Q interactive    \n373544.dccn-l014.dccn.nl   STDIN            eminij                 0 Q interactive    \n373586.dccn-l014.dccn.nl   ...25397_b2_j017 eminij          10:33:07 R long           \n373587.dccn-l014.dccn.nl   ...25397_b2_j018 eminij          10:33:09 R long           \n373589.dccn-l014.dccn.nl   ...25397_b2_j020 eminij          10:32:28 R long           \n373592.dccn-l014.dccn.nl   ...25397_b2_j023 eminij          10:32:29 R long           \n373627.dccn-l014.dccn.nl   STDIN            stewhi          00:00:20 R interactive    \nroot@dccn-l014:~"
+      - +@isprivate: "0"
+        commentid: "5299"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-15 11:44:07 +0100
+        thetext: "(In reply to comment #2)\n\nAs long as the job id can serve as unique filename on a shared NFS file system, then it can be something else. That is why we have user, hostname and proces ID (in case the user has two matlabs on one linux computer).\n\nShould we make it an option, e.g. either\n   username_servername_pXXX_bX_jXXX\nor\n   funname_username_servername_pXXX_bX_jXXX\n\nNow that I think of it: the username is not required. That is also visible elsewhere in qstat. So\n   funname_servername_pXXX_bX_jXXX\nwould be sufficient as unique filename compatible job id.\n\nWhat do you think about it being an option? Or should we just always do\n   funname_servername_pXXX_bX_jXXX? \nIn case funname=\"subfunction/function\" or \"function/object\", it can be\n   subfunname_funname_servername_pXXX_bX_jXXX"
+      - +@isprivate: "0"
+        commentid: "5300"
+        comment_count: "7"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-02-15 12:02:17 +0100
+        thetext: "(In reply to comment #6)\nNo strong preference. SGE qstat always shows the username as well, so it's not necessary to include it in the jobname.\n\nMy preference goes to:\n   funname_servername_pXXX_bX_jXXX? \n   subfunname_funname_servername_pXXX_bX_jXXX\n\nThanks a lot!"
+      - +@isprivate: "0"
+        commentid: "5507"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 11:11:55 +0100
+        thetext: |-
+          Instead of changing the default, I leave it to the user to think of a better name. I added the following option to qsubcellfun
+
+          %   batchid        = string, to identify the jobs in the queue (default is user_host_pid_batch)
+
+          which allows you to override the default user_host_pid_batch. This is alo supported in qsubfeval and qsubcompile. For qsubcompile it is interesting because it allows you to name the executable (and possibly make reuse easier).
+      - +@isprivate: "0"
+        commentid: "5510"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-11 11:33:24 +0100
+        thetext: "committed three improvements to qsub in one go:\n\nenhancement - this addresses bug #1254, bug #1331 and bug #1361. \nAllow the user to specify toolbox names when compiling. Allow the user to\nspecify a custom batchid instead of user_host_pid_bM. Implemented\nbackend=local using a call to qqubexec inside qsubfeval (i.e. really\nlocal execution), renamed the existing implementation to backend-system.\n\nmbp> svn commit\nSending        qsub/private/generatejobid.m\nSending        qsub/qsubcellfun.m\nSending        qsub/qsubcompile.m\nSending        qsub/qsubfeval.m\nTransmitting file data ....\nCommitted revision 5435."
+      - +@isprivate: "0"
+        commentid: "5836"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:28 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

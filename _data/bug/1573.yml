@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1573"
+    creation_ts: 2012-06-29 14:05:00 +0200
+    short_desc: GrandAVG and Stats can't be plottet on anatomy or be interpolated on an MRI
+    delta_ts: 2013-06-06 15:10:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: major
+    target_milestone: '---'
+    blocked: "1554"
+    everconfirmed: "1"
+    reporter:
+      +content: m_wink10
+      +@name: Martin
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - c.abel
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6610"
+        comment_count: "0"
+        who:
+          +content: m_wink10
+          +@name: Martin
+        bug_when: 2012-06-29 14:05:23 +0200
+        thetext: "Hello,\n\nI got a kind of big problem as follows.\n\nI can easly normalize, interpolate and plot my LCMV-Beamformer results on an MRI and plot with that anatomy:\n\ntemplate = '/media/sonja1/MatlabAnalysis/Martin/WFU_PickAtlas/spm8/canonical/single_subj_T1.nii';\n\ntemplate_mri = ft_read_mri(template);\n\ncfg = [];\n% cfg.coordsys = 'spm';\ncfg.method = 'fiducial'; %'interactive';\ncfg.fiducial.nas  =  [45 106 17]; %position of nasion\ncfg.fiducial.lpa  = [88 49 11]; %position of LPA\ncfg.fiducial.rpa  = [3 49 11]; %position of RPA\nmri = ft_volumerealign(cfg, template_mri);\n\nload(sourcesOutFile);       \n\ncfg            = [];\ncfg.downsample = 1;\ncfg.parameter = {'avg.pow', 'avg.logpowDiff'}; \n\nsourceDiffInt  = ft_sourceinterpolate(cfg, sourceDiff , mri);\n\n\nWorks without any problem! And can be plotted afterwords kind of nicely on an anatomy.\n\n\nNow what doesn't work:\n\n%Load functional data\nload(['/media/sonja1/Patienten/Parkinson/grandAVG_SourceDiff_OHNEdysphagie__beta.mat']);\n\n%avg.avg.pow to avg.pow\npowtemp = grandavg.avg.avg.pow;\ngrandavg = rmfield(grandavg, 'avg');\ngrandavg.avg.pow = powtemp;\n\n%Load template MRI\ntemplate = '/media/sonja1/MatlabAnalysis/Martin/WFU_PickAtlas/spm8/canonical/single_subj_T1.nii';\ntemplate_mri = ft_read_mri(template);\n\n%Segment and Interpolate MRI\ncfg = [];\ncfg.method = 'fiducial'; %'interactive';\ncfg.fiducial.nas  =  [45 106 17]; %position of nasion\ncfg.fiducial.lpa  = [88 49 11]; %position of LPA\ncfg.fiducial.rpa  = [3 49 11]; %position of RPA\nmri_realign = ft_volumerealign(cfg, template_mri);\n\n% match up volumetric source result matrix with anatomical volume\ncfg            = [];\ncfg.downsample = 1;\ncfg.parameter     = 'avg.pow';\nsourceDiff_int  = ft_sourceinterpolate(cfg, grandavg , mri_realign);\n\n%Plot MRI\ncfg = [];\ncfg.method        = 'ortho';\ncfg.interactive   = 'yes';\ncfg.funparameter  = 'avg.pow';\n\nfigure; ft_sourceplot(cfg, grandavg);\n\n\n- it starts to interpolate over hours and hours... and the results are worng at the end.\n\n\nI tried also this way (this worked with another experiment where we got individual MRI's for each subject):\n\n%load GAVG-Results\nload(['/media/sonja1/Patienten/Parkinson/grandAVG_SourceDiff_OHNEdysphagie__beta.mat']);\n\n%Remove the avg.avg field\npowtemp = grandavg.avg.avg.pow;\ngrandavg = rmfield(grandavg, 'avg');\ngrandavg.avg.pow = powtemp;\n\n%Load an anatomy from the normalized subjects which have been interpolated\nload(['/media/sonja1/Patienten/Parkinson/P0390/P0390-vol-f.ds/sourceDiffNormalized.mat']);\n\n%Plot with anatomy from normalized subject\ncfg = [];\ncfg.method        = 'ortho';\ncfg.interactive   = 'yes';\ncfg.funparameter  = 'avg.pow';\ngrandavg.anatomy = sourceDiffIntNorm_beta.anatomy;\n\nfigure; ft_sourceplot(cfg, grandavg);\n\n\nThat prints the following error:\n\n??? Attempted to access dim(3); index out of bounds because numel(dim)=2.\n\nError in ==> ft_plot_slice at 207\n  if all(ori==[0 1 0]), xplane = 1:dim(1); yplane = loc(2); zplane = 1:dim(3);   end\n\nError in ==> ft_plot_ortho at 119\n      hx = ft_plot_slice(dat, varargin{:});\n\nError in ==> ft_sourceplot at 781\n      ft_plot_ortho(ana, 'transform', eye(4), 'location', ijk, 'style', 'subplot', 'parents', [h1 h2\n      h3].*update, 'doscale', false);\n\nError in ==> mw_ft_plot_GrandAVGa at 19\nfigure; ft_sourceplot(cfg, grandavg);\n\nI also upladed the data here:\n\nhttp://www.sendspace.com/file/zkbgqz\n\n(GrandAVG result and a normalized LCMV-Beamformer-Result)\n\n\nDoes anybody have any suggestions?"
+      - +@isprivate: "0"
+        commentid: "6708"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-04 16:11:33 +0200
+        thetext: |-
+          Hi Martin,
+          I'll take a look at this tomorrow, as I found a similar problem in my own data recently.  I will discuss with Jan-Mathijs as needed, as he knows more about this than I do.
+          Johanna
+      - +@isprivate: "0"
+        commentid: "6742"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-06 13:27:35 +0200
+        thetext: "Hi Martin and JM,\nI'm not sure if this is the root of the problem, or just a part...But at least in my data, when I call ft_sourcegrandaverage, I'm giving as input, the source structure from each subject after call to ft_sourceinterpolate and then ft_volumenormalise, so that all subjects are in MNI space.  The first thing that ft_sourcegrandaverage does is to convert this 'volume' structure of the data (where it is contained in .avg.pow in a 181x217x181 grid) back to the 'source' structure with .pos and .avg fields indicating locations of the source powers but in a Nx3 and Nx1 array instead.  These are very large (i.e. 7million .pos total, of which about 1.5 million are .inside the brain).  This large-nish is, I think, then the cause of it running for hours and hours (or in my case out of Memory crash).  If you try the call to ft_sourceinterpolate of the grand_avg with a cfg.downsample of something like 10 (rather than 1) you might succeed, but then both the .anatomy and .avg.pow are very spatially blurred.\n\nThis is all the info I have so far.  \n\nAlternatively, if the original subjects source output was comptued using the MNI template grid, then the .pos should already be in MNI space and you should be able to call ft_sourcegrandaverage on the subjects 'source' structure (before ft_sourceinterpolate).   \n\nJan-Mathijs, any further thoughts at this stage?"
+      - +@isprivate: "0"
+        commentid: "6747"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-06 15:54:48 +0200
+        thetext: "Hi both,\n\nMy initial question would be: why would you want to call ft_sourceinterpolate for a second time? As far as I understand (at least in Johanna's case) you have already interpolated to a high spatial resolution in the same volumetric representation as the anatomy. So I'd say no need anymore for a second round. \n\nAs a side remark, I now also think I understand why the avg field becomes nested, i.e. avg.avg.pow, and that's because actually the interpolated volumes are used as input to ft_sourcegrandaverage, a thing which I have actually never considered. @Cornelius (CC) this is related to the problem you recently reported, correct?\n\nI would recommend using MNI-space aligned grid, which allow for the averaging and statistics across subjects at a much lower spatial resolution, and only do the interpolation (which in this case becomes only necessary for visualization purposes) at the latest stage."
+      - +@isprivate: "0"
+        commentid: "6750"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-06 16:53:51 +0200
+        thetext: |-
+          In my case, I was calling ft_sourceinterpolate on the grandavg because it was *too* high spatial resolution, so I was using it with cfg.downsample=10 to get back resolution of 1cm rather than 0.1cm.  (to reduce the .inside from around 1 million true values, to something sensible like 10000.).
+
+          Another option I just realised is, after the call to ft_sourceinterpolate per subject, then when calling ft_volumenormalise, set cfg.downsample=5 (or 10) to get back a spatial resolution of 0.5 (or 1.0) cm, assuming the MRI used for sourceinterpolate was a resolution of 1mm cubic.  Then these MNI normalised volumes per subject should be easier to grandaverage....?
+
+          I agree with JM though, that all this interpolation back and forth is non-ideal.
+      - +@isprivate: "0"
+        commentid: "7078"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-08-22 15:51:50 +0200
+        thetext: |-
+          Hi Martin,
+          Sorry for the delay in following up, but have the comments from Jan-Mathijs and myself been helpful enough, that this problem is now solved for you (i.e. by using MNI spaced aligned grid to begin, and only calling ft_volumeinterpolate and ft_volumenormalize for the purpose of visualisation), or do you still want us to look into some aspect further?  The data you posted on sendspace.com is no longer available.    Best regards, Johanna
+      - +@isprivate: "0"
+        commentid: "8927"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-15 14:11:18 +0100
+        thetext: Closing this, as I feel the issue is resolved, but please re-open if still remaining questions/problems.

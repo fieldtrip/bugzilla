@@ -1,0 +1,85 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2502"
+    creation_ts: 2014-03-17 19:33:00 +0100
+    short_desc: ft_freqstatistics requires XXXparameter ormat for parameter names, which is not clear from the documentation
+    delta_ts: 2014-06-18 12:31:59 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2470"
+    everconfirmed: "1"
+    reporter:
+      +content: craig.richter
+      +@name: Craig Richter
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13092"
+        comment_count: "0"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-03-17 19:33:24 +0100
+        thetext: "When a 'custom' field is assessed using ft_freqstatistics (in my case it was a field MI, since I'm testing a modulation index), this field must have XXXspctrm as a format which is revealed by tracking down the error messages:\n\n[stat] = ft_freqstatistics(cfg, GA_EMP, GA_NULL);\nTrying to load sensor neighbours from a template\nSuccessfully loaded neighbour structure from neuromag306mag_neighb.mat\nthere are on average 7.1 neighbours per channel\nthe call to \"ft_prepare_neighbours\" took 0 seconds and required the additional allocation of an estimated 0 MB\ncomputing statistic over the frequency range [0.250 15.000]\nthe call to \"ft_appendfreq\" took 0 seconds and required the additional allocation of an estimated 0 MB\nAttempted to access n(1); index out of\nbounds because numel(n)=0.\n\nError in dimlength (line 124)\n        if ~all(n==n(1))\n\nError in dimlength (line 46)\n      n{k}(i) = dimlength(data, dimtok{i},\n      fn{k});\n\nError in seloverdim (line 39)\n[reduceddim, fntmp] = dimlength(data);\n\nError in ft_selectdata_old (line 600)\n    if selectchan, data = seloverdim(data,\n    'chan', selchan, fb); end\n\nError in ft_selectdata (line 45)\n  [varargout{1:nargout}] =\n  ft_selectdata_old(varargin{:});\n\nError in ft_freqstatistics (line 245)\n    data =  ft_selectdata(data, 'param',\n    cfg.parameter, 'avgoverrpt', false, ...\n \nWhich leads to line 109 of dimlength (I think this occurs in multiple places):\n\n% generic solution for XXXspctrm\n        fnames = fieldnames(data);\n        tmp    = find(~cellfun('isempty', strfind(fnames, 'spctrm')));\n\nThus all parameter names must contain 'spctrm'.\n\nThis isn't at all obvious from the documentation, so perhaps this should be well documented, or changed to allow arbitrary parameter names for custom applications."
+      - +@isprivate: "0"
+        commentid: "13093"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-17 21:27:31 +0100
+        thetext: |-
+          This seems a duplicate problem of bug 2470
+
+          *** This bug has been marked as a duplicate of bug 2470 ***
+      - +@isprivate: "0"
+        commentid: "13095"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-18 10:45:17 +0100
+        thetext: |-
+          Thanks Craig,
+          We have noticed some issues with custom parameters for ft_freqstatistics indeed. Your debugging efforts are received with appreciation. I hope to get to this soon.
+
+          JM
+      - +@isprivate: "0"
+        commentid: "13101"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-18 20:35:51 +0100
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - allow for arbitrary fieldnames to serve as parameter: changed call to ft_selectdata_old into ft_selectdata_new" ft_freqstatistics.m test/test_bug2502.m
+          Sending        ft_freqstatistics.m
+          Adding         test/test_bug2502.m
+          Transmitting file data ..
+          Committed revision 9298.
+
+          I changed the code in ft_freqstatistics to use ft_selectdata with a cfg; this means that it now uses ft_selectdata_new, which does not have a call to seloverdim/dimlength. Problem seems solved. Can you confirm?

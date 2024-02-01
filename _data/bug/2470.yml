@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2470"
+    creation_ts: 2014-02-10 21:46:00 +0100
+    short_desc: Allow freq statistics over custom fields
+    delta_ts: 2014-06-18 12:32:39 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked: "2502"
+    everconfirmed: "1"
+    reporter: dean.wyatte
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - craig.richter
+      - j.schoffelen
+      - matt.mollison
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12806"
+        comment_count: "0"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2014-02-10 21:46:53 +0100
+        thetext: "Currently, freq statistics can only be performed on fields that FieldTrip knows about e.g., powspctrm. It would be nice to leverage FieldTrip's extensive statistics framework to perform tests on arbitrary fields. For example, I am returning Fourier coefficients from my analysis and computing various values from them such as power, phase, intertrial coherence, phase-locking value, etc. I would like to be able to specify these in the same manner as powspctrm using ft_freqstatistics cfg.parameter. \n\nThis is almost supported, but is not currently possible due to the way that variables are set in dimlength.m, see below:\n\nelseif strcmp(data.(fld)(1:4), 'rpt_')\n        n  = [];\n        % generic solution for XXXspctrm\n        fnames = fieldnames(data);\n        tmp    = find(~cellfun('isempty', strfind(fnames, 'spctrm')));\n        for k = 1:numel(tmp)\n          n = [n size(data.(fnames{tmp(k)}), 1)];\n        end\n        % some other possibilities\n        if isfield(data, 'cov'),           n = [n size(data.cov,           1)]; end\n        %if isfield(data, 'crsspctrm'),     n = [n size(data.crsspctrm,     1)]; end\n        %if isfield(data, 'powcovspctrm'),  n = [n size(data.powcovspctrm,  1)]; end\n        %if isfield(data, 'powspctrm'),     n = [n size(data.powspctrm,     1)]; end\n        if isfield(data, 'trial'),         n = [n size(data.trial,         1)]; end\n        %if isfield(data, 'fourierspctrm'), n = [n size(data.fourierspctrm, 1)]; end\n        if isfield(data, 'individual'),    n = [n size(data.individual,    1)]; end\n        if isfield(data, 'stat'),          n = [n size(data.stat,          1)]; end\n        if ~all(n==n(1))\n          error('inconsistent number of repetitions for dim \"%s\"', seldim);\n        end\n        n = n(1);\n\n\nI can add the following lines to get it to work for my data\n\n        if isfield(data, 'ITC'),          n = [n size(data.ITC,          1)]; end\n        if isfield(data, 'PLV'),          n = [n size(data.PLV,          1)]; end\n\nThis could be done programatically if the field name was passed to dimlength, but I'm not sure if that's the correct design. Can we rewrite this function (or the calling function) to me more general and operate on arbitrary fields?"
+      - +@isprivate: "0"
+        commentid: "12828"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-12 14:26:02 +0100
+        thetext: |-
+          Hi Dean,
+          You're absolutely right.
+          We'll look into it.
+          For now, can you work around the issue with your proposed fix?
+
+          Best wishes,
+          Jan-Mathijs
+      - +@isprivate: "0"
+        commentid: "12830"
+        comment_count: "2"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2014-02-12 16:43:47 +0100
+        thetext: Yes, I am currently using the workaround. Thanks for looking into it.
+      - +@isprivate: "0"
+        commentid: "13094"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-17 21:27:31 +0100
+        thetext: '*** Bug 2502 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13102"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-18 20:52:14 +0100
+        thetext: On second thought, bug 2502 was a duplicate... I fixed it, so that the code doesn't use ft_selectdata_old (and seloverdim/dimlength) anymore, but uses ft_selectdata_new instead. Should work now without workaround. Could you verify this with the latest version and confirm?
+      - +@isprivate: "0"
+        commentid: "13118"
+        comment_count: "5"
+        who:
+          +content: dean.wyatte
+          +@name: ""
+        bug_when: 2014-03-20 15:47:31 +0100
+        thetext: Working great for me now with fieldtrip-20140319. Thanks for the fix!

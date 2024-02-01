@@ -1,0 +1,156 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3125"
+    creation_ts: 2016-05-11 17:17:00 +0200
+    short_desc: ft_electroderealign with method='fiducial' does not work properly for me
+    delta_ts: 2016-06-14 16:14:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: daniel.miklody
+      +@name: Daniel Miklody
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17316"
+        comment_count: "0"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2016-05-11 17:17:21 +0200
+        thetext: |-
+          I encounter the following problem:
+
+          I want to align electrodes (standard10_05.elc) autmoatically based on fiducials to an individual head but what ft_electroderealign does is bring it further away (it says so in it's own output (line 467  fprintf('mean distance between fiducials prior to realignment %f, after realignment %f\n', dpre, dpost);)
+
+          I have made the warps manually and figured out that line 452 (norm.m       = elec2common / templ2common;) is the problem in my case. If I use ft_warp_apply sequentially first with elec2common and then with inv(templ2common) it works well and the results are correct.
+          But this way the electrodes are tilted into the wrong direction.
+      - +@isprivate: "0"
+        commentid: "17317"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-11 17:44:18 +0200
+        thetext: can you share some data that allows us to reproduce the situation you encounter? That will help us in figuring out whether the issue is with the configuration, the data, or with the FT code.
+      - +@isprivate: "0"
+        commentid: "17321"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-05-12 08:48:31 +0200
+        thetext: 'to add: are you sure that the fiducials are expressed in the same coordinate system as the electrodes?'
+      - +@isprivate: "0"
+        commentid: "17323"
+        comment_count: "3"
+        attachid: "791"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2016-05-12 09:48:05 +0200
+        thetext: "Created attachment 791\nBoundary file, fiducials and template electrode set in a ZIP\n\nGood morning.\nHere are the files.\nYes, if I plot the fiducials or the headshape ( new_bnd(1) ) together with the template electrodes set, they are not far from each other. Anyway I guess it shouldn't matter because they are first transformed to a common coordinate system and than to the target one.\n\nThe code I use that produces the error is as follows:\n\nload('bnd4_1922_corrected_fiducials.mat')\nload('bnd4_1922_corrected.mat')\nelec10_05=ft_read_sens('standard_1005.elc');\n\ncfg=[];\ncfg.method='fiducial';\ncfg.target.elecpos(1,:)=NAS;\ncfg.target.elecpos(2,:)=LPA;\ncfg.target.elecpos(3,:)=RPA;\ncfg.target.chanpos=cfg.target.elecpos;\ncfg.target.label={'NZ','LPA','RPA'};\ncfg.target.unit='m';\ncfg.elec=elec10_05;\nelec=ft_convert_units(ft_electroderealign(cfg),'m');\nfigure\nft_plot_mesh(new_bnd(1))\nft_plot_sens(elec)\n\n\n\n\nIf I use the cfg as specified in the help:\n\n If you want to realign the EEG electrodes using anatomical fiducials, the template\n  has to contain the three fiducials, e.g.\n    cfg.target.pos(1,:) = [110 0 0]     % location of the nose\n    cfg.target.pos(2,:) = [0  90 0]     % location of the left ear\n    cfg.target.pos(3,:) = [0 -90 0]     % location of the right ear\n    cfg.target.label    = {'NAS', 'LPA', 'RPA'}\n\nI got the following error:\n\n\nUndefined function or variable \"lab\".\nError in channelposition (line 314)\nn   = size(lab,2);\nError in ft_datatype_sens (line 328)\n        [chanpos, chanori, lab] =\n        channelposition(sens);\nError in ft_electroderealign (line 242)\n    tmp(i) =\n    ft_convert_units(ft_datatype_sens(target(i)),\n    elec.unit); \n\n\nThe code that works is as follows:\n\ntempl2common = ft_headcoordinates(NAS, LPA, RPA);\nelec2common  = ft_headcoordinates(elec10_05.chanpos(3,:)/1000, elec10_05.chanpos(1,:)/1000, elec10_05.chanpos(2,:)/1000);\nelec10_05_warp=ft_convert_units(elec10_05,'m');\nelec10_05_warp.elecpos=ft_warp_apply(elec2common,elec10_05_warp.elecpos);\nelec10_05_warp.elecpos=ft_warp_apply(inv(templ2common ),elec10_05_warp.elecpos);\nelec10_05_warp.chanpos=elec10_05_warp.elecpos;\nfigure\nft_plot_mesh(new_bnd(1))\nft_plot_sens(elec10_05_warp)\n\n\nwhich is using 2 consequent transofrmation with first templ2common and then elec2common instead of one transformation with elec2common / templ2common."
+      - +@isprivate: "0"
+        commentid: "17324"
+        comment_count: "4"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2016-05-12 10:09:30 +0200
+        thetext: "Hey I think I just realized what the problem is!\nYou are using the transpose of the transformation matrix in ft_warp_apply.\n\nYou would have to do \n\n  norm.m=templ2common\\elec2common;\n\nin line 452 of ft_electrodrealign\n\ninstead of\n\n  norm.m       = elec2common / templ2common;\n\nto make it work.\n\nIf you transpose a matrixmultiplication, the order changes :\n(AB)' = B'A'."
+      - +@isprivate: "0"
+        commentid: "17334"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-12 21:47:20 +0200
+        thetext: |-
+          (In reply to Daniel Miklody from comment #4)
+
+          thanks for the test data, I can reproduce the problem. The input specification is fine. And furthermore thanks for locating the problem and fixing it. The forward and back slash as matrix operations are always tricky.
+
+          I just made a number of commits that solve the issue. While at it, I also reorganised some internal code. Furthermore, I added the 'project' method (which was planned anyway).
+
+          Since your electrodes are very loose around the head after realigning, you should give method=project a try. See fieldtrip/test/inspect_bug3125 as example, which is based on your data (I keep it for reference and future testing).
+      - +@isprivate: "0"
+        commentid: "17335"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-12 21:47:29 +0200
+        thetext: |-
+          mbp> git push upstream master
+          Counting objects: 5, done.
+          Delta compression using up to 2 threads.
+          Compressing objects: 100% (5/5), done.
+          Writing objects: 100% (5/5), 916 bytes | 0 bytes/s, done.
+          Total 5 (delta 3), reused 0 (delta 0)
+          To git@github.com:fieldtrip/fieldtrip.git
+             8e8c53e..d9688be  master -> master
+      - +@isprivate: "0"
+        commentid: "17345"
+        comment_count: "7"
+        who:
+          +content: daniel.miklody
+          +@name: Daniel Miklody
+        bug_when: 2016-05-17 09:00:03 +0200
+        thetext: |-
+          Alrighty!
+
+          Good to be helpful ;)
+
+          Thanks also for adding the project method, I was already using it but good to have it in a standard interafece fashion!!
+
+          Thaanks
+      - +@isprivate: "0"
+        commentid: "17493"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:51 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "791"
+      date: 2016-05-12 09:48:00 +0200
+      delta_ts: 2016-05-12 09:48:05 +0200
+      desc: Boundary file, fiducials and template electrode set in a ZIP
+      filename: bnd4_1922_corrected_fiducials.zip
+      type: application/x-zip-compressed
+      size: "95377"
+      attacher:
+        +content: daniel.miklody
+        +@name: Daniel Miklody
+      data: REMOVED

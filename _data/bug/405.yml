@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "405"
+    creation_ts: 2011-01-17 15:31:00 +0100
+    short_desc: Establish a closer distinction / relation between ft_databrowser and ft_rejectvisual
+    delta_ts: 2019-08-10 12:28:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - H.Rossiter
+      - j.schoffelen
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1050"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-01-17 15:31:13 +0100
+        thetext: |-
+          Currently, there are two function for visual artifact detection and rejection: (1)ft_rejectvisual and (2)ft_databrowser. While the first script rejects a trial completely, the second script follows the "guidelines" of artifact rejection more closely (compared the zvalue function).
+          If there was any real need to keep two functions that do roughly the same, whilst one function is merely a bulldozer and the other a bit more gentle to the data, it would be wise to document that somewhere - and maybe incorporate the databrowser in the visual artifact tutorial. If there was no such need for two function, merge functionality and make it one instead of two. Here, I would suggest to extend functionality of the databrowser (e.g. mark whole trial, mark channels as bad, visualize variance of trials, etc.)
+      - +@isprivate: "0"
+        commentid: "1133"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-01-26 13:14:09 +0100
+        thetext: |-
+          The functions should be kept separate;
+
+          Yet, the output cfg to ft_rejectvisual should contain information about the identified trials/channels
+      - +@isprivate: "0"
+        commentid: "1603"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-03-10 12:28:11 +0100
+        thetext: I will make some changes to ft_rejectvisual; specifically, I will have it output the channels/trials removed in a cfg structure (no such option is present at the moment). Maybe we need to discuss the possible backwards compatibility issues arising from this; but we'll see.
+      - +@isprivate: "0"
+        commentid: "1612"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-03-15 15:12:06 +0100
+        thetext: |-
+          Some ideas for ft_rejectvisual, should be discussed during the meeting I guess.
+
+          Ideally, the ft_rejectvisual function should just return the detected artifacts, and do nothing to the data, very much like the ft_artifact_zvalue (and ft_databrowser) functions. Subsequently, the trials and channels detected should be removable by another function call, like ft_reject_artifact. However, at present this is not possible. Also, changing ft_rejectvisual to not modify the data anymore will break backwards compatibility.
+
+          To resolve these issues, I propose the following:
+
+           - Implement a new function ft_artifact_visual that provides the same interface as ft_rejectvisual now provides, but that marks artifactual trials and channels in an output structure, rather than changes the data. This output structure could be called 'artfctdef.visual', but then we need to make sure that ft_databrowser by default marks artifacts somewhere else (e.g., 'artfctdef.databrowser' or something).
+
+           - Change ft_reject_artifact so that it understands the trial/channel marks, and can reject them appropriately.
+
+           - Re-implement ft_rejectvisual so that it becomes a compatibility wrapper for a subsequent call to both the proposed new ft_artifact_visual function and ft_reject_artifact.
+      - +@isprivate: "0"
+        commentid: "14566"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 11:16:47 +0200
+        thetext: |-
+          It is now possible (as of revision https://code.google.com/p/fieldtrip/source/detail?r=9881) to do something like
+
+          cfg = []
+          cfg.method = summary
+          cfg.keepchannel = yes
+          cfg.keeptrial = yes
+          dummy = ft_rejectvisual(cfg, data)
+
+          followed by
+
+          clean = ft_rejectartifact(dummy.cfg, data)
+
+          So the output dummy.cfg can be used as desired. It is still inconsistent w.r.t. outputting the data and/or the cfg, but that is a more general issue that more gui functions have. I don't feel the urge to address that specifically here. Most people seem to be happy with the overall behaviour of ft_rejectvisual.
+      - +@isprivate: "0"
+        commentid: "19960"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:19 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

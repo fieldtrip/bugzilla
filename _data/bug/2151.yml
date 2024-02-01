@@ -1,0 +1,194 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2151"
+    creation_ts: 2013-05-01 17:05:00 +0200
+    short_desc: MFF might have discontinuous data
+    delta_ts: 2019-08-10 12:03:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    cc:
+      - ingrid.nieuwenhuis
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10357"
+        comment_count: "0"
+        attachid: "473"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-05-01 17:05:02 +0200
+        thetext: "Created attachment 473\nNetStation image\n\nHi, \n\nI found an interesting behavior in the EGI MFF file format. We start the recordings on EGI, then we start E-Prime. When E-Prime starts, EGI does not acquire and store data for half a second. When reading the recordings in NetStation, the time goes from 0s to 1s, then from 1.5s to the end of the recordings. \n\nSee attached screenshot. The green line shows the discontinuity. The discontinuity is not obvious in the time scale on top of screenshot, but note that the ticks above \"Add Clip Event\" are interrupted.\n\nThis is a problem when reading the data in Matlab using Fieldtrip. Fieldtrip now reads the data as continuous, in other words, it does not take into account the discontinuity. This is a problem because the markers are in the \"absolute\" EGI times. So, the markers will be shifted in time by the length of the discontinuity.\n\nI'm using the egi_mff_v1 approach, because I didn't get the java reader to work. I suspect that the bug would be there as well.\n\nWe found out that the information is stored in \"epochs.xml\". In our case, which reads:\n    <epoch>\n        <beginTime>0</beginTime>\n        <endTime>1351000000</endTime>\n        <firstBlock>1</firstBlock>\n        <lastBlock>1</lastBlock>\n    </epoch>\n    <epoch>\n        <beginTime>1801000000</beginTime>\n        <endTime>573676000000</endTime>\n        <firstBlock>2</firstBlock>\n        <lastBlock>141</lastBlock>\n    </epoch>\nMeaning that the signal goes from 0 to 1351 ms (sampling rate = 1000 Hz) and from 1801 to 573676 ms. I can provide the data if needed (~ 580 MB).\n\nHow does Fieldtrip deal with discontinuity like this? Either we change the marker times or we add some NaN for the period between the markers. I can change ft_read_data between lines 657-668 to deal by adding NaN if you think it's a good idea.\n\nCheers,\ng"
+      - +@isprivate: "0"
+        commentid: "10358"
+        comment_count: "1"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-05-01 18:06:55 +0200
+        thetext: I just noticed that ft_read_data l. 657-668 should throw an error in cases like mine. However, it didn't because the xml file in my case is called "epochs.xml", not "epoch.xml"
+      - +@isprivate: "0"
+        commentid: "10360"
+        comment_count: "2"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-05-01 20:25:07 +0200
+        thetext: |-
+          Hi Gio,
+
+          Yeah, I remember having the same problem with my data at some point. FYI there is a setting in the Eprim package to prevent this fragmented data from happening in the first place. I had the same and they told me the following:
+
+          -------------
+          The first small segmentation that you saw is indeed a work of NSInit in the E-Prime experiment. When object NSInit calls Net Station to establish a socket communication, it also manipulate Net Station to start recording, and when the communication handshake finishes, the recording stops which leaves a small chunk of epoch. To disable this function, add "False" at the end of the call parameter line in NSInit, Ex: c, "on", CellList, "socket", "10.0.0.42","False".
+          ----------------
+
+          But that does not solve your problem with the data you have. I remember having tried to have the v1 implementation work with this. Adding some info to the header file I think. But can't remember if I solved it. I do remember it was a head ache indeed. So I suggest that you first look through the v1 implementation in detail, to see what's already there, and then try to solve it in a way you think makes sense. Adding NaNs for the missing time sounds like a smart idea. So I'd look into the read header part, and see if you can already get from the hdr that there are discontinuous epochs. If so, add some info to the hdr (if this is not implemented already). And then when reading in the data, the code should chack if there a epochs and if so fill with NaNs sounds good.
+
+          Good luck! I feel your pain, been there a thousand times ;)
+          Ingrid
+      - +@isprivate: "0"
+        commentid: "10361"
+        comment_count: "3"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-05-01 22:08:21 +0200
+        thetext: "Hi Ingrid,\n\nThanks a lot for the detailed answer! \n\nYou're right about ft_read_header. It seems that using ft_read_header that you wrote should give an elegant solution to the problem! Let's see if I can use it in my case. I missed that warning at l. 902 and the error in ft_read_data at l. 657 because in my case the file is called \"epochs.xml\" instead of \"epoch.xml\", so fieldtrip did not throw an error.\n\nCan you (and other EGI users) check if your datasets have \"epochs.xml\" or \"epoch.xml\"?\n\n\nCheers,\ng"
+      - +@isprivate: "0"
+        commentid: "10362"
+        comment_count: "4"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-05-01 22:16:10 +0200
+        thetext: |-
+          I also have epochs.xml, and I only have 1 epoch for sure, so epoch seems to be a typo.
+          Cheers,
+          Ingrid
+      - +@isprivate: "0"
+        commentid: "10364"
+        comment_count: "5"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-05-01 23:02:58 +0200
+        thetext: |-
+          Hi Ingrid,
+
+          You did an amazing job with the code! I didn't realize that ft_read_header and ft_read_event take care of the shift due to the multiple epochs, it's a very elegant solution and exactly what I needed. I thought the "magic" would happen in ft_read_data, but as I'm only looking at event-related data I don't need to implement the NaN part and I like the current solution a lot.
+
+          I'm just surprised it didn't work out of the box because of the typo with epochs.xml/epoch.xml
+
+          I think we should use epochs.xml, but allow for the case epoch.xml is in the folder. I'll write the code for that, then I'll close the bug.
+
+          Thanks!
+          g
+      - +@isprivate: "0"
+        commentid: "10366"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-02 07:39:33 +0200
+        thetext: thanks guys!
+      - +@isprivate: "0"
+        commentid: "10368"
+        comment_count: "7"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-05-02 09:25:14 +0200
+        thetext: "I added a pull-request to the GIT repo with the patch:\nhttps://github.com/fieldtrip/fieldtrip/pull/24\n\nBut, Robert, do you still have problems syncing git and svn? http://bugzilla.fcdonders.nl/show_bug.cgi?id=1841 \nHow should I submit patches?"
+      - +@isprivate: "0"
+        commentid: "11373"
+        comment_count: "8"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-09-19 17:31:49 +0200
+        thetext: |-
+          (In reply to comment #7)
+          new PR:
+          https://github.com/fieldtrip/fieldtrip/pull/31
+      - +@isprivate: "0"
+        commentid: "11376"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-20 12:05:16 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          it has been integrated in the main branch, see http://code.google.com/p/fieldtrip/source/detail?r=8478
+      - +@isprivate: "0"
+        commentid: "11378"
+        comment_count: "10"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2013-09-20 16:13:15 +0200
+        thetext: "Thanks. \nSorry that git gives you so much trouble:\nhttps://github.com/fieldtrip/fieldtrip/pull/31#issuecomment-24795891\nI'm also still learning a lot about it..."
+      - +@isprivate: "0"
+        commentid: "11381"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-20 19:23:00 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          git by itself is very nice, we use it in another project fine. It is just the bidirectional combination with svn that I still don't understand how it might work. Luckily the unidirectional svn->git now works automatically and robustly.
+      - +@isprivate: "0"
+        commentid: "19933"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "473"
+      date: 2013-05-01 17:05:00 +0200
+      delta_ts: 2013-05-01 17:05:02 +0200
+      desc: NetStation image
+      filename: Screen shot 2013-05-01 at 4.33.07 PM.png
+      type: image/png
+      size: "137546"
+      attacher:
+        +content: bugzilla
+        +@name: Gio Piantoni
+      data: REMOVED

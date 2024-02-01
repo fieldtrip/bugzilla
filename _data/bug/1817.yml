@@ -1,0 +1,164 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1817"
+    creation_ts: 2012-11-07 15:50:00 +0100
+    short_desc: ft_prepare_sourcemodel should deal with input/output for simbio headmodel
+    delta_ts: 2013-08-07 12:00:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked: "1822"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - carsten.wolters
+      - j.vorwerk
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8173"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 15:50:57 +0100
+        thetext: dipole positions in the CSF should be flagged as "outside"
+      - +@isprivate: "0"
+        commentid: "8362"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-21 17:47:50 +0100
+        thetext: "to work on this, we would need a realistic FEM mesh with tissue labels.\n\nThree types of meshes can be conceived of\n\n1) regular 3D grid with user-specified dipole spacing. That grid is regarding the dipole locations independent from the volume model.\n\n2) cortical sheet based on freesurfer\n\n3) some mesh (surface or 3D) that is based on the geometrical description in the FEM model. That is something we normally don't do, because the volume models usually don't specify anything of interest to guide the dipole placement.\n\n@Johannes, do you see options for 3? \nOr should we just do 1 (easy) and 2?"
+      - +@isprivate: "0"
+        commentid: "8368"
+        comment_count: "2"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-22 10:41:46 +0100
+        thetext: |-
+          (In reply to comment #1)
+          I think it should be fine if we offer 1 and 2 and the option to use a customized surface mesh as source space, which should be very similar to 2.
+
+          Right now I am expanding a script of Felix so that it automatically checks wether nodes are valid as source positions, which we could afterwards integrate here.
+      - +@isprivate: "0"
+        commentid: "8373"
+        comment_count: "3"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-22 16:32:07 +0100
+        thetext: |-
+          (In reply to comment #2)
+          A question that just came to my mind is, whether we should include the check for the validity of source positions in ft_prepare_sourcemodel at all.
+
+          It might also be fine to perform ft_prepare_sourcemodel as it is now and then include the check into the fem forward computation, which would make the implementation much easier. Then it would only be necessary to distinguish at that point what should be done with invalid source positions, this should probably differ depending on the structur of the source space (grid -> delete invalid positions, surface -> shift invalid positions).
+
+          How do you think about this?
+      - +@isprivate: "0"
+        commentid: "8376"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-22 21:49:49 +0100
+        thetext: "(In reply to comment #3)\n\nwhat best to be done with invalid locations depends on the characteristics of the inverse algorithm, not on the forward algorithm. With a  scan over a 3-d regular grid where the output is represented in a 3-d array with a scalar for each \"voxel\" you would use a nan at that place in the 3-d array. If the result is a time-frequency response for each dipole orientation at each grid point, you don't want to represent it in a 6-d array with a lot of nans. That is represented in a cell-array with for each inside dipole a cell with a 3-d array (ori X time X freq).\n\nThe inverse MNE code looks like this\n\nfor each \"inside\" dipole, \nget leadfield and concatenate them all in one large array\nend\ninvert and multiply with data\n\nand the beamformer code looks like\n\nfor each \"inside\" dipole, \nget leadfield, compute filter and compute filter output\nend\n\nOne possibility would be to have ft_compute_leadfield return nan(nchan,3). But then the MNE code would fail (a single nan in the matrix invalidates the inverse operator). The beamformer code would not mind.\n\nSo there are good reasons for the implementation how it is now, where inside/outside is detected independent either from forward and inverse code. You can see it as a refinement of the source model."
+      - +@isprivate: "0"
+        commentid: "8384"
+        comment_count: "5"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-23 11:11:25 +0100
+        thetext: |-
+          (In reply to comment #4)
+          The problem is that inside/outside a surface is not an adequate criterion to guarantee a sufficiently exact solution for FEM (and for BEM of course also not).
+
+          My proposal would in that case be, to expand ft_prepare_sourcemodel by an option to use a function that checks the source positions for a more different criterion than inside/outside, namely valid/invalid for FEM.
+
+          For regular source grids this should be quite straight forward.
+
+          For surface based source spaces this is different, since you usually want to have a result for all positions, that is why I suggested to move the source positions slightly here to the next valid source position.
+
+          Do you agree with that?
+      - +@isprivate: "0"
+        commentid: "8386"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-23 11:20:43 +0100
+        thetext: "(In reply to comment #5)\n\nyes, I agree to most you write. \n\nI should have mentioned that inside/outside is the name given to it in the code, but that they do not necessarily reflect inside or outside a boundary. They should be interpreted as \"inside/outside the region of interest\" in which you want to do something. \n\nSo dipoles in white matter could be flagged as \"outside\".\n\nThere are already options that influence the inside/outside detection. E.g. with outsideshift=-1 cm and the Nolte single shell model for MEG, the \"inside\" flagged locations extend 1 cm to outside the actual brain compartment. \n\nFor the surface source models I don't know yet what to do. Moving vertices might be problematic.  Let's first do the regular 3d grid, and then create some test data for the more complex ones."
+      - +@isprivate: "0"
+        commentid: "8388"
+        comment_count: "7"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-23 16:23:04 +0100
+        thetext: |-
+          (In reply to comment #6)
+          I have just commited a function sb_check_sources, which checks whether the sources are inside the allowed source compartments and either deletes the invalid positions or gives out a warning.
+      - +@isprivate: "0"
+        commentid: "9464"
+        comment_count: "8"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-02-19 11:54:06 +0100
+        thetext: "(In reply to comment #7)\nHi all,\n\nI assign this bug for Robert. \nI wanted to attach a headmodel but it was too large.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "11051"
+        comment_count: "9"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-07 12:00:09 +0200
+        thetext: |-
+          (In reply to comment #8)
+          My proposition to solve this issue would be to add
+
+          @@ -724,6 +724,9 @@
+               end
+               grid.outside = find(outside);
+               grid.inside  = find(~outside);
+          +  elseif ft_voltype(vol, 'simbio')
+          +      grid.inside = sb_check_sources(cfg, vol, grid.pos);
+          +      grid.outside = setdiff(1:size(grid.pos,1), grid.inside);
+             else
+               if isfield(sens, 'coilori') && isfield(sens, 'coilpos') && isfield(sens, 'tra')
+                 % in case of MEG, make a triangulation of the outermost surface
+
+          in ft_prepare_sourcemodel.
+
+          sb_check_sources checks whether the sources are inside the preferred source compartment in a way that is fitting the fe approach. the user can define the valid source compartments in the cell array cfg.grid.sourcetissue, e.g.
+
+          cfg.grid.sourcelabel = {'tissue_1'};

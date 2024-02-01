@@ -1,0 +1,360 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2302"
+    creation_ts: 2013-09-26 17:32:00 +0200
+    short_desc: add a proper walltime and mem estimate to the execution of the test scripts
+    delta_ts: 2016-06-14 16:14:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11471"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-26 17:32:59 +0200
+        thetext: |-
+          Right now all test scripts start with the same walltime and memory requirements to torque, which is not appropriate.
+
+          I have created  a MATLAB script that updates a long (but not exhaustive) list of test scripts and inserts a walltime statement based on the latest dashboard printout.
+      - +@isprivate: "0"
+        commentid: "11472"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-26 17:38:58 +0200
+        thetext: "I ran the script, adding 180 seconds extra time to the estimates, and adding a line like \n\n% WALLTIME 00:04:20\n\nto the start of the test scripts.\n\n\n...\nCommitted revision 8555."
+      - +@isprivate: "0"
+        commentid: "11473"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-26 17:40:47 +0200
+        thetext: |-
+          there is still quite a list that does not have a walltime estimate
+
+          mac001> grep -L WALLTIME *.m
+          constructalloptions.m
+          inspect_bug1093.m
+          inspect_bug1223.m
+          inspect_bug1474.m
+          inspect_qsubcellfun4.m
+          ref_datasets.m
+          sourceanalysisDICS.m
+          test_bug1403.m
+          test_bug1425.m
+          test_bug1707.m
+          test_bug1820.m
+          test_bug1913.m
+          test_bug1976.m
+          test_bug2004.m
+          test_bug2027.m
+          test_bug2033.m
+          test_bug2085.m
+          test_bug2148.m
+          test_bug46.m
+          test_bug686.m
+          test_ft_conjunctionanalysis.m
+          test_ft_connectivityanalysis.m
+          test_ft_topoplotER.m
+          test_headmodel_interpolate.m
+          test_headmodel_simbio.m
+          test_nanstat.m
+          test_tutorial_coherence.m
+          test_tutorial_connectivity.m
+          test_tutorial_connectivity2.m
+          test_tutorial_connectivity3.m
+          test_tutorial_sensor_analysis.m
+          test_tutorial_tmseeg.m
+
+          this is due to them not being on the dashboard page, or having an unknown execution status.
+      - +@isprivate: "0"
+        commentid: "11474"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-26 18:20:15 +0200
+        thetext: I have inserted a memtic/memtoc command in the run-test.ss script. Let's see whether we can gather some memory estimates.
+      - +@isprivate: "0"
+        commentid: "11683"
+        comment_count: "4"
+        attachid: "537"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 14:04:02 +0200
+        thetext: |-
+          Created attachment 537
+          list of small jobs <100MB
+
+          I looked at the latest test run log files and identified all jobs that required less than 100MB additional memory. These should be able to run with mem=1gb, which is both for MATLAB and for the jobs themselves.
+      - +@isprivate: "0"
+        commentid: "11685"
+        comment_count: "5"
+        attachid: "538"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 14:06:14 +0200
+        thetext: |-
+          Created attachment 538
+          list of medium jobs >100MB but <1GB
+
+          I also identified some jobs that required between 100MB  and 1GB of additional memory. These should be able to run with mem=2gb, which is both for MATLAB and for the jobs themselves.
+      - +@isprivate: "0"
+        commentid: "11686"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 14:08:09 +0200
+        thetext: since 272 of the investigated jobs are small, 26 are medium, and the large ones probably did not run through, I think it makes most sense to use a default value of 1gb for all jobs. I.e. if mem is not specified, schedule it with 1gb. All meddium and large jobs should then have a better/larger estimate of mem in their m-file.
+      - +@isprivate: "0"
+        commentid: "11687"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 14:23:02 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          I added a proper memory estimate to a large number of the test scripts. I also added 1gb to the small ones, as it makes it easier to distinguish the ones that are small from the ones that are unknown.
+
+          Committed revision 8641.
+
+
+          The following ones still need "MEM 2gb" added to them, as the command line scripting failed to deal with them.
+
+          test_ft_spike_isi.m
+          test_ft_spike_jpsth.m
+          test_tutorial_spike.m
+
+
+          The following ones still need "MEM 1gb" added to them, as the command line scripting failed to deal with them.
+
+          test_bug1207.m
+          test_bug1404.m
+          test_ft_plot_box.m
+          test_ft_plot_dipole.m
+          test_ft_plot_headshape.m
+          test_ft_plot_lay.m
+          test_ft_plot_line.m
+          test_ft_plot_matrix.m
+          test_ft_plot_ortho.m
+          test_ft_plot_sens.m
+          test_ft_plot_slice.m
+          test_ft_plot_text.m
+          test_ft_plot_topo3d.m
+          test_ft_plot_topo.m
+          test_ft_plot_vector.m
+          test_ft_spikedensity.m
+          test_ft_spike_maketrials.m
+          test_ft_spike_plot_isireturn.m
+          test_ft_spike_plot_raster.m
+          test_ft_spike_psth.m
+          test_ft_spike_rate.m
+          test_ft_spiketriggeredspectrum_stat.m
+          test_ft_spiketriggeredspectrum.m
+          test_ft_spike_xcorr.m
+          test_tutorial_spikefield.m
+          test_tutorial_spike_Neurosim.m
+      - +@isprivate: "0"
+        commentid: "11712"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-27 11:40:21 +0100
+        thetext: "(In reply to comment #7)\n\nI dealt with MEM and WALLTIME for the test scripts in contrib/spike/test, except for \n  test_tutorial_spike.m  \n  test_tutorial_spikefield.m\nwhich need more than the present defaults. The proper values for these should still be assessed.\n\nI also dealt with the test scripts in plotting/test, setting MEM to 1gb and WALLTIME to 3 minutes for each.\n\n\nCommitted revision 8644"
+      - +@isprivate: "0"
+        commentid: "11715"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-27 12:18:04 +0100
+        thetext: "in revision 8645 I have added WALLTIME and MEM estimates to a large number of scripts in fieldtrip/test, again largely using some automatic command-line scripting (i.e. not manually)\n\nScripts that presently do not have these estimates are\n\nmbp> grep -L WALLTIME test*.m\ntest_bug1707.m\ntest_bug1820.m\ntest_bug1913.m\ntest_bug1976.m\ntest_bug2033.m\ntest_bug2085.m\ntest_bug2205.m\ntest_headmodel_interpolate.m\ntest_headmodel_simbio.m\ntest_tutorial_coherence.m\ntest_tutorial_sensor_analysis.m\ntest_tutorial_tmseeg.m\n\nmbp> grep -L MEM test*.m\ntest_bug1976.m\ntest_bug1988.m\ntest_bug2033.m\ntest_bug2205.m\ntest_fieldtrip2fiff.m\ntest_ft_datatype.m\ntest_ft_prepare_headmodel.m\ntest_ft_sourceanalysis.m\ntest_headmodel_interpolate.m\ntest_qsubcellfun.m\ntest_tutorial_beamformer.m\ntest_tutorial_beamformer20120321.m\ntest_tutorial_beamforming_extended.m\ntest_tutorial_headmodel_eeg.m\ntest_tutorial_headmodel_meg.m\ntest_tutorial_tmseeg.m\n\nThese might very well be scripts that presently fail because of a detected error, or because they failed to complete in the default allocated time or memory. Since the majority of the scripts now has very tight estimates for the WALLTIME and MEM, it is now fine to run the whole collection with very loose defaults (since most scripts don't need the defaults any more). \n\nI have update the dashboard default settings to 8gb and 8 hours."
+      - +@isprivate: "0"
+        commentid: "11716"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-27 13:21:57 +0100
+        thetext: |-
+          For these ones I had either WALLTIME or MEM (or both) limits, but nevertheless they resulted in "job violates resource utilization policies". I have removed both settings, the next time they will run with the large defaults.
+
+          test_bug1408.m
+          test_bug1756.m
+          test_bug1794.m
+          test_bug1820.m
+          test_headmodel_simbio.m
+          test_tutorial_clusterpermutationtimelock.m
+          test_tutorial_coherence.m
+          test_tutorial_eventrelatedstatistics.m
+          test_tutorial_sensor_analysis.m
+
+          Committed revision 8648.
+      - +@isprivate: "0"
+        commentid: "11719"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-28 09:30:55 +0100
+        thetext: |-
+          I have added estimates to some more scripts (rev 8649).
+
+          The following two fail to run according to the dashboard, but do have walltime and mem. They seem to complete correct only intermittently.
+
+          test_bug1646.m
+          test_ft_prepare_localspheres.m
+
+          The following ones do not have mem and.or walltime estimates yet.
+
+          test_bug1707.m
+          test_bug1820.m
+          test_bug1913.m
+          test_bug2033.m
+          test_ft_prepare_headmodel.m
+          test_headmodel_interpolate.m
+          test_headmodel_simbio.m
+          test_tutorial_tmseeg.m
+      - +@isprivate: "0"
+        commentid: "11721"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-28 09:44:10 +0100
+        thetext: "(In reply to comment #11)\n\nI tested the first two, they ran through just fine. \n\nI have extended the mem and walltime a bit.\n\nSending        test_bug1646.m\nSending        test_ft_prepare_localspheres.m\nTransmitting file data ..\nCommitted revision 8651."
+      - +@isprivate: "0"
+        commentid: "11723"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-28 10:02:31 +0100
+        thetext: |-
+          There ones failed on the latest run with a "job violates resource utilization policies" message, which I believe indicates a memory problem. Hence I increased the mem with 1gb.
+
+          roboos@mentat001> svn commit
+          Sending        test/test_bug1646.m
+          Sending        test/test_bug1967a.m
+          Sending        test/test_fieldtrip2fiff.m
+          Sending        test/test_qsubcellfun.m
+          Sending        test/test_tutorial_beamformer20120321.m
+          Sending        test/test_tutorial_beamforming_extended.m
+          Sending        test/test_tutorial_clusterpermutationtimelock.m
+          Sending        test/test_tutorial_coherence.m
+          Sending        test/test_tutorial_eventrelatedstatistics.m
+          Sending        test/test_tutorial_headmodel_eeg.m
+          Sending        test/test_tutorial_sensor_analysis.m
+          Transmitting file data ...........
+          Committed revision 8653.
+      - +@isprivate: "0"
+        commentid: "11880"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-06 17:04:27 +0100
+        thetext: |-
+          it is working reasonably well, were it not that our network or fileserver is acting up, causing some jobs to take randomly longer.
+
+          As of recently the torque job output contains the user resources. I used the following to get a list:
+
+          roboos@mentat001> for file in test_*.m ; do f=`basename $file .m`; echo ---------- $f ---------- ; grep MEM $f.m ; grep WALLTIME $f.m ; grep 'Used resources' /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/$f.txt ; done > out
+
+          It failed on these files
+
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_bug1820.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_bug472.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_ft_analysisprotocol.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_ft_datatype.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_ft_prepare_headmodel.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_ft_sourceanalysis.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_headmodel_simbio.txt: No such file or directory
+          grep: /home/mrphys/roboos/fieldtrip/dashboard/logs/r8723/test_tutorial_headmodel_eeg.txt: No such file or directory
+
+          I went through all results that I captured and made a lot of small updates.
+
+          Committed revision 8727.
+      - +@isprivate: "0"
+        commentid: "16787"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-05 13:14:19 +0100
+        thetext: I think all have a decent walltime and mem
+      - +@isprivate: "0"
+        commentid: "17485"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:49 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "537"
+        date: 2013-10-25 14:04:00 +0200
+        delta_ts: 2013-10-25 14:04:02 +0200
+        desc: list of small jobs <100MB
+        filename: smallmemjobs.txt
+        type: text/plain
+        size: "5648"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "538"
+        date: 2013-10-25 14:06:00 +0200
+        delta_ts: 2013-10-25 14:06:14 +0200
+        desc: list of medium jobs >100MB but <1GB
+        filename: mediummemjobs.txt
+        type: text/plain
+        size: "491"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

@@ -1,0 +1,110 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3035"
+    creation_ts: 2016-01-08 15:13:00 +0100
+    short_desc: ft_apply_montage incorrectly deals with channels containing NaNs
+    delta_ts: 2023-01-20 17:22:17 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - f.vanede
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16575"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-01-08 15:13:41 +0100
+        thetext: |-
+          This was found by Freek. ft_componentanalysis was run on an EEG data set, using only the EEG channels. Additionally, the EEG data set contained some eye tracker channels (which were not used for the component analysis). These eye tracker channels had NaNs in them. After ft_rejectcomponent (using the extra 3rd input argument), the output data also contained NaNs, even though none of the EEG channels contained NaNs. As a check, I subselected only the EEG channels in the original data prior to ft_rejectcomponent. In this case, no NaNs were present in the output.
+
+          This indicates a problem in ft_rejectcomponent (and/or ft_apply_montage) in selecting the appropriate channels from the data input based on comp.topolabel of the second input.
+
+          I'm writing a test script and hope to be able to fix this.
+      - +@isprivate: "0"
+        commentid: "16576"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-01-08 15:55:05 +0100
+        thetext: |-
+          eelke@eelkebox:~/repos/fieldtrip/test$ svn commit test_bug3035.m
+          Adding         test_bug3035.m
+          Transmitting file data .
+          Committed revision 11045.
+
+          I've copied the required test data (as loaded by the test script) to /home/common/matlab/fieldtrip/data/test/bug3035/bug.mat
+      - +@isprivate: "0"
+        commentid: "16577"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-01-08 17:31:46 +0100
+        thetext: Fortunately the problem is less big than I previously thought; it's not a scrambling of channels. ft_apply_montage deals with channels not mentioned in the montage structure labels by concatenating an identity-matrix block to the montage.tra matrix before multiplication (or, alternatively, in case of keepunused='no', by concatenating an all-zeros block only to one edge of the matrix). This works fine when the data has no NaNs, since 0*x==0 and 1*x==1 for any real x, but when x is NaN, this does not hold.
+      - +@isprivate: "0"
+        commentid: "16578"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-01-08 17:32:25 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #2)
+          > 1*x==1
+          1*x==x of course
+      - +@isprivate: "0"
+        commentid: "16584"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2016-01-08 18:20:48 +0100
+        thetext: "eelke@eelkebox:~/repos/fieldtrip$ svn commit test/test_bug3035.m forward/ft_apply_montage.m \nSending        forward/ft_apply_montage.m\nSending        test/test_bug3035.m\nTransmitting file data ..\nCommitted revision 11046.\n\nI added an explicit check on NaNs, now throwing an error rather than just mixing them into the output."
+      - +@isprivate: "0"
+        commentid: "20149"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:32:45 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20611"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2023-01-20 17:22:17 +0100
+        thetext: see also https://github.com/fieldtrip/fieldtrip/issues/2169

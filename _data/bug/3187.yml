@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3187"
+    creation_ts: 2016-10-21 10:03:00 +0200
+    short_desc: matlab version specific behavior of cfg-tracking (cleanup)
+    delta_ts: 2022-11-10 09:24:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: RESOLVED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17838"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-21 10:03:06 +0200
+        thetext: "Here's the problem: \n\nstarting from >=matlab2015b the cfg-tracking leads to different results compared to <=matlab2014b (I haven't checked matlab2015a).\n\nI came across this when doing a simple ft_freqanalysis (without any fancy cfg arguments: importantly the cfg.channel defaulted to 'all')\n\nThe function call crashes >=matlab2015b (with ft_default.trackconfig = 'cleanup', not when ft_default.trackconfig = 'off').\n\nI tracked this down to a difference in the output of the call to ft_selectdata, where the dataout.cfg contains a channel field (enumerated list of labels) for the older matlab versions, whereas the dataout.cfg.channel field is not present in output from a newer version. \n\nLooking a bit further into this, it seems that the config bookkeeping (i.e. tracking access to config fields in the config object) works slightly differently in both versions.\n\nFor now it can be worked around by specifying ft_default.trackconfig = 'off', but it may be relevant to look into at some point."
+      - +@isprivate: "0"
+        commentid: "18231"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-17 14:19:02 +0100
+        thetext: I narrowed it down to the @config/private/increment function not incrementing for 2015b.
+      - +@isprivate: "0"
+        commentid: "18232"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-17 14:52:21 +0100
+        thetext: "So, in short: there seems to be an issue with the low level tracking of referencing/assigning fields of a config object.\n\nThis is reproducible on Linux (DCCN cluster) and my Macbook, comparing MATLAB2014b and MATLAB2015b\n\nto reproduce:\n\ncfg = struct([]);\ncfg = config(cfg);\ncfg.somefield = 'somevalue';\ny = cfg.somefield;\naccess(cfg)\n\n\ngives expected output for 2014b, but not for 2015b\n\nFor now, as discussed with Robert, I will override any trackconfig value other than 'off' in ft_checkconfig when the Matlab version is > 2015a (to be safe), \n\nand assign the bug to Robert"
+      - +@isprivate: "0"
+        commentid: "18269"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-23 10:33:08 +0100
+        thetext: |-
+          some update:
+
+          I recompiled the @config/private/*.c files with matlab2016b.
+          The compilation went fine, but the functions still don't work as expected.
+          Interestingly, when compiled with 2016b the functionality is preserved in lower matlab versions (<=2014b). So it seems as if matlab all of a sudden prevents adjustment of the right hand side argument. I recompiled an own version of increment.c including a printf, and indeed, although internally the variable increments, the workspace variable doesn't.
+
+          I googled around a bit, and there's some chatter about an mxUnshareArray function (undocumented matlab), but I couldn't get this to work, because it requires the <iostream> library and somehow I can't get this compiled.
+      - +@isprivate: "0"
+        commentid: "18393"
+        comment_count: "4"
+        attachid: "828"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-02-09 12:18:47 +0100
+        thetext: |-
+          Created attachment 828
+          low level pointers to mex-file variables matlab version 2013b
+      - +@isprivate: "0"
+        commentid: "18394"
+        comment_count: "5"
+        attachid: "829"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-02-09 12:19:14 +0100
+        thetext: |-
+          Created attachment 829
+          low level pointers to mex-file variables matlab version 2016b
+      - +@isprivate: "0"
+        commentid: "20610"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2022-11-10 09:24:33 +0100
+        thetext: the config object will be removed from FieldTrip, see https://github.com/fieldtrip/fieldtrip/issues/2127
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "828"
+        date: 2017-02-09 12:18:00 +0100
+        delta_ts: 2017-02-09 12:18:47 +0100
+        desc: low level pointers to mex-file variables matlab version 2013b
+        filename: myincrement2013.png
+        type: image/png
+        size: "141039"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "829"
+        date: 2017-02-09 12:19:00 +0100
+        delta_ts: 2017-02-09 12:19:14 +0100
+        desc: low level pointers to mex-file variables matlab version 2016b
+        filename: myincrement2016.png
+        type: image/png
+        size: "90879"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED

@@ -1,0 +1,193 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1027"
+    creation_ts: 2011-10-10 13:25:00 +0200
+    short_desc: Error when running artf rejection with unequal trial lengths
+    delta_ts: 2011-10-26 16:22:05 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.a.kloosterman
+      +@name: Niels Kloosterman
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3471"
+        comment_count: "0"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-10-10 13:25:01 +0200
+        thetext: |-
+          Hello,
+
+          When I run artifact rejection on my continuous dataset containing variable trial lengths, I get the error listed below. My guess is that ft_artifact_zvalue does not handle the variable trial lengths correctly, so plotting separate trials goes wrong. I have attached a data struct with 3 trials, so you can try it for yourself. With previous versions of ft it worked.
+
+
+
+          Index exceeds matrix dimensions.
+
+          Error in ==> ft_artifact_zvalue>redraw_cb at 803
+            plot(xval(selpad), data(selpad), 'color', [0.5 0.5 1], 'displayname', 'line1');
+
+          Error in ==> ft_artifact_zvalue at 358
+            redraw_cb(h);
+
+          Error in ==> MIBexp_artefact_EOG at 25
+          [cfg, artf_eog] = ft_artifact_zvalue(cfg);
+
+          Error in ==> MIBexp_preproc at 17
+                      MIBexp_artefact_EOG                 %%%% Automatic Artifact detection scripts
+
+          Error in ==> MIBexp_preproc_peersetup at 77
+          cellfun(@MIBexp_preproc, cfg1, cfg2, cfg3, outputfile);
+
+
+
+
+           I tried running artifact rejection with the parameters below. It does plot the run overview, but gives the error when plotting single trials (data and z-scored). I use cfg1.padding = 1.
+
+          % MIBexp_artefact_EOG
+          disp('Looking for EOG artifacts . . .')
+          cfg     = [];
+          cfg.datafile = cfg1.datafile;
+          cfg.headerfile = cfg1.datafile;
+          cfg.headerformat = cfg1.headerformat;
+          cfg.trl = data.cfg.trl;
+          % cfg.padding = 1;
+          cfg.continuous = 'yes';
+          % cutoff and padding
+          % select a set of channels on which to run the artifact detection (e.g. can be 'MEG')
+          cfg.artfctdef.zvalue.channel = 'EOG';
+          cfg.artfctdef.zvalue.cutoff      = 4;
+          cfg.artfctdef.zvalue.trlpadding  = 0.5*cfg1.padding;
+          cfg.artfctdef.zvalue.artpadding  = 0.1*cfg1.padding;
+          cfg.artfctdef.zvalue.fltpadding  = 0.1*cfg1.padding;
+          % algorithmic parameters
+          cfg.artfctdef.zvalue.bpfilter   = 'yes';
+          cfg.artfctdef.zvalue.bpfilttype = 'but';
+          cfg.artfctdef.zvalue.bpfreq     = [1 15];
+          cfg.artfctdef.zvalue.bpfiltord  = 4;
+          cfg.artfctdef.zvalue.hilbert    = 'yes';
+          % feedback
+          cfg.artfctdef.zvalue.interactive = 'yes';
+          [cfg, artf_eog] = ft_artifact_zvalue(cfg);
+
+
+          I hope you can figure it out! Thanks for your help,
+
+          Niels
+      - +@isprivate: "0"
+        commentid: "3472"
+        comment_count: "1"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-10-10 13:28:05 +0200
+        thetext: Adding attachment does not work. Let me know if you need it and if the server allows uploading attachments.
+      - +@isprivate: "0"
+        commentid: "3613"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-19 15:34:40 +0200
+        thetext: |-
+          Hi Niels,
+
+          The data seems to have gone missing; could you upload it again?
+      - +@isprivate: "0"
+        commentid: "3626"
+        comment_count: "3"
+        attachid: "167"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-10-19 18:15:39 +0200
+        thetext: |-
+          Created attachment 167
+          data containing 3 trials of unequal length. causes art rejection to crash
+      - +@isprivate: "0"
+        commentid: "3629"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-20 09:38:29 +0200
+        thetext: |-
+          Hi Niels,
+
+          Thanks for posting the bug and adding the data. I think I fixed it now. The fix should be available on google code soon, or otherwise in tonight's release.
+          Could you verify this?
+
+          Fixed with release 4529
+      - +@isprivate: "0"
+        commentid: "3636"
+        comment_count: "5"
+        who:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        bug_when: 2011-10-20 12:40:22 +0200
+        thetext: "Hey Jan-Mathijs,\n\nIt works, thanks. \n\nOne other note: I get a huge list of warnings now when I try to read in my neuromag 306 channel data. Not sure if this is critical. Please let me know if you need raw data, one fif file is 1GB so we might need an ftp server for this.\n\nCheers,\n\nNiels\n\n\n>> cfg.dataset='AK121011_run1_tsss.fif'\n\ncfg = \n\n    dataset: 'AK121011_run1_tsss.fif'\n\n>> data=ft_preprocessing(cfg)\n\t306 MEG channel locations transformed\nOpening raw data file AK121011_run1_tsss.fif...\n\tRange : 9920 ... 786159  =      7.936 ...   628.927 secs\nReady.\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 71\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 166\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 208\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 217\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 226\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 262\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 277\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 315\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 319\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 323\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 340\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 349\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 358\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 362\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 271\n  In ft_chantype at 366\n  In ft_chantype at 413\n  In fileio/private/ft_datatype_sens at 124\n  In ft_read_header at 1445\n  In ft_preprocessing at 360\nprocessing channel { 'MEG0113' 'MEG0112' 'MEG0111' 'MEG0122' 'MEG0123' 'MEG0121' 'MEG0132' 'MEG0133' 'MEG0131' 'MEG0143' 'MEG0142' 'MEG0141' 'MEG0213' 'MEG0212' 'MEG0211' 'MEG0222' 'MEG0223' 'MEG0221' 'MEG0232' 'MEG0233' 'MEG0231' 'MEG0243' 'MEG0242' 'MEG0241' 'MEG0313' 'MEG0312' 'MEG0311' 'MEG0322' 'MEG0323' 'MEG0321' 'MEG0333' 'MEG0332' 'MEG0331' 'MEG0343' 'MEG0342' 'MEG0341' 'MEG0413' 'MEG0412' 'MEG0411' 'MEG0422' 'MEG0423' 'MEG0421' 'MEG0432' 'MEG0433' 'MEG0431' 'MEG0443' 'MEG0442' 'MEG0441' 'MEG0513' 'MEG0512' 'MEG0511' 'MEG0523' 'MEG0522' 'MEG0521' 'MEG0532' 'MEG0533' 'MEG0531' 'MEG0542' 'MEG0543' 'MEG0541' 'MEG0613' 'MEG0612' 'MEG0611' 'MEG0622' 'MEG0623' 'MEG0621' 'MEG0633' 'MEG0632' 'MEG0631' 'MEG0642' 'MEG0643' 'MEG0641' 'MEG0713' 'MEG0712' 'MEG0711' 'MEG0723' 'MEG0722' 'MEG0721' 'MEG0733' 'MEG0732' 'MEG0731' 'MEG0743' 'MEG0742' 'MEG0741' 'MEG0813' 'MEG0812' 'MEG0811' 'MEG0822' 'MEG0823' 'MEG0821' 'MEG0913' 'MEG0912' 'MEG0911' 'MEG0923' 'MEG0922' 'MEG0921' 'MEG0932' 'MEG0933' 'MEG0931' 'MEG0942' 'MEG0943' 'MEG0941' 'MEG1013' 'MEG1012' 'MEG1011' 'MEG1023' 'MEG1022' 'MEG1021' 'MEG1032' 'MEG1033' 'MEG1031' 'MEG1043' 'MEG1042' 'MEG1041' 'MEG1112' 'MEG1113' 'MEG1111' 'MEG1123' 'MEG1122' 'MEG1121' 'MEG1133' 'MEG1132' 'MEG1131' 'MEG1142' 'MEG1143' 'MEG1141' 'MEG1213' 'MEG1212' 'MEG1211' 'MEG1223' 'MEG1222' 'MEG1221' 'MEG1232' 'MEG1233' 'MEG1231' 'MEG1243' 'MEG1242' 'MEG1241' 'MEG1312' 'MEG1313' 'MEG1311' 'MEG1323' 'MEG1322' 'MEG1321' 'MEG1333' 'MEG1332' 'MEG1331' 'MEG1342' 'MEG1343' 'MEG1341' 'MEG1412' 'MEG1413' 'MEG1411' 'MEG1423' 'MEG1422' 'MEG1421' 'MEG1433' 'MEG1432' 'MEG1431' 'MEG1442' 'MEG1443' 'MEG1441' 'MEG1512' 'MEG1513' 'MEG1511' 'MEG1522' 'MEG1523' 'MEG1521' 'MEG1533' 'MEG1532' 'MEG1531' 'MEG1543' 'MEG1542' 'MEG1541' 'MEG1613' 'MEG1612' 'MEG1611' 'MEG1622' 'MEG1623' 'MEG1621' 'MEG1632' 'MEG1633' 'MEG1631' 'MEG1643' 'MEG1642' 'MEG1641' 'MEG1713' 'MEG1712' 'MEG1711' 'MEG1722' 'MEG1723' 'MEG1721' 'MEG1732' 'MEG1733' 'MEG1731' 'MEG1743' 'MEG1742' 'MEG1741' 'MEG1813' 'MEG1812' 'MEG1811' 'MEG1822' 'MEG1823' 'MEG1821' 'MEG1832' 'MEG1833' 'MEG1831' 'MEG1843' 'MEG1842' 'MEG1841' 'MEG1912' 'MEG1913' 'MEG1911' 'MEG1923' 'MEG1922' 'MEG1921' 'MEG1932' 'MEG1933' 'MEG1931' 'MEG1943' 'MEG1942' 'MEG1941' 'MEG2013' 'MEG2012' 'MEG2011' 'MEG2023' 'MEG2022' 'MEG2021' 'MEG2032' 'MEG2033' 'MEG2031' 'MEG2042' 'MEG2043' 'MEG2041' 'MEG2113' 'MEG2112' 'MEG2111' 'MEG2122' 'MEG2123' 'MEG2121' 'MEG2133' 'MEG2132' 'MEG2131' 'MEG2143' 'MEG2142' 'MEG2141' 'MEG2212' 'MEG2213' 'MEG2211' 'MEG2223' 'MEG2222' 'MEG2221' 'MEG2233' 'MEG2232' 'MEG2231' 'MEG2242' 'MEG2243' 'MEG2241' 'MEG2312' 'MEG2313' 'MEG2311' 'MEG2323' 'MEG2322' 'MEG2321' 'MEG2332' 'MEG2333' 'MEG2331' 'MEG2343' 'MEG2342' 'MEG2341' 'MEG2412' 'MEG2413' 'MEG2411' 'MEG2423' 'MEG2422' 'MEG2421' 'MEG2433' 'MEG2432' 'MEG2431' 'MEG2442' 'MEG2443' 'MEG2441' 'MEG2512' 'MEG2513' 'MEG2511' 'MEG2522' 'MEG2523' 'MEG2521' 'MEG2533' 'MEG2532' 'MEG2531' 'MEG2543' 'MEG2542' 'MEG2541' 'MEG2612' 'MEG2613' 'MEG2611' 'MEG2623' 'MEG2622' 'MEG2621' 'MEG2633' 'MEG2632' 'MEG2631' 'MEG2642' 'MEG2643' 'MEG2641' 'STI001' 'STI002' 'STI003' 'STI004' 'STI005' 'STI006' 'STI007' 'STI008' 'STI009' 'STI010' 'STI011' 'STI012' 'STI013' 'STI014' 'STI015' 'STI016' 'EOG061' 'ECG062' 'MISC001' 'STI101' 'STI201' 'STI301' }\nreading and preprocessing\nreading and preprocessing trial 1 from 1\nReading 9920 ... 786159  =      7.936 ...   628.927 secs... [done]\nthe call to \"ft_preprocessing\" took 19 seconds and an estimated 1949 MB\n\ndata = \n\n           hdr: [1x1 struct]\n         label: {328x1 cell}\n          time: {[1x776240 double]}\n         trial: {[328x776240 double]}\n       fsample: 1250\n    sampleinfo: [1 776240]\n          grad: [1x1 struct]\n           cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "3637"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-20 12:43:48 +0200
+        thetext: Yeah, I saw it too. For the time being it is not critical. You can switch it off by setting warning off before the function call.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "157"
+        date: 2011-10-10 13:25:00 +0200
+        delta_ts: 2011-10-10 13:25:01 +0200
+        desc: preproc data with 3 trials of unequal length. Might cause the bug
+        filename: exampledata_bugrep.mat
+        type: application/x-matlab-workspace
+        size: "0"
+        attacher:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "167"
+        date: 2011-10-19 18:15:00 +0200
+        delta_ts: 2011-10-19 18:15:39 +0200
+        desc: data containing 3 trials of unequal length. causes art rejection to crash
+        filename: example_data.mat
+        type: application/x-matlab-workspace
+        size: "10391437"
+        attacher:
+          +content: n.a.kloosterman
+          +@name: Niels Kloosterman
+        data: REMOVED

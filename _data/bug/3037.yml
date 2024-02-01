@@ -1,0 +1,197 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3037"
+    creation_ts: 2016-01-08 22:06:00 +0100
+    short_desc: Inconsistent results with ft_dipolefitting
+    delta_ts: 2016-06-14 16:14:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: francois.tadel
+      +@name: François Tadel
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16586"
+        comment_count: "0"
+        attachid: "764"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-08 22:06:54 +0100
+        thetext: |-
+          Created attachment 764
+          Example data and results
+
+          I get wrong results from ft_dipolefitting after an update to a new version of FieldTrip: 20151001 gives good results, 20160107 gives wrong results.
+
+          Attached: example of fitting a dipole 100ms after a simple auditory stim.
+          - input.mat: contains the "cfg" and "data" variables in input
+          - test_dipolefitting: illustrates how the code is executed
+          - 20151001.jpg and 20160107.jpg: illustrates the results
+
+          Is it the way to interpret the input structures that changed or is there a new bug somewhere?
+      - +@isprivate: "0"
+        commentid: "16589"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-09 12:11:25 +0100
+        thetext: "thanks for reporting and the initial triage. \n\nFirst thing that comes to mind looking at the screenshots is that it is a unit mismatch. That might be a bug introduced not in the dipole fitting code, but elsewhere in the FT data handling sections.\n\nI'll have a look at the data as well."
+      - +@isprivate: "0"
+        commentid: "16590"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-09 12:38:45 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\n>> cfg.grid\nans = \n       pos: [1524x3 double]\n    inside: [1524x1 double]\n\ndoes not specify unit='m' (ideally it should), but it is consistent with grad and headmodel units.\n\nAfter grid search but before nonlinear optimization I get\n\nfound minimum after scanning for topography 1 on grid point [-0.0724206 -0.021562 0.0484371]\n\nwhich is also an OK coordinate (in meter).\n\nAfter nonlinear I get\n\n>> dip1.dip\n\nans = \n\n     pos: [3.7980 0.2000 0.6490]\n     mom: [3x1 double]\n     pot: [274x1 double]\n      rv: 0.9532\n    unit: 'm'\n\n\nwhich is consistent with your figure of the dipole being 3 meters away.\n\nBut what strikes me is that the residual variance is nearly 100%. Also during nonlinear fitting it decreases only from 97 to 95 percent. So the fit is simply very bad. \n\n\nI notice you use a multiple spheres model. We don't use those in Nijmegen any more. So those parts of the code don't get used that often.\n\nIf I do it with a single sphere like this\n\ncfg.headmodel = [];\ncfg.headmodel.r = 0.12\ncfg.headmodel.o = [0 0 0.04];\ncfg.headmodel.unit = 'm'\ndip2 = ft_dipolefitting(cfg, ftData)\n\nI get a RV of 55%. Still very bad."
+      - +@isprivate: "0"
+        commentid: "16591"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-09 13:07:37 +0100
+        thetext: "Let's take a step back.\n\nwith \n  ft_multiplotER([], ftData)\nI see a clean ERF, which might be the result of auditory stimulation? The ERF is strong on the right side, much weaker (but not absent) on the left side. A single dipole does not seem like the most appropriate model, a dipole.\n\nAh, messing around with the data and cfg I suddenly notice that you have\ncfg.channels: {1x274 cell}\nwhereas it should be cfg.channel without the S. .... Nope, does not make a difference. Although it defaults to cfg.channel='all', the head model only has the 274, so it is still what you would want.\n\nHmm, no luck identifying the cause of the difference yet. \n\nSummary so far: the data is perhaps not ideal for a single dipole, the localspheres model is not frequently used by us, the 2*4 coils per channel different from our default (although it is actually better than our 2 coil per channel default). \n\nThe combination between the localspheres and the 2*4 coil representation of channels has never been explicitly considered when writing or updating the code, so that is a risk. But that has always been the case in FT code, and you write that it worked before, so I think that I should better be looking for something that is due to changes to FT rather than something that has always been the case. \n\nAh, trying out a symmetric two-dipole model I just found a bug in a piece of code that did change over the last few months and that relates to localspheres.\n\nBut I now have to join the family, shopping for the weekend... to be followed up."
+      - +@isprivate: "0"
+        commentid: "16595"
+        comment_count: "4"
+        attachid: "765"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-11 18:23:11 +0100
+        thetext: |-
+          Created attachment 765
+          Test data
+      - +@isprivate: "0"
+        commentid: "16596"
+        comment_count: "5"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-11 18:24:40 +0100
+        thetext: |-
+          Thanks for looking into this!
+
+          I did the changes you suggested:
+          - grid.unit = 'm'
+          - .channel instead of .channels
+
+          It's true that this bilateral response is not the best to test the single dipole fitting. I attached here a better example, a left median nerve stim, 30ms post-stim.
+
+          I identified the dates of the change in behavior:
+          - fieldtrip-lite-20151005: Works
+          - fieldtrip-lite-20151006: Doesn't work
+      - +@isprivate: "0"
+        commentid: "16597"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-11 23:17:03 +0100
+        thetext: "(In reply to François Tadel from comment #5)\n\nthe double dipole should not be the solution to the bug (but would improve the interpretation of the data), but trying it (in the weekend) did give me an explicit error that I suspect to be pointing to the source of the problem. I am now tied up on a workshop in Marseille, but could you try the following (informal) patch to ft_compute_leadfield?\n\nmac011> svn diff forward/\nIndex: forward/ft_compute_leadfield.m\n===================================================================\n--- forward/ft_compute_leadfield.m\t(revision 11049)\n+++ forward/ft_compute_leadfield.m\t(working copy)\n@@ -155,7 +155,7 @@\n       \n       if isfield(headmodel, 'o')\n         % shift dipole and magnetometers to origin of sphere\n-        dippos = dippos - repmat(headmodel.o, Ndipoles, 1);\n+        dippos  = dippos  - repmat(headmodel.o, Ndipoles, 1);\n         coilpos = coilpos - repmat(headmodel.o, size(coilpos, 1), 1);\n       end\n       \n@@ -191,13 +191,13 @@\n       end\n       \n       lf = zeros(ncoils, 3*Ndipoles);\n-      for chan=1:ncoils\n+      for coil=1:ncoils\n         for dip=1:Ndipoles\n           % shift dipole and magnetometer coil to origin of sphere\n-          dippos = dippos(dip, :) - headmodel.o(chan, :);\n-          chnpos = sens.coilpos(chan, :) - headmodel.o(chan, :);\n-          tmp = meg_leadfield1(dippos, chnpos, sens.coilori(chan, :));\n-          lf(chan, (3*dip-2):(3*dip)) = tmp;\n+          tmppos  = dippos(dip, :) - headmodel.o(coil, :);\n+          coilpos = sens.coilpos(coil, :) - headmodel.o(coil, :);\n+          tmp = meg_leadfield1(tmppos, coilpos, sens.coilori(coil, :));\n+          lf(coil, (3*dip-2):(3*dip)) = tmp;\n         end\n       end\n       \n@@ -217,7 +217,7 @@\n       % tmp2 = 0.01*dippos'; %convert to cm\n       % lf = megfield([tmp2 tmp2 tmp2], [[1 0 0]'*tmp1 [0 1 0]'*tmp1 [0 0 1]'*tmp1]);\n       for dip=1:Ndipoles\n-        R = 0.01*dippos(i, :)'; % convert from cm to m\n+        R = 0.01*dippos(dip, :)'; % convert from cm to m\n         Qx = [1 0 0];\n         Qy = [0 1 0];\n         Qz = [0 0 1];"
+      - +@isprivate: "0"
+        commentid: "16598"
+        comment_count: "7"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-12 01:55:18 +0100
+        thetext: |-
+          Awesome! It looks like it's working!
+          Thanks for the very quick update.
+
+          Is this modification going to be part of fieldtrip-20160112.zip?
+      - +@isprivate: "0"
+        commentid: "16625"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 11:15:54 +0100
+        thetext: |-
+          (In reply to François Tadel from comment #7)
+
+          this is the fix.
+
+          mac011> svn commit ft_compute_leadfield.m
+          Sending        ft_compute_leadfield.m
+          Transmitting file data .
+          Committed revision 11061.
+
+          It will be in the FTP version this evening. I will also send an email to the list.
+      - +@isprivate: "0"
+        commentid: "16630"
+        comment_count: "9"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-15 16:53:56 +0100
+        thetext: |-
+          Thanks!
+          I'll make sure it all works next week.
+      - +@isprivate: "0"
+        commentid: "17501"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:52 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.
+    attachment:
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "764"
+        date: 2016-01-08 22:06:00 +0100
+        delta_ts: 2016-01-11 18:23:11 +0100
+        desc: Example data and results
+        filename: test_dipolefitting.zip
+        type: application/force-download
+        size: "906800"
+        attacher:
+          +content: francois.tadel
+          +@name: François Tadel
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "765"
+        date: 2016-01-11 18:23:00 +0100
+        delta_ts: 2016-01-11 18:23:11 +0100
+        desc: Test data
+        filename: test_dipolefitting2.zip
+        type: application/force-download
+        size: "271828"
+        attacher:
+          +content: francois.tadel
+          +@name: François Tadel
+        data: REMOVED

@@ -1,0 +1,115 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2617"
+    creation_ts: 2014-06-19 15:04:00 +0200
+    short_desc: ft_math, ft_redefinetrial, and dof
+    delta_ts: 2015-01-27 17:16:48 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13889"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 15:04:33 +0200
+        thetext:
+      - +@isprivate: "0"
+        commentid: "13890"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 15:06:15 +0200
+        thetext: (oops, not sure how this bug got committed prior to me filling in any sections!)
+      - +@isprivate: "0"
+        commentid: "13891"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 15:11:06 +0200
+        thetext: "I have the problem that ft_math crashes as it tries to find a non-existent .dof field.\n\nI start with 2 tlock structures:\n\n>> tlock1\n\nans = \n\n       avg: [62x2847 double]\n       var: [62x2847 double]\n      time: [1x2847 double]\n       dof: [62x2847 double]\n     label: {62x1 cell}\n    dimord: 'chan_time'\n       cfg: [1x1 struct]\n\nand tlock2\n\n       avg: [62x2800 double]\n       var: [62x2800 double]\n      time: [1x2800 double]\n       dof: [62x2800 double]\n     label: {62x1 cell}\n    dimord: 'chan_time'\n       cfg: [1x1 struct]\n\nI then want to shift the time axis of tlock2:\n    cfg=[];\n    cfg.offset=70;\n    tlock2_shift=ft_redefinetrial(cfg,tlock2);\n\nwhich now looks like: (note, no .dof field).\n\n          time: [1x2847 double]\n         label: {62x1 cell}\n           cfg: [1x1 struct]\n       fsample: 1000\n    sampleinfo: [1 2847]\n           avg: [62x2847 double]\n        dimord: 'chan_time'\n\nThen adding these fails in ft_math:\n\n    cfg=[];\n    cfg.operation='add';\n    cfg.parameter='avg';\ntlock_add=ft_math(cfg,tlock1,tlock2_shift);\n\nwith this error:\n\nReference to non-existent field 'dof'.\n\nError in ft_selectdata>makeselection (line 424)\nif isnumeric(data.(datfield)) && isrow(data.(datfield)) && seldim==1\n\nError in ft_selectdata (line 279)\n    if fieldhaschan,    varargin{i} = makeselection(varargin{i}, find(ismember(dimtok,{'chan' '{chan}'})), selchan{i},    avgoverchan, datfield{j},\n    cfg.select); end\n\nError in ft_math (line 129)\n[varargin{:}] = ft_selectdata(tmpcfg, varargin{:});\n\n-----------------\nMy question is:  is ft_math wrong for expecting a .dof field, or is ft_redefinetrial wrong for not retaining the .dof?\n\nThank you,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "13892"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 15:13:15 +0200
+        thetext: You might spot an error in my example, but that doesn't change the fundamental problem.   I shifted tlock1 not tlock2.
+      - +@isprivate: "0"
+        commentid: "13893"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 15:36:58 +0200
+        thetext: Or is it a problem in assumptions of ft_selectdata, and/or ft_datatype, and/or ft_checkdata?
+      - +@isprivate: "0"
+        commentid: "13894"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-19 15:43:21 +0200
+        thetext: |-
+          dof is a rather dofficult field. It can be scalar, vector, or have the size of the data itself.
+
+          In this case the problem seems to be in ft_selectdata. It basically loops over all fields, making selections along the way, but some fields are special (trialinfo, sampleinfo, cumtapcnt, and dof).
+
+          I think you should be able to simplify it down to a ft_selectdata failure in a test script.
+      - +@isprivate: "0"
+        commentid: "13896"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 16:14:20 +0200
+        thetext: "I agree with the ft_selectdata.\nOn line 142:\ndatfield  = fieldnames(varargin{1});\n\nBut if datfield does not exist in varargin{n} for n>1, then it causes the problem.\n\nI solved it in my own code by adding to around line 259 (within the for-loop over datfield):\n\nfor i=1:numel(varargin)  \n  for j=1:numel(datfield)\n    if isfield(varargin{i},datfield{j})  % new line\n      ....\n    end % new line\n  end\nend\n\nBut is that too much of a hack, and may  miss things?"
+      - +@isprivate: "0"
+        commentid: "13897"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-19 17:18:34 +0200
+        thetext: "(In reply to Johanna from comment #6)\n\nOh, it is due to dof being present in one, but not the other. I had missed that due to reading the comments to quickly.\n\nIt should not have erred. Your solution is OK, but I would move it to the top.\nI.e. to add the following to line 142\n\nfor i=2:length(varargin)\n  % only consider fields that are present in all inputs\n  datfield = intersect(datfield, fieldnames(varargin{i})); \nend\n\ncould you check whether this solves it? If so, I'll add it to svn (or even better: you can add it).\n\nA second solution that I in principle is also desirable is to add the dof to the output of ft_redefinetrial. But that does not fit in the code very well (due to the timelock2raw conversion), so I would not do that."
+      - +@isprivate: "0"
+        commentid: "13898"
+        comment_count: "8"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-06-19 17:56:33 +0200
+        thetext: "I have tested your suggestion and it works, so I committed it:\n\nzumerj@psychl-132432-1:~/home/fieldtrip_svn$ svn commit utilities/ft_selectdata.m \nSending        utilities/ft_selectdata.m\nTransmitting file data .\nCommitted revision 9640.\n\nChanging status to fixed.  Thank you!"

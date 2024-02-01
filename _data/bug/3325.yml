@@ -1,0 +1,256 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3325"
+    creation_ts: 2017-07-27 02:38:00 +0200
+    short_desc: Proposed enhancement to coloring of sensors/electrodes in ft_plot_sens
+    delta_ts: 2019-08-10 12:36:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sandongriffin
+      +@name: Sandon Griffin
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - a.stolk8
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18811"
+        comment_count: "0"
+        who:
+          +content: sandongriffin
+          +@name: Sandon Griffin
+        bug_when: 2017-07-27 02:38:43 +0200
+        thetext: "Right now, ft_plot_sens allows sensors to be colored using the 'facecolor' option, which, according to the help for ft_plot_sens, can be [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces (default is automatic). \n\nAs it stands right now, if users want to plot individual iEEG electrodes in different colors, they have to manually create a new elec structure for each color electrode or group of electrodes, and then make multiple calls to ft_plot_sens, which can be cumbersome if electrodes are to be colored on a continuous color scale. Thus, I am proposing to add another option to facecolor: an \"Nx3 or Nx1 array where N is the number of electrodes.\"  This would be especially helpful for plotting iEEG electrodes with different colors based on some statistic associated with each electrode. The most simple implementation would be to allow facecolor to be an Nx3 array of [r g b] values or an Nx1 cell array specifying each color as a string (e.g., 'red', 'k', or 'brain'). Although, this would require the user to determine those colors based on the statistics for each electrode before plotting. \n\nI think creating a new \"val\" input, which can be an Nx1 array of numerical values, would be even more convenient. This new option could be implemented into ft_plot_sens the same way it is currently implemented in ft_plot_cloud, and would also require 'colormap' to be given as input if the user wanted to change it from default. I understand that ft_plot_sens is not designed to take in functional data right now, but if it is decided to keep it that way, I think the former option would still be a helpful addition to this function, and I am happy to implement either option."
+      - +@isprivate: "0"
+        commentid: "18847"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-08-20 21:20:08 +0200
+        thetext: Bumping this thread. JM or RO, any thoughts you may have on this?
+      - +@isprivate: "0"
+        commentid: "18848"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-22 11:23:53 +0200
+        thetext: "Color handling should be kept consistent between ft_plot_xxx functions, and where possible made more consistent.\n\nLooking at the present use of multiple color specification, I can find (using grep)\n\nft_plot_cloud.m:% 'intersectcolor' = string, Nx1 cell array, or Nx3 vector specifying line color (default = 'k')\nft_plot_mesh.m:%  'facecolor'      = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces\nft_plot_mesh.m:%  'vertexcolor'    = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of vertices\nft_plot_sens.m:%  'facecolor'      = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces (default is automatic)\nft_plot_vol.m:%   'facecolor'      = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of faces\nft_plot_vol.m:%   'vertexcolor'    = [r g b] values or string, for example 'brain', 'cortex', 'skin', 'black', 'red', 'r', or an Nx3 or Nx1 array where N is the number of vertices\n\n\nI don't see 'val' or anything that resembles it in any of these, except for ft_plot_cloud, ft_plot_topo and ft_plot_topo3d, which are explicitly meant for plotting scalar values on 3-D locations. I also don't think it is appropriate for coloring geometrical objects.\n\nBut I am fine with extending the color options to Nx1 char-array like transpose('rgbrgb') or numeric Nx3 with numbers between 0 and 1. Changes should include fontcolor, edgecolor, and facecolor. \n\nHowever, in case elec/grad/opto=false: how should the option 'style' and the option 'marker' be dealt with? Should those also support a Nx1 char array like transpose('rgbrgb') and transpose('.*+.*+')?\n\nPrior to considering any changes to the ft_plot_sens function itself, I would like to see an example script where it is clear (as in \"predictable\") for each figure that is made how the figure should look like. The example test script should start from gradiometers or opcodes, since electrodes are too simple. \n\nand the test script should vary coil=true/false, chantype=gradiometer/magnetometer/[], coilshape=4 options, marker='.' or '*'.\n\nLike this:\n\n===================================\n\n\ngrad = [];\ngrad.label = {'1', '2', '3'};\ngrad.chantype = {'gradiometer', 'gradiometer', 'magnetometer'};\ngrad.unit = 'mm';\ngrad.coilpos = rand(5,3)*100;\ngrad.coilori = rand(5,3);\nfor i=1:5\n  grad.coilori(i,:) = grad.coilori(i,:) / norm(grad.coilori(i,:));\nend\ngrad.tra = [\n  1 0 0 -1  0\n  0 1 0  0 -1\n  0 0 1  0  0\n  ];\ngrad.chanpos = grad.tra * grad.coilpos;\ngrad.chanori = grad.tra * grad.coilori;\nfor i=1:3\n  grad.chanori(i,:) = grad.chanori(i,:) / norm(grad.chanori(i,:));\nend\n\narg = [];\narg(1).name = 'coil';\narg(1).value = {true, false};\narg(2).name = 'chantype';\narg(2).value = {[], 'gradiometer', 'magnetometer'};\narg(3).name = 'coilshape';\narg(3).value = {'point', 'circle', 'square', 'sphere'};\narg(4).name = 'marker';\narg(4).value = {'.', '*', transpose('.*+')};\narg(5).name = 'style';\narg(5).value = {'r', 'b', 'skin', transpose('rgb')};\n\nopt = constructalloptions(arg);\n\nfor i=1:size(opt,1)\n  figure;\n  ft_plot_sens(grad, opt{i,:});\n  drawnow\n  disp('----------------------------------------');\n  i\n  opt(i,:)\n  disp('press a key'); pause\nend\n\n===================================\n\nHmm, already in the very first plot the current code fails to produce the expected figure. It turns out that 'marker' and 'style' should be mutually exclusive. I will make a fix to the master branch, include this as an initial test script and we can take it from there."
+      - +@isprivate: "0"
+        commentid: "18849"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-22 12:02:39 +0200
+        thetext: "I made a test script for this bug, \n\n[bug3325-ft_plot_sens d76c4e8] made a test script for plotting sensors in preraration for http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3325, found and fixed a bug when marker style (e.g. +) was specified both in the \"style\" option and in the \"marker\" option.\n\nand merged it under https://github.com/fieldtrip/fieldtrip/pull/495\n\nPlease take that as starting point. Not all 1152 combinations of options are relevant for further testing, but please do test the ones that you normally would not think off with iEEG electrodes."
+      - +@isprivate: "0"
+        commentid: "18851"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-08-22 19:43:40 +0200
+        thetext: |-
+          Hey all,
+
+          Since visualizing functional (scalar) data at the electrode level is something that is common when using ECoG, how about we create an ft_electrodeplot, or ft_sensplot, that takes in functional data and plots a scalar representation of it as electrodes (size/color/both) on anatomy? I'm thinking of a function that is complementary to ft_sourceplot. Plotting scalar data on anatomy is nice of course, but can also be suboptimal in some situations (e.g. sulcus coloring is less visible). Another option would be to simply extend ft_sourceplot.
+      - +@isprivate: "0"
+        commentid: "18852"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-08-22 19:54:16 +0200
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #4)
+
+          I like Roemer's thinking. Sandon mentioned to me earlier that the desired feature of electrode coloring (preferably also sporting a colorbar) could easily be added to ft_plot_cloud. ft_plot_cloud is currently called by ft_sourceplot. Should we maybe have another function, e.g. ft_electrodeplot, that calls ft_plot_cloud or ft_plot_sens, or build in the electrode coloring feature into ft_plot_cloud and have ft_sourceplot call it while requiring another cfg option to make it plot colored electrodes instead of clouds.
+      - +@isprivate: "0"
+        commentid: "18853"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-08-22 20:06:27 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #5)
+          It's probably easier to implement the conversion of functional data to RGB values on an a selected colormap (best to use a large colormap, e.g. 1e4+) in such an ft_electrodeplot/etc/ft_sourceplot. Can always be extended to the lower level functions if desired.
+      - +@isprivate: "0"
+        commentid: "18967"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-10-11 02:40:26 +0200
+        thetext: "Thanks for your feedback. Hopefully, we can make use of your advice one more time. \n\nAfter discussing with Sandon, we see two options:\n\n1) create a host of subfunctions that share 90% of the code with ft_plot_cloud but where the end product is slightly different. this would result in functions the likes of ft_plot_sphere (color-coded sphere-shaped electrodes) and ft_plot_point/disc (color-coded disc-shaped electrodes, i.e. the default shape of ft_plot_sens) \n\n2) alternatively, we bring all these under in a single, generic function that switches between the different plotting outputs. as for a name, I was thinking of ft_plot_elec. i know this, indeed, is close in terms of naming to ft_plot_sens, but it sounds better than ft_plot_sensdata, or ft_plot_source? we could also opt for ft_plot_ieeg (im liking this most, actually)?\n\nWhat do you think? Option 1 vs 2, and if 2, what name for the function?"
+      - +@isprivate: "0"
+        commentid: "18973"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-10-13 12:52:37 +0200
+        thetext: "(In reply to Arjen Stolk from comment #7)\n\nI am (general) not in favor of adding functions if the problem at hand can be solved by extending existing functions. However, I am in favor of adding new functions when the feature bloat in existing functions causes them to become too confusing.\n\nExample:\n1) ft_preprocessing (old) is now ft_definetrial + ft_rejectartifact + ft_prepocessing (and some more)\n2) ft_sourceanalysis (old) is now ft_prepare_sourcemodel + ft_prepare_headmodel + ft_sourceanalysis (and some more)\n\nPlotting colored sensors to me seems to be quite easy with something like\n\nft_plot_sens(elec, 'color', rand(Nelec, 3))\njust like \nft_plot_topo3d(elec.elecpos, rand(Nelec, 3))\nor\nft_plot_topo3d(elec.chanpos, rand(Nchan, 3))\n\nThe general confusion between electrodes and channels remains, but making another function is not going to solve that either.\n\nIt might be that ft_plot_sens needs some extra cleanup before such a color option can be added. Reorganizing existing code is usually better (in the long run) than adding more clutter to the code by adding more functions. \n\nI see the value in ft_plot_sens, since I would also like to plot color-coded magnetometer/gradiometer coils. \n\nSeparate from this: I think that ft_plot_cloud should already have the capability of plotting colored spheres/blobs/clouds. \n\nPerhaps the question is to be considered at another level: namely whether it is to be solved in a high-level FT function (one that starts with a cfg as 1st input) versus in a low-leven function (with key-value arguments). High-level functions serve to do bookkeeping, low level functions do the actual work (and are called by the high-level ones). \n\nBut here I am not sure whether the request pertains to plotting functional data, or to plotting electrodes color-coded as groups. The latter might be implemented by adding the option 'elecindex' and doing\n\nft_plot_sens(elec, 'elecindex',  1:10, 'facecolor, 'r')\nft_plot_sens(elec, 'elecindex', 11:20, 'facecolor, 'b')\n\nBut from #c0 and #c6 I take it that it pertains to mapping continuous (hence functional, not categorical) values to color. \n\nCould someone post a snippet of pseudo(?) code that demonstrates the problem that should be solved? E.g. \n\nelec = ft_read_sens('GSN-HydroCel-32.sfp')\ntimelock = [];\ntimelock.time = (1:1000)/1000;\ntimelock.avg = randn(36,1000);\ntimelock.label = elec.label;\nft_plot_sens(elec, 'elec', 1, 'elecshape', 'sphere', 'elecsize', 1, 'facecolor', timelock.avg(:,300))\nor \n\nsource = [];\nsource.pos = elec.chanpos*10;\nsource.unit = 'mm';\nsource.time = (1:1000)/1000;\nsource.avg = randn(36,1000);\n\ncfg = [];\ncfg.method = 'cloud'\ncfg.latency = 0.300;\ncfg.funparameter = 'avg';\nft_sourceplot(cfg, source);"
+      - +@isprivate: "0"
+        commentid: "19018"
+        comment_count: "9"
+        who:
+          +content: sandongriffin
+          +@name: Sandon Griffin
+        bug_when: 2017-11-09 21:21:06 +0100
+        thetext: |-
+          Ideally, I would like to come up with a way to plot electrodes color-coded as groups as well as a way to plot them color-coded according to continuous functional data. These are very different functionalities, but minimal additions to existing plotting functions can address these issues.
+
+          To plot electrodes color-coded as groups, I like Robert's idea of adding an elecidx, or more generally, a sensidx option, which would work as previously described:
+
+          elec = ft_read_sens('GSN-HydroCel-32.sfp');
+          ft_plot_sens(elec, 'sensindex',  1:18, 'facecolor, 'r');
+          ft_plot_sens(elec, 'sensindex', 19:36, 'facecolor, 'b');
+
+          I believe this is more simple than altering how 'facecolor', 'edgecolor', and 'fontcolor' are handled in ft_plot_sens.
+
+
+          As for plotting electrodes color-coded according to continuous functional data, this is actually already achieved by ft_plot_cloud, but right now, ft_plot_cloud can only plot the electrodes as a cloud of points. Therefore, I propose adding a 'cloudtype' option, which can either be 'point' (default) or 'surf', where the latter plots sphere surfaces (note: these inputs are the same as those for the 'slicetype' option in ft_plot_cloud, which only applies when 'slice' = '2d'). For example:
+
+          source = [];
+          source.pos = elec.chanpos;
+          source.unit = 'mm';
+          source.val = rand(36,1);
+
+          cfg = [];
+          cfg.method = 'cloud'
+          cfg.cloudtype = 'surf';
+          cfg.funparameter = 'val';
+          ft_sourceplot(cfg, source);
+
+          We could then extend the 'cloudtype' option to replace the 'slicetype' option in ft_plot_cloud.
+      - +@isprivate: "0"
+        commentid: "19133"
+        comment_count: "10"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-12-08 08:06:19 +0100
+        thetext: |-
+          @Robert: Sandon mentioned it should be relatively straightforward given what he has done already to extend ft_plot_cloud to also accommodate other types of 'functional coloring', that is the plotting of functional data and not the plotting of electrodes color-coded as groups. This includes functionality that scales the size of electrodes as a function of the functional data, similar to related functionalities already built into ft_plot_cloud.
+
+          Alternatively, all this functionality is housed under ft_plot_sens but that isn't as easy as it sounds given that ft_plot_sens might have different expectations on the input. Can you quickly share your .02 so we can start working toward a PR (and maybe create a 'cheatsheet' of plotting options for the protocol).
+      - +@isprivate: "0"
+        commentid: "19407"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-08-14 09:04:37 +0200
+        thetext: |-
+          There's currently an issue still with ft_plot_sens in that specifying 'elecshape' as 'circular' or 'square' will throw an error*. This is because those plotting methods are currently only supported for MEG data.
+
+          A workaround would be to simply not use those options and use the 'style' option. However, the style option does not allow specifying the facealpha and edgealpha. Thus, ideally, ft_plot_sens will not call the plotcoil subfunction when it's not MEG data. Agreed?
+
+
+          *
+          elec.elecpos = [1 1 1; 2 2 2];
+          elec.chanpos = elec.elecpos;
+          elec.label = {'1';'2'};
+          elec.unit = 'mm';
+
+          ft_plot_sens(elec, 'elecshape', 'circle')
+          Index exceeds matrix dimensions.
+
+          Error in ft_plot_sens>plotcoil (line 443)
+            x  = coilori(i,1);
+
+          Error in ft_plot_sens (line 342)
+              plotcoil(pos, ori, [], sensize, sensshape, 'edgecolor', edgecolor, 'facecolor', facecolor, 'edgealpha', edgealpha, 'facealpha', facealpha);
+      - +@isprivate: "0"
+        commentid: "19408"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-15 09:47:26 +0200
+        thetext: "why implement a workaround if the proper solution is obviously to implement these options for elecshape? \n\nThis requires that the orientation is known. An estimate for the orientations for scalp electrodes or opcodes can be constructed by fitting a sphere. For ECoG electrodes that would still be reasonable, for SEEG it would be very poor. But I also don't see a case where those would make sense when plotted as a circle.\n\nmac011> git commit -a\n[bug3325 bfcd23126] determine orientation by fitting a sphere, added support for circle and square for all sensor types\n 5 files changed, 151 insertions(+), 38 deletions(-)\n create mode 100644 plotting/private/fitsphere.m"
+      - +@isprivate: "0"
+        commentid: "19409"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-15 09:49:30 +0200
+        thetext: |-
+          https://github.com/fieldtrip/fieldtrip/pull/772
+
+          See fieldtrip/plotting/test/test_ft_plot_sphere.m
+      - +@isprivate: "0"
+        commentid: "19410"
+        comment_count: "14"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-08-15 19:13:01 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #13)
+          Thanks, I tested it here and it looks good.
+      - +@isprivate: "0"
+        commentid: "19411"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2018-08-15 19:39:04 +0200
+        thetext: |-
+          I was trying to achieve coloring of elecs individuals, as follows:
+
+          figure; ft_plot_sens(elec, 'elec', true, 'marker', 'o', 'facecolor', [1 1 1; 0 0 0], 'edgecolor', [1 0 0; 0 0 1]);
+
+          This makes use of matlab's plot3 functionality, but that functionality doesn't accept non-vector inputs for specifying colors. Do you think we should have ft_plot_sens loop around plot3 to support it, or is it something for the user to decide upon?
+      - +@isprivate: "0"
+        commentid: "19412"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-08-16 12:31:00 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #15)
+
+          I think it would be better to replace line 317-335 with an appropriate call to ft_plot_mesh. That one already supports plotting a cloud of points with different colors. Try for example
+
+          ft_plot_mesh(randn(10,3), 'vertexcolor', rand(10,3))
+      - +@isprivate: "0"
+        commentid: "20337"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:36:46 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

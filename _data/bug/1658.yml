@@ -1,0 +1,83 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1658"
+    creation_ts: 2012-08-16 14:01:00 +0200
+    short_desc: ft_sourcedescriptives should have the option cfg.trials
+    delta_ts: 2017-03-14 12:49:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - dlozanosoldevilla
+      - isheftel
+      - j.schoffelen
+      - johanna.zumer
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7024"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-16 14:01:15 +0200
+        thetext: "ft_sourcedescriptives is used often for averaging of common-filter beamed data with rawtrials=yes. At this moment the users have to manually split the source reconstruction into separate conditions. It makes sense to allow averaging over trials that belong to a specific condition.\n\ne.g. the following is a piece of code from Irina (CC)\n\n\n=======================================================\n% project all trials through common spatial filter %\ncfg=[];\ncfg.method      = 'dics';\ncfg.grid        = grid;       % previously computed grid\ncfg.vol         = vol;        % previously computed volume conduction model\ncfg.grid.filter = source.avg.filter; % use the common filter computed in the previous step!\ncfg.frequency   = opt.foi;\ncfg.rawtrial    = 'yes';      % project each single trial through the filter\ncfg.grad        = dataC1.grad; % this field has been lost when the data were appended\nsource = ft_sourceanalysis(cfg, freq); % contains the source estimates for all trials/both conditions\n% average over tapers, keep single trials %\n \n%% Calculate average for each condition %\nC1 = find(design==1); % find trial numbers belonging to condition A\nC2 = find(design==2); % find trial numbers belonging to condition B\n\nsourceC1 = source;\nsourceC1.trial([C2 C3]) = [];\nsourceC1.cumtapcnt([C2 C3]) = [];\nsourceC1.df = length(C1);\nsourceC1 = ft_sourcedescriptives([], sourceC1); % compute average source reconstruction for condition C1\n \nsourceC2=source;\nsourceC2.trial([C1 C3]) = [];\nsourceC2.cumtapcnt([C1 C3]) = [];\nsourceC2.df = length(C2);\nsourceC2 = ft_sourcedescriptives([], sourceC2); % compute average source reconstruction for condition C2\n \nsourceC1vsC2 = sourceC1;\nsourceC1vsC2.avg.pow = (sourceC2.avg.pow-sourceC1.avg.pow)./sourceC1.avg.pow;\n=======================================================\n\nrather than this, it should be possible to do \n\ncfg.trials = find(design==1);\nsourceC1 = ft_sourcedescriptives(cfg, source);\n\ncfg.trials = find(design==2);\nsourceC2 = ft_sourcedescriptives(cfg, source);"
+      - +@isprivate: "0"
+        commentid: "7043"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-21 13:15:00 +0200
+        thetext: this is a bit at odds with what we talked about some months ago, where the consensus was that no function should support cfg.trials, rather everything should be done via ft_selectdata (or similar) before calling any other function.
+      - +@isprivate: "0"
+        commentid: "11084"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-08-08 10:38:27 +0200
+        thetext: "(In reply to comment #1)\n\nft_sourcedescriptives still does not follow the logic of its relatives ft_freqdescriptives and ft_timelockanalysis regarding trial selection and averaging. The proper source trial average is nonintutite as Robert pointed out.\n\nI tried to use ft_selectdata_new before averaging but I got this error:\n\nK>> cfg=[];\ncfg.trials=rptl;\nx=ft_selectdata_new(cfg,sourcecue)\nUndefined function or variable \"dimord\".\n\nError in ft_selectdata_new (line 121)\n  dimtok = tokenize(dimord, '_');\n \nK>> sourcecue\n\nsourcecue = \n\n          dim: [20 25 22]\n         freq: 11.0906\n    cumtapcnt: [20x1 double]\n          pos: [11000x3 double]\n       inside: [1x5798 double]\n      outside: [1x5202 double]\n       method: 'rawtrial'\n        trial: [1x20 struct]\n           df: 20\n    trialinfo: [20x11 double]\n          cfg: [1x1 struct]\n\nThe variable sourecue comes from the common filters approach. Using ft_selectdata_old everything works fine:\n\nx=ft_selectdata_old(sourcecue,'rpt',rptl)\nselection pow along dimension 2\n\nx = \n\n             dim: [20 25 22]\n            freq: 11.0906\n       cumtapcnt: [10x1 double]\n             pos: [11000x3 double]\n          inside: [1x5798 double]\n         outside: [1x5202 double]\n              df: 20\n       trialinfo: [10x11 double]\n             cfg: [1x1 struct]\n             pow: [11000x10 double]\n       powdimord: 'pos_rpt'\n          filter: {11000x1 cell}\n    filterdimord: '{pos}_ori_chan'\n\nhowever the x output cannot be average using ft_sourcedescriptives:\n\nx.df=10;\nft_sourcedescriptives([],x)\nthe input is source data with 11000 positions on a [20 25 22] grid\nthe call to \"ft_sourcedescriptives\" took 0 seconds and required the additional allocation of an estimated 0 MB\n\nans = \n\n             dim: [20 25 22]\n            freq: 11.0906\n       cumtapcnt: [10x1 double]\n             pos: [11000x3 double]\n          inside: [1x5798 double]\n         outside: [1x5202 double]\n              df: 10\n       trialinfo: [10x11 double]\n             cfg: [1x1 struct]\n             pow: [11000x10 double]<-----------the 10 trials are still there\n       powdimord: 'pos_rpt'\n          filter: {11000x1 cell}\n    filterdimord: '{pos}_ori_chan'\n          method: []\n\nAs Jorn suggested, should we use ft_selectdata_old inside ft_sourcedescriptives and check why ft_selectdata_old's output cannot be average? Suggestions are welcome!"
+      - +@isprivate: "0"
+        commentid: "18104"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 09:04:48 +0100
+        thetext: "This one by now is a pretty stale one. The source level representation has changed (at least at a lot of place in the code, where a call to ft_datatype_source causes the .avg. / .trial. field to be squashed. This means that the proposed solution(s) in this bug don't apply anymore. In other words, we need to revisit whether \n\n1) this is still an issue that exists in the current version of the code\n2) if so, come up with a new plan to fix it.\n\nanyone?"
+      - +@isprivate: "0"
+        commentid: "18223"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-17 12:17:42 +0100
+        thetext: Tested and fixed with PR 297. Note that this is still making use of the old-style data representation (with source.trial.pow etc), but a clean fix would require a re-implementation of ft_sourcedescriptives, which is an issue of a different scope altogether.

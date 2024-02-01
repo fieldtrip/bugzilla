@@ -1,0 +1,237 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3058"
+    creation_ts: 2016-02-01 11:45:00 +0100
+    short_desc: error using cross-correlations ft_spike_xcorr
+    delta_ts: 2016-05-05 20:31:15 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: danial.arabali
+      +@name: Danial Arabali
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - bart.gips
+      - j.schoffelen
+      - thiwom
+      - valentina.mione
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16730"
+        comment_count: "0"
+        who:
+          +content: danial.arabali
+          +@name: Danial Arabali
+        bug_when: 2016-02-01 11:45:53 +0100
+        thetext: "Hello,\n\nI recently started to learn Fieldtrip toolbox functions (v. 20151228) to use for my spike-LPF analysis. \nThank you for providing the toolbox and your supports!\n\nWhile trying out the spike tutorial provided by the http://www.fieldtriptoolbox.org/tutorial/spike, I had a problem running part of the code related to cross-correlations:\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nspike = ft_read_spike('p029_sort_final_01.nex'); \n \ncfg              = [];\ncfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'}; % select only the MUA\nspike = ft_spike_select(cfg, spike);\n \ncfg          = []; \ncfg.dataset  = 'p029_sort_final_01.nex';\ncfg.trialfun = 'trialfun_stimon';\ncfg = ft_definetrial(cfg);\ncfg.timestampspersecond =  spike.hdr.FileHeader.Frequency; % 40000\nspikeTrials = ft_spike_maketrials(cfg,spike);  \n\ncfg             = [];\ncfg.maxlag      = 0.2; % maximum 200 ms\ncfg.binsize     = 0.001; % bins of 1 ms\ncfg.outputunit  = 'proportion'; % make unit area\ncfg.latency     = [-2.5 0];\ncfg.vartriallen = 'no'; % do not allow variable trial lengths\ncfg.method      = 'xcorr'; % compute the normal cross-correlogram\nXc = ft_spike_xcorr(cfg,spikeTrials);  \n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\nI got the following error:\n\nSubscript indices must either be real positive integers or logicals.\n\nError in ft_spike_xcorr (line 350)\nstat.label       = spike.label(chansel);\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\nThe \"spikeTrials.label\" is a 1*4 cellarray, but the function \"ft_channelcombination\" inside the \"ft_spike_xcorr\" requires \"cfg.channelcmb\" as a two-column array.\nSo there is a discrepancy which I don't understand how we need to provide the input for the \"ft_spike_xcorr\" or more specifically \"spikeTrials.label\"!\nOr maybe there is something else that I don't understand because I am naive to the toolbox.\n\nI would appreciate to help me figuring out the issue.\nThank you."
+      - +@isprivate: "0"
+        commentid: "16926"
+        comment_count: "1"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-22 12:39:34 +0100
+        thetext: "(In reply to Danial Arabali from comment #0)\nHi Danial,\n\nI'm stuck exactly at your point with the same error.\n\nToday I tried to do some detective work because I think the first error is at the line 138:\n\nchansel    = unique(cmbindx(:)); % get the unique channels\n\n\nbecause it takes also the value 0 as index for channels.\n\nSo i corrected like:\n\nchansel    = unique(cmbindx(:)); % get the unique channels\nchansel    = chansel(chansel~=0); % revome zeros\n\nand the script works fine to the end, but the output is different: infact I don't get the instruction at line 133\n\nfor k=1:size(cfg.channelcmb,1)\n  cmbindx(k,1) = strmatch(cfg.channelcmb(k,1), spike.label, 'exact');\n  cmbindx(k,2) = strmatch(cfg.channelcmb(k,2), spike.label, 'exact');\nend\n\nWhy does it is set to search for only two channels if we specified 4 channels? (cfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'}; % select only the MUA)\n\nMaybe the instruction at this point should be something like this \n\nfor k=1:size(cfg.channelcmb,1)\n        for c=1:length(spike.label)\n         cmbindx(k,c) = strmatch(cfg.channelcmb(k,c), spike.label, 'exact');\n        end\nend\n\n\nAnyway, I tried this solution and the output is of the right size now (xcorr: [4x4x400 double] instead of xcorr: [2x2x400 double]), but I don't think the content is right.\n\nThe last test I did was to select only the channels 3 and 4\n\ncfg.spikechannel = { 'sig003U_wf', 'sig004U_wf'}; % select only the MUA\n\nand run the original script with only the first modified instruction\n\nchansel    = unique(cmbindx(:)); % get the unique channels\nchansel    = chansel(chansel~=0); % revome zeros\n\nThen I followed the second part of the tutorial \n\n% compute the shuffled correlogram\ncfg.method      = 'shiftpredictor'; % compute the shift predictor\nXshuff = ft_spike_xcorr(cfg,spikeTrials);\n\niCmb = 3;\njCmb = 4;\nfigure\nxcSmoothed = conv(squeeze(Xc.xcorr(iCmb,jCmb,:)),ones(1,5)./5,'same'); % do some smoothing\nhd = plot(Xc.time(3:end-2),xcSmoothed(3:end-2),'k'); % leave out borders (because of smoothing)\nhold on\nxcSmoothed = conv(squeeze(Xshuff.shiftpredictor(iCmb,jCmb,:)),ones(1,5)./5,'same');    \nplot(Xc.time(3:end-2),xcSmoothed(3:end-2),'r')\nhold on\nxlabel('delay')\nylabel('proportion of coincidences')        \ntitle([Xc.label{iCmb} Xc.label{jCmb}])\naxis tight\n\n\n\nAnd I just changed \niCmb = 3;\njCmb = 4;\nin \niCmb = 1;\njCmb = 2;\n\nAnd I got exactly the same figure output of the tutorial.\n\nI hope this can be a little help for the work\n\n\nValentina"
+      - +@isprivate: "0"
+        commentid: "16930"
+        comment_count: "2"
+        who:
+          +content: danial.arabali
+          +@name: Danial Arabali
+        bug_when: 2016-02-22 14:30:08 +0100
+        thetext: "(In reply to valentina from comment #1)\n\nHallo and thanks Valentina,\n\nthat's right. \nI don't understand as well how the following loop should look like, but i seems that it is not correct like this!\nline 133 @ ft_spike_xcorr\nfor k=1:size(cfg.channelcmb,1)\n  cmbindx(k,1) = strmatch(cfg.channelcmb(k,1), spike.label, 'exact');\n  cmbindx(k,2) = strmatch(cfg.channelcmb(k,2), spike.label, 'exact');\nend\nI would prefer your approach with two for loops, But I stuck in a few lines back and more specifically, what should we expect as an output of the ft_channelcombination\ncfg.channelcmb = ft_channelcombination(cfg.channelcmb, spike.label,true);\n\nit gives a vector of all channel combinations?! (of size(1,20))\ne.g. for the currect example in tutorial, if I say\n ft_channelcombination(cfg.channelcmb, spike.label(1:2),true)\nI will get:\n{'sig001U_wf'    'sig002U_wf'    'sig002U_wf'    'sig001U_wf'    'sig001U_wf'    'sig002U_wf'}\nwhich I don't know how it should be read?!\n\n\nBy the way,\nwith correcting the code according to your suggestions, I got the Xc and Xshuff without erros but if I plot the results with iCmb = 3; jCmb = 4;\nI got a blank figure due to the NAN vector of xcSmoothed \nand with iCmb = 1; jCmb = 2; I got a different plot as in the tutorial with different pick value!\n\nCheers, Danial"
+      - +@isprivate: "0"
+        commentid: "16931"
+        comment_count: "3"
+        who:
+          +content: danial.arabali
+          +@name: Danial Arabali
+        bug_when: 2016-02-22 14:40:42 +0100
+        thetext: "(In reply to Danial Arabali from comment #2)\n(In reply to valentina from comment #1)\n\nSo, if I specify only two channels: \ncfg.spikechannel = {'sig003U_wf', 'sig004U_wf'}\n\nand let the ft_spike_xcorr with both corrections: 1) two for loops to get  cmbindx(k,c); 2) chansel = chansel(chansel~=0);\n\nthe code runs, but for plotting and getting the same figure as in the tutorial I specified: iCmb = 2; jCmb = 1;\nThe pick of the graph is at (0.0005, 0.003195)"
+      - +@isprivate: "0"
+        commentid: "16933"
+        comment_count: "4"
+        attachid: "776"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-22 16:04:28 +0100
+        thetext: |-
+          Created attachment 776
+          cross correlation 1 vs 2
+      - +@isprivate: "0"
+        commentid: "16941"
+        comment_count: "5"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-22 17:13:54 +0100
+        thetext: "(In reply to Danial Arabali from comment #3)\n(In reply to valentina from comment #4)\n\n\n\nYes, exactly Danial.\n\nI got the same results of the tutorial as you described in comment #3\n\n\nInstead, selecting all the 4 channels {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'} and using both \n1) two for loops to get  cmbindx(k,c); \n2) chansel = chansel(chansel~=0);\n\nI got the same NaN vector xcSmoothed as yours for iCmb = 3; jCmb = 4;\nand the figure that I attached in comment #4 for iCmb = 1; jCmb = 2;"
+      - +@isprivate: "0"
+        commentid: "16946"
+        comment_count: "6"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-22 17:26:30 +0100
+        thetext: "(In reply to valentina from comment #5)\n(In reply to Danial Arabali from comment #3)\n(In reply to valentina from comment #4)\n\nTHANK YOU, DANIAL!\n\nI solved it thanks your suggestion of looking at the output of \ncfg.channelcmb = ft_channelcombination(cfg.channelcmb, spike.label,true);\n\nAs it's specified in the comment at the beginning of the script ft_channelcombination:\n\"You should specify channel combinations as a two-column cell array\"\n\nSo I just changed the last line (170) of ft_channelcombination script from\n\n  collect = [datachannel(indx(:,1)) datachannel(indx(:,2))];\n\nto\n\n  collect = [datachannel(indx(:,1))' datachannel(indx(:,2))']; \n\nto have an output with 2 columns and on each row all the possible combinations of selected channels.\nSo, following the original tutorial, the output will be \n\ncfg.channelcmb:\n'sig001U_wf'\t'sig001U_wf'\n'sig002U_wf'\t'sig001U_wf'\n'sig003U_wf'\t'sig001U_wf'\n'sig004U_wf'\t'sig001U_wf'\n'sig002U_wf'\t'sig002U_wf'\n'sig003U_wf'\t'sig002U_wf'\n'sig004U_wf'\t'sig002U_wf'\n'sig003U_wf'\t'sig003U_wf'\n'sig004U_wf'\t'sig003U_wf'\n'sig004U_wf'\t'sig004U_wf'\n\n\nI deleted the changes I made beforen ft_spike_xcorr\n1) two for loops to get  cmbindx(k,c); \n2) chansel = chansel(chansel~=0);\n\nbecause at this point they were useless!\n\nSummarizing, the only thing you have to change is the line 170 of ft_channelcombination script in \ncollect = [datachannel(indx(:,1))' datachannel(indx(:,2))'];"
+      - +@isprivate: "0"
+        commentid: "16947"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 17:32:55 +0100
+        thetext: "Hi both, thanks for taking this up. Is it then fair to summarize the issue as a row-vector versus column vector problem? \nIf so, would it also work if you do\n\ncfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'}';\n\ninstead of \n\ncfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'};\n\n(and then not adjust ft_channelcombination?)"
+      - +@isprivate: "0"
+        commentid: "16948"
+        comment_count: "8"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-22 18:06:53 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #7)\n\nYes, it's definitley a a row-vector versus column vector problem.\n\nDo you mean:\n\ncfg.spikechannel = {'sig001U_wf'; 'sig002U_wf'; 'sig003U_wf'; 'sig004U_wf'}';\n\ninstead of \n\ncfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'};?\n\nIf it's so, it works fine (without modify ft_channelcombination)  but it's not enough to change it when you select the channels at the beginning of the tutorial \n(at this point:\n% read in the data, select the channels and define the trials\nspike = ft_read_spike('p029_sort_final_01.nex'); \n \ncfg              = [];\ncfg.spikechannel = {'sig001U_wf', 'sig002U_wf', 'sig003U_wf', 'sig004U_wf'}; % select only the MUA))\n\nI had to redefine cfg.spikechannel = {'sig001U_wf'; 'sig002U_wf'; 'sig003U_wf'; 'sig004U_wf'}'; before performing \nXc = ft_spike_xcorr(cfg,spikeTrials);  \n\ni.e.:\n\nspikeTrials.label={'sig001U_wf'; 'sig002U_wf'; 'sig003U_wf'; 'sig004U_wf'};\ncfg             = [];\ncfg.maxlag      = 0.2; % maximum 200 ms\ncfg.binsize     = 0.001; % bins of 1 ms\ncfg.outputunit  = 'proportion'; % make unit area\ncfg.latency     = [-2.5 0];\ncfg.vartriallen = 'no'; % do not allow variable trial lengths\ncfg.method      = 'xcorr'; % compute the normal cross-correlogram\nXc = ft_spike_xcorr(cfg,spikeTrials); \n\n\n\nValentina"
+      - +@isprivate: "0"
+        commentid: "16950"
+        comment_count: "9"
+        who:
+          +content: danial.arabali
+          +@name: Danial Arabali
+        bug_when: 2016-02-22 18:42:26 +0100
+        thetext: |-
+          (In reply to valentina from comment #8)
+          (In reply to Jan-Mathijs Schoffelen from comment #7)
+
+          Hi both,
+
+          thanks! It seems that as Valentina explained we just have to change the line 170 in ft_channelcombination.
+
+          I also checked and it works fine.
+
+          Thank you.
+          Best
+      - +@isprivate: "0"
+        commentid: "16957"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-22 20:53:23 +0100
+        thetext: |-
+          I still don't fully agree with the proposed change.
+
+          The cause seems to be that spike.label is a row-vector. This is against convention, because data.label is typically a column-vector. If we add a transposition in ft_channelcombination it will fix it for this instance, but it will break everything else.
+
+          I think ft_read_spike should be changed such that it returns a column-vector in the label field.
+
+          Better still, is to ensure that the input into ft_channelcombination is a column-vector.
+
+          Even better still, is not to rely in ft_channelcombination on the input to be a column vector, but impose this.
+
+          The very last solution is the most generic, but would require a change at the beginning of the function.
+
+          Do you agree with this reasoning?
+      - +@isprivate: "0"
+        commentid: "16961"
+        comment_count: "11"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-23 10:53:41 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #10)\n\n\nHi Jan-Mathijs, \n\nthis was my very first approach to FieldTrip, so I don't know how changing ft_channelcombination could affect other processes, but I think it surely will.\n\nSo I agree with you that the best way is to impose a column vector to the label changing ft_read_spike (at least in the part for nex and plx formats, I don't know the others filetype)\n\n\nat line 160 and 169 I just tried to change \n\n     spike.label{chan}     = deblank(hdr.VarHeader(i).Name);\n\nwith\n\n      spike.label{chan,1}     = deblank(hdr.VarHeader(i).Name);\n\nand the same at line 204\n\n      spike.label{i,1}    = deblank(hdr.ChannelHeader(i).Name);\n\n\nand for the spike cross correlation tutorial everything works fine without changing anything else.\n\nDo you think it's enough or should we change something else?"
+      - +@isprivate: "0"
+        commentid: "16962"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-23 11:04:57 +0100
+        thetext: |-
+          Hi Valentina,
+
+          In principle I would say indeed that your proposed change is fine. Yet I read in the the help of ft_read_spike that the label-field is designed to be 1xN. Although this is not according to convention of the other types of data, I am not sure whether anywhere else in the code the label-field is expected/assumed to be a row-vector.
+
+          My proposal would be to explicitly make datachannel a column vector in ft_channelcombination. This will probably be the most robust.
+      - +@isprivate: "0"
+        commentid: "16963"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-23 11:23:03 +0100
+        thetext: "I have changed the code, and it should now work again. \nThe current version of the code can be grabbed from github.com/fieldtrip/fieldtrip\n\nFor more information about the changes, see:\n\nhttps://github.com/fieldtrip/fieldtrip/pull/103/files\n\n\nThanks for looking into this!"
+      - +@isprivate: "0"
+        commentid: "16965"
+        comment_count: "14"
+        who:
+          +content: valentina.mione
+          +@name: valentina
+        bug_when: 2016-02-23 11:45:13 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #13)
+
+
+          Thanks Jan-Mathijs!
+
+          I didn't notice in the help of ft_read spike that the label-field is designed to be 1xN, so I agree that your way is the most correct one since also in ft_channelselection, line 138, it's required that datachannel is a column vector
+
+          % ensure that both inputs are column vectors
+          datachannel = datachannel(:);
+
+          Thank you again for your time
+          Best,
+          Valentina
+      - +@isprivate: "0"
+        commentid: "16968"
+        comment_count: "15"
+        who:
+          +content: danial.arabali
+          +@name: Danial Arabali
+        bug_when: 2016-02-23 13:56:47 +0100
+        thetext: |-
+          (In reply to valentina from comment #14)
+          (In reply to Jan-Mathijs Schoffelen from comment #13)
+
+          I checked the updated codes and it works.
+          Thank you Jan-Mathijs and Valentina for following up this issue.
+
+          Best, Danial
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "776"
+      date: 2016-02-22 16:04:00 +0100
+      delta_ts: 2016-02-22 16:04:28 +0100
+      desc: cross correlation 1 vs 2
+      filename: 1 vs 2.jpg
+      type: image/jpeg
+      size: "27351"
+      attacher:
+        +content: valentina.mione
+        +@name: valentina
+      data: REMOVED

@@ -1,0 +1,255 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2507"
+    creation_ts: 2014-03-20 16:06:00 +0100
+    short_desc: unexpected behaviour of ft_appenddata when appending more than two datasets
+    delta_ts: 2019-08-10 12:29:32 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13119"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-03-20 16:06:40 +0100
+        thetext: |-
+          Hey Trippoids,
+
+          Okay, so I think I've encountered some strange behaviour when trying to concatenate >2 data subsets using ft_appenddata.
+
+          Suppose I have three datasets that represent three experimental conditions.; dataA, dataB and dataC.
+
+          If I do...
+          dataAB=ft_appenddata([],dataA,dataB)
+          ...and then I plot this data, the first trial of dataAB is the same as the first trial of dataA (I used ft_databrowser to compare them. They look the same)
+
+          However if I do...
+          dataABC=ft_appenddata([],dataA,dataB,dataC)
+          ...and then use the databrowser, the first trial is NOT the first trial of dataA. I think it is the first trial of dataC.
+
+          The plot thickens. If I look at the trialinfos, the first row of dataABC.trialinfo *is* the first row of dataA.trialinfo. That's super upsetting because I want to use the trialinfos to split my data back up again at a later stage. It seems that the mapping between trialinfo and data is lost.
+
+          If it helps I can post a snippet of the data I used to discover this, but I guess anybody can try to replicate this with any dataset containing, say, six trials, simply by using ft_selectdata to create three subsets of two trials each.
+
+          I'm assuming that the expected behaviour for the user is: appending dataA dataB and dataC results in all the A trials followed by B trials followed by C trials, and that is currently *not* happening. Plus the trialinfos and data are discrepant. In my opinion (and if this is a 'real' bug as opposed to stupid behaviour by me) this qualifies as relatively serious.
+
+          Let me know if I can contribute to solving this somehow.
+
+          Best,
+          Tom
+      - +@isprivate: "0"
+        commentid: "13120"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-03-20 16:15:46 +0100
+        thetext: |-
+          (In reply to t.marshall from comment #0)
+          Hi Tom,
+
+          I can't seem to reproduce your bug, at least not with the very simple toy example below. Could you see (1) whether the bug also occurs for you in the below script; and (2) if it does not, please post a snippet of code and data? Cheers!
+
+          %% create some data
+
+          data1 = [];
+          data1.label = {'a' 'b' 'c'};
+          data1.time = {1:1000 1:1000 1:1000};
+          data1.trial = {randn(3,1000) randn(3,1000) randn(3,1000)};
+          data1.trialinfo = [1;2;3];
+
+          data2 = data1;
+          data2.trialinfo = [4;5;6];
+          data2.trial = {randn(3,1000) randn(3,1000) randn(3,1000)};
+
+          data3 = data1;
+          data3.trialinfo = [7;8;9];
+          data3.trial = {randn(3,1000) randn(3,1000) randn(3,1000)};
+
+          %% append
+
+          datcmb = ft_appenddata([], data1, data2, data3);
+
+          %% check
+
+          assert(isequal(datcmb.trialinfo, [data1.trialinfo; data2.trialinfo; data3.trialinfo]));
+
+          assert(isequal(datcmb.trial, cat(2, data1.trial, data2.trial, data3.trial)));
+      - +@isprivate: "0"
+        commentid: "13121"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-20 16:17:02 +0100
+        thetext: "Hi Tom,\n\nI cannot reproduce it on my end:\n\ndata1.trial{1} = 1;\ndata1.time{1}  = 1;\ndata1.label    = {'chan01'};\ndata1.trialinfo = 1;\ndata2 = data1;\ndata3 = data1;\ndata2.trial{1} = 2;\ndata3.trial{1} = 3;\ndata2.trialinfo = 2;\ndata3.trialinfo = 3;\n\ndata = ft_appenddata([],data1,data2,data3);\n\ndata = \n\n         trial: {[1]  [2]  [3]}\n          time: {[1]  [1]  [1]}\n     trialinfo: [3x1 double]\n         label: {'chan01'}\n       fsample: NaN\n           cfg: [1x1 struct]\n    sampleinfo: [3x2 double]\n\nThe 1,2,3 end up in expected order in the trial-field.\n\n\ndata.trialinfo\n\nans =\n\n     1\n     2\n     3\n\nThis also looks OK.\n\nCould you try this out, and see whether you agree?"
+      - +@isprivate: "0"
+        commentid: "13122"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-20 16:17:47 +0100
+        thetext: hehe, I only needed one trial, one channel, and one time point.
+      - +@isprivate: "0"
+        commentid: "13123"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-03-20 16:19:11 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #3)
+          Yes, well done :) I still prefer mine though :P
+      - +@isprivate: "0"
+        commentid: "13124"
+        comment_count: "5"
+        attachid: "600"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-03-20 16:34:50 +0100
+        thetext: |-
+          Created attachment 600
+          three small data subsets that append weirdly
+      - +@isprivate: "0"
+        commentid: "13125"
+        comment_count: "6"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-03-20 16:35:53 +0100
+        thetext: |-
+          Eelke, I agree that your example behaves as expected. It also works if the three subsets contain unequal trial numbers (just wanted to check)...
+
+          However, my data still behave weirdly. See the attached heavily-trimmed-down version.
+      - +@isprivate: "0"
+        commentid: "13126"
+        comment_count: "7"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-03-20 16:38:00 +0100
+        thetext: I'm wrong. It's not the appending. It's the databrowser.
+      - +@isprivate: "0"
+        commentid: "13127"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-20 16:57:38 +0100
+        thetext: "(In reply to Eelke Spaak from comment #4)\n\nbummer! I thought \"let's quickly reproduce this with a small test script\", but I have been beaten to it (twice).\n\nI had made this:\n\ndataA = [];\ndataA.trial = {[1], [2]};\ndataA.time  = {[0], [0]};\ndataA.label = {'chan'};\n\ndataB = [];\ndataB.trial = {[3], [4]};\ndataB.time  = {[0], [0]};\ndataB.label = {'chan'};\n\ndataC = [];\ndataC.trial = {[5], [6]};\ndataC.time  = {[0], [0]};\ndataC.label = {'chan'};\n\ndataABC = ft_appenddata([], dataA, dataB, dataC)\n\n\ndataAll = \n         trial: {[1]  [2]  [3]  [4]  [5]  [6]}\n          time: {[0]  [0]  [0]  [0]  [0]  [0]}\n         label: {'chan'}\n       fsample: NaN\n           cfg: [1x1 struct]\n    sampleinfo: [6x2 double]\n\nI have lost on speed and size, but do I still get some points on style?"
+      - +@isprivate: "0"
+        commentid: "13128"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-20 16:58:29 +0100
+        thetext: |-
+          (In reply to t.marshall from comment #7)
+
+          If it is in ft_databrowser, it must be due to ft_fetch_data.
+      - +@isprivate: "0"
+        commentid: "13129"
+        comment_count: "10"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-03-21 11:04:15 +0100
+        thetext: "I suspect the problem is caused by ft_appenddata insisting on the input data sets having a sampleinfo (line 72):\n\nvarargin{i} = ft_checkdata(varargin{i}, 'datatype', 'raw', 'feedback', 'no', 'hassampleinfo', 'yes');\n\nif the input data does not have a sample info, it is created from scratch, leading to the infamous warning pair:\n\nWarning: the data does not contain a trial definition \n> In utilities/private/warning_once at 158\n  In utilities/private/fixsampleinfo at 66\n  In ft_datatype_raw at 154\n  In ft_checkdata at 224\n  In ft_appenddata at 72 \nWarning: reconstructing sampleinfo by assuming that the trials are consecutive segments of a continuous recording \n> In utilities/private/warning_once at 158\n  In utilities/private/fixsampleinfo at 79\n  In ft_datatype_raw at 154\n  In ft_checkdata at 224\n  In ft_appenddata at 72 \n\nThe databrowser indeed calls ft_fetch_data, which then warnings:\n\nWarning: samples present in multiple trials, using only the last occurence of each sample \n> In ft_fetch_data at 136\n  In ft_databrowser>redraw_cb at 1463\n  In ft_databrowser at 676 \n\nSo that must be it.\n\nI tried fixing this by simply removing the 'hassampleinfo' requirement from ft_appenddata:72. This still did not do the trick, as in ft_datatype_raw the default value for 'hassampleinfo' is 'ifmakessense' and I believe the criteria for it making sense are now not correct (at least not in the context of appending data). The sampleinfo field will be reconstructed *unless* there already *is* a sampleinfo which is inconsistent with the actual data (as stored in .trial). I believe we should default to *not* reconstructing it when hassampleinfo=='ifmakessense'. Then this option would result in the sampleinfo being *kept* if it is already present in the data and consistent with the data, but not reconstructed if it is not there.\n\nSome input needed: shall I go ahead and make this change? Summarizing, 'hassampleinfo' will then have three values:\n\nyes ==> always reconstruct if not present\nifmakessense ==> keep if already present and is consistent, don't reconstruct\nno ==> always remove"
+      - +@isprivate: "0"
+        commentid: "13130"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-21 11:31:28 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #10)
+
+          I suspect ifmakessense makes only sense within a single dataset.
+
+          In the examples that we now have, I would expect the appended data not to have any sample info, i.e., if the input to ft_appenddata has no sample info, why would the output have it?
+      - +@isprivate: "0"
+        commentid: "13131"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-21 11:33:36 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+
+          "ifmakessense makes only sense"  Nice :)
+      - +@isprivate: "0"
+        commentid: "13401"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-04-24 09:27:01 +0200
+        thetext: |-
+          bash-4.1$ svn commit utilities/ft_datatype_raw.m ft_appenddata.m
+          Sending        ft_appenddata.m
+          Sending        utilities/ft_datatype_raw.m
+          Transmitting file data ..
+          Committed revision 9452.
+
+          bugfix(2507): the behaviour for the default option hassampleinfo=ifmakessense in ft_datatype_raw is now to *not* reconstruct sampleinfo if it was not present in the input data. Sampleinfo will be kept if it is present in the input data, and if it is consistent with the actual trial structure.
+
+          Tom, I believe this fixes the bug; could you check (in 15 minutes or so) if indeed the problem is solved? If not, please reopen this bug.
+      - +@isprivate: "0"
+        commentid: "20040"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:32 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "600"
+      date: 2014-03-20 16:34:00 +0100
+      delta_ts: 2014-03-20 16:34:50 +0100
+      desc: three small data subsets that append weirdly
+      filename: bug2507.mat
+      type: text/plain
+      size: "560771"
+      attacher: t.marshall
+      data: REMOVED

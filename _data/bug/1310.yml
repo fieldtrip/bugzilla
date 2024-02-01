@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1310"
+    creation_ts: 2012-02-02 13:29:00 +0100
+    short_desc: Missing resolution Information in *vhdr causes ft_preprocessing to return only NaNs
+    delta_ts: 2015-07-15 13:20:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "1618"
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1618
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: julian.karch
+      +@name: Julian Karch
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5114"
+        comment_count: "0"
+        who:
+          +content: julian.karch
+          +@name: Julian Karch
+        bug_when: 2012-02-02 13:29:29 +0100
+        thetext: See discussion on the mailing list with the same subject
+      - +@isprivate: "0"
+        commentid: "5115"
+        comment_count: "1"
+        who:
+          +content: julian.karch
+          +@name: Julian Karch
+        bug_when: 2012-02-02 13:32:49 +0100
+        thetext: |-
+          My solution. Quoted from my email to the mailing list:
+
+
+          it seems like I solved the problem.
+
+          If you export your data to the ieee floating point format the resolution entry vanishes. I assume that it is just don't needed anymore as the entries are in micro volt then.
+
+          This was taken into account by the read_brainvision_eeg function until  12/08/2011. On This day a couple of changes were committed. Leading to the fact that ieee_float_32 data is also multiplied with the resolution
+
+          ==================================================================================================
+          if strcmpi(hdr.DataFormat, 'binary') && strcmpi(hdr.DataOrientation, 'multiplexed') && any(strcmpi(hdr.BinaryFormat, {'int_16', 'int_32', 'ieee_float_32'}))
+          [...]
+          calib = diag(hdr.resolution);
+          % using a sparse multiplication speeds it up
+          dat = full(sparse(calib) * dat);
+          =============================================================
+
+          The pre 12/08/2011 version looks like that
+          ============================================================
+          elseif strcmpi(hdr.DataFormat, 'binary') && strcmpi(hdr.DataOrientation, 'multiplexed') && strcmpi(hdr.BinaryFormat, 'ieee_float_32')
+          fid = fopen(filename, 'rb', 'ieee-le');
+          fseek(fid, hdr.NumberOfChannels*4*(begsample-1), 'cof');
+          [dat, siz] = fread(fid, [hdr.NumberOfChannels, (endsample-begsample+1)], 'float32');
+           fclose(fid);
+          ==========================================================
+
+          So ieee data was not multiplied by the resolution. Which is probably the correct behavior. I changed the function such that it doesn't multiply the ieee data with the resolution and it seems work. You can look at it here: http://matlab.nopaste.dk/p4635. The changes are just the if statements in line 67and 81.
+      - +@isprivate: "0"
+        commentid: "5157"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-04 10:46:19 +0100
+        thetext: "Thanks for reporting this and the suggested fix. \n\nCould you provide us with a (possibly small) dataset that is stored in the ieee floating point format? We can then check your solution and add it to our collection of test cases. See the faq on http://fieldtrip.fcdonders.nl/contact"
+      - +@isprivate: "0"
+        commentid: "5260"
+        comment_count: "3"
+        attachid: "227"
+        who:
+          +content: julian.karch
+          +@name: Julian Karch
+        bug_when: 2012-02-10 20:18:18 +0100
+        thetext: |-
+          Created attachment 227
+          Testcase
+
+          Attached find a test case including a test data set and the fixed read_brainvision_eeg.m. The test data set consists of resting EEG.
+      - +@isprivate: "0"
+        commentid: "5261"
+        comment_count: "4"
+        who:
+          +content: julian.karch
+          +@name: Julian Karch
+        bug_when: 2012-02-10 20:20:51 +0100
+        thetext: |-
+          (In reply to comment #3)
+          While creating the test case it also came to my attention that the combination which causes the bug is multiplexed + float. Vectorized + float works fine.
+      - +@isprivate: "0"
+        commentid: "5305"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-15 14:18:52 +0100
+        thetext: as discussed in the FT meeting this is now assigned to Lilla.
+      - +@isprivate: "0"
+        commentid: "12571"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-23 09:37:50 +0100
+        thetext: |-
+          This bug is strongly linked to bug1618 which was fixed by setting the resolution to 1 if no resolution is present in the header. As bug1618 was fixed first I'll mark this bug as a duplicate.
+
+          *** This bug has been marked as a duplicate of bug 1618 ***
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "227"
+      date: 2012-02-10 20:18:00 +0100
+      delta_ts: 2012-02-10 20:18:18 +0100
+      desc: Testcase
+      filename: bug1310.zip
+      type: application/octet-stream
+      size: "21846"
+      attacher:
+        +content: julian.karch
+        +@name: Julian Karch
+      data: REMOVED

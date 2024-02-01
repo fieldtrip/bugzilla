@@ -1,0 +1,185 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1404"
+    creation_ts: 2012-04-02 17:20:00 +0200
+    short_desc: implement support for the neurosim spikes and signals file format
+    delta_ts: 2019-08-10 11:56:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: bart.gips
+      +@name: Bart Gips
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5764"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-02 17:20:50 +0200
+        thetext: |-
+          This follows up on a discussion I had with Jan van der Eerden (in person and by mail).
+
+          The implementation has already been finished, this bug is a placeholder for the test script and follow-up discussions
+      - +@isprivate: "0"
+        commentid: "5765"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-02 17:31:03 +0200
+        thetext: |-
+          I added a test script on the basis of the ascii files in /opt/neurosim/Examples/AlphaColumns/dense_smalltest
+
+          roboos@mentat001> svn commit
+          Adding         test/test_bug1404.m
+          Transmitting file data .
+          Committed revision 5577.
+      - +@isprivate: "0"
+        commentid: "5864"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:39 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "8640"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 09:44:56 +0100
+        thetext: |-
+          Hi Bart,
+
+          I suspect that your recent changes to neurosim have caused this older test script now to fail. Can you please have a look?
+
+          See
+          http://fieldtrip.fcdonders.nl/development/dashboard/r7143/test_bug1404
+          which reports the error
+          unsupported header format (neurosim dir)
+      - +@isprivate: "0"
+        commentid: "8649"
+        comment_count: "4"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-12 10:24:06 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          Yes, the recent changes make it important that you specify which file to read the header from. (spikes, evolution or signals)
+          In this case it should be spikes.
+          However ft_read_header reads some information (e.g. sampling frequency) that was not written in the header on earlier versions of Neurosim.
+
+          So I'll edit the test function and I'll ask Jan to update the examples.
+      - +@isprivate: "0"
+        commentid: "8652"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 10:32:58 +0100
+        thetext: "(In reply to comment #4)\n\nRather than updating the test, should the test not stay the same and should the FT code not be updated to allow for the continued use as in the test script? \n\nThe test script might reflect the analysis script of an external user, and we don't want external users having to update their scripts whenever we make a change."
+      - +@isprivate: "0"
+        commentid: "8655"
+        comment_count: "6"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-12 10:37:57 +0100
+        thetext: "(In reply to comment #4)\n\nSecondly, I realise that the dataset should not be 'spikes'. \nft_preprocessing does not work on spike data, because spike data have a different structure (timestamps). (ft_read_spike vs ft_read_data)\n\nWhat do you want to preprocess here? membrane potentials?, LFPs?\n\nI assume LFP, I can implement something like this (LFPs are in the signals file as 'Extracellular V' for every simulated network)\n\nHowever, the LFP that neurosim calculates is still a little strange, so not very useful at the moment."
+      - +@isprivate: "0"
+        commentid: "8656"
+        comment_count: "7"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-12 10:40:32 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          I believe changing the test function is better, because if the user supplies a directory it is unclear what is meant.
+
+          Different files in the neurosim directory have different headers and different sampling rates.
+
+          Besides I believe, right now I am the only one using this (besides Jan and perhaps Eric Lowet). So it will be no problem to switch the input method now.
+      - +@isprivate: "0"
+        commentid: "8657"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 10:43:32 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          for some spike formats (but I don't know whether it applies to all) ft_preprocessing is able to read it and represent it as [00000010000100000101000100...]
+      - +@isprivate: "0"
+        commentid: "8658"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 10:44:34 +0100
+        thetext: |-
+          (In reply to comment #7)
+
+          let's discuss following the FT meeting. I believe there are still some design issues with the format that need to be resolved.
+      - +@isprivate: "0"
+        commentid: "8660"
+        comment_count: "10"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-12 10:50:58 +0100
+        thetext: |-
+          (In reply to comment #9)
+          We could implement that by letting ft_read_data perform ft_read_spike and then using ft_checkdata to convert to such a continuous data format.
+
+          I'll be there this afternoon to discuss.
+      - +@isprivate: "0"
+        commentid: "8741"
+        comment_count: "11"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-18 09:37:14 +0100
+        thetext: "neurosim_spikes can be read using (directly use the file as input):\nft_read_spike  (spike structure containing spike timepoints)\nft_read_data   (continuous data containing 0's and 1's)\nft_read_header \n\nneurosim_signals can be read using:\nft_read_data\nft_read_header\n\n(both when using the file directly (='neurosim_signals') as input\nor when using a directory containing the 'signals' file (='neurosim_ds'))\n\n\nneurosim_evolution can be read using (directly use the file as input):\nft_read_data\nft_read_header"
+      - +@isprivate: "0"
+        commentid: "19853"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:50 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

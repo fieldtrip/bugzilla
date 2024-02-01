@@ -1,0 +1,207 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2782"
+    creation_ts: 2014-12-15 17:15:00 +0100
+    short_desc: ft_selectdata doesn't keep .trialinfo correctly if 'rpt_chan_time' but with only 1 trial
+    delta_ts: 2019-08-10 12:30:56 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2783
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3005
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - braingirl
+      - eelke.spaak
+      - Jan.Hirschmann
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14951"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-12-15 17:15:54 +0100
+        thetext: "Hello,\nI have a timelock structure that has dimord of 'rpt_chan_time' but happens to have only 1 trial (after others were rejected).   \n\nThis 'timelock' has .trialinfo of size [1x11].  \n\nThen the following:\ncfg=[];\ncfg.trials=1;\ntmp=ft_selectdata(cfg,timelock)\n\nruns without error but produces tmp.trialinfo of size [1x1].  \n\n(I realise this is a weird scenario but it's a particular instance of a general piece of code that works fine for greater number of existing trials in the timelock structure).\n\nI traced the problem to line 1206: of ft_selectdata>makeselection>cellmatselect with the 'isvector'.  Unfortunately at this low-level subfunction, the data structure is no longer around to test the size of data.trial, but ideally the seldim should be fixed at this point and forced to always use \n        x = x(selindx,:,:,:,:,:);\nfor the case of seldim==1.\nIf the seldim needed still changing (or the input 'x' transposing) that should be done at a higher level where more information about the data structure is still present.\n\nIt's easy to comment out the 'isvector', but I don't know what consequences it would have elsewhere or what situations the 'x' should be transposed prior to putting into 'cellmatselect'.\n\nOr.... 'wontfix' this bug, as I (the user) can simply make sure my code doesn't try to call ft_selectdata for only 1 trial with cfg.trials=1  ??\n\nThank you,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "14961"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 17:35:42 +0100
+        thetext: "Hi Johanna,\n\nI can conform your issue with \n\ntimelock = [];\ntimelock.label = {'1', '2', '3'};\ntimelock.time = (1:1000)/1000;\ntimelock.avg = randn(3,1000);\ntimelock.trial = randn(1,3,1000);\ntimelock.dimord = 'rpt_chan_time';\ntimelock.trialinfo = 1:11;\n\nYour usage is technically correct. The isvector serves to deal with the (sometimes) ambiguous row/column representation.\n\nIf in that cellmatselect code the selindx would be a boolean vector rather than a list of indices, I think it would be possible to distinguish the transposed case correctly."
+      - +@isprivate: "0"
+        commentid: "14962"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 17:36:45 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\nmac011> svn commit test_bug2782.m \nAdding         test_bug2782.m\nTransmitting file data .\nCommitted revision 10057."
+      - +@isprivate: "0"
+        commentid: "15096"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-01-27 14:59:58 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          Hmm, this one is tricky. Robert, I don't think your idea of using a boolean index vector rather than numeric indices would work. The whole point of the isvector()-check is that we don't want to rely on the dimensionality of the input data at that point in the code (i.e. we don't trust an 1xN matrix and seldim==1 to actually be interpreted as an instruction to select along the first dimension). So even if we create an 1xN or Nx1 boolean index vector, we would still face the same problem (as we might consider transposing it in that case anyway).
+
+          The 'clean' solution (i.e. most in line with cellmatselect()'s contract) would be to remove the isvector()-check, but as you say this probably breaks other things. I imagine those other things are not easily fixable elsewhere, right? (.freq and .time being row vectors comes to mind as a possible problem.)
+      - +@isprivate: "0"
+        commentid: "15097"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-27 15:12:29 +0100
+        thetext: "(In reply to Eelke Spaak from comment #3)\n\nshould the isvector not only apply in case it can unambiguously decipher the structure of the data?\n\nE.g. if \n\nseldim = 1\nselindx = [1 2]\n\nand the data is 1x4 rather than 4x1, then it makes sense to transpose. In the other case the selection would error.\n\nUsing logical indexing, the same selection would look like\n\nseldim = 1\nselindx = [1 1 0 0] % but then named selbool\n\nagain with the data being 1x4 or 4x1\n\nBut with logical indexing you could do\n\nif seldim==1 && numel(selbool)==size(data,1)\n  % select along 1st dimension\nelseif seldim==1 && numel(selbool)==size(data,2)\n  % select along 2nd dimension\nelse\n  ...\n\nThe selbool should always be a vector and the number of elements should always be consistent with the size of the dimension that it is supposed to select from."
+      - +@isprivate: "0"
+        commentid: "15102"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-01-27 15:25:56 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          Yes, that does make sense; however, we still have to create the selbool first. If we do:
+
+          selbool = false(size(x, seldim));
+          selbool(selindx) = true;
+
+          that won't work, as we run into the exact same issue as before.
+      - +@isprivate: "0"
+        commentid: "15104"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-27 16:28:56 +0100
+        thetext: |-
+          (In reply to Eelke Spaak from comment #5)
+
+          the selbool should be made elsewhere in the code. Tracing them back, line 255 and further seem relevant
+
+          % trim the selection to all inputs, rpt and rpttap are dealt with later
+          if hasspike,   [selspike,   cfg] = getselection_spike  (cfg, varargin{:}); end
+          if haspos,     [selpos,     cfg] = getselection_pos    (cfg, varargin{:}, cfg.tolerance, cfg.select); end
+          if haschan,    [selchan,    cfg] = getselection_chan   (cfg, varargin{:}, cfg.select); end
+          if haschancmb, [selchancmb, cfg] = getselection_chancmb(cfg, varargin{:}, cfg.select); end
+          if hasfreq,    [selfreq,    cfg] = getselection_freq   (cfg, varargin{:}, cfg.tolerance, cfg.select); end
+          if hastime,    [seltime,    cfg] = getselection_time   (cfg, varargin{:}, cfg.tolerance, cfg.select); end
+
+
+          I am getting a bit worried about the impact of the change. I noticed that nans and [] also have a special meaning in the selection. I think that it is safer to take the alternative route, i.e. only take the transpose selection if that makes more sense.
+      - +@isprivate: "0"
+        commentid: "15843"
+        comment_count: "7"
+        who:
+          +content: Jan.Hirschmann
+          +@name: ""
+        bug_when: 2015-07-02 12:45:43 +0200
+        thetext: "(In reply to Johanna from comment #0)\nDear fieldtrip developers,\n\nI am facing a \"problem\" that seems to be very much related to this bug. The following code for selecting one trial and a particular latency runs without errors or warnings (I am using the most recent version of ft):\n\ncfg=[];\ncfg.trials=[5];\ncfg.latency=[2 50];\npp_data=ft_selectdata(cfg,pp_data); \n\nThe trial selection works but the time selection fails. The returned latency equals 10s, the length of the shortest trial (although trial 5  actually contains more than 60s). This is done by the follwoing line in ft_selectdata:\n\n267: if hastime,    [seltime,    cfg] = getselection_time   (cfg, varargin{:}, cfg.tolerance, cfg.select); end\n\nI hope that this is really a bug and that my way of reporting is appropriate. The issue is easy to circumvent by the user by selecting trial and latency in separate calls; but it may cause confusion when overlooked.\n\nKind regards,\nJan"
+      - +@isprivate: "0"
+        commentid: "15995"
+        comment_count: "8"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-08-13 19:54:01 +0200
+        thetext: |-
+          I've encountered the same bug:  when I run
+
+          > data = ft_rejectvisual(cfg,data);
+
+          on continuous data (1 long trial) to invalidate noisy channels, the field data.sampleinfo goes from 1x2 to 1x1, which leads to later errors.  I tracked the problem down to line 1213 of ft_selectdata, within the subfunction cellmatselect, as I see you've already figured out from this prior bug report.  Have you settled on a solution?  Could there just be a check somewhere earlier in the code for single trial data?
+
+          Thanks,
+          Teresa
+      - +@isprivate: "0"
+        commentid: "15997"
+        comment_count: "9"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-08-14 21:55:54 +0200
+        thetext: |-
+          (In reply to Teresa Madsen from comment #8)
+
+          Whoops, sorry - I just downloaded and tried the latest version of FieldTrip, and the bug seems to have been fixed.  Sorry for not trying that first!
+
+          Thanks,
+          Teresa
+      - +@isprivate: "0"
+        commentid: "16385"
+        comment_count: "10"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-11-17 20:10:48 +0100
+        thetext: "(In reply to Teresa Madsen from comment #9)\n\nNevermind, the error has re-emerged.  I'm getting the same behavior as before, so I don't know if I changed something in my local code that then got overwritten when I updated to the latest version or what, but here's what's happening:\n\nI have a data structure with data.sampleinfo = [11,4696690], but after running... \n\ncfg = [];\ncfg.method = 'trial';\ndata = ft_rejectvisual(cfg,data);\n\n...without invalidating anything, the resulting data structure has data.sampleinfo = 11, which causes later errors.  The problem seems to occur at about line 1247 of ft_selectdata (in fieldtrip-20151112), where trial 1 is meant to be selected, but only the first value is selected because the code assumes row and column vectors to be equivalent:\n\nswitch seldim\n    case 1\n      if isvector(x)\n        % sometimes the data is 1xN, whereas the dimord describes only the first dimension\n        % in this case a row and column vector can be interpreted as equivalent\n        x = x(selindx);\n      else\n        x = x(selindx,:,:,:,:,:);\n      end\n\nCould an earlier check be made to identify single trial or continuous data that would disable that bit?  For example, in the main ft_selectdata function, set...\n\niscontinuous = numel(cfg.trials) == 1;\n\n...and feed that into the subfunctions (makeselection and cellmatselect), so you can change line 1244 to...\n\nif isvector(x) && ~iscontinuous\n\nWould that work?  \n\nThanks,\nTeresa"
+      - +@isprivate: "0"
+        commentid: "16386"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-18 09:30:34 +0100
+        thetext: "(In reply to Teresa Madsen from comment #10)\n\nI reviewed the code once more. It is indeed due to swapping row and column by default, whereas in this case they should not be swapped.\n\nSwapping a vector is fine if the singleton dimension does not represent anything, but it should be avoided in case the singleton dimension is explicitly known. As Johanna mentioned earlier, the problem is that cellmatselect lacked information on whether the data field is a vector (swap is fine), or a matrix with length==1 along one dimension (swap is not fine).\n\nI added an extra input \"maybevector\" argument to cellmatselect. If the dimord indicates a matrix, it is set to false and the swap won't happen.\n\nFurthermore, I noticed that the low-level detection of the dimord/dimtok fails while the structure is being updated, since a selection might be made in one field but not yet in the other field. I am now passing the dimtok that is determined in the main loop to the low level selection functions. \n\nmac011> svn commit utilities/ft_selectdata.m test/test_bug2782.m\nSending        test/test_bug2782.m\nSending        utilities/ft_selectdata.m\nTransmitting file data ..\nCommitted revision 10911.\n\n@Jan and Teresa, please try with the latest FieldTrip version. I tried to capture your case in the test_buf2782 script, which you might want to review. If the problem persists, please reopen."
+      - +@isprivate: "0"
+        commentid: "16483"
+        comment_count: "12"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2015-12-02 19:24:50 +0100
+        thetext: Yes, this one seems to be fixed.  Thanks.
+      - +@isprivate: "0"
+        commentid: "16485"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-12-03 11:21:22 +0100
+        thetext: |-
+          (In reply to Teresa Madsen from comment #12)
+
+          thanks for the feedback!
+      - +@isprivate: "0"
+        commentid: "20078"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:30:56 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

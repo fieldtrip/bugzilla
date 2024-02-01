@@ -1,0 +1,146 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1916"
+    creation_ts: 2012-12-31 10:43:00 +0100
+    short_desc: scalingfactor needs to be made faster
+    delta_ts: 2012-12-31 11:46:28 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "953"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8822"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 10:43:31 +0100
+        thetext: |-
+          from http://bugzilla.fcdonders.nl/show_bug.cgi?id=953#c12
+
+          I tried to integrate unit scaling in spm_eeg_convert. The current
+          implementation is very slow. Line 1098 in ft_read_data takes 18 seconds to run
+          on my Neuromag data example and it runs at every iteration of the data reading
+          loop.
+      - +@isprivate: "0"
+        commentid: "8824"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 10:49:15 +0100
+        thetext: |-
+          there is already this code
+
+          persistent previous_old previous_new previous_factor
+
+          if isequal(old, previous_old) && isequal(new, previous_new)
+            factor = previous_factor;
+            return
+          end
+
+          which works fine like this
+
+          old = 'mT/mm';
+          new = 'fT/km';
+
+          stopwatch = tic;
+          factor = scalingfactor(old, new);
+          toc(stopwatch)
+
+          n = 300;
+          old = repmat({old}, 1, n);
+          new = repmat({new}, 1, n);
+
+          stopwatch = tic;
+          factor = cellfun(@scalingfactor, old, new);
+          toc(stopwatch)
+
+          but fails if the input is alternating like A-A-B-A-A-B-A-A-B which is probably the case with the neuromag channel order.
+      - +@isprivate: "0"
+        commentid: "8825"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 10:51:42 +0100
+        thetext: |-
+          yes, with identical inputs and 300 conversions it is ~0.2 seconds and with
+
+          n = 100;
+          old = repmat({'T/cm' 'T/cm' 'T'}, 1, n);
+          new = repmat({'fT/m' 'fT/m' 'fT'}, 1, n);
+
+          stopwatch = tic;
+          factor = cellfun(@scalingfactor, old, new);
+          toc(stopwatch)
+
+          Elapsed time is 26.228476 seconds.
+
+          Ok, I will change it such that a list of previous conversion factors is maintained, not only the latest.
+      - +@isprivate: "0"
+        commentid: "8826"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:05:31 +0100
+        thetext: |-
+          I made the change as suggested and wrote a test script with three cases
+
+          >> clear scalingfactor
+
+          >> test_bug1916
+          Elapsed time is 0.145215 seconds. % one new conversion
+          Elapsed time is 0.013033 seconds. % the same conversion repeated 300 times
+          Elapsed time is 0.279860 seconds. % two new conversions, repeated 300 times
+
+          >> test_bug1916
+          Elapsed time is 0.000170 seconds.
+          Elapsed time is 0.013332 seconds.
+          Elapsed time is 0.012126 seconds.
+
+          The first instance of any conversion takes 150ms, after that it is very fast with about 12ms for 300 conversions.
+
+          mbp> svn commit test/test_bug1916.m private/scalingfactor.m
+          Sending        private/scalingfactor.m
+          Adding         test/test_bug1916.m
+          Transmitting file data ..
+          Committed revision 7271.
+      - +@isprivate: "0"
+        commentid: "8864"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:28 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

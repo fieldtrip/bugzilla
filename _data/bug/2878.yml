@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2878"
+    creation_ts: 2015-04-16 02:27:00 +0200
+    short_desc: 'ft_databrowser: redrawing is several times slower for viewmode = vertical than butterfly'
+    delta_ts: 2015-10-06 00:40:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2065"
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15598"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-04-16 02:27:32 +0200
+        thetext: |-
+          As title. This shouldn't really be the case, as the amount of data that is plotted is identical. And plotting the data should be the slowest processes, according to my intuition. Presumably calculating displacement of the y-axis data is inefficient. Will look into.
+
+          Additional info:
+          Clearly noticeable (2-5 times as slow) using:
+          ~100 channels
+          ~1000 data points per channel to be plotted.
+      - +@isprivate: "0"
+        commentid: "15601"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-16 08:53:14 +0200
+        thetext: |-
+          that seems to make sense, since "vertical" goes with a for loop through ft_plot_vector where all channel data still need to be repositioned.
+
+          E.g. consider the following
+
+          time = 1:1000;
+          figure
+
+          tic
+          for i=1:100
+            cla
+            disp(i)
+            dat = randn(100, 1000);
+            ft_plot_vector(time, dat);
+            drawnow
+          end
+          toc
+
+          hpos = rand(100,1);
+          vpos = rand(100,1);
+          width  = 0.1 * ones(100,1);
+          height = 0.1 * ones(100,1);
+
+          tic
+          for i=1:100
+            cla
+            disp(i)
+            dat = randn(100, 1000);
+            for i=1:100
+              ft_plot_vector(time, dat(i,:), 'hpos', hpos(i), 'vpos', vpos(i), 'width', width(i), 'height', height(i));
+            end
+            drawnow
+          end
+
+          I suggest you try this also without axis repositioning, and also with plot instead of ft_plot_vector, to see whether the additional overhead is in the repeated *calls* to the low-level plot function, or whether the overhead is *inside* the low-level plot function.
+      - +@isprivate: "0"
+        commentid: "15604"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-04-16 20:34:16 +0200
+        thetext: "The second one is indeed a bit slower. If you place the drawnow after the loop however, they take about the same time actually (which I found was the case in the browser using profiling).\n\nSome profiling resulted for the interested reader and my ref:\nViewmode = butterfly, ~100 channels, ~1000 samples, 20 flips through trials\nft_databrowser>redraw_cb   21  4.234s  1.932s \nInside redraw_cb\n1922 drawnow                           21  1.591s  37.6%\n1694 ft_plot_vector(tim, dat, 'box'... 21  1.351s  31.9%\n1490 dat = ft_fetch_data(opt.orgdat... 21  0.560s  13.2%\n1685 delete(findobj(h,'tag', 'timec... 21  0.200s  4.7%\n\nViewmode = vertical\nft_databrowser>keyboard_cb   20  20.510s  0.000s\nInside redraw_cb\n1733 lh = ft_plot_vector(tim, dat(d...  2163  6.747s  31.0%\n1727 if numel(findobj(h,'tag', 'cha...  2163  6.003s  27.5%\n1575 opt.laytime = ft_prepare_layou...  21    5.810s  26.7%\n1922 drawnow                            21    1.270s   5.8%\n\n\nThe plotting itself does take more than twice as long though. There's more to it. Looks like there's some more speedups possible. Looking more into it\n\n(posting this quickly for my own reference, tbc)"
+      - +@isprivate: "0"
+        commentid: "15605"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-04-16 22:32:48 +0200
+        thetext: "I've sped it up several fold (in my example), by adding a \"changed the channels\" flag, and only draw labels and prep the layout when the channels were changed. \n\nIt's a workaround, but it's decent, and better than the one I implemented before (bug 2065, added as dep). \n\nI'll test it a bit more (I'm sure I missed a 'changing channels event' somewhere), and commit it in a few days when I get my new laptop and coding/svn/git environment running. \n\nIt's still a bit slow however, which is simply caused by calling ft_plot_vector for each channel, relating to the example from Robert above. This can only be solved by calling ft_plot_vector once. This can only be achieved if vpos is applied to the data before calling plot vector (hpos luckily doesn't change, which would be impossible to apply). Whether this is desired however, is an open question."
+      - +@isprivate: "0"
+        commentid: "15606"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-17 08:56:07 +0200
+        thetext: "right now the interface allows for specifying a single hpos/vpos for all channels. Looking at line 259, it is clear that hpos/vpos are assumed to be scalar, otherwise that would not work.\n\nHow about extending it such that hpos etc can be a vector? That would apply to \n\n%   'hpos'            = horizontal position of the center of the local axes\n%   'vpos'            = vertical position of the center of the local axes\n%   'width'           = width of the local axes\n%   'height'          = height of the local axes\n%   'hlim'            = horizontal scaling limits within the local axes\n%   'vlim'            = vertical scaling limits within the local axes\n\nIt is not 100% trivial in the code, since just as in \"plot\" it should plot along columns (single input matrix) or along rows (two inputs). But interface-wise I don't think that there would be any ambiguity.\n\nSo something like\n>> ft_plot_vector(randn(10,20), 'hpos', rand(1,10), 'vpos', rand(1,20))\nalthough the 10 and 20 might have to be swapped."
+      - +@isprivate: "0"
+        commentid: "15607"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-17 08:58:16 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #4)\n\nnote that this must then be changed consistently in all ft_plot functions that use local axes. So also \n\nmac011> grep -l vpos *.m\nft_plot_box.m\nft_plot_lay.m\nft_plot_line.m\nft_plot_matrix.m\nft_plot_text.m\nft_plot_topo.m\nft_plot_vector.m\nft_uilayout.m % this one probably not\n\nYou should check whether it is actually possible, given the constraints that the other functions impose on this generic functionality."
+      - +@isprivate: "0"
+        commentid: "16173"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-10-06 00:40:23 +0200
+        thetext: I've applied my speed fixes, which I was far too slow in doing ;). I'm closing this one and making another vpos, as it deserves its own (if we implement it in the end).

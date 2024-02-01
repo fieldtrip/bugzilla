@@ -1,0 +1,85 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3252"
+    creation_ts: 2017-02-15 11:42:00 +0100
+    short_desc: hpos and vpos are used in two different ways
+    delta_ts: 2017-03-27 09:45:03 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18407"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-02-15 11:42:45 +0100
+        thetext: "In ft_plot_topo/lay it is:\n%   'hpos'        = horizontal position of the lower left corner of the local axes\n%   'vpos'        = vertical position of the lower left corner of the local axes\n%   'width'       = width of the local axes\n%   'height'      = height of the local axes\n\nIn ft_plot_matrix/others it is:\n%   'hpos'            = horizontal position of the center of the local axes\n%   'vpos'            = vertical position of the center of the local axes\n%   'width'           = width of the local axes\n%   'height'          = height of the local axes\n\n(In ft_plot_lay, the code actually follows both styles...)\n\nThe first is matlab's style, like in e.g. figure positions, 'position', [left bottom width height]. \nThe second is in the style of our layout's: hpos and vpos match pos(:,1) and pos(:,2). \n\nI propose we shift all uses of hpos and vpos to the latter. Mostly because it matches the layout, and is the least amount of work (see below). Personally, it also seems a more intuitive reference frame (to think from the center, instead of the lower left edge). \n\nThe affected ./plotting/ft_plot_XXX are:\nip-145-102-26-33:plotting roemervandermeij$ grep  \"'vpos'\\|'hpos'\" ./*.m -l\n./ft_plot_box.m       (center)\n./ft_plot_lay.m       (broken...both)\n./ft_plot_line.m      (center)\n./ft_plot_matrix.m    (center)\n./ft_plot_patch.m     (center)\n./ft_plot_text.m      (center)\n./ft_plot_topo.m      (left/bottom)\n./ft_plot_vector.m    (center)\n./ft_uilayout.m .   (left/bottom)\n\nAn exception to this change, IMO, should be ft_uilayout. This functions serves as an intermediate interface for UI things, and all UI things have 'position''s which follow [left bottom width height]. So, after reading matlab's documentation on UI things, and setting those UI things using ft_uilayout, it makes sense that it is done according to matlab's style. (Also, it will be a TON of work to change this thing.).\n\n\nWhat do you think Robert/JM? It's inhibiting my work with the layouts, so I'd be happy to do this. Needless to say, it can mess up a lot of plotting, but luckily we have plenty of test scripts to use for to test (e.g. the tutorials, and those below)\n\n\n\nFunctions that use ft_plot_lay:\nip-145-102-26-33:fieldtrip-dev roemervandermeij$ grep -R --include \\*.m ft_plot_lay ./ -l\n.//ft_layoutplot.m\n.//ft_multiplotCC.m\n.//ft_multiplotER.m\n.//ft_multiplotTFR.m\n.//ft_singleplotTFR.m\n.//ft_topoplotCC.m\n.//plotting/ft_plot_lay.m\n.//plotting/ft_select_channel.m\n.//plotting/test/test_ft_plot_lay.m\n.//private/topoplot_common.m\n.//test/inspect_bug2993.m\n.//test/test_bug2773.m\n\nFunctions that use ft_plot_topo:\nip-145-102-26-33:fieldtrip-dev roemervandermeij$ grep -R --include \\*.m ft_plot_topo ./ -l\n.//fileio/private/ft_hastoolbox.m\n.//forward/private/ft_hastoolbox.m\n.//ft_databrowser.m\n.//ft_movieplotTFR.m\n.//inverse/private/ft_hastoolbox.m\n.//plotting/ft_plot_topo.m\n.//plotting/ft_plot_topo3d.m\n.//plotting/test/test_ft_plot_topo.m\n.//plotting/test/test_ft_plot_topo3d.m\n.//private/moviefunction.m\n.//private/topoplot_common.m\n.//realtime/example/ft_realtime_topography.m\n.//realtime/online_meg/ft_realtime_coillocalizer.m\n.//test/failed_eeg_leadfield_units.m\n.//test/failed_headmodel_fns.m\n.//test/inspect_bug3033.m\n.//test/test_bug1082.m\n.//test/test_bug2336.m\n.//test/test_bug2377.m\n.//test/test_headmodel_asa.m\n.//test/test_headmodel_bemcp.m\n.//test/test_headmodel_concentricspheres.m\n.//test/test_headmodel_dipoli.m\n.//test/test_headmodel_openmeeg.m\n.//test/test_headmodel_singlesphere.m\n.//test/test_meg_leadfield_units.m\n.//utilities/ft_hastoolbox.m"
+      - +@isprivate: "0"
+        commentid: "18408"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-02-15 11:44:10 +0100
+        thetext: Also, this will impact outside use of ft_plot_topo and lay. Any idea who this will be? SPM I presume?
+      - +@isprivate: "0"
+        commentid: "18409"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-02-15 13:32:45 +0100
+        thetext: "There is actually another issue, the scaling of the input to adjust to the pseudo axis is broken quite a bit in ft_plot_topo/lay. This was probably invisible within the same layout, but becomes very obvious using nested layouts. \n\nThe below makes it obvious. According to the lay (and the input given to ft_plot_topo), the topo plot should go from X = 0.5-.25/2 to X = 0.5+.25/2. It however goes from X = 0.633 to X = 0.883. A significant rightward (same for upward) shift, but accurate width.\n\nIf the axes of the topo data start at 1 and are positive, the error is very minimal, which might be the reason why it wasn't an issue in SPMs GUI (it's in there right?), as the layout generally follows that principle (but needn't).\n\nNot hard to fix, but will again have an impact for other toolboxes I presume.\n\n% create lay and plot fake data\nlay = [];\nlay.label{1} = 'chan';\nlay.pos      = [0.5 0.5];\nlay.width    = 0.25;\nlay.height   = 0.25;\nfigure;\naxis on;\nft_plot_topo(51:100,51:100,rand(50),'hpos',lay.pos(1,1)-lay.width(1)/2,'vpos',lay.pos(1,2)-lay.height(1)/2,'width',lay.width(1),'height',lay.height(1),'hlim',[51 100],'vlim',[51 100])\n\nFor comparison, ft_plot_matrix (with hpos/vpos as it desires), is accurate:\nfigure;\naxis on;\nft_plot_matrix(51:100,51:100,rand(50),'hpos',lay.pos(1,1),'vpos',lay.pos(1,2),'width',lay.width(1),'height',lay.height(1),'hlim',[51 100],'vlim',[51 100])"
+      - +@isprivate: "0"
+        commentid: "18448"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-02 10:12:21 +0100
+        thetext: |-
+          Hi Roemer,
+
+          I agree with your diagnosis and suggested fix. But I would be curious about Robert's opinion as well.
+
+          I wouldn't be too worried about unforeseen changes in behavior of the functions, since it solely affects visualization and not algorithmic computations. In that light, even though we have quite a few test functions calling ft_plot_lay c.s., typically we don't run the function with the intention to visually check the figures. Typically we use them to check whether they continue running through...
+      - +@isprivate: "0"
+        commentid: "18519"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-27 09:45:03 +0200
+        thetext: "(In reply to Jan-Mathijs and Roemer)\n\n> What do you think Robert?\n\nAgreed, the positions should indicate center. Otherwise stuff would shift with 0.5 times width/height depending on the value of width/heigh. I would only want it to scale when changing the width/height.\n\nft_uilayout should indeed stay as it is. That one refers to positions in a figure, not axes, and is often used in pixels, not in data units.\n\nLooking at the code of ft_plot_topo, to me it seems inconsistent with its documentation. I suggest to start by making a specific test script... See below for an \"anzats\". Based on that, it seems to me that both for plot_lay and plot_topo it is actually center-based rather than corner-based. Please do a careful visual inspection and check!\n\nI can still imagine that it would be good to make the code more consistent (and of course make the documentation correct and consistent). Could you also extend the test script and add it to the plotting/test/ directory?\n\nLast week I encountered (and fixed) an issue with hpos/vpos in ft_plot_text. I hope that it is now consistent with the desired specification. Please also have a critical look at that one. \n\n\n------------------------------------------------------------------------------------\ncfg = [];\ncfg.layout = 'EEG1020.lay';\nlayout_origi = ft_prepare_layout(cfg);\n\n% make one with small boxes\nlayout_small        = layout_origi;\nlayout_small.width  = layout_origi.width/2;\nlayout_small.height = layout_origi.height/2;\n\n% make one with large boxes\nlayout_large        = layout_origi;\nlayout_large.width  = layout_origi.width*2;\nlayout_large.height = layout_origi.height*2;\n\nfigure;\nsubplot(1,3,1); ft_plot_lay(layout_small); title('small');    axis on; grid on\nsubplot(1,3,2); ft_plot_lay(layout_origi); title('original'); axis on; grid on\nsubplot(1,3,3); ft_plot_lay(layout_large); title('large');    axis on; grid on\n\n\n%%\n\nfigure\nl = layout_small;\nfor i=1:21\n  ft_plot_lay(l, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1))\nend\naxis on; grid on\n\nfigure\nl = layout_origi;\nfor i=1:21\n  ft_plot_lay(l, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1))\nend\naxis on; grid on\n\nfigure\nl = layout_large;\nfor i=1:21\n  ft_plot_lay(l, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1))\nend\naxis on; grid on\n\n%%\n\nval = sqrt(sum(layout.pos.^2,2));\nval = 0.4500 - val;\nval = val(1:21); % skip comment and scale\n\nfigure\nl = layout_small;\nfor i=1:21\n  x = l.pos(1:21,1);\n  y = l.pos(1:21,2);\n  ft_plot_topo(x, y, val, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1), 'outline', l.outline, 'mask', l.mask);\nend\naxis on; grid on\n\n\nfigure\nl = layout_origi;\nfor i=1:21\n  x = l.pos(1:21,1);\n  y = l.pos(1:21,2);\n  ft_plot_topo(x, y, val, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1), 'outline', l.outline, 'mask', l.mask);\nend\naxis on; grid on\n\n\nfigure\nl = layout_large;\nfor i=1:21\n  x = l.pos(1:21,1);\n  y = l.pos(1:21,2);\n  ft_plot_topo(x, y, val, 'hpos', l.pos(i,1), 'vpos', l.pos(i,2), 'width', l.width(i,1), 'height', l.height(i,1), 'outline', l.outline, 'mask', l.mask);\nend\naxis on; grid on\n\n%%\n% etc."

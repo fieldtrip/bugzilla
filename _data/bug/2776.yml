@@ -1,0 +1,158 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2776"
+    creation_ts: 2014-12-10 17:40:00 +0100
+    short_desc: ensure correct numbers of power spectral density as returned by ft_freqanalysis, considering the bandwidth
+    delta_ts: 2014-12-17 14:27:49 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - minshu
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14928"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 17:40:44 +0100
+        thetext: "On 10 Dec 2014, at 10:34, Xie Minshu <minshu@xxx> wrote:\n\nHi Robert,\n\nI'm writing this email to kindly ask you for help with a confusion I got during scaling the FFT result after applying hanning window.\n\nIn the FieldTrip toolbox, I think the following relationship applies:\n\nwindowHann = hann(ndatsample)';\ndat = bsxfun(@times,datRaw,windowHann);\nInterFFT = fft(dat);\n\nAmplitudeFFT = InterFFT(1:(ndatsample/2+1))./norm(windowHann).*sqrt(2/ndatsample);\n\nWhile the relationship I learned from other resources is:\n\nAmplitudeFFT = InterFFT(1:(ndatsample/2+1)).*2./sum(windowHann); \n% factor 2 comes from the negative frequency\n\nOr identically: AmplitudeFFT = InterFFT(1:(ndatsample/2+1)).*2./(ndatsample*coherentGain); \n% coherent gain is 0.5 for hanning window\n\nAs a result, these two relationships give the outputs with a difference about 1.73 times. Could you please help me with the coherence between these two concepts? Thank you very much in advance!\n\nThe original purpose is to calculate the power spectral density of specific channels. I think I should use the following expression:\n\nPSD = sqrt((AmplitudeFFT).^2./(fsample/ndatsample*1.5));\n% factor 1.5 is the equivalent noise bandwidth for hanning window\n\nHowever, the PSD calculated by this is above 10 fT/rtHz for the NatMEG system, which is not very reasonable. I would extremely appreciate it if you could please help me out of this contradiction."
+      - +@isprivate: "0"
+        commentid: "14929"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 17:42:18 +0100
+        thetext: |-
+          I am affraid you could very well be right. FieldTrip has for a long time been quite sloppy regarding units, and hence normalizations such as these were not considered important. The desired normalization for certain cases such as a plain fft are also clear, but with time-frequency and wavelets or multitapering it is actually not fully clear to me what the different options are regarding power or spectral density.
+
+          But for the specific case (mtmfft) I think we should be able to figure it out.
+      - +@isprivate: "0"
+        commentid: "14934"
+        comment_count: "2"
+        attachid: "686"
+        who:
+          +content: minshu
+          +@name: Xie Minshu
+        bug_when: 2014-12-10 18:09:07 +0100
+        thetext: "Created attachment 686\nPower Spectral Density of MEG1311 from an empty room recording\n\nHi Robert,\n\nPlease find attached a PSD plotted with the code in my previous message. It is for a random sensor MEG1311 recording the empty room. The noise level is about 3.5 fT/rtHz at the white noise plateau, however, it's 14 fT/rtHz around 10 Hz, which is in contrary to the expected 5 fT/rtHz level. I'm not quite sure what went wrong... \n\nBest regards,\nMinshu"
+      - +@isprivate: "0"
+        commentid: "14935"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 18:24:05 +0100
+        thetext: |-
+          I added a test script, please see https://code.google.com/p/fieldtrip/source/detail?r=10034
+
+
+          mac011> svn commit test/test_bug2776.m
+          Adding         test/test_bug2776.m
+          Transmitting file data .
+          Committed revision 10034.
+
+          The test script does not show a difference between fieldtrip and matlab. Is matlab itself using a different definition from the one you wrote?
+      - +@isprivate: "0"
+        commentid: "14937"
+        comment_count: "4"
+        who:
+          +content: minshu
+          +@name: Xie Minshu
+        bug_when: 2014-12-10 19:24:35 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #3)\nI actually have doubts about this code on Matlab's website. \n\nThe mismatch comes from whether it should be 2*abs(xdft).^2/(Fs*N)  \n% on matlab website\n\nOr it should be (2*abs(xdft)).^2/(Fs*N) % in my code\n\nIn my opinion, since each sinusoidal component has amplitude 1. Written as complex exponential, they have amplitude 1/2 ((z+conj(z))/2). So the power in each is (1/2)^2 or 1/4, which needs to be compensated by multiplying a factor of 4.\n\nI have seen this problem when I tried to match the calculated result from Matlab to the result from a commercial FFT analyzer (Keysight 35670a). The agreement happened only when the factor was 4 for the power.\n\nWhat would you think?"
+      - +@isprivate: "0"
+        commentid: "14938"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-11 10:57:51 +0100
+        thetext: "For the continuous case, the integral of sin(w*t)^2 from t=T0 up to t=T1 is 0.5*(T1-T0)=0.5*dT, since sin(phi)^2+cos(phi)^2=1 for any phi (and hence for any phi=w*t).\n\nSay signal=sin(w*t), where t is expressed in seconds (s) and the signal amplitude is expressed in Volt (V) in order not to confuse a T as Tesla (field strength) with T as time, then the integral over the power spectral density is 0.5 V^2 (see above). Say that that we have the discrete signal available in a time window of dT seconds. The discrete power spectrum is computed from 0 Hz in steps of 1/dT Hz up to the Nyquist frequency. The integral of the discrete power spectral density is computed by a sum over all discrete power estimates (numerical integration). I envision this as a bar plot, where the width of the bars is 1/dT Hz (the Raleigh frequency) and the height is expressed in V^2/Hz. This ensures that the surface area of each bar is expressed as V^2. Consequently, I can compute the numerical integration by summing over all bars. Given a single frequency present in the signal, the PSD is zero except for a single frequency bin. At that frequency bin the height of the bar consequently should be 0.5 V^2/Hz, since the width of the bar is 1 Hz.\n\nIf you look at http://en.wikipedia.org/wiki/Spectral_density, you see that for Voltage signals, the PSD is expressed as the spectrally distributed variance of the signal with units expressed in V^2/Hz. The variance of a mean-zero signal is the sum of squares of the elements divided by the number of elements. \n\nHowever, it gets more confusing by considering the case where the signal is twice as long. The variance does not increase. The Raleigh frequency decreases by a factor two (i.e. the width of a frequency bin is 1/2 Hz). Consequently, the PSD must increase by a factor 2. That is not because there is more signal, but because the signal is estimated in a smaller frequency bin. So rather than the PSD at the peak frequency being 0.5 V^2/Hz, it is now 1.0 V^2/Hz.\n\nIf I were to plot the two figures (one for the original signal, one for the twice as long signal), the height of the peaks is different. What would be difficult to assess from the figure is that the width of the bins is different, and hence that the integral is still the same. Would it therefore not be required to only plot PSD figures including the specification of the bandwidth?"
+      - +@isprivate: "0"
+        commentid: "14964"
+        comment_count: "6"
+        who:
+          +content: minshu
+          +@name: Xie Minshu
+        bug_when: 2014-12-17 12:19:27 +0100
+        thetext: |-
+          Dear Robert,
+
+          Sorry for this late reply. I have been checking this problem with some different tests. However, it turned out to be rather difficult to draw a solid conclusion ...
+
+          First of all, I agree with you that the bin size and the amplitude are correlated, giving the same power integration. But one thing really puzzles me is that when I double the sampling rate for the same random noise signal and keep the same recording time length (e.g. 1s, which corresponds to a bin size of 1 Hz), the value from a pure fft(x) function in matlab doesn't not give a straightforward scaling factor. So I'm stuck with this problem for quite a few days...
+
+          I hope I can realize what's wrong or at least able to formulate the problem in a better way by making more tests.
+
+
+          Best regards,
+          Minshu
+      - +@isprivate: "0"
+        commentid: "14965"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-17 12:34:40 +0100
+        thetext: "(In reply to Xie Minshu from comment #6)\n\n> I hope I can realize what's wrong or at least able to formulate \n> the problem in a better way by making more tests.\n\nThere are aspects that also puzzle me. I discussed it last week with Jan-Mathijs, my long-term accomplice in FieldTrip, and in that discussion (with us going over certain simulated examples) also not everything was clarified.\n\nShall we plan a Skype meeting (with a shared screen) to go over it?"
+      - +@isprivate: "0"
+        commentid: "14966"
+        comment_count: "8"
+        who:
+          +content: minshu
+          +@name: Xie Minshu
+        bug_when: 2014-12-17 14:27:49 +0100
+        thetext: |-
+          That would be really helpful! Thank you so much!
+
+          I will be mostly free on Friday, would you also have some time on Friday?
+
+          Best regards,
+          Minshu
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "686"
+      date: 2014-12-10 18:09:00 +0100
+      delta_ts: 2014-12-10 18:09:07 +0100
+      desc: Power Spectral Density of MEG1311 from an empty room recording
+      filename: 20141210_emptyRoom_MEG1311_FFT.jpg
+      type: image/jpeg
+      size: "25125"
+      attacher:
+        +content: minshu
+        +@name: Xie Minshu
+      data: REMOVED

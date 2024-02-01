@@ -1,0 +1,186 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "70"
+    creation_ts: 2010-04-23 10:00:00 +0200
+    short_desc: rank-reduction of leadfield is not supported for openmeeg
+    delta_ts: 2012-06-12 12:58:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P2
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1426"
+    blocked: "1414"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: c.micheli
+      +@name: Cristiano Micheli
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "122"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-04-23 10:00:10 +0200
+        thetext: |-
+          somewhere around lne 450 in ft_compute_leadfield it states
+
+          % optionally apply leadfield rank reduction
+          if ~strcmp(reducerank, 'no') && reducerank<size(lf,2) && ~strcmp(ft_voltype(vol),'openmeeg')
+          ...
+
+
+          why should rank-reduction not be supported for openmeeg?
+      - +@isprivate: "0"
+        commentid: "123"
+        comment_count: "1"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2010-04-25 17:54:58 +0200
+        thetext: |-
+          yes it should be:
+
+          if ~strcmp(reducerank, 'no') && reducerank<size(lf,2)
+      - +@isprivate: "0"
+        commentid: "2385"
+        comment_count: "2"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2011-06-15 15:15:04 +0200
+        thetext: I know I have been assigned this bug but I don't have commit rights on this part of the code.
+      - +@isprivate: "0"
+        commentid: "4057"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:42 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4780"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-12 15:17:34 +0100
+        thetext: See forward/ft_compute_leadfield.m:445 in SVN revision 5104. Fairly easy fix apparently (I am running tests, so I can't change code right now).
+      - +@isprivate: "0"
+        commentid: "4962"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-27 08:34:04 +0100
+        thetext: assigned bug to get all bugs lined up before the grand bug binge
+      - +@isprivate: "0"
+        commentid: "5057"
+        comment_count: "6"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-02-01 14:35:16 +0100
+        thetext: done!
+      - +@isprivate: "0"
+        commentid: "5109"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-02 11:47:58 +0100
+        thetext: Fixed in SVN revision 5196. Closing this bug.
+      - +@isprivate: "0"
+        commentid: "5899"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-15 12:02:06 +0200
+        thetext: |-
+          This bug has resurfaced after regression testing. See bug #1414
+
+          Looking at the test script, I see that it actually does not check for the computations being done correctly. I have changed the code into
+
+          cfg=[];
+          %  cfg.reducerank  = 2;
+          cfg.vol = vol;
+          cfg.grid.pos = [0 0 .5];
+          cfg.elec = elec;
+          lf  = ft_prepare_leadfield(cfg); % use the defaults
+          cfg.reducerank  = 1;
+          lf1 = ft_prepare_leadfield(cfg);
+          cfg.reducerank  = 2;
+          lf2 = ft_prepare_leadfield(cfg);
+          cfg.reducerank  = 3;
+          lf3 = ft_prepare_leadfield(cfg);
+
+          assert(~isequal(lf1, lf2)); % these should be different
+          assert(~isequal(lf1, lf3)); % these should be different
+          assert(~isequal(lf2, lf3)); % these should be different
+          assert( isequal(lf,  lf3)); % these should be identical, i.e. the default should be rank 3
+
+          assert(size(lf,2)==3);
+          assert(size(lf1,2)==3);
+          assert(size(lf2,2)==3);
+          assert(size(lf3,2)==3);
+
+          assert(rank(lf)==3);
+          assert(rank(lf1)==1);
+          assert(rank(lf2)==2);
+          assert(rank(lf3)==3);
+
+          which should provide some safeguard against invalid rank-reductions. Since I am not able to execute the code, I am reopening this bug and assigning it to Cristiano.
+      - +@isprivate: "0"
+        commentid: "5900"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-15 12:03:36 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          this contains the enhanced tests:
+
+          roboos@mentat001> svn commit test/test_bug70.m
+          Sending        test/test_bug70.m
+          Transmitting file data .
+          Committed revision 5621.
+      - +@isprivate: "0"
+        commentid: "6010"
+        comment_count: "10"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-04-30 13:30:06 +0200
+        thetext: "(In reply to comment #9)\n\nNow all assertions hold, apart the \n\nassert( isequal(lf,  lf3)); \n\nProbably, due to how openmeeg generates the lead fields, a second calculation of the same leadfield is not perfectly identical to the first one (the numerical difference in minimal, inferior to eps, but anyway it's there!)\nIs there any random generated variable involved in the calculation of the lead fields?\nTo overcome the problem I slightly changed the assertion into:\nassert( norm(lf-lf3)<eps); \nAlex, do you any idea why this happens?"

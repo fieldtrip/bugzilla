@@ -1,0 +1,187 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2006"
+    creation_ts: 2013-02-23 12:30:00 +0100
+    short_desc: 'ft_prepare_sourcemodel: consider support for atlas-based parcellation'
+    delta_ts: 2014-02-12 10:34:11 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.backus
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9519"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-02-23 12:30:39 +0100
+        thetext: for the creation of individual 3D grids.
+      - +@isprivate: "0"
+        commentid: "9543"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-02-25 11:10:38 +0100
+        thetext: |-
+          After discussing this with Alex, the following seems to make sense as an extension to the warpmni method in ft_prepare_sourcemodel.
+
+          -make the template MRI explicit: default will still be T1.nii
+          -allow for an added volumetric segmentation that represents an atlas.
+            This atlas should either be defined in the same coordinate system as the template MRI (i.e. MNI space), or in the subject specific coordinate system. The former makes most sense.
+          -pass on the segmentation info to the sourcemodel.
+      - +@isprivate: "0"
+        commentid: "9545"
+        comment_count: "2"
+        attachid: "426"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-02-25 13:28:59 +0100
+        thetext: |-
+          Created attachment 426
+          MRI structure with two regions of interest
+
+          dim:       [151 188 154]
+          hdr:       [1x1 struct]
+          transform: [4x4 double]
+          unit:      'mm'
+          roi:       [151x188x154 double]
+          roilabel:  {'rightHPC'  'leftHPC'}
+      - +@isprivate: "0"
+        commentid: "9546"
+        comment_count: "3"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-02-25 13:29:31 +0100
+        thetext: |-
+          (In reply to comment #2)
+          MNI space!
+      - +@isprivate: "0"
+        commentid: "9693"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 16:51:11 +0100
+        thetext: |-
+          svn commit -m "enhancement - allow in general for segmentations in cfg.mri, not only tpms but also atlas-based segmentations" ft_prepare_sourcemodel.m utilities/ft_datatype.m
+          Sending        ft_prepare_sourcemodel.m
+          Sending        utilities/ft_datatype.m
+          Transmitting file data ..
+          Committed revision 7598.
+      - +@isprivate: "0"
+        commentid: "9694"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-06 17:00:21 +0100
+        thetext: "Alex, \n\nIk heb ft_prepare_sourcemodel aangepast.\nJe zou nu in twee stappen een ROI-gebaseerd bronmodel kunnen bouwen.\n\nstap 1:\n\nload bug2006_roimri\n\ncfg = [];\ncfg.mri = bug2006_roimri;\ncfg.grid.resolution = 0.5;\ncfg.smooth = 2;\ntemplategrid = ft_prepare_sourcemodel(cfg);\n\ncfg = [];\ncfg.grid.template = templategrid;\ncfg.grid.nonlinear= 'yes';\ncfg.warpmni = 'yes';\nsourcemodel = ft_prepare_sourcemodel(cfg);\n\nDit veronderstelt vooralsnog dat de template MRI gealigned is met de MRI waar de ROI van bepaald is.\nMisschien zou je het eens kunnen testen."
+      - +@isprivate: "0"
+        commentid: "11393"
+        comment_count: "6"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-09-23 16:45:09 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+          The suggested steps worked in March 2013.
+
+          Now, ft_prepare_sourcemodel seems to not support this function anymore, by only allowing regular 3D grids to be warped to MNI space.
+
+          Here is the current code for the generalized atlas approach (AAL in this case).
+          _______________________
+
+          % load atlas
+          cfg         = [];
+          cfg.atlas   = fullfile('fieldtrip','template','atlas','aal','ROI_MNI_V4.nii');
+          atlas       = ft_prepare_atlas(cfg);
+
+          % dirty fix
+          segatlas                = ft_datatype_segmentation(atlas);
+          segatlas.brick0label    = atlas.descr.name;
+
+
+          % create grid based on atlas
+          cfg                 = [];
+          cfg.mri             = segatlas; % may also be debugged with the supplied bug2006_roimri file
+          cfg.grid.resolution = 0.5;
+          cfg.smooth          = 2;
+          templategrid        = ft_prepare_sourcemodel(cfg);
+
+
+          % warp the grid
+          cfg                 = [];
+          cfg.grid.template   = templategrid;
+          cfg.grid.nonlinear  = 'yes';
+          cfg.warpmni         = 'yes';
+          %cfg.mri             = segmentedmri; % some segmented mri in native subject space needs to go here???
+
+          sourcemodel = ft_prepare_sourcemodel(cfg);
+
+          % ERROR HERE: no vol; if I supply a segmented mri, the grid will lose all its anatomical labels and is converted to a regular 3D grid.
+      - +@isprivate: "0"
+        commentid: "11397"
+        comment_count: "7"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2013-09-24 13:45:31 +0200
+        thetext: "(In reply to comment #6)\n(In reply to comment #6)\n\nFixed: \n\nNow it's:\ncfg.grid.warpmni = 'yes';\n\nInstead of (the earlier):\ncfg.warpmni = 'yes';\n\nSorry :-)"
+      - +@isprivate: "0"
+        commentid: "12113"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 10:22:25 +0100
+        thetext: As far as I can see, this is now supported.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "426"
+      date: 2013-02-25 13:28:00 +0100
+      delta_ts: 2013-02-25 13:28:59 +0100
+      desc: MRI structure with two regions of interest
+      filename: bug2006_roimri.mat
+      type: application/octet-stream
+      size: "322735"
+      attacher:
+        +content: a.backus
+        +@name: Alexander Backus
+      data: REMOVED

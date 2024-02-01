@@ -1,0 +1,99 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3420"
+    creation_ts: 2018-03-27 16:06:00 +0200
+    short_desc: implement Pearson's correlation in ft_statistics_stats
+    delta_ts: 2019-08-10 12:37:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - d.brkic
+      - n.dijkstra
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19323"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-03-27 16:06:12 +0200
+        thetext: "It would be nice to have Pearsons and Spearmans correlation in ft_statistics_stats, such that it is accessible with method=stats and statistic=pearson for a quick within subject analysis. Diandra implemented this already (with some help of Robert), Nadine just did it again. \n\nThis issue in bugzilla serves to follow this up and to make sure it gets added to teh FieldTrip release version."
+      - +@isprivate: "0"
+        commentid: "19324"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-03-27 16:07:13 +0200
+        thetext: "On 27 Mar 2018, at 15:41, Nadine wrote:\n\nN.a.v. de MEEG meeting afgelopen maandag heb ik de volgende code geschreven als toevoeging voor de ft_statistics_stats functie. Bij mij werkt die, dus ik dacht dat het misschien handig was om te hebben voor andere mensen. De values waarmee de data gecorreleerd wordt moeten in ‘design’ staan.\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\ncase {'Pearson'}\n % set the defaults\n cfg.alpha         = ft_getopt(cfg, 'alpha', 0.05);  \n\n switch cfg.tail\n   case 0\n     cfg.tail = 'both';\n   case -1\n     cfg.tail = 'left';\n   case 1\n     cfg.tail = 'right';\n end\n\n if size(design,1)~=1\n   ft_error('design matrix should only contain one factor (i.e. one row)');\n end\n Ncond = length(unique(design));\n if Ncond<2\n   ft_error('method ''%s'' is only supported for varying values', cfg.statistic);\n end\n\n Nobs  = size(dat, 1);\n\n h = zeros(Nobs, 1);\n p = zeros(Nobs, 1);\n s = zeros(Nobs, 1);\n fprintf('number of observations %d\\n', Nobs);\n\n ft_progress('init', cfg.feedback);\n for chan = 1:Nobs\n   ft_progress(chan/Nobs, 'Processing observation %d/%d\\n', chan, Nobs);\n   [s(chan), p(chan)] = corr(dat(chan, :)', design','type','Pearson','tail',cfg.tail);\n   h(chan) = p(chan) <= cfg.alpha;\n end\n ft_progress('close');"
+      - +@isprivate: "0"
+        commentid: "19325"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-03-27 16:12:13 +0200
+        thetext: "we always start with a small test script, which gets added to fieldtrip/test. I have created test_bug3420, which contains \n\n%%\n\ntimelock = [];\ntimelock.time = (1:1000)/1000;\ntimelock.dimord = 'rpt_chan_time';\nfor i=1:32\n  timelock.label{i} = num2str(i);\nend\nfor i=1:100\n  timelock.trial(i,:,:) = randn(64,1000) + i;\nend\n\n%%\n\ncfg = [];\ncfg.design = 1:100;\ncfg.ivar = 1;\ncfg.method = 'stats';\ncfg.statistic = 'pearson';\nstatp = ft_timelockstatistics(cfg, timelock);"
+      - +@isprivate: "0"
+        commentid: "19326"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-03-27 16:38:23 +0200
+        thetext: |-
+          I made a branch in the git repository and added the code
+
+          mac011> git commit -a
+          [bug3420-pearson 1baf1f2] Implement Pearson's correlation in ft_statistics_stats See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3420
+           2 files changed, 496 insertions(+), 380 deletions(-)
+           rewrite ft_statistics_stats.m (70%)
+           create mode 100644 test/test_bug3420.m
+
+          Then I pushed the code to github, where I will make a pull request (PR).
+
+              git push --set-upstream origin bug3420-pearson
+      - +@isprivate: "0"
+        commentid: "19327"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-03-27 16:41:22 +0200
+        thetext: "The PR is at https://github.com/fieldtrip/fieldtrip/pull/682. You can go there and check out the changes. One large change (accidental) is that I re-indented the other code in ft_statistics_stat. There are actually no content changes, just different whitespace.\n\nI have (as project admin) merged the PR (which I sent as normal person), it is now in the release version. \n\nThe next time you can do this yourself by following the tutorial at http://www.fieldtriptoolbox.org/development/git"
+      - +@isprivate: "0"
+        commentid: "20382"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:37:24 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,193 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2572"
+    creation_ts: 2014-05-12 11:34:00 +0200
+    short_desc: well, this seems like a fairly easy unit conversion ;)
+    delta_ts: 2014-05-14 20:08:48 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "2570"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13532"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-05-12 11:34:18 +0200
+        thetext: |-
+          When running ft_sourceanalysis with the following arguments...
+
+          cfg=[];
+          cfg.method='lcmv';
+          cfg.vol=vol;
+          cfg.grid=grid_lcmv;
+          cfg.keepfilter='yes';
+          s_lcmv_seated=ft_sourceanalysis(cfg,tl_seated);
+
+          ...I get...
+
+          ??? Error using ==> scalingfactor at 167
+          cannot convert cm to mm
+
+          Error in ==> ft_convert_units at 160
+          scale = scalingfactor(unit, target);
+
+          Error in ==> prepare_headmodel at 67
+              sens = ft_convert_units(sens, cfg.grid.unit, 'feedback', true);
+
+          Error in ==> ft_sourceanalysis at 286
+          [vol, sens, cfg] = prepare_headmodel(cfg, data);
+
+          This unit conversion seems like it should be doable ;) Any ideas what's going on?
+
+          grid_lcmv.unit and vol.unit = 'mm'. tl_seated.grad.unit = 'cm'.
+      - +@isprivate: "0"
+        commentid: "13533"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 11:43:17 +0200
+        thetext: "Robert is still working on all that unit stuff, and not sure what he is busy with right now, so no clue how long it will take until this all works. As a workaround, maybe call \n grid_lcmv = ft_convert_unit(grid_lcmv, 'cm')\nand\n vol = ft_convert_unit(vol, 'cm')\n\nhope that suffices to make your code run smoothly again ;)"
+      - +@isprivate: "0"
+        commentid: "13534"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 11:44:04 +0200
+        thetext: oh, I just saw that the error happens in ft_convert_units... ehm, okay, then... Robert?
+      - +@isprivate: "0"
+        commentid: "13535"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 11:51:45 +0200
+        thetext: oh, maybe this one was my fault, and the fix of bug 2571 was wrong
+      - +@isprivate: "0"
+        commentid: "13536"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 11:52:46 +0200
+        thetext: |-
+          so, I now undone my changes for 2571 and fixed that one otherwise. It actually does make sense to first understand the code someone else wrote and then fix it ;)
+
+          svn ci scalingfactor.m -m "bugfix #2571 - eval statements unfixed, unknown introduced"
+          Sending        scalingfactor.m
+          Transmitting file data .
+          Committed revision 9496.
+
+          can you check whether it works?
+      - +@isprivate: "0"
+        commentid: "13537"
+        comment_count: "5"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-05-12 11:53:08 +0200
+        thetext: |-
+          Oh yeah. Do they both have something to do with 'scalingfactor'?
+
+          (In reply to Jörn M. Horschig from comment #3)
+      - +@isprivate: "0"
+        commentid: "13538"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 11:55:01 +0200
+        thetext: yes, so this bug was definitely caused by my fix to bug 2571. And bug 2571 I tried to fix otherwise (which to me makes sense, and I hope Robert agrees)
+      - +@isprivate: "0"
+        commentid: "13541"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-12 12:19:11 +0200
+        thetext: |-
+          This is indeed related to bug2571 and to my change yesterday. Other test scripts also show it:
+
+          >> test_bug1043
+
+          Error using scalingfactor (line 168)
+          cannot convert T to unknown
+
+          Error in scalingfactor (line 87)
+            factor = cellfun(@scalingfactor, old, new);
+
+          Error in ft_apply_montage (line 266)
+            scale = scalingfactor(input.chanunit, montage.chanunitorg);
+
+          Error in ft_megplanar (line 309)
+            interp.grad = ft_apply_montage(sens, planarmontage, 'balancename', 'planar', 'keepunused', 'yes');
+
+          Error in test_bug1043 (line 23)
+          planar            = ft_megplanar(cfg, data);
+      - +@isprivate: "0"
+        commentid: "13542"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-12 12:21:07 +0200
+        thetext: I guess it's fair to say a conversion from or to unknown is impossible, right?
+      - +@isprivate: "0"
+        commentid: "13543"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-12 12:21:37 +0200
+        thetext: the problem represents the carry over of bug 2532 into bug 2570. I had expected some work to be done, but not that it would break so massively.
+      - +@isprivate: "0"
+        commentid: "13544"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-12 12:22:15 +0200
+        thetext: |-
+          Let's continue the discussion at the original bug.
+
+          *** This bug has been marked as a duplicate of bug 2570 ***
+      - +@isprivate: "0"
+        commentid: "13616"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:48 +0200
+        thetext: closed several of my bugs that have been resolved

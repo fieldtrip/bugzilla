@@ -1,0 +1,214 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1902"
+    creation_ts: 2012-12-18 11:02:00 +0100
+    short_desc: ft_prepare_sourcemodel should use consistent unit handling
+    delta_ts: 2018-03-10 21:57:51 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1956"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8751"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 11:02:48 +0100
+        thetext: |-
+          It has cfg.sourceunits='auto', whereas private/prepare_headmodel has sourceunits=[] to indicate auto.
+
+          It also has a section like
+
+            % convert the source/functional data into the same units as the anatomical MRI
+            scale = 1;
+            switch cfg.sourceunits
+              case 'mm'
+                scale = scale / 1000;
+              case 'cm'
+                scale = scale / 100;
+              case 'dm'
+                scale = scale / 10;
+              case 'm'
+                scale = scale / 1;
+              otherwise
+                error('unknown physical dimension in cfg.sourceunits');
+            end
+
+          which should be done with private/scalingfactor, or with ft_convert_units
+
+          Better would be that the consistency of all input objects with units (grid, grad, vol, mri?) is checked early on in the code. If they are not consistent, or if they are different from cfg.sourceunits, action needs to be taken.
+      - +@isprivate: "0"
+        commentid: "9164"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-24 12:29:04 +0100
+        thetext: I changed a bunch of bugs that were assigned to fieldtrip-bugs from ASSIGNED into NEW, since nobody is now explicitly working on them.
+      - +@isprivate: "0"
+        commentid: "9180"
+        comment_count: "2"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-24 15:22:19 +0100
+        thetext: I changed it back to assigned, because this is the one I was working on yesterday, but had no time to commit.
+      - +@isprivate: "0"
+        commentid: "9182"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-24 16:13:58 +0100
+        thetext: But then you must actually assign it to yourself!  I will do that now for you. Otherwise people don't know who is working on it.
+      - +@isprivate: "0"
+        commentid: "9191"
+        comment_count: "4"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-24 19:43:12 +0100
+        thetext: |-
+          Thanks Johanna. I forgot to add my name...
+          While I am working on this bug and testing it, I am wondering why is the output different when I run ft_prepare_sourcemodel with the same mri and cfg input.
+
+          mri = ft_read_mri('/home/common/matlab/fieldtrip/data/test/latest/mri/nifti/single_subj_T1.nii');
+
+          cfg=[];
+          tpm = ft_volumesegmet(cfg,mri);  % gray, white, csf tissue prob. map
+
+          cfg=[];
+          cfg.mri=tpm;
+          grid01 = ft_prepare_sourcemodel(cfg,tpm);
+
+          cfg=[];
+          cfg.mri=tpm;
+          grid02 = ft_prepare_sourcemodel(cfg,tpm);
+
+          grid01 = rmfield(grid01,'cfg');
+          grid02 = rmfield(grid02, 'cfg');
+
+          isequal(grid01,grid02)
+
+          answer is 0.
+      - +@isprivate: "0"
+        commentid: "9194"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-25 10:38:15 +0100
+        thetext: |-
+          Most bizarre!  I tried it again, to create a grid03, and the main difference is in the grid*.dim
+
+          >> grid01.dim
+              16    19    16
+          >> grid02.dim
+              16    19    17
+          >> grid03.dim
+              16    20    17
+      - +@isprivate: "0"
+        commentid: "9195"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-25 10:44:19 +0100
+        thetext: |-
+          It comes from how many voxels are marked as cortex:
+          grid01
+          264699 from 902629 voxels in the segmentation are marked as cortex (29%)
+          grid02
+          292593 from 902629 voxels in the segmentation are marked as cortex (32%)
+          grid03
+          313373 from 902629 voxels in the segmentation are marked as cortex (35%)
+      - +@isprivate: "0"
+        commentid: "9196"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-25 10:52:52 +0100
+        thetext: Every time spm_smooth is called, it seems to re-smooth it further, so that the max(mri.gray(:)) keeps getting smaller and smaller.   It's as if the cfg.mri that is used currently is taking the smoothed mri from the previous call.
+      - +@isprivate: "0"
+        commentid: "9197"
+        comment_count: "8"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-25 11:05:11 +0100
+        thetext: |-
+          How is it possible that the values of 'tpm' are changed after the call to ft_prepare_sourcemodel?
+
+          cfg=[];
+          tpm = ft_volumesegment(cfg,mri);  % gray, white, csf tissue prob. map
+          tpm.gray(55,60,21)
+          ans =
+
+              0.9882
+
+          cfg=[];
+          cfg.mri=tpm;
+          grid01 = ft_prepare_sourcemodel(cfg,tpm);
+          tpm.gray(55,60,21)
+          ans =
+
+              0.5169
+      - +@isprivate: "0"
+        commentid: "9198"
+        comment_count: "9"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-25 11:40:19 +0100
+        thetext: "(In reply to comment #8)\nthanks. yes, I remember now that there are some spm functions which change their own input. for example, spm_smooth. If you look at private/volumesmooth, this function doesn't do anything else then using spm_smooth in a way that the output won't be changed. \nAnd in  line 444 of ft_prepare_sourcemodel spm_smooth is called. So, perhaps we should change spm_smooth to volumesmooth."
+      - +@isprivate: "0"
+        commentid: "12172"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-02 13:14:03 +0100
+        thetext: "(In reply to comment #9)\n\nI changed it in ft_volumedownsample.m, although there it was making an explicit local copy (to prevent modification). It is better to be consistent, i.e. not use spm_smooth in any FT function.\n\nmac001> svn commit ft_volumedownsample.m \nSending        ft_volumedownsample.m\nTransmitting file data .\nCommitted revision 8937."
+      - +@isprivate: "0"
+        commentid: "12173"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-02 13:18:56 +0100
+        thetext: "I think (suspect) that the problem has been resolved by now. I was not able to find the spm_smooth call that originally was wreaking havoc.\n\nI did make a test script (but did not run it yet). Let's see how it behaves on the dashboard.\n\nmac001> svn commit test_bug1902.m \nAdding         test_bug1902.m\nTransmitting file data .\nCommitted revision 8938."

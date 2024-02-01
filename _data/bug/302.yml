@@ -1,0 +1,161 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "302"
+    creation_ts: 2010-12-13 14:19:00 +0100
+    short_desc: sourceanalysis fails due to ft_prepare_leadfield throwing away the data
+    delta_ts: 2011-08-17 14:45:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - johanna.zumer
+      - kaoruamano
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "640"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-13 14:19:29 +0100
+        thetext: |-
+          Begin forwarded message:
+
+          From: Kaoru Amano <amano@brain.k.u-tokyo.ac.jp>
+          Date: 13 December 2010 12:15:15 GMT+01:00
+          To: Robert Oostenveld <r.oostenveld@donders.ru.nl>
+          Cc: amano@brain.k.u-tokyo.ac.jp, jan-mathijs schoffelen <jan.schoffelen@DONDERS.RU.NL>
+          Subject: Re: Statistics on source timecourse
+          Reply-To: amano@brain.k.u-tokyo.ac.jp
+
+          ...
+
+          In order to calculate the timecourse of each single trial, I run the following script (run sourceanalysis on the average with cfg.keepfilter=yes, and then rerun sourceanalysis where I specify cfg.grid=source2grid(source), and cfg.rawtrial=yes), but an error message appeared.
+
+          ??? error ==> prepare_headmodel at 92
+          no electrodes or gradiometers specified
+
+          error ==> ft_prepare_leadfield at 146
+          [vol, sens, cfg] = prepare_headmodel(cfg, data);
+
+          error ==> ft_sourceanalysis at 355
+           [grid, cfg] = ft_prepare_leadfield(cfg, data);
+
+
+          This is because 'data' is removed at the following part of "ft_prepare_leadfield" if inputfile is not specified. Is it OK to change "data=[];" to "data=data;"?
+
+
+          if ~isempty(cfg.inputfile)
+           % the input data should be read from file
+           if hasdata
+             error('cfg.inputfile should not be used in conjunction with giving input data to this function');
+           else
+             data = loadvar(cfg.inputfile, 'data');
+           end
+          else
+           data = [];
+          end
+
+
+
+
+          ----------------
+          cfg = [];
+          cfg.covariance       = 'yes';
+          cfg.covariancewindow = [ave_time];
+          avg_dataPost = ft_timelockanalysis(cfg, data);
+
+          cfg = [];
+          cfg.method = 'lcmv';
+          cfg.grad   = grad;
+          cfg.grid   = grid;
+          cfg.vol    = vol;
+          cfg.keepfilter  = 'yes';
+          source  = ft_sourceanalysis(cfg, avg_dataPost);
+
+          cfg           = [];
+          cfg.keeptrials   = 'yes';
+          cfg.covariance       = 'yes';
+          cfg.covariancewindow = ave_time;
+          avg_dataPost         = timelockanalysis(cfg, data);
+
+          %% use the common filter to estimate the source for each single trial
+          cfg        = [];
+          cfg.method = 'lcmv';
+          cfg.rawtrial = 'yes';
+          cfg.projectnoise = 'yes';
+          cfg.projectmom = 'yes';
+          cfg.grid   = source2grid(source);
+          cfg.vol    = vol;
+          cfg.lambda = '5%';
+          sourcePost  = sourceanalysis(cfg, avg_dataPost);
+      - +@isprivate: "0"
+        commentid: "1705"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-03-30 15:18:50 +0200
+        thetext: "Hi, I was about to file a similar bug, but then noticed this one.\n\nIt does indeed seem a bug where Kaoru mentioned, leading to data=[]; unncessarily, or perhaps unintentionally, and related to the if-statements regarding cfg.inputfile.\n\nFrom what I gather, the channel info needs to be obtained either 1) from the cfg.grad, or 2) from the data, which can be given either as 'data' variable input or by cfg.inputfile.   \n\nThere is also a mismatch between the help-comments and what the code does, but that can be modified once the code is clear.\n\nI would suggest, but have only so far tested in my case of calling ft_prepare_leadfield directly (not via ft_sourceanalysis): \n\n\nhasdata = (nargin>1);\nif isfield(cfg,'grad')\n    if hasdata\n        % need to check if data.grad and cfg.grad are same?\n        data = []; % clear for memory reasons and because we won't use it.\n        % need to warn/error user that we use cfg.grad and not data.grad?\n    end\nelse\n    if ~isempty(cfg.inputfile)\n        % the input data should be read from file\n        if hasdata\n            error('cfg.inputfile should not be used in conjunction with giving input data to this function');\n        else\n            data = loadvar(cfg.inputfile, 'data');\n        end\n    else\n        if ~hasdata\n            error('Either data, cfg.inputfile, or cfg.grad must be specified');\n        end\n    end\nend"
+      - +@isprivate: "0"
+        commentid: "1706"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-03-30 15:26:58 +0200
+        thetext: oops, the first 'if hasdata' should be removed, as data=[] should be set if 'data' is not an input at all.
+      - +@isprivate: "0"
+        commentid: "2773"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-28 13:18:07 +0200
+        thetext: |-
+          I'll fix it as:
+
+          hasdata = (nargin>1);
+          if isfield(cfg,'grad')
+              data = []; % clear for memory reasons and because we won't use it
+              % need to check if data.grad and cfg.grad are same?
+              % need to warn/error user that we use cfg.grad and not data.grad?
+          else
+              if ~isempty(cfg.inputfile) && hasdata
+                  error('cfg.inputfile should not be used in conjunction with giving input data to this function');
+              elseif ~isempty(cfg.inputfile)
+                  % the input data should be read from file
+                  data = loadvar(cfg.inputfile, 'data');
+              elseif ~hasdata
+                  error('Either data, cfg.inputfile, or cfg.grad must be specified');
+              end
+          end
+
+          Please re-open if this is not intended functionality.

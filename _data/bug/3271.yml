@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3271"
+    creation_ts: 2017-03-14 18:59:00 +0100
+    short_desc: mni-warped sourcemodel .inside contains skull not brain
+    delta_ts: 2017-11-13 16:59:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18501"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-03-14 18:59:33 +0100
+        thetext: "When calling ft_prepare_sourcemodel with warpmni = 'yes' the resulting grid's inside definition does encapsulate not only the brain but also the skull.\n\nMore generally, would it be feasible to provide ft_prepare_sourcemodel with an already segmented anatomical image and do the warping (which I think is also based on a segmentation) on that? In this way one could be sure that the own segmentation and the segmentation needed for warping are identical.\n\n----------\n\n% Test script\n\n% Let's generate a grid based on an MNI template warping and another grid\n% based on prior segmentation\n\nmri\t\t= ft_read_mri('Subject01.mri');\n\ncfg                     = [];\ncfg.grid.warpmni        = 'yes';   \ncfg.grid.resolution     = 10;      \ncfg.grid.nonlinear      = 'yes';    \ncfg.grid.unit           = 'mm';\ncfg.mri                 = mri;\ngrid                    = ft_prepare_sourcemodel(cfg);\n\ncfg                     = [];\ncfg.dim                 = mri.dim;\nmri_res                 = ft_volumereslice(cfg,mri);\n\ncfg                     = [];\ncfg.output              = {'gray', 'white', 'csf','skull','scalp'};\nsegmentedmri            = ft_volumesegment(cfg,mri_res);\n\ncfg\t\t\t= [];\ncfg.shift\t\t= 0.3;\ncfg.method\t\t= 'hexahedral';\nmesh\t\t\t= ft_prepare_mesh(cfg,segmentedmri);\n\ncfg\t\t\t= [];\ncfg.method\t\t='simbio';\ncfg.conductivity\t= [0.33 0.14 1.79 0.01 0.43];   \nvol\t\t\t= ft_prepare_headmodel(cfg, mesh);  \n\ncfg                     = [];\ncfg.grid.resolution     = 10;       \ncfg.grid.unit           = 'mm';\ncfg.headmodel\t\t= vol;\ngrid_seg                = ft_prepare_sourcemodel(cfg);\n\nfigure\nft_plot_mesh(grid.pos(grid.inside,:), 'vertexcolor', 'red'); \nft_plot_mesh(grid_seg.pos(grid_seg.inside,:), 'vertexcolor', 'green');\n\n% The inside definition for the mni-warped grid (red) larger than the\n% segmentation-based grid. It encapsulates the skull:\n\nvol_skull = vol;\nvol_skull.tissue(vol_skull.tissue==4) = 2; % turn skull into brain\n\ncfg                         = [];\ncfg.grid.resolution         = 10;       % in mm\ncfg.grid.unit               = 'mm';\ncfg.headmodel\t\t    = vol_skull;\ngrid_seg_skull              = ft_prepare_sourcemodel(cfg);\n\n% No they pretty much overlap\nfigure\nft_plot_mesh(grid.pos(grid.inside,:), 'vertexcolor', 'red');\nft_plot_mesh(grid_seg_skull.pos(grid_seg_skull.inside,:), 'vertexcolor', 'green');"
+      - +@isprivate: "0"
+        commentid: "18518"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-27 09:43:45 +0200
+        thetext: |-
+          Hi Jens,
+
+          Sorry for the slow reply.
+
+          Regarding your first point (when creating the grid with 'warpmni': I would suspect that there's either an 'inwardshift' applied to the brain surface, or indeed the scalp surface is taken as the boundary for the grid. Both would indeed result in the insides being too loosely defined. Once upon a time this was actually desired behaviour, since it avoided edge interpolation artifacts in beamformer reconstructed volumetric images (using the nolte-method, which does not suffer from outside volume conductor located dipoles). These days indeed it's more common to have scenarii in which incorrectly labeled inside dipoles lead to 'issues'.
+
+          Regarding your second point (having a segmented volume in the input to ft_prepare_sourcemodel, AND do the warping) sounds like a great plan! Actually, I have been revamping ft_volumesegment quite substantially over the past weeks, and just merged a branch which now allows to use spm12's latest tpms for segmentation. This segmentation gives the bone and softtissue (and air) segmentation for free, so it might be interesting for you to look into. (call ft_volumesegment with cfg.spmversion = 'spm12', and cfg.spmmethod = 'new').
+
+          As a byproduct of my endeavours, I now better understand the relationship between spatial normalisation and segmentation in spm, and I think that it should be possible to pull off your feature request.
+
+          I think that what would be then needed is that the output to ft_volumesegment also keeps the warping parameters (so that the original anatomical information is not needed anymore to estimate these).
+
+          In this case, I think that generically ft_prepare_sourcemodel with cfg.warpmni should first check for the presence of these parameters, and only estimate them if needed.
+
+          Was denkest du?
+      - +@isprivate: "0"
+        commentid: "18528"
+        comment_count: "2"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-03-29 12:28:55 +0200
+        thetext: |-
+          Hey Jan-Mathijs,
+          thanks for the reply.
+
+          Regarding the first point:
+          I guess it makes sense for MEG to have a slightly larger inside definition (better than a slightly smaller one). The standard sourcemodels provided by fieldtrip have this loose inside definition and when you call ft_prepare_sourcemodel with mniwarp = yes the inside definition of the output grid is just copied over from the standard sourcemodel.
+
+          So I see that for EEG one might have to 'manually' adjust the inside definition a little. However, I can't find an easy way of doing that. I tried to use cfg.inwardshift and cfg.moveinward, but the inwardshift value is ignored when calling ft_prepare_headmodel with warpmni = yes and calling it with moveinward leads to an error in headshape().
+
+          So I thought I could generate a more correct inside definition afterwards based on my simbio headmodel using ft_inside_vol. But if I do that the inside definition is too strict and I cannot plot on a surface anymore. So I thought I could expand that too strict definition using a negative inwardshift, but inwardshift is ignored when calling ft_inside_vol with a simbio headmodel.
+
+          Regarding the second point:
+          I'm glad you're positive about this idea and I'd like to contribute as much as I can. I will try to understand ft_volumesegment a bit better and come back to you soon.
+      - +@isprivate: "0"
+        commentid: "19033"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-13 16:59:38 +0100
+        thetext: "concretely, we should adjust ft_prepare_sourcemodel such that it can take a structure of warping parameters, and apply that warp to a set of template positions, where optionally the inside detection is done, using a segmented mri in the input.\n\nThis sounds as if the following cfg should result in something meaningful:\n\ncfg                     = [];\ncfg.grid.warpmni        = 'yes';   \ncfg.grid.resolution     = 10;      \ncfg.grid.nonlinear      = 'yes';    \ncfg.grid.unit           = 'mm';\ncfg.mri                 = segment;\ngrid                    = ft_prepare_sourcemodel(cfg);\n\nwe could then either assume that parameters to be represented in the segmented volume, or we would require the parameters to be a separate field in the cfg.\n\nI tend to favour the first situation, because then at least we are somewhat sure that the parameters and the segmentation belong together."

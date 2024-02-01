@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "675"
+    creation_ts: 2011-05-17 21:31:00 +0200
+    short_desc: ft_freqstatistics errors with single-dimension data (avgovertime/chan/freq='yes')
+    delta_ts: 2011-05-25 15:07:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2148"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-05-17 21:31:19 +0200
+        thetext: |-
+          I'm using fieldtrip-20110516 on MATLAB 2010b.
+
+          I sometimes use fieldtrip's stats for simple within subject (paired sample) experiment t-tests (method='analytic', statistic='depsamplesT'). The recent changes to ft_freqstatistics has changed something regarding these simple analyses and now it crashes. They're simple analyses in that I average over time, channel, and frequency data such that each subject ends up being represented by a single value.
+
+          Here's a chunk of example code using the data from the cluster_permutation_freq tutorial that errors in the same place that it does for my own scripts. Note that the error happens at the reshape command on line 305 because cfg.dim only contains a single number, and cfg.dim gets set on line 228. Maybe line 228 should use the "size" command instead of "siz"? cfg.dim = size(reduceddim);
+
+          % ==============================================
+          load GA_TFR_orig;
+
+          cfg = [];
+          cfg.channel          = {'MEG'};
+          cfg.latency          = [0.5 0.8];
+          cfg.frequency        = [20 20];
+
+          cfg.avgovertime = 'yes';
+          cfg.avgoverchan = 'yes';
+          cfg.avgoverfreq = 'yes';
+
+          cfg.method = 'analytic';
+          cfg.statistic = 'depsamplesT';
+          cfg.computestat = 'yes';
+          cfg.computecritval = 'yes';
+          cfg.computeprob = 'yes';
+          cfg.tail = 0; % -1, 0, or 1, left, two-sided, or right
+          cfg.alpha            = 0.05;
+          cfg.correctm         = 'no';
+
+          subj = 10;
+          design = zeros(2,2*subj);
+          for i = 1:subj
+            design(1,i) = i;
+          end
+          for i = 1:subj
+            design(1,subj+i) = i;
+          end
+          design(2,1:subj)        = 1;
+          design(2,subj+1:2*subj) = 2;
+
+          cfg.design   = design;
+          cfg.uvar     = 1;
+          cfg.ivar     = 2;
+
+          [stat] = ft_freqstatistics(cfg, GA_TFRFIC, GA_TFRFC);
+
+          % ==============================================
+
+          Unrelated to this bug, would it also be possible to prevent so much writing to the command window (e.g., "selection powspctrm along dimension 2/averaging powspctrm over chan")? I don't know where that gets printed in fieldtrip, but it sure outputs a lot of text.
+
+          Matt
+      - +@isprivate: "0"
+        commentid: "2149"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-17 21:38:26 +0200
+        thetext: |-
+          Hi Matt,
+
+          Sorry for this. My fault. Thanks for the detailed report. I'll look into it as soon as possible.
+      - +@isprivate: "0"
+        commentid: "2150"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-18 08:59:51 +0200
+        thetext: 'fixed it in line 228: cfg.dim = [size(reduceddim) 1];'

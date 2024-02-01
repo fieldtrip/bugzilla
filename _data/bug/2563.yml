@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2563"
+    creation_ts: 2014-05-07 10:02:00 +0200
+    short_desc: ft_selectdata (new version) cannot avgoverfreq using alternative parameter names
+    delta_ts: 2014-05-14 20:08:57 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2561
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: craig.richter
+      +@name: Craig Richter
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - gopalar.ccf
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13491"
+        comment_count: "0"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-05-07 10:02:36 +0200
+        thetext: "When using an alternative name for a parameter, like MIspctrm for example, the field is not averaged.  This warning is generated at line 169:\n\nWarning: could not determine dimord of \"MIspctrm\" in\nthe following data \n> In utilities/private/getdimord at 335\n  In ft_selectdata at 164\n  In FT_MI_stats at 98 \n\nwhich seems to lead to the field not being averaged.  Perhaps a cfg.parameter input may help."
+      - +@isprivate: "0"
+        commentid: "13496"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 14:58:36 +0200
+        thetext: "Hi Craig,\n\nIf I do this:\n\n------------\n\nnchan = 3;\nnfreq = 4;\nntime = 5;\n\nfreq = [];\nfreq.MIspctrm = randn(nchan,nfreq,ntime);\nfreq.freq = 1:nfreq;\nfreq.time = 1:ntime;\nfor i=1:nchan\n  freq.label{i} = num2str(i);\nend\n\ncfg = [];\ncfg.avgoverfreq = 'yes'\noutput = ft_selectdata(cfg, freq);\n\nassert(isequal(size(output.MIspctrm), [3 1 5]));\n\ndisp(freq)\ndisp(output)\n\n\n------------\n\nit just works fine. \n\nCan you provide more details as to the problem you encounter?"
+      - +@isprivate: "0"
+        commentid: "13497"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 14:59:30 +0200
+        thetext: |-
+          I added the test script
+
+          mac011> svn commit test_bug2563.m
+          Adding         test_bug2563.m
+          Transmitting file data .
+          Committed revision 9470.
+      - +@isprivate: "0"
+        commentid: "13501"
+        comment_count: "3"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-05-07 15:26:20 +0200
+        thetext: "Hi Robert,\n\nTry this one out, but maybe I'm breaking the rules with it:\n\nnchan = 3;\nnfreq = 4;\nsubj = 5;\n \nfreq = [];\n \nfreq.dimord = 'subj_chan_freq';\nfreq.MIspctrm = randn(subj,nchan,nfreq);\nfreq.freq = 1:nfreq;\nfor i=1:nchan\n  freq.label{i} = num2str(i);\nend\n \ncfg = [];\ncfg.avgoverfreq = 'yes'\noutput = ft_selectdata(cfg, freq);\n \nassert(isequal(size(output.MIspctrm), [3 1 5]));\n \ndisp(freq)\ndisp(output)"
+      - +@isprivate: "0"
+        commentid: "13502"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 15:45:21 +0200
+        thetext: "(In reply to Craig Richter from comment #3)\n\nthat gives me \n\noutput = \n    MIspctrm: [5x3x4 double]\n        freq: 2.5000\n       label: {'1'  '2'  '3'}\n      dimord: 'subj_chan_freq'\n         cfg: [1x1 struct]\n\nwhich is indeed not what I'd want to see.\n\nI wonder whether this is related to bug #2561, which was reported yesterday."
+      - +@isprivate: "0"
+        commentid: "13504"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 16:14:00 +0200
+        thetext: '*** Bug 2561 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13505"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-07 16:19:58 +0200
+        thetext: |-
+          The problem was due to data.dimord not being properly parsed. Although there was a piece of code that suggested that it would be used, in fact it did not use it. Consequently, the smart code further down in getdimord was relied upon, and that does not know anything about "subj" or other data fields (such as individual or MIspctrm).
+
+          This commit should fix it.
+
+          mac011> svn commit test/ utilities/
+          Sending        test/test_bug2563.m
+          Sending        utilities/private/getdimord.m
+          Transmitting file data ..
+          Committed revision 9472.
+      - +@isprivate: "0"
+        commentid: "13644"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:57 +0200
+        thetext: closed several of my bugs that have been resolved

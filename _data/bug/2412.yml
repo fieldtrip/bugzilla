@@ -1,0 +1,117 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2412"
+    creation_ts: 2013-12-05 11:57:00 +0100
+    short_desc: ft_om_compute_lead function is called but not present in openmeeg
+    delta_ts: 2019-08-10 12:31:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: sarang
+      +@name: Sarang Dalal
+    cc: ddewong
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12259"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 11:57:10 +0100
+        thetext: "see ft_compute_leadfield around line 272:\n\n        warning('No system matrix is present, Calling the Nemo Lab pipeline')\n        lf = ft_om_compute_lead(pos, vol, sens);\n\naccording to SVN this is something that Sarang added to the code. \n\nsvn blame -> \n  8612     sardal\n\n@Sarang, could you clarify?"
+      - +@isprivate: "0"
+        commentid: "12291"
+        comment_count: "1"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-12-09 20:41:47 +0100
+        thetext: |-
+          Actually this is a contribution I made on behalf of Dan, before he had his own developer access.
+
+          I have an idea what this is about, but I'll let Dan explain. :-)
+      - +@isprivate: "0"
+        commentid: "12292"
+        comment_count: "2"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-09 21:22:28 +0100
+        thetext: |-
+          The original implementation of the OpenMEEG BEM pipeline has the openmeeg executable compute and import the inverse head matrix (what FT seems to call the "system matrix") during ft_prepare_mesh. This is problematic with denser head meshes as the matrix can get too big to be efficiently handled/stored by Matlab on a reasonable computer setup (i.e. 16GB RAM).
+
+          Our implementation does this computation as part of the ft_prepare_leadfield-ft_leadfield_openmeeg function so that the entire BEM computation is handled by OpenMEEG without any need to import these intermediate matrices into Matlab. As such, in order to co-exist with the original OpenMEEG implementation, I decided to use the presence/absence of the inverse head matrix in the vol structure to be the switch for calling the old/new pipeline.
+
+          The alternative to this would be to still generate the inverse head matrix in OpenMEEG, but store the filepath to the generated openmeeg file in the vol structure. The user can then call the new pipeline.
+
+          Another thing to note: We also allow for the use of the "adjoint" method in OpenMEEG, which in our experience is faster for 1-time computations (i.e. EEG). Unlike the "hminv" method, the adjoint method does not require the computation of the inverse head matrix, and therefore one wouldn't need to be specified in the vol structure.
+
+          @Robert: Since I'm more familiar with the OpenMEEG code, it might be easier if I help with the initial breakdown/distribution of ft_leadfield_openmeeg among the different functions. However, I would need to know:
+          - How you would like the choice between the new/old OpenMEEG pipelines to be selected
+          - How you would like the inverse head matrix file to be managed (as part of ft_prepare_mesh or as part of ft_prepare_leadfield), and how you would like the filepath to be stored - assuming you agree that it doesn't make sense to import the entire file into matlab.
+          - How you would like the other files to be stored - as a temporary directory and/or as a user-specified directory, and how this should be specified by the user
+          - How you would like the choice between the "hminv" and "adjoint" methods to be specified
+          - How you would like the other options listed in ft_leadfield_openmeeg to be specified (e.g. ecog, internal points)
+      - +@isprivate: "0"
+        commentid: "12529"
+        comment_count: "3"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2014-01-17 16:28:00 +0100
+        thetext: |-
+          Hi Robert,
+          Happy New Year! I just took another look at the code again. I think that ft_om_compute_lead was renamed at some point to ft_leadfield_openmeeg. So, you might want to update line 272 in ft_compute_leadfield to reflect that.
+
+          Dan
+      - +@isprivate: "0"
+        commentid: "15342"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 09:38:17 +0100
+        thetext: |-
+          Oh my, time flies and bugs stick. This could have been fully resolved a long time ago.
+
+          The code is working already, but the openmeeg specific function should not be accessible directly to the end-users. I renamed it and moved it to private.
+
+          mac011> svn commit
+          Sending        ft_compute_leadfield.m
+          Deleting       ft_leadfield_openmeeg.m
+          Adding         private/leadfield_openmeeg.m
+          Transmitting file data .
+          Committed revision 10222.
+      - +@isprivate: "0"
+        commentid: "20091"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:07 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

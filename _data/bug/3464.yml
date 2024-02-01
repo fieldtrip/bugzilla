@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3464"
+    creation_ts: 2018-10-29 11:26:00 +0100
+    short_desc: ft_volumenormalise suppresses further warnings
+    delta_ts: 2019-08-10 12:37:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lau.moller.andersen
+      +@name: Lau Møller Andersen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19521"
+        comment_count: "0"
+        who:
+          +content: lau.moller.andersen
+          +@name: Lau Møller Andersen
+        bug_when: 2018-10-29 11:26:38 +0100
+        thetext: On line 194 of ft_volumenormalise, warnings are shut off to never be put on again. I propose to fix this by adding ft_warning('on') at the end of the script
+      - +@isprivate: "0"
+        commentid: "19525"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-10-31 09:19:18 +0100
+        thetext: |-
+          they should be switched back on with this on line 383
+
+          % restore the previous warning state
+          warning(ws);
+
+          but it should be ft_warning instead of warning.
+      - +@isprivate: "0"
+        commentid: "19526"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-10-31 09:28:51 +0100
+        thetext: |-
+          this also applies to
+
+          mac011> grep 'warning(ws)' *.m
+          ft_clusterplot.m:ft_warning(ws);
+          ft_statistics_montecarlo.m:warning(ws); % revert to original state
+          ft_volumenormalise.m:warning(ws);
+
+
+          Please search the subdirectories as well. Note that in "external" the ft_warning function should not be used.
+      - +@isprivate: "0"
+        commentid: "19527"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-10-31 09:31:17 +0100
+        thetext: |-
+          please do
+          grep 'warning(ws)' *.m
+          grep 'warning(ws)' */*.m
+          grep 'warning(ws)' */*/*.m
+          grep 'warning(ws)' */*/*/*.m
+      - +@isprivate: "0"
+        commentid: "19528"
+        comment_count: "4"
+        who:
+          +content: lau.moller.andersen
+          +@name: Lau Møller Andersen
+        bug_when: 2018-10-31 10:56:17 +0100
+        thetext: |-
+          is it only warning(ws) that should be changed to ft_warning(ws) or is it all warnings that use warning that should be changed to ft_warning?
+          I am specifically thinking about the ft_notification functions that seem to do something with the lowlevel Matlab warning function?
+      - +@isprivate: "0"
+        commentid: "19539"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-10-31 21:09:15 +0100
+        thetext: |-
+          (In reply to Lau Møller Andersen from comment #4)
+
+          if ft_warning is used in the functions, and ws=ft_warning('off') is used, then ft_warning(ws) should be used further down.
+      - +@isprivate: "0"
+        commentid: "19540"
+        comment_count: "6"
+        who:
+          +content: lau.moller.andersen
+          +@name: Lau Møller Andersen
+        bug_when: 2018-11-01 10:06:52 +0100
+        thetext: |-
+          if ft_warning is used in the functions, and ws=ft_warning('off') is used, then ft_warning(ws) should be used further down.
+
+          Ok, got that.!
+          The other way around then; if ws = warning('off', 'some_warning') and warning(ws) exists at the end, should they both be changed to ft_warning, or should nothing be changed the
+      - +@isprivate: "0"
+        commentid: "19542"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-11-01 15:39:45 +0100
+        thetext: "I think that changing \"warning\" into \"ft_warning\" everywhere is out of scope here. It is just about getting them consistent within each function.\n\nI found this https://unix.stackexchange.com/questions/68138/use-grep-to-find-all-files-in-a-directory-with-two-strings and https://linuxgazette.net/152/misc/lg/searching_for_multiple_strings_patterns_with_grep.html, which resulted in \n\nfor FILE in `find . -name \\*.m`\ndo\n  grep -q ft_warning $FILE && grep -q \"^warning(\\| warning(\" $FILE && echo $FILE\ndone\n\nand that returns\n\n./inverse/private/ft_notification.m\n./inverse/private/hasyokogawa.m\n./compat/obsolete/ft_prepare_concentricspheres.m\n./compat/obsolete/ft_sensorrealign.m\n./ft_singleplotTFR.m\n./test/test_bug2732.m\n./fileio/ft_read_event.m\n./fileio/ft_read_header.m\n./fileio/private/ft_notification.m\n./fileio/private/read_ctf_mri4.m\n./fileio/private/hasyokogawa.m\n./fileio/private/read_ctf_mri.m\n./fileio/private/fixpos.m\n./connectivity/private/ft_notification.m\n./ft_statistics_montecarlo.m\n./preproc/private/ft_notification.m\n./ft_volumenormalise.m\n./utilities/hasyokogawa.m\n./utilities/private/ft_notification.m\n./utilities/private/fixpos.m\n./private/warp_dykstra2012.m\n./private/fixpos.m\n./plotting/ft_plot_text.m\n./plotting/ft_plot_dipole.m\n./plotting/ft_plot_vector.m\n./plotting/ft_plot_topo.m\n./plotting/ft_plot_mesh.m\n./plotting/ft_plot_sens.m\n./plotting/private/ft_notification.m\n./plotting/private/fixpos.m\n./plotting/ft_plot_vol.m\n./plotting/ft_plot_slice.m\n./statfun/private/ft_notification.m\n./specest/private/ft_notification.m\n./external/artinis/ft_nirs_prepare_ODtransformation.m\n./forward/private/ft_notification.m\n./forward/private/hasyokogawa.m\n./forward/private/fixpos.m\n./ft_multiplotTFR.m\n\nSome of them should not be changed, but most actually have the same bug as ft_volumenormalise.\n\nGiven the extent of the problem, I suggest that I make the changes. I can run the fieldtrip/test scripts prior to committing it to github."
+      - +@isprivate: "0"
+        commentid: "19543"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-11-01 16:22:19 +0100
+        thetext: "I just noticed that the warning state returned by ft_warning was the one after changing , which means it cannot be changed back. I also fixed that.\n\nroboos@mentat001> git commit -a\n[bug3464 bdd07f9] FIX bug3464 - do not mix warning and ft_warning, return the warning state prior to changing it\n 30 files changed, 64 insertions(+), 65 deletions(-)\n\nroboos@mentat001>     git push --set-upstream origin bug3464\nWarning: untrusted X11 forwarding setup failed: xauth key data not generated\nCounting objects: 103, done.\nDelta compression using up to 8 threads.\nCompressing objects: 100% (47/47), done.\nWriting objects: 100% (61/61), 7.08 KiB | 0 bytes/s, done.\nTotal 61 (delta 55), reused 19 (delta 14)\nremote: Resolving deltas: 100% (55/55), completed with 42 local objects.\nremote: \nremote: Create a pull request for 'bug3464' on GitHub by visiting:\nremote:      https://github.com/robertoostenveld/fieldtrip/pull/new/bug3464\nremote: \nTo git@github.com:robertoostenveld/fieldtrip.git\n * [new branch]      bug3464 -> bug3464\nBranch bug3464 set up to track remote branch bug3464 from origin."
+      - +@isprivate: "0"
+        commentid: "19544"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-11-01 16:24:17 +0100
+        thetext: I merged the changes, see https://github.com/fieldtrip/fieldtrip/pull/866
+      - +@isprivate: "0"
+        commentid: "20364"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:37:09 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,415 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3293"
+    creation_ts: 2017-05-02 20:02:00 +0200
+    short_desc: ft_estimate_units estimates units of iEEG electrodes incorrectly
+    delta_ts: 2019-08-10 12:41:01 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - sandongriffin
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18621"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-02 20:02:55 +0200
+        thetext: |-
+          load('SubjectUCI29_elec_tal_f.mat')
+
+          cfg = [];
+          cfg.channel = {'RAM*', 'RTH*', 'RHH*'}; % right hemisphere electrodes
+          elec = ft_selectdata(cfg, elec_tal_f);
+
+          ft_estimate_units(range(elec.elecpos))
+
+          ans =
+
+          cm
+
+          whereas the electrodes are in mm. it can be solved in higher-level functions, e.g.
+
+
+          ft_estimate_units(range(elec.elecpos)*2)
+
+          ans =
+
+          mm
+
+          but that's far from idea since any call to ft_checkdata with hasunit will still return cm
+
+          thus ideally ft_estimate_units is adjusted to accommodate iEEG inter-electrode spacings
+      - +@isprivate: "0"
+        commentid: "18622"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-02 20:04:36 +0200
+        thetext: |-
+          note to myself: if this is fixed, we should re-adjust line 87 in ft_plot_cloud:
+
+          posunit = ft_estimate_units(range(pos).*2); % FIXME times 2 otherwise this fails for single/few points
+      - +@isprivate: "0"
+        commentid: "18625"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-04 11:15:12 +0200
+        thetext: "I don't think you should blame ft_estimate_units, but rather the code that generated the elec structure but failed to add the elec.unit field to it. \n\nAh, I see that you are using ft_selectdata. That function is meant for data that can be described with a dimord. It should error with elec as input."
+      - +@isprivate: "0"
+        commentid: "18626"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-04 11:27:33 +0200
+        thetext: |-
+          mac011> git commit
+          [bug3293 6efed5a] give error on incorrect input, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3293
+           2 files changed, 7 insertions(+), 1 deletion(-)
+      - +@isprivate: "0"
+        commentid: "18627"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-04 18:44:57 +0200
+        thetext: "I pulled your changes, but the issue might still be related to ft_estimate_units not knowing how to deal with a few iEEG depth arrays.\n\ndebug @line264   functional     = ft_checkdata(functional, 'datatype', {'source', 'volume'}, 'feedback', 'yes', 'hasunit', 'yes');\n\nfunctional = \n\n        label: {21x1 cell} <- not these only are {'RAM*', 'RTH*', 'RHH*'}\n         freq: 110.1471\n         time: 0.4000\n         elec: [1x1 struct]\n    powspctrm: [21x1 double]\n          cfg: [1x1 struct]\n       dimord: 'chan_freq_time'\n\nfunctional.elec\n\nans = \n\n           cfg: [1x1 struct]\n       chanpos: [145x3 double]\n    chanposold: [145x3 double]\n      chantype: {145x1 cell}\n      chanunit: {145x1 cell}\n      coordsys: 'tal'\n       elecpos: [152x3 double]\n         label: {145x1 cell}\n      labelold: {152x1 cell}\n          unit: 'mm'\n\n\nthen after executing the line with ft_checkdata:\n\nthe input is freq data with 21 channels, 1 frequencybins and 1 timebins\n\nfunctional = \n\n                pos: [21x3 double]\n          powspctrm: [21x1 double]\n    powspctrmdimord: 'pos_freq_time'\n               freq: 110.1471\n               time: 0.4000\n             inside: [21x1 logical]\n               unit: 'cm'\n\nft_sourceplot line 594: data = ft_convert_units(data);\n\nthen ft_convert_units calls ft_estimate_units, where the data is mistaken to be of cm units"
+      - +@isprivate: "0"
+        commentid: "18628"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-04 18:49:03 +0200
+        thetext: |-
+          full test script:
+
+          load('SubjectUCI29_freq.mat');
+          fsmri_tal = ft_read_mri('freesurfer/mri/T1.mgz');
+          crtx_mesh_sm_rh = ft_read_headshape('freesurfer/surf/rh.pial');
+
+          cfg              = [];
+          cfg.baseline 	   = [-.3 -.1];
+          cfg.baselinetype = 'relchange';
+          freq_blc = ft_freqbaseline(cfg, freq);
+
+          cfg              = [];
+          cfg.frequency    = [70 150];
+          cfg.avgoverfreq  = 'yes';
+          cfg.latency      = [0 0.8];
+          cfg.avgovertime  = 'yes';
+          cfg.channel       = {'RAM*', 'RTH*', 'RHH*'}; % right hemisphere electrodes
+          hgb_blc = ft_selectdata(cfg, freq_blc);
+
+          atlas = ft_read_atlas('freesurfer/mri/aparc+aseg.mgz');
+          atlas.coordsys = 'tal';
+          cfg               = [];
+          cfg.inputcoord    = 'tal';
+          cfg.atlas         = atlas;
+          cfg.roi           = 'Right-Hippocampus';
+          hipp_msk_rh = ft_volumelookup(cfg, atlas);
+
+          seg = keepfields(atlas, {'dim', 'unit','coordsys','transform'});
+          cfg               = [];
+          cfg.method        = 'iso2mesh';
+          cfg.numvertices   = 10000;
+          cfg.radbound      = 2;
+          cfg.maxsurf       = 0;
+          cfg.tissue        = 'brain';
+          cfg.smooth        = 20;
+          seg.brain = hipp_msk_rh;
+          hipp_mesh_sm_rh = ft_prepare_mesh(cfg, seg);
+
+          % plot 3d hippocampus and brain with data
+          cfg               = [];
+          cfg.funparameter  = 'powspctrm';
+          cfg.funcolorlim   = [-.5 .5];
+          cfg.method        = 'cloud';
+          cfg.radius        = 5;
+          cfg.colorbar      = 'no';
+          cfg.colorgrad     = 'white';
+          cfg.facecolor     = 'cortex_light';
+          cfg.facealpha     = [.05 .25 .25];
+          cfg.ptdensity     = 30; % default = 20
+          ft_sourceplot(cfg, hgb_blc, hipp_mesh_sm_rh);
+
+          view([120 40]); %view([180 -90]);
+          camlight
+
+          >> plots as if all electrodes are on IN each other, and not around the hippocampus (forcing mm units will fix it)
+      - +@isprivate: "0"
+        commentid: "18630"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-06 19:05:42 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          In the current iEEG pipeline, the following is a crucial step:
+
+          cfg               = [];
+          cfg.channel       = {'RAM*', 'RHH*', 'RTH*', 'ROC*', 'LAM*', 'LHH*', 'LTH*'};
+          seeg = ft_selectdata(cfg, elec_tal_f);
+
+          in order to later concatenate seeg with grid elec structures. The context:
+
+          grids = {'LPG*', 'LTG*'};
+          for g = 1:numel(grids)
+            cfg             = [];
+            cfg.channel     = grids{g};
+            cfg.elec        = elec_tal_f;
+            cfg.method      = 'headshape';
+            cfg.headshape   = mesh;
+            cfg.warp        = 'dykstra2012';
+            ecog{g} = ft_electroderealign(cfg);
+          end
+
+          cfg               = [];
+          cfg.channel       = {'RAM*', 'RHH*', 'RTH*', 'ROC*', 'LAM*', 'LHH*', 'LTH*'}; % FIXME: no longer works
+          seeg = ft_selectdata(cfg, elec_tal_f);
+          elec_tal_fr = ft_appendsens([], seeg, ecog{:});
+
+
+          > should there be a separate ft_selectsens function, just like there's an ft_appendsens?
+      - +@isprivate: "0"
+        commentid: "18635"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-09 02:23:39 +0200
+        thetext: |-
+          To recapitulate, this bug is now two-fold
+
+          1) ft_estimate_units thinks a subset of iEEG electrodes with distance in mm are cm. The ft_selectdata example code above was a quick way to replicate this first issue, but has brought about a second issue:
+
+          2) ft_selectdata is not supposed to be used for descriptives such as elec in the first place (despite that selecting channels works), and a substitute may need to thought of. Perhaps JM (CC) would like to chime on this one too.
+      - +@isprivate: "0"
+        commentid: "18636"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-05-09 08:39:16 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #7)
+
+          @1: I haven't looked at ft_estimate_units for a while, but I think that the heuristic of assuming the electrodes spanning something the size of a human head (which works well for extracranial electrodes) does not work well for intracranial electrodes.
+          Perhaps you could think of a heuristic in case the input elec is detected to be intracranial
+
+          @2: One possible way forward could be to use ft_apply_montage for this.
+
+          chanlist = {'somechannelsdefinedhere'};
+          keepchan = match_str(elec.label, chanlist);
+
+          montage.tra = eye(numel(elec.label));
+          montage.labelnew = elec.label(keepchan);
+          montage.labelold = elec.label;
+          montage.tra(setdiff(1:numel(elec.label)),keepchan),:) = [];
+
+          elec = ft_apply_montage(montage,elec,'keepunused','no');
+      - +@isprivate: "0"
+        commentid: "18637"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-09 10:24:42 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #8)\n\nft_estimate_units is only called when the units are not known. It uses heuristics. Rather than changing the heuristics, more appropriate is to prevent it from being called.\n\nDoes ft_electrodeplacement assign the correct units to its output? \n\nAre there FT functions that drop the unit field?"
+      - +@isprivate: "0"
+        commentid: "18639"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-09 12:40:01 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #9)
+
+          Oh, to reply to my own "Are there FT functions that drop the unit field?"
+
+          I now realize that Arjen was using ft_selectdata to select electrodes. That function was not designed for electrodes and as of last week will give an error on elec input.
+
+          So it seems to me that the problem is resolved.
+      - +@isprivate: "0"
+        commentid: "18641"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-09 17:36:25 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #10)
+
+          Actually, the unit issue is still there when plotting a bunch of depth electrodes (will make a screenshot later). One solution would be to change the range that determines its mm vs. cm, but not sure what it based was on in the first place.
+
+          And, yeah, using ft_apply_montage to select a subset in an elec structure would work, but is not very elegant. :)
+      - +@isprivate: "0"
+        commentid: "18642"
+        comment_count: "12"
+        attachid: "838"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-09 19:36:21 +0200
+        thetext: |-
+          Created attachment 838
+          ft_sourceplot (depth elecs)
+
+          left: current ft
+          right: after manually changing functional.unit from cm to mm, at line 264 (ft_checkdata)
+      - +@isprivate: "0"
+        commentid: "18643"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-09 19:48:58 +0200
+        thetext: "and note that before line 264 (functional     = ft_checkdata(functional, 'datatype', {'source', 'volume'}, 'feedback', 'yes', 'hasunit', 'yes');):\n\nfunctional.elec\n\nans = \n\n           cfg: [1x1 struct]\n       chanpos: [145x3 double]\n    chanposold: [145x3 double]\n      chantype: {145x1 cell}\n      chanunit: {145x1 cell}\n      coordsys: 'tal'\n       elecpos: [152x3 double]\n         label: {145x1 cell}\n      labelold: {152x1 cell}\n          unit: 'mm'\n\n\nwhich reaches the following line 592 in ft_checkdata:\nif istrue(hasunit) && ~isfield(data, 'unit')\n\nand of data, aka functional, doesnt have a unit field, which triggers a chain of checks and balances downstream ultimately leading to a change to 'cm' units\n\nsolution 1: change line 592 of ft_checkdata into\nif istrue(hasunit) && (~isfield(data, 'unit') || ~isfield(data.elec, 'unit'))\n\nsolution 2: adjust line 44 of ft_estimate_units\nest  = log10(size)+1.8; \ninto say\nest  = log10(size)+2.5\n\nso est is 3.9669 instead of 3.2669, and reaches the 4th index of unit = {'m', 'dm', 'cm', 'mm'}; in stead of the 3rd. but then again, I have no idea what the current algorithmic determination is based on"
+      - +@isprivate: "0"
+        commentid: "18644"
+        comment_count: "14"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-10 02:08:03 +0200
+        thetext: |-
+          Per the issue regarding ft_selectdata, I'm proposing to add a 'keepunused' option to ft_electroderealign. That way, selecting unused data in the original elec file for appending with the realigned elec grids is no longer necessary (avoiding calls to ft_selectdata/ft_apply_montage and ft_appendsens). For instance,
+
+
+          elec_tal_fr = elec_tal_f;
+          grids = {'LPG*', 'LTG*'};
+          for g = 1:numel(grids)
+            cfg             = [];
+            cfg.channel     = grids{g};
+            cfg.keepunused  = 'yes';         % <-
+            cfg.elec        = elec_tal_fr;
+            cfg.method      = 'headshape';
+            cfg.headshape   = mesh;
+            cfg.warp        = 'dykstra2012';
+            elec_tal_fr = ft_electroderealign(cfg);
+          end
+
+          The implementation with test script:
+          https://github.com/fieldtrip/fieldtrip/pull/431
+      - +@isprivate: "0"
+        commentid: "18645"
+        comment_count: "15"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-10 03:01:44 +0200
+        thetext: |-
+          Lastly, per the unit issue, see https://github.com/fieldtrip/fieldtrip/pull/432
+
+          ..proposing to have chan2source, in ft_checkdata, to also copy over elec.unit (besides elec.chanpos). this prevents misestimation of units, as was the case with the relatively rare iEEG situation.
+      - +@isprivate: "0"
+        commentid: "18646"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-10 08:39:57 +0200
+        thetext: "this is a blur of proposed solutions, whereas the actual problem is ill defined. \n\nproblem 1)\n- ft_estimate_units is not smart enough\nsolution 1)\n- make sure it does not get called, i.e. ensure units is added and kept\n\nproblem 2)\n- ft_selectdata does not work properly on elec\nsolution 2)\n- don't call in on elec (which is not data, i.e. it does not have a dimord)\n\nI suspect that the actual problem has to do with you not being able to get the figure that you expect/want. Please describe the data (input) and figure (output) and in what aspect the output does not correctly represent the input.\n\n...and please postpone proposing solutions unless it is clear what they solve."
+      - +@isprivate: "0"
+        commentid: "18647"
+        comment_count: "17"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-10 08:56:11 +0200
+        thetext: Your solution 1 and 2 are exactly what those pr's entailed. Chan2source adds the pos units, avoiding a call to ft estimate units. And ft selectdata is no longer used/needed with the keepchannels option in ft electroderealign. Welterusten
+      - +@isprivate: "0"
+        commentid: "18648"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-10 09:27:05 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #17)
+
+          but solution 2 implies that ft_selectdata does not get called, hence does not need any change
+      - +@isprivate: "0"
+        commentid: "18652"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-10 10:36:13 +0200
+        thetext: I have merged https://github.com/fieldtrip/fieldtrip/pull/432
+      - +@isprivate: "0"
+        commentid: "18653"
+        comment_count: "20"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-10 22:05:16 +0200
+        thetext: the issue has been avoided, so considering this bug fixed for the moment. at some point ft_estimate_units may need some re-thinking to incorporate idiosyncratic iEEG cases
+      - +@isprivate: "0"
+        commentid: "20247"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:50 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20446"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:01 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "838"
+      date: 2017-05-09 19:36:00 +0200
+      delta_ts: 2017-05-09 19:36:21 +0200
+      desc: ft_sourceplot (depth elecs)
+      filename: Screen Shot 2017-05-09 at 10.34.27 AM.png
+      type: image/png
+      size: "424966"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

@@ -1,0 +1,137 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2954"
+    creation_ts: 2015-08-27 13:39:00 +0200
+    short_desc: Bug when reading a subset of channels from an EDF file
+    delta_ts: 2016-06-14 16:14:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2887
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - jdien07
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16062"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-08-27 13:39:34 +0200
+        thetext: |-
+          I have a complaint from an SPM user who gets an error when she tries to convert an EDF file when selecting a subset of channels. This comes down to line 345 in read_edf.m
+
+          chanindx=[1:nchans]; %JD
+
+          This line overrides the user-specified channel set. It seems this line is there for a reason, but then the problem should be fixed elsewhere. I think there was a part in ft_read_data before that selected a subset of channels in case the low-level functions didn't do it, but I don't see that now.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16064"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-27 15:28:56 +0200
+        thetext: "Hi Vladimir,\n\nI am not sure whether the bug you report is a proper error in the software, or more of a user error. \n\nIt happens if variableFs is true, which means that not all channels can be read in at the same time. Only channels with the same sampling rate can be read in one go, since the output of ft_read_data is a nchan*nsamples matrix.\n\nSee also bug 2887 and http://www.fieldtriptoolbox.org/faq/how_can_i_read_all_channels_from_an_edf_file_that_contains_multiple_sampling_rates\n\nI don't recall all details, but the way that such an EDF file is to be read is by specifying chanindx both to ft_read_header and to ft_read_data. This ensures that hdr.Fs and hdr.nSamples applies to the selected channels that you would be reading with ft_read_data. The edf2fieldtrip function should also explain it."
+      - +@isprivate: "0"
+        commentid: "16065"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-08-27 15:35:21 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          Hi Robert,
+
+          The problem is that with the code as it is now any user-specified channel selection will be ignored. I can tell the users to only select channels with the same sampling rate, but that won't make a difference. If there is any variability in the sampling rates, all channels are always selected (not sure why). This creates an error in SPM which expects to get a matrix of certain size from ft_read_data but gets a matrix of a different size. I'd suggest to either do exactly what the user specified or give an error, but not override the user specification with something else.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "16066"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-27 16:35:53 +0200
+        thetext: "(In reply to Vladimir Litvak from comment #2)\n\nI made a test script and now see the problem. That line from JD should simply not be there. \n\nThis fixes it.\n\nmac011> svn commit test/test_bug2954.m fileio/private/read_edf.m\nSending        fileio/private/read_edf.m\nAdding         test/test_bug2954.m\nTransmitting file data ..\nCommitted revision 10638."
+      - +@isprivate: "0"
+        commentid: "16067"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-27 17:34:04 +0200
+        thetext: according to Joe (by email) the lien should be there. To be further discussed...
+      - +@isprivate: "0"
+        commentid: "16069"
+        comment_count: "5"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-08-28 20:53:28 +0200
+        thetext: |-
+          The line did indeed need to be there.  The code was a bit messy due to the parallel use of chanindx and hdr.orig.chansel to specify what channels were to be selected.  I rewrote the code to more clearly handle the contingencies of manual user selection of channels via chanindx and automatic read_edf selection of channels in the presence of heterogeneous sampling rates.  I've also added documentation to the header to explain exactly how read_edf is behaving with respect to channel selection.  I've also fixed my bugs in ft_read_data with respect to handling presence versus absence of hdr and chanindx contingencies.
+
+          Sorry about the problems.  The function is a bit of a kludge of a kludge.  Might have been best to just rewrite it from the ground up but I think it should work properly now.  Please let me know if you see any further issues.
+
+          Joe
+      - +@isprivate: "0"
+        commentid: "16198"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 10:45:57 +0200
+        thetext: |-
+          The test script was not working properly (since the first line was commented out). I fixed it, and extended it with an EDF file with variable sampling. Previously it only had a fixed sampling rate EDF file as test case. I also added a test case for edf2fieldtrip.
+
+          mac011> svn commit `cat out`
+          Sending        edf2fieldtrip.m
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/private/read_edf.m
+          Sending        ft_databrowser.m
+          Sending        test/dccnpath.m
+          Sending        test/test_bug2954.m
+          Transmitting file data ......
+          Committed revision 10783.
+
+          See also https://github.com/fieldtrip/fieldtrip/commit/cebdeed32a2154e446cfc40361c16c9b2195a6e5
+      - +@isprivate: "0"
+        commentid: "17510"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:54 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

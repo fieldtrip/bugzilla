@@ -1,0 +1,81 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2786"
+    creation_ts: 2014-12-17 15:51:00 +0100
+    short_desc: merge ft_freqgrandaverage with ft_timelockgrandaverage
+    delta_ts: 2019-03-28 11:04:53 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - maess
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14967"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-17 15:51:24 +0100
+        thetext: |-
+          At this moment ft_timelockgrandaverage has most functionality. They should only differ in bookkeeping, and due to bug 2785 the bookkeeping in ft_timelockgrandaverage is now the cleanest.
+
+          I suggest to solve this just like ER/TFR functions, i.e. have one call the other.
+      - +@isprivate: "0"
+        commentid: "19659"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-03-28 10:55:30 +0100
+        thetext: "Both functions are actually quite ugly and not according to current fieldtrip standards (e.g. using ft_selectdata for data 'alignment' across input arguments. Also, ft_sourcegrandaverage exists. \n\nAlso, ft_appendXXX functions do a lot of the work that the XXXgrandaverage functions also have. \n\n'keepindividual' functionality can be mimicked by:\nft_appendXXX with appenddim = 'rpt': difference: individual subjects will be represented in the dimord as 'rpt', and in the field with the same name as the input data. This as opposed to the 'individual' field in XXXgrandaverage\n\nwithout 'keepindividual', a call to ft_appendXXX can be followed by a call to ft_selectdata with avgoverrpt.\n\nKey differences will be the handling of 'var' and 'dof' in timelockgrandaverage, and the 'across' versus 'within' computation, where the computation of the variance across input arguments I can not completely follow"
+      - +@isprivate: "0"
+        commentid: "19660"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-03-28 11:00:37 +0100
+        thetext: |-
+          I recall that Burkhard (now CC) implemented the within/between.
+
+          Loosely/vaguely:  the idea is that you can use it either to combine variance across conditions within a subject, i.e. mimic the behavior that you would get, had you done timelockanalysis on all conditions together (except that the mean would be condition specific). And the alternative is to compute pooled variance across subjects.
+
+          In the 1st case you want to deal with the number of trials in each condition (each trial shoudl weigh equally), in the 2nd you want each subject to be weighted equally, also if some subjects have more or less trials.
+      - +@isprivate: "0"
+        commentid: "19662"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-03-28 11:04:53 +0100
+        thetext: |-
+          Yes, indeed, I thought that, too. But the 'within' pooling is not fully correct, because it assumes that the means are equal across the conditions to-be-combined, otherwise doing some weighted averaging wizardry on the variance does not make sense at all I'd say.
+
+          I think that a clean re-implementation of the function would be then to use ft_appendtimelock up until the point that the non-standard stuff is done: at least the bookkeeping operations on the input data arguments will then be outsourced to ft_selectdata.

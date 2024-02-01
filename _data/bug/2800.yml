@@ -1,0 +1,163 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2800"
+    creation_ts: 2015-01-06 13:30:00 +0100
+    short_desc: Wrong electrode projection in ft_prepare_vol_sens
+    delta_ts: 2015-07-15 13:31:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - l.garcia.d
+      - n.shitova
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15002"
+        comment_count: "0"
+        attachid: "688"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-01-06 13:30:41 +0100
+        thetext: |-
+          Created attachment 688
+          Test script
+
+          I noticed that after ft_prepare_vol_sens electrode locations are wrong and some are projected to the bottom of the head. This didn't happen before on the same example. Please check ASAP as this would completely distort the results.
+
+          Test data at ftp://ftp.fil.ion.ucl.ac.uk/in/bug_test.mat
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "15016"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-07 17:03:00 +0100
+        thetext: '*** Bug 2803 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "15042"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 12:11:55 +0100
+        thetext: The call to project_elec on line 436 in prepare_vol_sens screws up the electrode positions (in other words the projection onto the skin fails).
+      - +@isprivate: "0"
+        commentid: "15044"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 12:19:13 +0100
+        thetext: Allow me to fix this ;-) (because it's likely my bad...)
+      - +@isprivate: "0"
+        commentid: "15045"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 12:59:06 +0100
+        thetext: |-
+          I identified the culprit: ptriprojn (called on line 43 of project_elec) returns a signed distance. To get the index to the closest triangle on line 45, one should evaluate the abs(dist).
+
+          I will change this...after today's FT meeting :-).
+      - +@isprivate: "0"
+        commentid: "15047"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 15:40:35 +0100
+        thetext: "[jansch@mentat003 private]$ svn diff project_elec.m \nIndex: project_elec.m\n===================================================================\n--- project_elec.m\t(revision 10093)\n+++ project_elec.m\t(working copy)\n@@ -42,7 +42,7 @@\n for i=1:Nelc\n   [proj,dist] = ptriprojn(pnt(tri(:,1),:), pnt(tri(:,2),:), pnt(tri(:,3),:), elc(i,:), 1);\n   \n-  [mindist, minindx] = min(dist);\n+  [mindist, minindx] = min(abs(dist));\n   [la, mu] = lmoutr(pnt(tri(minindx,1),:), pnt(tri(minindx,2),:), pnt(tri(minindx,3),:), proj(minindx,:));\n   smallest_dist = dist(minindx);\n   smallest_tri  = minindx;\n\n[jansch@mentat003 private]$ svn commit -m \"bugfix - identify closest point using the abs of the distance\" project_elec.m ../test/test_bug2800.m\nSending        private/project_elec.m\nAdding         test/test_bug2800.m\nTransmitting file data ..\nCommitted revision 10094.\n\n\nI traced the change back to an update of lmoutrn on Dec 15, 2014 r10043.\n\n@natalia: probably your results are not affected, unless you have re-computed them over the Christmas holidays :-)\n\nTODO: write an e-mail to the discussion list"
+      - +@isprivate: "0"
+        commentid: "15048"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-01-12 15:44:01 +0100
+        thetext: |-
+          Good that the bug was only there for a short time mostly overlapping with holidays. That was exactly the window for it to make it into our Aston workshop version but luckily we only showed MEG examples there ;-) Thanks for the excellent detective work!
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "15049"
+        comment_count: "7"
+        who:
+          +content: l.garcia.d
+          +@name: Luis
+        bug_when: 2015-01-12 15:50:30 +0100
+        thetext: Wouldn't be better to change the output of ptriprojn inside the function. After all distances should always be positive, right?
+      - +@isprivate: "0"
+        commentid: "15050"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 15:56:36 +0100
+        thetext: '@Luis, the signed distance is intentional, because it gives information (or is intended to do so :-) ) with respect to whether the point is closer to (or further away from) the origin, with respect to its projection on the triangulated surface.'
+      - +@isprivate: "0"
+        commentid: "15051"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-12 15:57:05 +0100
+        thetext: Message sent to e-mail discussion list, changing status to resolved
+      - +@isprivate: "0"
+        commentid: "15052"
+        comment_count: "10"
+        who:
+          +content: l.garcia.d
+          +@name: Luis
+        bug_when: 2015-01-12 16:05:57 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #8)
+          Sorry I did not see your message when I added my last comment. Thank you for fixing this!
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "688"
+      date: 2015-01-06 13:30:00 +0100
+      delta_ts: 2015-01-06 13:30:41 +0100
+      desc: Test script
+      filename: bug_test.m
+      type: text/plain
+      size: "245"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

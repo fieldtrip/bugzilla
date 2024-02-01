@@ -1,0 +1,94 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2225"
+    creation_ts: 2013-07-30 16:07:00 +0200
+    short_desc: speed up warning_once
+    delta_ts: 2015-01-12 09:24:05 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10971"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-30 16:07:27 +0200
+        thetext: Arjen and I noticed that dipole fitting was very slow due to (in the iterative loop) warning_once being called. This caused strcmp to be called many times, which made it very slow. I guess it should be possible to speed it up.
+      - +@isprivate: "0"
+        commentid: "10976"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-31 08:26:02 +0200
+        thetext: hm, in your case, strcmp is called only once per function call (to check whether it is a '-clear' call). I am not aware of any tweaks for that :/
+      - +@isprivate: "0"
+        commentid: "10977"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-31 09:01:40 +0200
+        thetext: "once per function call can still be very often if the parent function is called in a loop.\n\ne.g. consider \n\n----\nfunction test_bug2225\n\nfor i=1:1000\nissue_warning\nend % for\n\nend % main function\n\nfunction issue_warning\nwarning_once('this warning should not show too often');\nend % subfunction\n-----\n\nassuming something useful is done inside \"issue_warning\", then the warning handling should not add too much to the execution time."
+      - +@isprivate: "0"
+        commentid: "10978"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-31 09:18:32 +0200
+        thetext: "I really wouldn't worry too much about strcmp\n\ns = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';\n\n%find number of random characters to choose from\nnumRands = length(s); \n\n%specify length of random string to generate\nsLength = 50;\n\n%generate random string\nrandString = s( round(rand(1,sLength)*numRands) );\n\n\ntic;\nfor i=1:10000\n  randString = s( ceil(rand(1,sLength)*numRands) );\n  if strcmp(randString, '-clear')\n    fprintf('huiii');\n  end\nend\ntoc\n\nElapsed time is 0.052663 seconds.\n\n\nAfter profiling, it seems rather that getsubfield and strtok (as part of the *subfield functions)  are taking ~80% of the time"
+      - +@isprivate: "0"
+        commentid: "10983"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-31 12:42:30 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          > it seems rather that getsubfield and strtok (as part of the
+          > *subfield functions)  are taking ~80% of the time
+
+          So that means that the function can in principle be made 5x faster, i.e. 10ms rather than 50ms per call.
+      - +@isprivate: "0"
+        commentid: "14330"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-11 09:51:39 +0200
+        thetext: "bash-4.1$ svn add test/test_subfield.m\nA         test/test_subfield.m\nbash-4.1$ svn commit -m \"enhancement - speeding up warning once by addressing several bottlenecks #2225\" utilities/getsubfield.m utilities/setsubfield.m utilities/issubfield.m test/test_subfield.m private/warning_once.m private/fixname.m \nSending        private/fixname.m\nSending        private/warning_once.m\nAdding         test/test_subfield.m\nSending        utilities/getsubfield.m\nSending        utilities/issubfield.m\nSending        utilities/setsubfield.m\nTransmitting file data ......\nCommitted revision 9788.\n\n\nBased on some profiling, the bottleneck here seemed the multiple calls to issubfield,getsubfield,setsubfield and fixname.\n\nUsing textscan rather than strtok, and dynamic field allocation for the subfield functions speeds up stuff > a factor of 2. The textscan function and dynamic field allocations seem to be present since 2005.\n\nFixname was sped up by replacing a conditional statement, where initially a string was converted to numeric to check numeric-ness, replacing it with checking the int8 representation of the string against the ascii code for numerals makes a big difference in speed."

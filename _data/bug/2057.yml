@@ -1,0 +1,206 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2057"
+    creation_ts: 2013-03-15 10:38:00 +0100
+    short_desc: support non-bash shell in qsub
+    delta_ts: 2015-02-11 10:40:27 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - bugzilla
+      - E.Gerrits
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9826"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:38:59 +0100
+        thetext: We now have a similar issue at the DCCN. I'll copy paste our discussion for reference.
+      - +@isprivate: "0"
+        commentid: "9827"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:39:08 +0100
+        thetext: |-
+          I just saw your comment at github [1], sorry I was on holiday.
+
+          I know that #!/bin/bash would not work on every system, that's why I
+          did not push it to the main repo. But in my SGE setup here at the NIN,
+          the script to be executed should be a bash script.
+
+          Minimal example:
+          -----begin file "helloworld"-----
+          echo hi > ~/hello.txt"
+          -----end file "helloworld"-----
+          ~$ qsub helloworld
+          Your job 2079 ("helloworld") has been submitted
+
+          But then I get an error in the queue (status "r" then becomes "Eqw")
+
+          If I try:
+          -----begin file "helloworld"-----
+          #!/bin/bash
+          echo hi > ~/hello.txt"
+          -----end file "helloworld"-----
+          ~$ qsub helloworld
+          Your job 2080 ("helloworld") has been submitted
+
+          It runs no problem.
+
+          In fact, all the tutorials I have seen on the internet use #!/bin/bash
+          Are there other users who use SGE? Don't they need #!/bin/bash or it's
+          only a bash thing? I did not know that you could use SGE on DOS.
+
+          Cheers,
+          G
+
+          [1] https://github.com/gpiantoni/fieldtrip/commit/3b65812b23626a1c114b527afd18360cf90eaeed#commitcomment-2510996
+      - +@isprivate: "0"
+        commentid: "9828"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:40:39 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          sorry should have mentioned that the previous comment is from Gio
+      - +@isprivate: "0"
+        commentid: "9829"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:40:54 +0100
+        thetext: |-
+          On Wed, Feb 6, 2013 at 12:34 PM, Robert Oostenveld <> wrote:
+          Hi Gio,
+
+          But it is not written to a file. Line 342 in qsubfeval.m shows
+            cmdline = sprintf('echo "%s" | qsub -N %s %s -d "%s" -o "%s" -e "%s"', cmdline, jobid, submitoptions, curPwd, curPwd, curPwd);
+          so what happens is more like
+          echo "echo hi" | qsub
+          or
+          echo hostname | qsub
+
+          The reason for not making a script is that it saves us one file in the local filesystem, which then also does not have to be cleaned up. The number of files is already very large (input_mat, output_mat, e and o) which makes dirlistings go slow and in some cases problematic (rm *.sh does not work if you have too many files, it then needs xargs). Hence the motivation for keeping the number of files as small as possible.
+
+          If the out-of-the-box version does not work for you, it might be for another reason than what you suspect. Still something to be fixed then.
+      - +@isprivate: "0"
+        commentid: "9830"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:41:18 +0100
+        thetext: |-
+          Op 6 feb. 2013 om 12:58 heeft Gio Piantoni <> het volgende geschreven:
+
+          Hi Robert,
+
+          Thanks for the reply. You're right that it's not written to file, no
+          problems about that, actually it's a very neat solution to use echo
+          and pipe.
+
+          But the same problem is still there even if I don't use a script. Here
+          is the most minimal example:
+          1) echo -e 'echo hi > ~/hello.txt' | qsub
+          2) echo -e '#!/bin/bash\necho hi > ~/hello.txt' | qsub
+          where 1) doesn't work and 2) does (-e and single quotes are necessary
+          to parse the \n in echo)
+
+          There might be some missing configuration options in the SGE setup,
+          but I personally understand BASH better than SGE. That's the reason to
+          include it in my code (and not push it to the main repo).
+      - +@isprivate: "0"
+        commentid: "9831"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:41:40 +0100
+        thetext: |-
+          On Thu, Feb 7, 2013 at 1:00 PM, Robert Oostenveld <> wrote:
+
+          In the nijmegen setup it ends up in a file on the torque server. It might be that the nijmegen default is to use bash, whereas the amsterdam setup uses another default shell. Then having the explicit #! In the file will make a difference. I will check the files on the server.
+
+          Do you know what the default shell is at the NIN?
+      - +@isprivate: "0"
+        commentid: "9832"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 10:42:19 +0100
+        thetext: |-
+          On 7 Feb 2013, at 13:26, Gio Piantoni wrote:
+
+          You're right! The default shell for me as user is bash, but all the
+          queues on the SGE are configured to use /bin/sh. I found out by "qconf
+          -mq QUEUE_NAME" (see [1]). I didn't know this. I will see if I can
+          change the defaults (it depends on my colleagues, I don't know which
+          shell they prefer), otherwise I'll keep the #!/bin/bash in my own
+          repo.
+
+          Thanks for helping me out on this. Let me know if you need more
+          information from me. For the rest, the SGE with Fieldtrip works great!
+          I'm very happy with the current setup. The only other change I made at
+          [2] was because I'm the only user (and I can keep track of memory
+          usage) and I don't like when SGE kills my job because of memory
+          limits.
+
+          Thanks!
+          G
+
+          [1] http://stackoverflow.com/questions/2020957/how-to-change-the-default-shell-for-the-sun-grid-engine
+          [2] https://github.com/gpiantoni/fieldtrip/commit/3b65812b23626a1c114b527afd18360cf90eaeed
+      - +@isprivate: "0"
+        commentid: "15134"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-04 08:30:36 +0100
+        thetext: let me close this. I don't see what can be done about this at the moment.
+      - +@isprivate: "0"
+        commentid: "15235"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:27 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

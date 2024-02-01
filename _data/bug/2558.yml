@@ -1,0 +1,134 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2558"
+    creation_ts: 2014-05-02 13:14:00 +0200
+    short_desc: ft_timelockstatistics crashes because of dimord
+    delta_ts: 2015-07-15 13:31:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: heidi.idieh
+      +@name: Heidi
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13474"
+        comment_count: "0"
+        who:
+          +content: heidi.idieh
+          +@name: Heidi
+        bug_when: 2014-05-02 13:14:29 +0200
+        thetext: "I run into problems when trying to run a cluster-based permutation test on my ERF data. I believe the problem arises because I don't have any frequency dimension, so the \"dimord\" variable becomes a problem.\n\nThis is what I tried to run:\n\ngavg_erf{7}\n\nans = \n\n    individual: [23x274x1560 double]\n          time: [1x1560 double]\n         label: {274x1 cell}\n        dimord: 'subj_chan_time'\n           cfg: [1x1 struct]\n           avg: [274x1560 double]\n\n% compare gavg_erf{7} and gavg_erf{8} (high vs low context)\ncfg = [];\ncfg.method = 'distance';\nload('/home/predatt/heisol/3018012.05_heisol/meg/gavg/neighbours.mat');\n\ncfg = [];\ncfg.channel = 'MEG';\ncfg.latency = [0.4 0.7];\ncfg.avgovertime = 'no';\ncfg.avgoverchan = 'no';\n%cfg.avgoverfreq = 'yes'; % <--- is this necessary?\ncfg.parameter = 'avg';\ncfg.method = 'montecarlo';\ncfg.correctm = 'cluster';\ncfg.statistic = 'depsamplesT';\ncfg.alpha = 0.05;\ncfg.clusteralpha = 0.05;\ncfg.neighbours = neighbours;\ncfg.correctm    = 'no';\ncfg.correcttail = 'prob';\ncfg.numrandomization = 1000;\n\nNsub = 23;\ncfg.design(1,1:2*Nsub) =  [ones(1,Nsub) 2*ones(1,Nsub)];\ncfg.design(2,1:2*Nsub)  = [1:Nsub 1:Nsub];\ncfg.ivar                = 1; % the 1st row in cfg.design contains the independent variable\ncfg.uvar                = 2; % the 2nd row in cfg.design contains the subject numbe\n\nstat = ft_timelockstatistics(cfg,gavg_erf{7},gavg_erf{8});\n\n****\nError message from Matlab:\n\nIndex exceeds matrix dimensions.\n\nError in prepare_timefreq_data (line 349)\n      dat(trialsel,:,:,:) = varargin{c}.dat(:, chansel, freqsel, timesel);\n\nError in statistics_wrapper (line 235)\n  [cfg, data] = prepare_timefreq_data(cfg, varargin{:});\n\nError in ft_timelockstatistics (line 108)\n[stat, cfg] = statistics_wrapper(cfg, varargin{:});"
+      - +@isprivate: "0"
+        commentid: "13475"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-02 13:21:05 +0200
+        thetext: |-
+          Hi Heidi,
+
+          Could you post the data you are using (gavg_erf{7} and {8}) somewhere? I suspect the file will be several MBs at least, in that case maybe put it on /home/common/temporary? Then I'll have a look.
+      - +@isprivate: "0"
+        commentid: "13476"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-02 13:48:41 +0200
+        thetext: "(In reply to Eelke Spaak from comment #1)\n\nHi Eelke,\n\nI just tried reproducing it with stimulated data: the following gives the same error. \n\n------------------------------\n\nnsubj = 23;\nnchan = 274;\nntime = 1560;\n\ngavg_erf7.individual = randn(nsubj,nchan,ntime);\ngavg_erf7.time = (1:ntime)/1000;\nfor i=1:nchan\n  gavg_erf7.label{i} = num2str(i);\nend\ngavg_erf7.dimord = 'subj_chan_time';\ngavg_erf7.avg = randn(nchan, ntime);\ngavg_erf7.cfg = [];\n\ngavg_erf8.individual = randn(nsubj,nchan,ntime);\ngavg_erf8.time = (1:ntime)/1000;\nfor i=1:nchan\n  gavg_erf8.label{i} = num2str(i);\nend\ngavg_erf8.dimord = 'subj_chan_time';\ngavg_erf8.avg = randn(nchan, ntime);\ngavg_erf8.cfg = [];\n\ncfg = [];\ncfg.channel = 'all'; % modification w.r.t. original bug report\ncfg.latency = [0.4 0.7];\ncfg.avgovertime = 'no';\ncfg.avgoverchan = 'no';\n%cfg.avgoverfreq = 'yes'; % <--- is this necessary?\ncfg.parameter = 'avg';\ncfg.method = 'montecarlo';\ncfg.correctm = 'cluster';\ncfg.statistic = 'depsamplesT';\ncfg.alpha = 0.05;\ncfg.clusteralpha = 0.05;\ncfg.neighbours  = []; % modification w.r.t. original bug report\ncfg.correctm    = 'no';\ncfg.correcttail = 'prob';\ncfg.numrandomization = 1000;\n\ncfg.design(1,1:2*nsubj) =  [ones(1,nsubj) 2*ones(1,nsubj)];\ncfg.design(2,1:2*nsubj) = [1:nsubj 1:nsubj];\ncfg.ivar                = 1; % the 1st row in cfg.design contains the independent variable\ncfg.uvar                = 2; % the 2nd row in cfg.design contains the subject numbe\n\nstat = ft_timelockstatistics(cfg, gavg_erf7,gavg_erf8);\n\nselected 274 channels\nselected 301 time bins\nselected 1 frequency bins\nIndex exceeds matrix dimensions.\n\nError in prepare_timefreq_data (line 349)\n      dat(trialsel,:,:,:) = varargin{c}.dat(:, chansel, freqsel, timesel);\n\nError in statistics_wrapper (line 235)\n  [cfg, data] = prepare_timefreq_data(cfg, varargin{:});\n\nError in ft_timelockstatistics (line 108)\n[stat, cfg] = statistics_wrapper(cfg, varargin{:});\n\nError in test_bug2558 (line 53)\nstat = ft_timelockstatistics(cfg, gavg_erf7,gavg_erf8);\n\n------------------------------\n\nI will add this as a test script."
+      - +@isprivate: "0"
+        commentid: "13477"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-02 13:55:40 +0200
+        thetext: |-
+          mac011> svn commit private/statistics_wrapper.m test/test_bug2558.m
+          Sending        private/statistics_wrapper.m
+          Adding         test/test_bug2558.m
+          Transmitting file data ..
+          Committed revision 9466.
+
+          The error is somewhere deep inside prepare_timefreq_data, which is a function that we should try to move away from, and replace it by ft_selectdata.
+
+          I suggest for now that we find a workaround for Heidi.
+      - +@isprivate: "0"
+        commentid: "13478"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-02 14:04:09 +0200
+        thetext: |-
+          Heidi, for some time now it is no longer required to compute a grand-average (with keepindividual=yes) before doing statistics. Instead, you can also call ft_timelockstatistics like so:
+
+          stat = ft_timelockstatistics(cfg, erfs7{:}, erfs8{:});
+
+          where erfs7 and erfs8 are cell-arrays with one element for each of your subjects. Each element corresponds to the output of ft_timelockanalysis for a single subject.
+
+          Does this help you for now? As Robert indicates, the bug you encountered might take some more time to properly fix.
+      - +@isprivate: "0"
+        commentid: "13479"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-02 14:04:38 +0200
+        thetext: |-
+          (In reply to Eelke Spaak from comment #4)
+          ...forgot to add: the above calling syntax does not result in a bug.
+      - +@isprivate: "0"
+        commentid: "13507"
+        comment_count: "6"
+        who:
+          +content: heidi.idieh
+          +@name: Heidi
+        bug_when: 2014-05-07 18:36:55 +0200
+        thetext: "Thanks Eelke, I was able to make it work using the following code:\n\n>> gavg_erf \n\nans =\n\n  Columns 1 through 5\n\n    [1x1 struct]    [1x1 struct]    [1x1 struct]    [1x1 struct]    [1x1 struct]\n\n  Columns 6 through 10\n\n    [1x1 struct]    [1x1 struct]    [1x1 struct]    [1x1 struct]    [1x1 struct]\n\n  Columns 11 through 12\n\n    [1x1 struct]    [1x1 struct]\n\n>> gavg_erf{1}\n\nans = \n\n    individual: [24x274x1560 double]\n          time: [1x1560 double]\n         label: {274x1 cell}\n        dimord: 'subj_chan_time'\n           cfg: [1x1 struct]\n           avg: [274x1560 double]\n\n\n%% prepare data\n\nNsub = 24;\n\nfor cond=1:12\n    for sb=1:Nsub\n        savg_erf{cond}{sb} = gavg_erf{1};\n        savg_erf{cond}{sb}.avg = squeeze(gavg_erf{cond}.individual(sb,:,:));\n        savg_erf{cond}{sb} = rmfield(savg_erf{cond}{sb},'individual');\n        savg_erf{cond}{sb}.dimord = 'chan_time';\n    end\nend\n\nclear gavg_erf;\n\n%% N400\n\n% conditions: 7 = constr, 8 = unconstr\n\ncfg = [];\ncfg.channel = 'MEG';\ncfg.latency = [0.3 0.8];\ncfg.avgovertime = 'no';\ncfg.avgoverchan = 'no';\ncfg.parameter = 'avg';\ncfg.method = 'montecarlo';\n\ncfg.correctm = 'cluster'; % multiple-comparison correction\ncfg.statistic = 'depsamplesT';\ncfg.tail = 0; % two-sided test\ncfg.alpha = 0.05;\ncfg.correcttail = 'alpha'; % bonferroni correction\n\ncfg.clusteralpha = 0.01;\ncfg.clusterstatistic = 'maxsum';\nload('/home/predatt/heisol/3018012.05_heisol/meg/gavg/neighbours.mat');\ncfg.neighbours = neighbours; % this was previously computed\n\ncfg.numrandomization = 1000;\n\ndesign = zeros(2,2*Nsub);\nfor i = 1:Nsub\ndesign(1,i) = i;\nend\nfor i = 1:Nsub\ndesign(1,Nsub+i) = i;\nend\ndesign(2,1:Nsub)        = 1;\ndesign(2,Nsub+1:2*Nsub) = 2;\n\ncfg.design = design;\ncfg.uvar  = 1; % \"unit variable\" (subject)\ncfg.ivar  = 2; % independent variable (condition)\n\ncontexteffect = ft_timelockstatistics(cfg,savg_erf{7}{:},savg_erf{8}{:});   \n% the {:} means \"across all subjects\"\n(In reply to Eelke Spaak from comment #4)"
+      - +@isprivate: "0"
+        commentid: "15711"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-08 15:48:34 +0200
+        thetext: "test function started to fail, due to the outdated definition of the grandaverage type timelock structures, on which the current code chokes \n(having both an 'individual' and 'avg' field).\n\nI'll update the test function"
+      - +@isprivate: "0"
+        commentid: "15712"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-08 15:54:44 +0200
+        thetext: testfunction updated.

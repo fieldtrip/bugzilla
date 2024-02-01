@@ -1,0 +1,161 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3000"
+    creation_ts: 2015-11-05 20:30:00 +0100
+    short_desc: saturation masking in ft_plot_matrix/topo leads to grey colors for many colormaps
+    delta_ts: 2019-08-10 12:30:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2997
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2574"
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to: fieldtriptoolbox
+    cc:
+      - r.oostenveld
+      - roemer.van.der.meij
+      - stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16293"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 20:30:18 +0100
+        thetext: |-
+          In jet, this does not occur. It's a property of parula, but the resulting effect is undesired. It also doesn't occur when using opacity masking.
+
+          Replicate:
+          cdat = ones(30,50);
+          mask = rand(30,50);
+
+          % parula saturation
+          figure('colormap',parula)
+          ft_plot_matrix(cdat,'clim',[0 2],'highlightstyle','saturation','highlight',mask)
+          % jet saturation
+          figure('colormap',jet)
+          ft_plot_matrix(cdat,'clim',[0 2],'highlightstyle','saturation','highlight',mask)
+
+          % parula opacity
+          figure('colormap',parula)
+          ft_plot_matrix(cdat,'clim',[0 2],'opacity','saturation','highlight',mask)
+          % jet opacity
+          figure('colormap',jet)
+          ft_plot_matrix(cdat,'clim',[0 2],'opacity','saturation','highlight',mask)
+      - +@isprivate: "0"
+        commentid: "16295"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 22:48:34 +0100
+        thetext: "I spent quite some time on this, and I have the feeling there's no way around this, it's just a property of how the PARULA colors are defined. The thing that tipped the balance for me is: \nhttp://www.rapidtables.com/convert/color/rgb-to-hsv.htm\nhttp://www.rapidtables.com/convert/color/hsv-to-rgb.htm\n\nUsing these converters to transform a PARULA color (the center one for example: 29 179 175 in RGB) you can notice that the 'value' of its HSV representation is not 100%$ (or 1 in matlab). When the saturation is 0 (using the other converter), the value determines whether the color is white<->black. \n\nGiven the above, my conclusion is the following:\nSome PARULA colors are defined by an HSV 'value' of less than 1 (matlab terms), and therefore become a tint of grey as opposed to white when their saturation is lowered.\n\nActually, this is also the case for JET actually. \n% Shown by\nrgb2hsv(ind2rgb(uint8(floor(rand(20,20)*2^8)), jet)) % for jet\nrgb2hsv(ind2rgb(uint8(floor(rand(20,20)*2^8)), parula)) % for parula\n\nWhich explains why sometimes saturated colors turned grey in the past, which I assumed was a bug which I was chasing down. It only happens occasionally, which is likely due to the fact that the colors we usually 'saturate down', are those close to primary colors, like red, or blue (the ends of the JET), which do have an HSV value of 1."
+      - +@isprivate: "0"
+        commentid: "16296"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 22:50:23 +0100
+        thetext: (there's a silly mistake actually in the first code I pasted, but it still had the desired effect due to appropriate defaults)
+      - +@isprivate: "0"
+        commentid: "16298"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 22:56:12 +0100
+        thetext: "So, this actually is a bit of an issue then. Should we still use saturation masking? Knowing that it fails in (quite a bit) of colors? \n\nI changed to title to reflect the generalness of the problem. \n\nSomething to be discussed in the meeting I think."
+      - +@isprivate: "0"
+        commentid: "16300"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 23:01:49 +0100
+        thetext: |-
+          One thing the HSV transform can still be useful for is to knock out NANs or data points completely by turning them white. This involves (1) setting the saturation to 0 and (2) the value to 0. It will be white regardless of the value of hue.
+
+          It's easy to implement, a good name would be huesaturationvalue or saturationvalue (hsv is confusing because of the name of the particular colormap). The benefit is still that avoids the opengl issue when saving files.
+      - +@isprivate: "0"
+        commentid: "16304"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-05 23:34:42 +0100
+        thetext: |-
+          (In reply to Roemer van der Meij from comment #3)
+
+          > Should we still use saturation masking?
+
+          Saturation might not work in all cases, but it does work in some and does solve certain problems. Therefore I think we should support it in general.
+
+          Recently Stephen (CC) encountered issues (cortical source-level representation with opacity) that could only be resolved by rendering it on a local PC (no software but hardware OpenGL). See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2997
+      - +@isprivate: "0"
+        commentid: "16305"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-05 23:36:13 +0100
+        thetext: "(In reply to Roemer van der Meij from comment #4)\n\n> a good name would be huesaturationvalue or saturationvalue \n\nI would opt for \"saturation\"."
+      - +@isprivate: "0"
+        commentid: "16306"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-05 23:51:00 +0100
+        thetext: "I wasn't very clear in my comments, it's been a long day (but, colorful, ha!)\n\nThe option 'saturation' in its current implementation causes grey values for certain colors in all colormaps. \nWe use it for:\n1) masking: setting pixels to white (100% transparent using opacity in opengl)\n2) highlighting: shading pixels to white (transparent using opacity in opengl)\n\nThe approach itself (using an HSV transform) can in principle do (1), but it can never really do (2). \n\nI meant to propose to make saturation only work for masking (1):\n- binarizing any mask that is used\n- also adjust Value of HSV\n\nWe can keep on calling it saturation, although that is not entirely correct.\n\nI'd be happy to change the implementation in ft_plot_matrix/topo."
+      - +@isprivate: "0"
+        commentid: "16307"
+        comment_count: "8"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-11-06 00:48:33 +0100
+        thetext: |-
+          Actually went ahead and did it already (the implementation, not a name change), I was on a role. Also described the approach a little better:
+                % This approach changes the color of pixels to white, regardless of colormap, without using opengl
+                % It does by converting by:
+                % 1) convert the to-be-plotted data to their respective rgb color values (determined by colormap)
+                % 2) convert these rgb color values to hsv values, hue-saturation-value
+                % 3) for to-be-masked-pixels, set saturation to 0 and value to 1 (hue is irrelevant when they are)
+                % 4) convert the hsv values back to rgb values
+                % 5) plot these values
+
+
+          Also expanded test_ft_plot_matrix for comparing opacity vs saturation masking. See test_ft_plot_matrix and test_ft_plot_topo for seeing the effect of the above.
+      - +@isprivate: "0"
+        commentid: "20064"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:30:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

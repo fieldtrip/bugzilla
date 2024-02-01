@@ -1,0 +1,2400 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1792"
+    creation_ts: 2012-10-25 12:49:00 +0200
+    short_desc: implement the realtime head localiser for the Elekta neuromag system
+    delta_ts: 2019-08-10 12:42:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: Other
+    op_sys: Other
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1638
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3369
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    dependson: "2341"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - a.stolk8
+      - gianpaolo.demarchi
+      - nathanweisz
+      - r.oostenveld
+      - s.homolle
+      - stephen.whitmarsh
+      - thomas.hartmann
+      - william.thompson
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7990"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-25 12:49:08 +0200
+        thetext: |-
+          I discussed with the MEG people in Trento whether and how we could use the realtime headlocalizer on their neuromag machine. I also discussed it with Arjen, the PhD student working on this (among others).
+
+          This "bug" serves as a platform for linking the people and information to each other.
+      - +@isprivate: "0"
+        commentid: "8014"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 11:38:40 +0100
+        thetext: |-
+          What I understand following discussion with Arjen (who got the info from Leipzig) is that the neuromag system records the localizer coil signals superimposed on the normal MEG data and that there is no online localization of the localizer coils (which are magnetic dipoles).
+
+          For the ft_regressconfound function it means that an offline function needs to be made that estimates the position of the localizer coils as function of time. Or is there a Neuromag software tool that does this?
+
+          For the  realtime/online_meg/ft_realtime_headlocalizer function it means that it has to be extended with an online realtime fit of the localizer coils. That consists of a fft or a bandpassfilter+PCA  followed by fitting a magnetic dipole to the (spectral) topography.
+
+          It would help both for the offline and online development to have a recording with the continuous head localization switched on. It does not have to be a long recording, say 5 minutes would do. There should ideally be a little bit of head movement in a realistic range (e.g. 1 cm).
+      - +@isprivate: "0"
+        commentid: "8015"
+        comment_count: "2"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-10-29 12:02:50 +0100
+        thetext: |-
+          (In reply to comment #1)
+          hi,
+          just today i took a look at one file including cHPI and some head movements with one of our masters students and came to the same conclusion.
+
+          i am just uploading the file to my dropbox. should be there in like 10min to download. here is the link: https://www.dropbox.com/sh/gt1byj3z0tjcl88/WoynC4lrfw
+
+          cheers and thanks for working on it!!
+          thomas
+      - +@isprivate: "0"
+        commentid: "8016"
+        comment_count: "3"
+        attachid: "355"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-10-29 13:04:33 +0100
+        thetext: |-
+          Created attachment 355
+          real-time head localizer
+      - +@isprivate: "0"
+        commentid: "8346"
+        comment_count: "4"
+        attachid: "375"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-11-21 08:10:55 +0100
+        thetext: |-
+          Created attachment 375
+          neuromag_headloc_flowchart
+
+          This flowchart provides a simple overview of what has already been implemented in the FieldTrip toolbox with respect to the CTF head localizer setup. Additionally it shows the elements of the infrastructure that need to be implemented for it to work on a Neuromag system.
+      - +@isprivate: "0"
+        commentid: "8528"
+        comment_count: "5"
+        attachid: "388"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-03 16:33:53 +0100
+        thetext: |-
+          Created attachment 388
+          screen shot
+
+          Arjen and I have looked in detail at the data. We don't understand the frequency specific topographies, and neither does the dipole fitting procedure. The magnetic dipole fit procedure is able to reproduce the topo's, but results in dipole positions outside the helmet (with an almost perfect match to the topography of the recorded data)
+
+          To understand what is wrong in our understanding, we did a "conventional" analysis with
+
+          hdr = ft_read_header(dataset);
+
+          offset   = 3; % seconds
+
+          begsample = ([0 1 2 3 4 5]+offset) * hdr.Fs+1;
+          endsample = begsample + hdr.Fs-1;
+
+          cfg = [];
+          cfg.trl = [begsample(:) endsample(:)];
+          cfg.trl(:,3) = 0;
+          cfg.dataset = dataset;
+          cfg.channel = 'MEGMAG';
+          data = ft_preprocessing(cfg);
+
+          cfg = [];
+          cfg.method = 'mtmfft';
+          cfg.output = 'pow';
+          cfg.foilim = [1 500];
+          cfg.taper = 'hanning';
+          freq = ft_freqanalysis(cfg, data);
+
+          cfg = [];
+          cfg.parameter = 'powspctrm';
+          cfg.operation = 'log10';
+          freqlog = ft_math(cfg, freq);
+
+          cfg = [];
+          cfg.layout = 'neuromag306mag.lay';
+          cfg.interactive = 'yes';
+          ft_multiplotER(cfg, freq);
+          % ft_multiplotER(cfg, freqlog);
+
+          See attached screenshot. It shows the three peaks, that they are almost exclusively visible in a bunch of channels on the right, and the three topographies.
+
+          Anyone an idea?
+      - +@isprivate: "0"
+        commentid: "8529"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-03 16:36:04 +0100
+        thetext: |-
+          added Gianpaolo to the CC list.
+
+          @GP, please look at comment 5
+      - +@isprivate: "0"
+        commentid: "8593"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-12-07 16:25:18 +0100
+        thetext: We presumed the three coils should and were attached to the two ear sites and the nasion during the recording. is this correct?
+      - +@isprivate: "0"
+        commentid: "8595"
+        comment_count: "8"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-12-07 16:27:34 +0100
+        thetext: |-
+          (In reply to comment #7)
+          we have five coils in total. three of them are attached to the forhead and two are attached behing the ears.
+      - +@isprivate: "0"
+        commentid: "8596"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-12-07 17:08:02 +0100
+        thetext: "(In reply to comment #8)\nThe spectrum shows 3 peaks; were two coils disengaged? \n\nDo the plotted topographies (see screenshot) subjectively match the positions of the coils during the recording? Id est; two right frontal, and one right ear?"
+      - +@isprivate: "0"
+        commentid: "8597"
+        comment_count: "10"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2012-12-07 17:22:27 +0100
+        thetext: |-
+          (In reply to comment #9)
+          we have some problems with 2 of the 5 coils now and then. i do not know for sure whether this was the case in this measurement as well, but it is very likely. the system checks whether the coil positions are valid when initializing the measurement. it would make sense if those deemed bad are not included in any further continuous head positioning....
+
+          the topographies look ok. the right ear one looks perfect to me. i would have expected one more in the middle, though, but that might be correct as well.
+
+          i will try to prepare a measurement for you during the next week with working five coils and better defined positions so we can further verify.
+
+          besides, i know that the positions of the coil are also digitized together with the headshape and fiducials. i havent found any trace of the yet in the data but will keep looking for it.
+
+          besides: thanks for the fantastic work. it is awesome to see progress on this!!!!
+      - +@isprivate: "0"
+        commentid: "8598"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-12-07 17:42:50 +0100
+        thetext: "(In reply to comment #10)\nHi Thomas, good to hear that the sensor topographies do make sense. We were puzzled by them and also by the observation that the contribution of each coil to the sensor array is very focal. \n\nNamely, there's no spatial gradient in the distribution; each coil projects very strongly on a small subset of the axial gradiometers. Using those axial gradiometer channels subsequently results in dipole positions fitted outside the dewar; due to the sharp distribution the algorithm cannot distinct between inside and outside, while probably getting the distance to the sensors correct.\n\nPerhaps we can solve this issue by limiting the grid search to a space defined as inside the dewar (e.g. a sphere). My guess is that MaxFilter does the same when performing the signal space separation algorithm.  \n\nWe will let you know on the outcome. It would indeed be nice if we can get the actual positions to confirm the correctness of the dipole fits."
+      - +@isprivate: "0"
+        commentid: "8721"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-12-17 11:02:47 +0100
+        thetext: "Hi Thomas,\n\nAfter just discussing with Robert, we realized another approach may be more effective. Id est, to use the digitized coil positions from the fif header to restrict/bias the grid search. \n\nDo you think you can get us another dataset with 5 working coils on a short notice? And secondly, where to find to those digitized positions in the fif file?\n\nYours,\nArjen"
+      - +@isprivate: "0"
+        commentid: "8781"
+        comment_count: "13"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2012-12-21 12:08:33 +0100
+        thetext: |-
+          (In reply to comment #12)
+
+          Hi Arjen,
+          just a quick info ...
+          AFAIK fieldtrip is using the very same "mne" toolbox for the fiff reading, so I found the needed info  in the
+
+          orig.raw.info.dig
+
+          structure
+
+          The first three elements are the Polhemus values of the preauricolar point and nasion (in some order, left preauricolar is +x, nasion is +y, and upwards is +z), the followings 5 elements of the structure are the digitized values of the 5 HPI coils, and the next ones are the head shape and/or EEG electrodes, if present.
+          I'm not physically in the lab, but I'll find some file (short, or shortened) that contains all the 5 coils active, both as initial location, and as continuous HPI.
+
+          Best wishes,
+          Gianpaolo
+      - +@isprivate: "0"
+        commentid: "8784"
+        comment_count: "14"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2012-12-21 12:26:22 +0100
+        thetext: "ADDENDUM:\n\nthe orig. raw.info.dig structures contains some additional info, such as \"kind\", which tells what kind of thing is digitized (1 for RPA/LPA/NAS, 2 for HPI coils, 4 for head shape, 3 for EEG but I'm not sure), and the \"ident\" field, which is an increasing number for the \"kind\" type (i.e. for the HPI coil goes from 1 to 5). \nI'm not fully aware of the coord_frame value, I should dig into the \"mne\" documentation to see what is what (head, device?)."
+      - +@isprivate: "0"
+        commentid: "8797"
+        comment_count: "15"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2012-12-21 18:23:39 +0100
+        thetext: "ADDENDUM:\n\nthe orig. raw.info.dig structures contains some additional info, such as \"kind\", which tells what kind of thing is digitized (1 for RPA/LPA/NAS, 2 for HPI coils, 4 for head shape, 3 for EEG but I'm not sure), and the \"ident\" field, which is an increasing number for the \"kind\" type (i.e. for the HPI coil goes from 1 to 5). \nI'm not fully aware of the coord_frame value, I should dig into the \"mne\" documentation to see what is what (head, device?)."
+      - +@isprivate: "0"
+        commentid: "8934"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-15 16:08:13 +0100
+        thetext: "(In reply to comment #13)\n\n> I'm not physically in the lab, but I'll find some file (short, or shortened)\n> that contains all the 5 coils active, both as initial location, and as\n> continuous HPI.\n\nHi Gianpaolo, \nHave you had any chance of finding such a dataset?"
+      - +@isprivate: "0"
+        commentid: "8952"
+        comment_count: "17"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-01-16 08:56:02 +0100
+        thetext: "(In reply to comment #16)\n\nHi Robert,\nhere we go:\n\nhttps://www.dropbox.com/sh/tnlo25g2qrduo95/JoSglN9uBf\n\nAFAIK (I was not there when it was collected) this one (these ones, one long and a shortened version, to upload faster) should have all the coils active. I fear that something is broken, since it's giving me the \"Yokogawa\" warning when I try to open them, and I'll try to send you a better one ASAP, but by now the machine is off (some maintenance work) so I cannot really do another shot today ... \nSorry for the delay,\nGianpaolo"
+      - +@isprivate: "0"
+        commentid: "8965"
+        comment_count: "18"
+        attachid: "405"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 14:25:34 +0100
+        thetext: |-
+          Created attachment 405
+          intermediate version, has debugging stuff in it
+      - +@isprivate: "0"
+        commentid: "9498"
+        comment_count: "19"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-02-20 17:33:22 +0100
+        thetext: "These lines of code get the HPI positions (obtained with polhemus tracking) from the fif header.\n\n% locate the number and positions of the HPI coils from the header \nctr = 0;\nfor j = 1:length(hdr.orig.raw.info.dig)\n if hdr.orig.raw.info.dig(1,j).kind == 2 % 1: RPA/LPA/NAS, 2: HPI coils, 4: Head shape\n     ctr = ctr+1;\n     HPIpos(ctr,:) = double((hdr.orig.raw.info.dig(1,j).r).*100); % convert from m to cm\n end\nend\nfprintf('%d HPI coils found in the header file\\n', ctr);\n\nHowever, using ft_realtime_coillocalizer, I have not been able to correctly fit the coil positions on basis of the recorded MEG data (using 102 magnetometer channels). In fact, those positions are not even close to the ones obtained with polhemus (in 'HPIpos') and are frequently fitted even outside the dewar. So far, it seems that dipolefitting is tough because the spatial distribution of the coil-induced magnetic field is sharp and not gradient-like (see plot made by Robert and attached somewhere in this bug report)."
+      - +@isprivate: "0"
+        commentid: "9502"
+        comment_count: "20"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-02-20 19:38:08 +0100
+        thetext: |-
+          Two things need to be tested/checked in order to constrain the dipole fitting procedure:
+
+          1) whether there is a (separate) channel in the dataset that contains the sinusoidal electrical current (and thus phase information)
+
+          2) build in a 'rigid body' constraint option (into dipolefit.m) that allows fitting of a rigid body that is based on the 5 HPI coil positions combined. An additional 'onetoone' mapping (between estimated coil position and element of of the rigid body) constraint should also be considered to further constrain the grid search (not possible for the BTI MEG system because all coils are energized with the same sinusoidal frequency)
+
+          (In reply to comment #19)
+      - +@isprivate: "0"
+        commentid: "10028"
+        comment_count: "21"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-10 00:00:05 +0200
+        thetext: "Hi Gianpaolo,\n\nRobert and I have recently been trying to optimize the dipole fitting procedure for the Neuromag HPI coils. I do not have screenshots of the results right now, but at one point we started to believe that there was a mismatch between the order of generated magnetic fields and measured fields. \n\nThe MaxFilter documentation states:\n\n\"Typical\nfrequencies of the signals are 154, 158, 162, 166 and 170 Hz for the\nsampling rate of 600 Hz (low-pass Þlter at 200 Hz), or 293, 307, 314, 321\nand 328 Hz for higher sampling rates.\"\n\nFor the example dataset you gave us (Fs = 1000 Hz), we assumed that the frequency of 293 Hz belonged to HPI coil 1, 307 Hz to HPI coil 2, etc. However, we suspect this may not be the correct order and were wondering if you know more about this.\n\nReading the neuromag file header using:\n\ndataset = '/home/common/matlab/fieldtrip/data/test/bug1792/sample_chpi.fif';\nhdr = ft_read_header(dataset);\n\nI could retrieve some information on the HPI acquistion and analysis parameters:\n\n>> hdr.orig.raw.info.acq_pars\n\nans = \n...\nACQhpiamp 2 \nACQhpidmax 0.005 \nACQhpigmin 0.98 \n...\nDEFhpiProgName hpi_psd\nDEFhpiTriggerChannel STI201\nDEFhpifitProgName hpifit\n...\n\nAlso, as indicated by an earlier post by you, there is some information on the identity of the HPIcoil:\n\n>> hdr.orig.raw.info.dig(4)\n\nans = \n\n           kind: 2\n          ident: 1\n              r: [3x1 single]\n    coord_frame: 4\n\nHowever, I could not find which sinusoidal frequency the coil was energized with. Do you know whether to find it?\n\nBest wishes, \nArjen"
+      - +@isprivate: "0"
+        commentid: "10034"
+        comment_count: "22"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-10 18:29:48 +0200
+        thetext: "(In reply to comment #21)\n\nHi Arjen,\nsorry for the long delays in replying, I'm on and off with this project (and with my entire life, though ;-))\nI started tinkering with the ft_realtime_coillocalizer.m you sent me yesterday, without much success (I come on this point later, though ...)\n\n<cut>\n> The MaxFilter documentation states:\n<cut>\n> For the example dataset you gave us (Fs = 1000 Hz), we assumed that the\n> frequency of 293 Hz belonged to HPI coil 1, 307 Hz to HPI coil 2, etc. However,\n> we suspect this may not be the correct order and were wondering if you know\n> more about this.\n\nAs a matter of fact I/we don't know any order ... we're trying to follow an order, also when mounting them, like \"the first one on the connector, it's the first one on the left side\" but we never followed a strict rule, since the Elekta SW never complained for any order, it detects the relative distance and spits out some number independent from the order ...\n\n>Also, as indicated by an earlier post by you, there is some information on the\n> identity of the HPIcoil:\n\n<cut>\n\n>> hdr.orig.raw.info.dig(4)\n\n<cut>\n\n> However, I could not find which sinusoidal frequency the coil was energized\n> with. Do you know whether to find it?\n \nI got this info \"reverse engineering\" what is what and what comes first (NasLR are three, so they should come before, HPI coils are five, this are the ones ... etc ...), but I don't know any exact information ... \nI strongly doubt that there is anywhere in the fiff file, or in the sucked-via-mne header such an info ... I'll try to look again in the \"paper-based\" manuals (but I know them ~by heart, there's nothing :-( ) and I can try to explicitly ask Elekta for that info, if it's not an industrial secret ...\n\nGoing back to my problem, if you can help also off the bugzilla is fine, I wanted to try to look at the function you said, and I manually \"streamed\" some data containing cHPI data from one Matlab session to the next one in the following way\n\ncfg.source.dataset = whatever fiff ...\ncfg.speed = 1\nft_realtime_fileproxy(cfg)\n\nand this fills in a buffer on localhost:1972 as expected\n\nOn another Matlab, I fire:\n\ncfg.coilfreq= 293\nft_realtime_coillocalizer(cfg)\n\nand it fails with:\n\nReference to non-existent field 'grad'.\n\nError in ft_realtime_coillocalizer (line 134)\n[vol, sens] = ft_prepare_vol_sens([], hdr.grad, 'channel', cfg.channel);\n\nI tried to specify what is what, i.e. \n\ncfg.coilfreq= 293\ncfg.headerformat = 'fcdc_buffer_offline'\nft_realtime_coillocalizer(cfg)\n\nand this seems to complain of something else, namely:\n\nWarning: could not read header from buffer:/header, retrying in 1 second \n> In ft_read_header at 951\n  In ft_realtime_coillocalizer at 95 \n\nAny snipplet/hint, also off the list/bugzilla, would be appreciated ...\nIn the meantime I try to figure out the rest ...\nBest,\nGP\n\nBest wishes, \nArjen"
+      - +@isprivate: "0"
+        commentid: "10035"
+        comment_count: "23"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-10 20:34:40 +0200
+        thetext: "\"As a matter of fact I/we don't know any order ... we're trying to follow an\norder, also when mounting them, like \"the first one on the connector, it's the\nfirst one on the left side\" but we never followed a strict rule, since the\nElekta SW never complained for any order, it detects the relative distance and\nspits out some number independent from the order ...\"\n\nOk, thanks. I'll see whether we can come up with a solution on how match a frequency to a coil number.\n\nCurrently we have implemented a 'rigidbody' type constraint in 'dipole_fit.m' which generates the hypothetical magnetic field distribution of all coils combined, based on their relative positions as obtained from the fif header. The actual positions and orientations of the coils making up this rigid body are then approximated by fitting the resulting hypothetical field distribution to the actually recorded magnetic field distribution. This method should improve fitting of the coils as compared to fitting them separately. \n\nNote that these functions have not yet been uploaded to the main repository as they are work-in-progress and also because we have not yet tested them for compatibility with other functions. Also, the here uploaded ft_realtime_coillocalizer is currently an outdated version. For offline (on an already recorded dataset) and online testing of the realtime neuromag interface I suggest you have a look at these pages:\n\nhttp://fieldtrip.fcdonders.nl/development/realtime/neuromag\nhttp://fieldtrip.fcdonders.nl/example/ft_realtime_signalviewer\n\nThanks for your quick reply. Currently I am writing up my thesis work, but I will come back to you asap.\nArjen"
+      - +@isprivate: "0"
+        commentid: "10046"
+        comment_count: "24"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-10 21:37:58 +0200
+        thetext: "(In reply to comment #23)\n\n>Ok, thanks. I'll see whether we can come up with a solution on how match a\n> frequency to a coil number.\n\nThanks ... as said, I'm going to ask Elekta, so we should have \"good info\" asap ... hopefully ...\n\n> Note that these functions have not yet been uploaded to the main repository as\n> they are work-in-progress and also because we have not yet tested them for\n> compatibility with other functions. Also, the here uploaded\n> ft_realtime_coillocalizer is currently an outdated version. For offline (on an\n> already recorded dataset) and online testing of the realtime neuromag interface\n> suggest you have a look at these pages:\n\n> http://fieldtrip.fcdonders.nl/development/realtime/neuromag\n> http://fieldtrip.fcdonders.nl/example/ft_realtime_signalviewer\n\nThis works flawlessly. We've done some BCI stuff last year based on that, which worked out pretty well. \nI just tested ft_realtime_signalviewer (offline, with ft_rt_fileproxy) and still works without any problem. \nThat's why I was asking what was the issue with ft_rt_coillocalizer, but you're right, it's pointless that I fight with an already outdated version, so I'll wait for you providing a new one, as soon as think it's fine for an alpha/beta testing ...\n\n> Thanks for your quick reply.\n\nSorry again for my erratic behavior (quick, slow, quick, slow) :-( !\n\n> Currently I am writing up my thesis work, but I\n> will come back to you asap.\n\nThen go and fight with that, forget this crap ;-) !\n\nGP"
+      - +@isprivate: "0"
+        commentid: "10074"
+        comment_count: "25"
+        attachid: "450"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-14 18:35:11 +0200
+        thetext: |-
+          Created attachment 450
+          neuromag coilpos sample_chpi.fif
+      - +@isprivate: "0"
+        commentid: "10075"
+        comment_count: "26"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-14 18:38:21 +0200
+        thetext: "Hi GP,\n\nPlaying a bit more with the example dataset ('sample_chpi.fif'), I still remain confused. \n\nI have plotted the coil positions as obtained from the neuromag header (slide 1 of 'neuromag_coilpos_sample.pdf'), their resulting simulated magnetic fields (slide 2), and the actual recorded magnetic fields per coil frequency (slide 3). \n\nNote that the coil identities (i.e. '1', '2', ..) do not match the order of the coil frequencies (i.e. '293', '307', ..). However, ignoring this order for the moment, I believe to see quite some overlap between the coil positions and topographical distribution of the recorded fields. For instance; \n\ncoil 1: 321 Hz\ncoil 2: 314 Hz\ncoil 3: 293 Hz ??\ncoil 4: 293 Hz ??\ncoil 5: 307/328 Hz ??\n\nAs you can tell from those question marks, there is no match for all coils. It is as if one coil (either the 307 or 328 Hz) is not at the correct location as registered with polhemus... \n\nDo you have any clue?\nYours,\nArjen\n\np.s. find below the code used to create those plots:\n\n% read header file\ndataset = '/home/common/matlab/fieldtrip/data/test/bug1792/sample_chpi.fif';\nhdr = ft_read_header(dataset);\n\n% plot sensor positions\nsens = ft_read_sens(dataset);\nfigure; ft_plot_sens(sens)\n\n% plot HPI coil positions\nctr = 0;\nfor j = 1:length(hdr.orig.raw.info.dig)\n if hdr.orig.raw.info.dig(1,j).kind == 2 % 1: RPA/LPA/NAS, 2: HPI coils, 4: Head shape\n     ctr = ctr+1;\n     pos(ctr,:) = double((hdr.orig.raw.info.dig(1,j).r).*100); % coil position in cm\n     ident(ctr) = hdr.orig.raw.info.dig(1,j).ident; % coil identity\n end\nend\nfprintf('%d HPI coils found in fif header\\n', ctr); \nfor c = 1:ctr\nhold on; plot3(pos(c,1), pos(c,2), pos(c,3), 'ro', ‘MarkerSize’, 12, ’LineWidth’, 3);\nhold on; text(pos(c,1), pos(c,2), pos(c,3), num2str(ident(c)));\nend\nxlabel(‘x-axis’)\nylabel(‘y-axis’)\n\n%% THIS PERTAINS TO FICTITIOUS DATA\n% construct volume conductor model (simple sphere)\nvol = [];\nvol.r = 9;\nvol.o = [0 0 4];\nchannel  = ft_channelselection('MEGMAG', sens.label);\n[vol, sens] = ft_prepare_vol_sens(vol, sens, 'channel', channel);\n\n% construct lead field matrix for all ‘dipoles’ (i.e. coils)\nlf = ft_compute_leadfield(pos, sens, vol);  \n\n% plot lead field along x-axis for each coil\nfigure; hold on;\ncfg =[];\ncfg.layout = 'neuromag306mag.lay';\ntemp.dimord = ‘chan’;\ntemp.label = channel ;\nsubplot(2,3,1); hold on;\ntemp.avg = lf(:,1);\ncfg.comment = num2str(ident(1));\nft_topoplotER(cfg, temp);\nsubplot(2,3,2); hold on;\ntemp.avg = lf(:,4);\ncfg.comment = num2str(ident(2));\nft_topoplotER(cfg, temp);\nsubplot(2,3,3); hold on;\ntemp.avg = lf(:,7);\ncfg.comment = num2str(ident(3));\nft_topoplotER(cfg, temp);\nsubplot(2,3,4); hold on;\ntemp.avg = lf(:,10);\ncfg.comment = num2str(ident(4));\nft_topoplotER(cfg, temp);\nsubplot(2,3,5); hold on;\ntemp.avg = lf(:,13);\ncfg.comment = num2str(ident(5));\nft_topoplotER(cfg, temp);\n\n%% THIS PERTAINS TO ACTUAL DATA\n% define trials for analysis (in this 6 consecutive trials of one second) \noffset   = 3; % seconds\nbegsample = ([0 1 2 3 4 5]+offset) * hdr.Fs+1;\nendsample = begsample + hdr.Fs-1;\n\n% preprocess the trials\ncfg = [];\ncfg.trl = [begsample(:) endsample(:)];\ncfg.trl(:,3) = 0;\ncfg.dataset = dataset;\ncfg.channel = 'MEGMAG';\ndata = ft_preprocessing(cfg);\n\n% determine spectral content\ncfg = [];\ncfg.method = 'mtmfft';\ncfg.output = 'pow';\ncfg.foilim = [1 500];\ncfg.taper = 'hanning';\nfreq = ft_freqanalysis(cfg, data);\n\n% plot topographical distribution of neuromag coil frequencies\nfigure; hold on;\ncfg = [];\ncfg.layout = 'neuromag306mag.lay';\nsubplot(2,3,1); hold on;\ncfg.xlim = [293 293];\ncfg.comment = ‘293 Hz’;\nft_topoplotER(cfg, freq);\nsubplot(2,3,2); hold on;\ncfg.xlim = [307 307];\ncfg.comment = ‘307 Hz’;\nft_topoplotER(cfg, freq);\nsubplot(2,3,3); hold on;\ncfg.xlim = [314 314];\ncfg.comment = ‘314 Hz’;\nft_topoplotER(cfg, freq);\nsubplot(2,3,4); hold on;\ncfg.xlim = [321 321];\ncfg.comment = ‘321 Hz’;\nft_topoplotER(cfg, freq);\nsubplot(2,3,5); hold on;\ncfg.xlim = [328 328];\ncfg.comment = ‘328 Hz’;\nft_topoplotER(cfg, freq);"
+      - +@isprivate: "0"
+        commentid: "10079"
+        comment_count: "27"
+        attachid: "452"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 17:20:07 +0200
+        thetext: |-
+          Created attachment 452
+          neuromag coilpos matteo_chpi.fif
+      - +@isprivate: "0"
+        commentid: "10080"
+        comment_count: "28"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 17:26:31 +0200
+        thetext: "Hi GP,\n\nI have added a similar analysis pdf file for another neuromag recording you have previously sent me (matteo_cHPI.fif). The polhemus tracked coil positions look similar to that of sample_chpi.fif (see first slide of both pdf files). \n\nHowever, also here, the recorded magnetic field distributions for each frequency do not make sense to me (even worse than in sample_chpi.fif, cf. third slide of both pdf files).\n\nJust to check; are the polhemus tracked coil positions, as stored in the fif header file (and plotted in the first slide of the pdfs), what you would expect? \n\nYours,\nArjen"
+      - +@isprivate: "0"
+        commentid: "10081"
+        comment_count: "29"
+        attachid: "453"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-15 19:04:17 +0200
+        thetext: |-
+          Created attachment 453
+          Log info of the fiff file
+      - +@isprivate: "0"
+        commentid: "10082"
+        comment_count: "30"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-15 19:06:10 +0200
+        thetext: "(In reply to comment #26)\n\n> Hi GP,\n\n> Playing a bit more with the example dataset ('sample_chpi.fif'), I still remain\n> confused. \n\nMe the same :-(\n\n> Note that the coil identities (i.e. '1', '2', ..) do not match the order of the\n> coil frequencies (i.e. '293', '307', ..). However, ignoring this order for the\n> moment, I believe to see quite some overlap between the coil positions and\n> topographical distribution of the recorded fields. For instance; \n\nI tested the script you sent me on the same data, and on another dataset.\nSo, we can forget of the order of the coils somehow ... The order stored in the hdr.orig.dig.* does only reflect how they were digitized, not how they're energized from the MEG electronics ...\nPer se is not a bad thing, just we've to find a way to cope with that.\nI looked at the PSD of the data, and on the topography \"movie\" with \n\ncfg=[];\ncfg.xlim = [291:2:329];\nft_topoplotER(cfg, freq);\n\nand it really seems that there are only four coils/frequency available: there are only four clearly detectable peaks in the spectrum, and in the topolot movie the last one (328) overlaps with the 307 one, with also some spurious other data popping up from the other three coils/positions. There are small peaks at 250 and 300 Hz, but those are clearly 50Hz harmonics, also from the topography.\n\nThere's an elekta tool, called show_fiff, that tells you some relevant info on the fiff file you're playing with. \nI ran it on our file, and attacched you'll find the log, with a lot of info ... most of them are picked up by by fiff->mne->ft pipeline, and end up in the hdr \"orig\" structure, but not all of them ...\nE.g.\n\n[meg@sinuhe development]$ /neuro/bin/util/show_fiff -v  sample_chpi_short.fif \n\n(see the log attached)\n\nYou can choose a meaningful \"tag\" that you're interested in, passing  it in the following way\n\n[meg@sinuhe development]$ /neuro/bin/util/show_fiff -vt 216  sample_chpi_short.fif \n216 = HPI # coils    \t5\n\nSo you see that there were five hpi coils (really ?!)\n\nAnd:\n\n[meg@sinuhe development]$ /neuro/bin/util/show_fiff -vt 245  sample_chpi_short.fif \n245 = HPI coil no    \t1\n245 = HPI coil no    \t2\n245 = HPI coil no    \t3\n245 = HPI coil no    \t4\n245 = HPI coil no    \t5\n\nwith the corresponding frequencies:\n\n[meg@sinuhe development]$ /neuro/bin/util/show_fiff -vt 236  sample_chpi_short.fif \n236 = HPI coil freq  \t293\n236 = HPI coil freq  \t307\n236 = HPI coil freq  \t314\n236 = HPI coil freq  \t321\n236 = HPI coil freq  \t328\n\nThe problems arise from the fact that this order is always the same, i.e. from low to high freqs, and it's not necessarily (I guess) related to the Polhemus digitized points and order.\nBut, if I then look at another \"tag\" (or simply I look at the whole log with \"| grep dig.\" ) I get out\n\n[meg@sinuhe development]$ /neuro/bin/util/show_fiff -vt 213  sample_chpi_short.fif \n213 = dig. point     \thpi        1 (  27.5, 100.7,   2.6)\n213 = dig. point     \thpi        2 (  70.2, -16.5, -26.8)\n213 = dig. point     \thpi        3 ( -47.2,  95.5,   6.9)\n213 = dig. point     \thpi        4 ( -68.1, -28.2, -29.6)\n213 = dig. point     \thpi        5 (  67.6, -23.6, -27.3)\n213 = dig. point     \tcardinal   1 ( -61.0,   0.0,   0.0)\n213 = dig. point     \tcardinal   2 (  -0.0,  91.7,   0.0)\n213 = dig. point     \tcardinal   3 (  65.3,  -0.0,   0.0)\n213 = dig. point     \thpi        1 ( -65.3, -26.1,   7.3)\n213 = dig. point     \thpi        2 ( -41.3,  91.2,  51.4)\n213 = dig. point     \thpi        3 (  33.9,  95.1,  48.0)\n213 = dig. point     \thpi        4 (  36.7,  91.8,  31.9)\n213 = dig. point     \thpi        5 (  71.6, -22.1,  13.1)\n213 = dig. point     \textra      1 ( -10.7,  96.5,  72.3)\n213 = dig. point     \textra      2 ( -12.1,  94.9,  74.2)\n(and all the other extra points) \n\nSo, the first points are the hpi coils in device (?!) coordinates, then the landmarks, then the same hpi points in head (?!) coordinates, which are incidentally the ones that we're getting out from \n\nhdr.orig.dig(1,4:8).r  \n\nans =\n   -0.0653\n   -0.0261\n    0.0073\n\nans =\n   -0.0413\n    0.0912\n    0.0514\n\nans =\n    0.0339\n    0.0951\n    0.0480\n\nans =\n    0.0367\n    0.0918\n    0.0319\n\nans =\n    0.0716\n   -0.0221\n    0.0131\n\nSo, in the end it really seems that there is a 1-1, 2-2 etc. mapping with the frequency AND coil number, but it's not what we have in the very end.\n\nSo, from left to right they should be (1,2,3,4,5) -> (293,307,314,321,328) and instead we see (321, 314, 293, ???, 307/328/??? ). \nSo, someone in our machinery is definitely  lying ;-)\n\n> Do you have any clue?\n\nI tell you the very truth, I'm a bit lost as well. \nAs said, part of the info I'm getting out from the show_fiff function goes into hdr.orig.*\n, and part of it is wasted ... \nIn principle one could try to recover it also in Matlab/fieldtrip via:\n\n[fid tree dir] = fiff_open(dataset)\n\nand all the info in literally \"buried\" in the dir and tree \"tag\" structure ... and I cannot easily get them out from there .... but as said they seem to lie ...\n\nI'm trying to think of a workaround ... Something like ...\nLet's forget what are the position stored in the header info; we could try to fit three dipoles on three coils  (independent, maybe with some user input choosing in the beginning which ones) at the beginning of each run, and then measure the relative movement only with respect to this initial position ... but, again, this is just brainstorming and maybe  it's better that I have some rest now :-(\n\nCiao,\nGP, depressed\n\n\n> Yours,\n> Arjen"
+      - +@isprivate: "0"
+        commentid: "10083"
+        comment_count: "31"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-15 19:13:48 +0200
+        thetext: |-
+          (In reply to comment #28)
+
+          Sorry we were overlapping our replies  ;-)
+
+          Btw, the fact that two coils are closed together it's not a bad thing, since it's how they are mounted in reality: the original idea was that since the frontal ones are the ones more likely to fall down, having two close to each other was better ... But I'm rethinking this thing now ... maybe we've just to mount them far apart and stop ...
+
+          Again, maybe we've just to select three of them, which should be enough to fit a rigid body, and forget about correspondences with what is stored in the header/polhemus ...
+
+          Goedenavond,
+          Gianpaolo
+      - +@isprivate: "0"
+        commentid: "10084"
+        comment_count: "32"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 22:03:42 +0200
+        thetext: "Hi GP,\n\nThanks again for your quick and adequate reply. I feel we're really getting closer now. \n\n\"[meg@sinuhe development]$ /neuro/bin/util/show_fiff -vt 213 \nsample_chpi_short.fif \n213 = dig. point         hpi        1 (  27.5, 100.7,   2.6)\n213 = dig. point         hpi        2 (  70.2, -16.5, -26.8)\n213 = dig. point         hpi        3 ( -47.2,  95.5,   6.9)\n213 = dig. point         hpi        4 ( -68.1, -28.2, -29.6)\n213 = dig. point         hpi        5 (  67.6, -23.6, -27.3)\n213 = dig. point         cardinal   1 ( -61.0,   0.0,   0.0)\n213 = dig. point         cardinal   2 (  -0.0,  91.7,   0.0)\n213 = dig. point         cardinal   3 (  65.3,  -0.0,   0.0)\n213 = dig. point         hpi        1 ( -65.3, -26.1,   7.3)\n213 = dig. point         hpi        2 ( -41.3,  91.2,  51.4)\n213 = dig. point         hpi        3 (  33.9,  95.1,  48.0)\n213 = dig. point         hpi        4 (  36.7,  91.8,  31.9)\n213 = dig. point         hpi        5 (  71.6, -22.1,  13.1)\n213 = dig. point         extra      1 ( -10.7,  96.5,  72.3)\n213 = dig. point         extra      2 ( -12.1,  94.9,  74.2)\n(and all the other extra points) \n\nSo, the first points are the hpi coils in device (?!) coordinates, then the\nlandmarks, then the same hpi points in head (?!) coordinates, which are\nincidentally the ones that we're getting out from \n\nhdr.orig.dig(1,4:8).r \"\n\nI plotted these positions. Will attach now.."
+      - +@isprivate: "0"
+        commentid: "10085"
+        comment_count: "33"
+        attachid: "454"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 22:04:11 +0200
+        thetext: |-
+          Created attachment 454
+          neuromag coilpos sample_chpi.fif part 2
+      - +@isprivate: "0"
+        commentid: "10086"
+        comment_count: "34"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 22:06:20 +0200
+        thetext: |-
+          (In reply to comment #33)
+
+          What can be seen, is that what you define as 'head coordinate system' matches perfectly to the topoplots. In fact, the identity number matches the order of coil frequencies too.
+      - +@isprivate: "0"
+        commentid: "10087"
+        comment_count: "35"
+        attachid: "455"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 22:11:18 +0200
+        thetext: |-
+          Created attachment 455
+          neuromag coilpos sample_chpi.fif part 2
+
+          Have been mixing them up. "device coordinates" in blue, "head coordinates" in red.
+      - +@isprivate: "0"
+        commentid: "10088"
+        comment_count: "36"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-15 22:23:47 +0200
+        thetext: "So the topoplots match (perfectly) the \"device coordinates\"/first 5 positions of the coils. The \"head coordinates\"/second 5 coil positions match the coordinate system of the sensor positions, i.e. the two closely located coil positions are at the front of the head. \n\nI will try and discuss this with Robert over a cup of coffee asap. \n\n \n\nUseful link:\n\nhttp://fieldtrip.fcdonders.nl/faq/how_are_the_different_head_and_mri_coordinate_systems_defined\n\n\n\nCode used to generate those plots:\n\n% plot sensor positions\ndataset = '/home/common/matlab/fieldtrip/data/test/bug1792/sample_chpi.fif';\nhdr = ft_read_header(dataset);\nsens = ft_read_sens(dataset);\n\n% HPI coil positions (polhemus/device coordinates?)\npos_d(1,:)=[27.5, 100.7,   2.6];\npos_d(2,:)=[70.2, -16.5, -26.8];\npos_d(3,:)=[-47.2,  95.5,   6.9];\npos_d(4,:)=[-68.1, -28.2, -29.6];\npos_d(5,:)=[67.6, -23.6, -27.3];\npos_d = pos_d/10;\n\n% display\nfigure; hold on;\n% display\nsubplot(2,2,1); \nhold on; ft_plot_sens(sens)\n\nfor c = 1:5\nhold on; plot3(pos_d(c,1), pos_d(c,2), pos_d(c,3), 'bo', 'MarkerSize', 12, 'LineWidth', 3);\nhold on; text(pos_d(c,1), pos_d(c,2), pos_d(c,3), num2str(c));\nend\nxlabel('x-axis')\nylabel('y-axis')\ntitle('device coord?');\nview([0 90])\n\n% display\nsubplot(2,2,3); \nhold on; ft_plot_sens(sens)\n\nfor c = 1:5\nhold on; plot3(pos_d(c,1), pos_d(c,2), pos_d(c,3), 'bo', 'MarkerSize', 12, 'LineWidth', 3);\nhold on; text(pos_d(c,1), pos_d(c,2), pos_d(c,3), num2str(c));\nend\nxlabel('x-axis')\nylabel('y-axis')\ntitle('device coord?');\nview([0 0])\n\n% HPI coil positions (head coordinates?)\npos_h(1,:)=[-65.3, -26.1,   7.3];\npos_h(2,:)=[-41.3,  91.2,  51.4];\npos_h(3,:)=[33.9,  95.1,  48.0];\npos_h(4,:)=[36.7,  91.8,  31.9];\npos_h(5,:)=[71.6, -22.1,  13.19];\npos_h = pos_h/10;\n\n% display\nsubplot(2,2,2); \nhold on; ft_plot_sens(sens)\n\nfor c = 1:5\nhold on; plot3(pos_h(c,1), pos_h(c,2), pos_h(c,3), 'ro', 'MarkerSize', 12, 'LineWidth', 3);\nhold on; text(pos_h(c,1), pos_h(c,2), pos_h(c,3), num2str(c));\nend\nxlabel('x-axis')\nylabel('y-axis')\ntitle('head coord?');\nview([0 90])\n\n% display\nsubplot(2,2,4); \nhold on; ft_plot_sens(sens)\n\nfor c = 1:5\nhold on; plot3(pos_h(c,1), pos_h(c,2), pos_h(c,3), 'ro', 'MarkerSize', 12, 'LineWidth', 3);\nhold on; text(pos_h(c,1), pos_h(c,2), pos_h(c,3), num2str(c));\nend\nxlabel('x-axis')\nylabel('y-axis')\ntitle('head coord?');\nview([0 0])"
+      - +@isprivate: "0"
+        commentid: "10093"
+        comment_count: "37"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-16 12:00:47 +0200
+        thetext: "(In reply to comment #36)\n\nGreat! I tested everything on another file, and there are still a couple of things I'd like to slowly sort out.\n\na) The \"5 coils\", the one thats should fire at 328 Hz, indeed seems to be never active, in the sense that if we look at the 328 topography we do see a coil popping up somewhere (where the 2nd/3rd or whatever is), but the amplitude is much lower (10^-27 vs  10^-21 of the really active ones). So, to me, either the 328 frequency is fed into another coil at much lower intensity, or one of the other active coils has some spurious activity at 328 Hz.  I'm investigating it right now (namely, check whether all the coils are active), since we changed recently the acquisition console\n\nb) It's still not clear to me in which reference frame we are playing ... At least we've to cope with \"polhemus\", \"head\" and \"device\" ... So I'll try to sort them out ...\n  \nb) Still, I didn't manage to get out the \"hpi\" (namely, the two coordinate sets of the coils) info from the fiff_read() function,  instead of passing from the show_fiff utility, which is Elekta only and we would like to stick to fieldtrip/matlab as much as possible ....\n\nAnyway, there is some light at the end of the tunnel ....\n\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "10094"
+        comment_count: "38"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-16 12:34:24 +0200
+        thetext: "After having coffee with Robert and checking the MaxFilter documentation, it seems that the difference in coil positions are not simply due to a different coordinate system (device vs. head). In fact, both are right-handed Cartesian coordinate systems. The direction of x-axis is from left to right, that of y-axis to the front, and the z-axis points up. The relatively small difference between coordinate systems therefore cannot explain the large difference we observe between those coil positions.\n\nComparing again the actual MEG data (the topoplots) and the polhemus tracked positions (in agreement with what you mention: the two closely located coils are supposed to be at the front of the head), it seems as if something has gone wrong. The first \"hpi\" coordinate set is in line with the actual data, and perhaps this was an initial guess on the coil positions made by the neuromag system/software. \n\nYou correctly mentioned that one of the coils (328 hz one) has a relatively weak signal. Perhaps we should try a new recording with 5 clearly defined positions of those coils (a photograph would also help). For instance, 1 above each eye, 1 above the nose, and 1 at each mastoid (5 coils in total). What do you think?"
+      - +@isprivate: "0"
+        commentid: "10164"
+        comment_count: "39"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-19 10:09:39 +0200
+        thetext: "(In reply to comment #38)\n\nDear Arjen,\ntried to sneak in a quick measurement yesterday ...\n\n> After having coffee with Robert and checking the MaxFilter documentation, it\n\nnot too helpful, though ...\n\n> seems that the difference in coil positions are not simply due to a different\n> coordinate system (device vs. head). \n\nI just \"shot\" in the mess ... I tried to tinker with \"trans\" matrices without too much success, then I came to the same conclusion ...\n\n> In fact, both are right-handed Cartesian\n> coordinate systems. The direction of x-axis is from left to right, that of\n> y-axis to the front, and the z-axis points up. \n\n... which is the Neuromag coordinate system, with the origin set in between LPA/RPA ...\n\n> The relatively small difference\n> between coordinate systems therefore cannot explain the large difference we\n> observe between those coil positions.\n\nOk ...\n\n> Comparing again the actual MEG data (the topoplots) and the polhemus tracked\n> positions (in agreement with what you mention: the two closely located coils\n> are supposed to be at the front of the head), it seems as if something has gone\n> wrong. The first \"hpi\" coordinate set is in line with the actual data, and\n> perhaps this was an initial guess on the coil positions made by the neuromag\n> system/software. \n\nThen, if this is the case, they should be practically the same. The Acquisition software pushes you to redo the hpi measurement in the beginning until all of the fitted coils are within 5 mm from the polhemus data. This is done only once (i.e. at the beginning of the measurement, not twice like other sw/hw) and then you've the choice either to start the continuous hpi tracking, feeding in the ~300 Hz current, on going on as it is, and hoping that the subject doesn't move too much ...\n\n> You correctly mentioned that one of the coils (328 hz one) has a relatively\n> weak signal. Perhaps we should try a new recording with 5 clearly defined\n> positions of those coils (a photograph would also help). For instance, 1 above\n> each eye, 1 above the nose, and 1 at each mastoid (5 coils in total). What do\n> you think?\n\nDone. You can find all the files here, with the anonymized (;-)) version of the pictures.\n\nhttps://www.dropbox.com/sh/tnlo25g2qrduo95/JoSglN9uBf\n\nThis time I was there checking what is what. \nAs for all the measurements first we acquired the landmarks (pseudoLPA/RPA, N). Then there are the 5 localization coils, acquired in a \"right\" order, i.e. the first coil on the connector is the first coil digitized, and gets 293 Hz current (topi-checked), and so forth ...\nWe put them on according to the Elekta bible, so as high as possible to stay in the helmet, but not on the hair ...\nLooking at the topoplots we see the the coils \"fit\" the pictures. Despite all my efforts in tinkering on the console I dind't manage to energize the 5th coil with the supposed 328 Hz. So this one either picks up some noise from a nearby friend, but definitely it's not behaving as expected. This is not a problem per se: the default Elekta setup is 4 coils (the idea is 3 for a reference frame, plus a spare one if one falls apart), and since we had problems in the past with some measurements, we decided to put on another extra coil, maybe in Italy people sweats more ...\nBut again, I think if we stick to 4 coils only, we still will fit the needs of 95% of the Neuromag users.\n\nSo, I think we're not too far away ...\nPractically speaking we could:\n\n1) Do the dipoles fit only on the four \"really\" active coils from the fieldtrip side, and stick to using four coils only for our side ... when they'll come for the next maintenance I'll try to guess what's wrong with the 328Hz with them ...\n\n2) Try to find a way to suck the hpi positions (also the \"guessed\" one) from the fiff \"dir/tree\" information. Part of the relevant info (the digitized one) end up the hdr.orig structure, but some part of if is read via fiff_open and discarded, and I'm really lost in struct hierarchy that this function spits out ...\n\nBest,\nGp\n\nPS:\n\nthe hpi coils info as per /neuro/bin/util/show_fiff\n\n213 = dig. point     \thpi        1 ( -77.7, -26.3, -44.5)\n213 = dig. point     \thpi        2 ( -66.5,  58.4, -21.3)\n213 = dig. point     \thpi        3 (  18.8, 106.8,  -6.2)\n213 = dig. point     \thpi        4 (  63.8,  52.3, -24.2)\n213 = dig. point     \thpi        5 ( -80.7, -17.8, -42.5)\n213 = dig. point     \tcardinal   1 ( -74.6,  -0.0,   0.0)\n213 = dig. point     \tcardinal   2 (  -0.0, 104.9,   0.0)\n213 = dig. point     \tcardinal   3 (  72.6,   0.0,   0.0)\n213 = dig. point     \thpi        1 ( -79.1, -31.1,   4.4)\n213 = dig. point     \thpi        2 ( -67.0,  54.0,  24.9)\n213 = dig. point     \thpi        3 (  20.6, 101.8,  39.9)\n213 = dig. point     \thpi        4 (  65.6,  44.4,  22.6)\n213 = dig. point     \thpi        5 (  73.4, -30.9,  -2.3)"
+      - +@isprivate: "0"
+        commentid: "10290"
+        comment_count: "40"
+        attachid: "462"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-25 13:21:12 +0200
+        thetext: |-
+          Created attachment 462
+          neuromag coilpos test_chpi.fif
+      - +@isprivate: "0"
+        commentid: "10291"
+        comment_count: "41"
+        attachid: "463"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-25 13:21:37 +0200
+        thetext: |-
+          Created attachment 463
+          neuromag coilpos test photos
+      - +@isprivate: "0"
+        commentid: "10292"
+        comment_count: "42"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-25 13:28:34 +0200
+        thetext: |-
+          Nice work, GP. I have uploaded the results involving similar plots as for the other datasets.
+
+          It seems indeed Italians sweat at 328 Hz. I will have a go with your suggestions; dipolefitting the 4 coils (293, 307, 314, and 321 Hz), and then see whether we really need to those "guessed" positions (assuming they are).
+      - +@isprivate: "0"
+        commentid: "10293"
+        comment_count: "43"
+        attachid: "464"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-25 13:52:21 +0200
+        thetext: |-
+          Created attachment 464
+          neuromag coilpos test animation
+
+          It's preliminary, but my enthusiasm could not withhold me from sending you this. It's starting to make much more sense now. :)
+      - +@isprivate: "0"
+        commentid: "10295"
+        comment_count: "44"
+        attachid: "465"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-25 14:56:45 +0200
+        thetext: |-
+          Created attachment 465
+          neuromag coilpos test animation rigidbody constraint
+      - +@isprivate: "0"
+        commentid: "10302"
+        comment_count: "45"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-25 18:55:50 +0200
+        thetext: "Dear Arjen,\ngreat news! I think we're quite close ...\nSadly today it's our \"liberation day\", and as you can expect from the italian style, we're all on holiday and the university will be closed till Monday ;-) \nSo I don't have any chances of testing it, if the case ... But I'll do it on Monday right away ...\nRegarding the 328 Hz coil, I guess it's a problem of our system, and I'm planning to take a closer look to that issue during the next yearly maintenance round, in the summer ... I would rather go by now with four coils (which should suffice for fitting a solid object, like my head ;-)), keeping the option (like cfg.ncoils=5) to use the fifth one in the future, or for the other Neuromag labs ...\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "10305"
+        comment_count: "46"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-26 10:39:35 +0200
+        thetext: "Dear GP,\n\nThanks for your quick reply. We are getting close indeed. I'll try to work on an improved implementation today but won't be able to upload all the files to the newest FT version within two weeks. So enjoy your holidays. :) \n\nThe 328 Hz coil seems indeed a consistent problem, at least for your MEG setup. Would be nice, although not crucial for the moment, to have it working (again). Currently, the FT scripts will allow you to specify the coilfrequencies, and thus, the number of coils.\n\nKeep you posted! Yours,\nArjen"
+      - +@isprivate: "0"
+        commentid: "10308"
+        comment_count: "47"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-26 11:17:35 +0200
+        thetext: "(In reply to comment #46)\nCiao Arjen,\n\n> Thanks for your quick reply. We are getting close indeed. I'll try to work on\n> an improved implementation today but won't be able to upload all the files to\n> the newest FT version within two weeks. So enjoy your holidays. :) \n\nIf you want, and if you manage, let's try to finish it sooner ... If you've some alpha/beta version that you want me to to test send it right away via email/bugzilla, so I can give it a quick shot next week ... Probably in a couple of weeks I won't be in the lab anymore, and I'll be off for some time (days, weeks ... a baby is coming ;-) ).\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "10321"
+        comment_count: "48"
+        attachid: "470"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-26 19:33:40 +0200
+        thetext: |-
+          Created attachment 470
+          dewar vs head coordinates
+
+          % neuromag dewar vs head
+          dataset = '/home/common/matlab/fieldtrip/data/test/bug1792/20130418_test_cHPI.fif'; % cfg.coilfreq = [293, 307, 314, 321];
+          hdr = ft_read_header(dataset,'headerformat','neuromag_mne');
+
+          % sensors
+          grad_h = hdr.grad;
+          grad_d = mne2grad(hdr, 'dewar');
+
+          figure; hold on;
+          ft_plot_sens(grad_h,'style','.b');
+          hold on;
+          ft_plot_sens(grad_d,'style','.r');
+
+          % digitizer points
+          for j=1:4
+              shape_h(j,:) = hdr.orig.dig(j+3).r*100;
+          end
+          hold on;
+          % note that the headposition coils in dewar space are in hdr.orig.dir(4:7)
+          plot3(shape_h(1:4,1),shape_h(1:4,2),shape_h(1:4,3),'bo', 'MarkerSize', 12);
+
+          shape_d = ft_read_headshape(dataset,'coordinates','dewar');
+          hold on;
+          % note that the headposition coils in dewar space are in shape.pnt(1:4,:)
+          plot3(shape_d.pnt(1:4,1),shape_d.pnt(1:4,2),shape_d.pnt(1:4,3),'ro', 'MarkerSize', 12);
+      - +@isprivate: "0"
+        commentid: "10322"
+        comment_count: "49"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-26 20:07:39 +0200
+        thetext: "Some additional notes:\nSince the sensor positions in dewar space are consistent, we'll have to use dewar space coordinates for the realtime head localizer. \n\nCopied some documentation from the CTF to the neuromag page:\nhttp://fieldtrip.fcdonders.nl/getting_started/realtime_headlocalizer_neuromag\n\nBTW, congrats with your expectations of the baby! I will soon/tomorrow try to provide a zip file with the more up-to-date version (with respect to the neuromag head localizer).Hence, why the example code will not yet work."
+      - +@isprivate: "0"
+        commentid: "10326"
+        comment_count: "50"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-27 00:25:56 +0200
+        thetext: "Hi GP,\n\nCreated some pages that will hopefully successfully help users to use our neuromag head localizer. Feel free to adjust/add where needed. \n\nhttp://fieldtrip.fcdonders.nl/getting_started/realtime_headlocalizer_neuromag\n\nhttp://fieldtrip.fcdonders.nl/faq/how_can_i_visualize_the_neuromag_head_position_indicator_coils\n\nI'll work on the code a bit more, and will try to send you a working copy asap.\n\nBest,\nArjen"
+      - +@isprivate: "0"
+        commentid: "10329"
+        comment_count: "51"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-29 11:34:26 +0200
+        thetext: |-
+          Hi GP,
+
+          The coil localization seems to work offline here. I am very curious whether it works online in your lab as well!
+
+          Can you download the fieldtrip package from here? It's a temporary version that I still need to integrate with the svn/online version. But for testing purposes, let's have a go with this one.
+
+          https://github.com/StolkArjen/fieldtrip/tree/bug1792
+
+          As further outlined here:
+          http://fieldtrip.fcdonders.nl/getting_started/realtime_headlocalizer_neuromag
+
+          You'll need to run this on the acquisition pc:
+          $HOME/fieldtrip/realtime/src/acquisition/neuromag/neuromag2ft
+
+          And this on the visualization pc (can be the same pc):
+          addpath ~/fieldtrip
+          addpath ~/fieldtrip/realtime/online_meg
+          ft_defaults
+
+          cfg = [];
+          cfg.dataset = 'buffer://hostname:1972';
+          cfg.coilfreq = [293, 307, 314, 321]; % note I have dropped the 328 Hz one
+          ft_realtime_coillocalizer(cfg)
+
+          I am still working on some GUI issues involved in ft_realtime_HEADlocalizer. ft_realtime_COILlocalizer does not have a GUI and works pretty well here.
+      - +@isprivate: "0"
+        commentid: "10330"
+        comment_count: "52"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-04-29 11:51:32 +0200
+        thetext: |-
+          (In reply to comment #51)
+          Hi Arjen,
+
+          > The coil localization seems to work offline here. I am very curious whether it
+          > works online in your lab as well!
+
+          I'm slowly downloading it right now ... I think I'll manage to test it tomorrow ...
+
+          > Can you download the fieldtrip package from here? It's a temporary version that
+          > I still need to integrate with the svn/online version. But for testing
+          > purposes, let's have a go with this one.
+
+          I tried to test with my standard ft version, and I got stuck already at a wrong mne2grad version, so I gave up ...
+
+          > You'll need to run this on the acquisition pc:
+          > $HOME/fieldtrip/realtime/src/acquisition/neuromag/neuromag2ft
+
+          Yep ... indeed, before doing BCI stuff last year, I tried to test it with the CTF headlocalizer right away ... obiouvsly it didn't work, but sparkled the original idea to adapt it to the Elekta machines as well ...
+          I'll add some comment on the wiki ASAP, namely that there are different versions of this function in the bin folder (HP-UX and linux), and depending on which people should get only one binary ...
+
+          > I am still working on some GUI issues involved in ft_realtime_HEADlocalizer.
+          >ft_realtime_COILlocalizer does not have a GUI and works pretty well here.
+
+          I'll come back as soon as I've tested it ...
+          Ciao,
+          GP
+      - +@isprivate: "0"
+        commentid: "10331"
+        comment_count: "53"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-04-29 12:06:00 +0200
+        thetext: Ok, thanks! Keeping my fingers crossed. :)
+      - +@isprivate: "0"
+        commentid: "10833"
+        comment_count: "54"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-28 12:43:07 +0200
+        thetext: |-
+          I merged the changes related to bug 1114, 2209, 1961 and 1792 into the svn
+          repository
+
+          see http://code.google.com/p/fieldtrip/source/detail?r=8285
+
+          for bug 1792 this does not mean that all issues are resolved, the merge of the code is merely to clean up my git todo list for the holiday.
+      - +@isprivate: "0"
+        commentid: "10867"
+        comment_count: "55"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-07-02 12:29:00 +0200
+        thetext: "(In reply to comment #53)\n\nOk, slowly back from my father leisure time ...\n\nThe main problem I had to run the realtime/buffer pipeline was due to a silly firewall that Elekta decided to introduce in the new Linux console wrt the old Unix one.\nNow, opening the relevant ports, this part seems to work fine, in the sense that finally I can both run sine2ft on the acquisition console and strem to a bufferViewer* anywhere else in the network, and if I start the neuromag2ft server I can finally see all my data coming with ft_realtime_signalviewer in Matlab ... It took some time, but now I'm back to where I was one and a half a year ago, finally ;-)\n\nSo, this works flawlessly:\n\ncfg = [];\ncfg.dataset = 'buffer://192.168.185.142:1972';\nft_realtime_signalviewer(cfg)\n\nobviously dominated by the triggers channels\n\nbut choosing some magnetometers, \n\ncfg.channel = [1:3:10]\nft_realtime_signalviewer(cfg)\n\nshows me very well the cars passing by ...\n\nBUT, running\n\ncfg = [];\ncfg.dataset = 'buffer://192.168.185.142:1972';\ncfg.coilfreq = [293, 307, 314, 321]; % note I have dropped the 328 Hz one\nft_realtime_coillocalizer(cfg)\n\nmiserably fails with the following error:\n\nReference to non-existent field 'grad'.\n\nError in ft_realtime_coillocalizer (line 134)\n[vol, sens] = ft_prepare_vol_sens([], hdr.grad, 'channel', cfg.channel);\n \nSo, the grad info is lost in the buffer transfer, since \n\nhdr = ft_read_header(cfg.dataset)\n\nhdr = \n\n             Fs: 1000\n         nChans: 319\n       nSamples: 574000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n          label: {319x1 cell}\n       chantype: {319x1 cell}\n       chanunit: {319x1 cell}\n\n\nhas clearly no grad structure left over ...\n\nYou (Arjen) solved it for a local fiff file using \n\nhdr = ft_read_header(cfg.dataset,'headerformat','neuromag_mne');\n\nwhich takes care, with mne2grad, of the grad story ... Sadly fiff_open doesn't know how to handle the buffer itself ...\n\nhdr = ft_read_header(cfg.dataset,'headerformat','neuromag_mne');\nError using fiff_open (line 49)\nCannot open file buffer://192.168.185.142:1972\n\nError in fiff_read_meas_info (line 82)\n    [ fid, tree ] = fiff_open(source);\n\nError in ft_read_header (line 1249)\n    orig = fiff_read_meas_info(filename);\n \nAs an additional info, I tried both using the fieldtrip-bug1792 version you provided, and the current one git-fetched right now. Matlab is the newest 2013a, no other problems with that so far ...\nSo, how to \"carry over\" the grad info in the buffer?! Is neuromag2ft.c that should take of it? \nThanks in advance for any hint ...\nBest,\nGP\n\n* For the binaries in the bin folder ... The newest Elekta console seems to be \"too new\" / \"too old\" / \"too different\" and the binaries provided with fieldtrip \"miss\" some *.so libraries. But after installing some -devel libraries, the make runs smooth, and you end up with all the needed libs/bins .."
+      - +@isprivate: "0"
+        commentid: "10868"
+        comment_count: "56"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-02 12:40:17 +0200
+        thetext: |-
+          Hi GP, congrats again and nice to hear from you again.
+
+          "cfg = [];
+          cfg.dataset = 'buffer://192.168.185.142:1972';
+          ft_realtime_signalviewer(cfg)"
+
+          Great to see this low level mechanism now works!
+
+          "cfg = [];
+          cfg.dataset = 'buffer://192.168.185.142:1972';
+          cfg.coilfreq = [293, 307, 314, 321]; % note I have dropped the 328 Hz one
+          ft_realtime_coillocalizer(cfg)
+
+          Reference to non-existent field 'grad'.
+          Error in ft_realtime_coillocalizer (line 134)
+          [vol, sens] = ft_prepare_vol_sens([], hdr.grad, 'channel', cfg.channel);"
+
+          I remember we have had and fixed the same online issue with acq2ft, ctf version of neuromag2ft. Most likely we haven't implemented the same fix for neuromag2ft.c yet: I will see whether we can fix this. Keep you posted.
+      - +@isprivate: "0"
+        commentid: "10948"
+        comment_count: "57"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-29 16:39:22 +0200
+        thetext: |-
+          Hi GP,
+
+          I have finally incorporated all the neuromag head localizer material into the latest version of FT. The online access to the grad info is still not implement, but I have created a workaround for the moment ('cfg.gradfile'). Could you try the following?
+
+          cfg = [];
+          cfg.dataset = 'buffer://hostname:1972';
+          cfg.coilfreq = [293, 307, 314, 321]; % note I have dropped the 328 Hz one
+          cfg.gradfile = XXX.fif; % point to an already existing dataset for grad field
+          ft_realtime_coillocalizer(cfg)
+
+          Yours,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "10949"
+        comment_count: "58"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-29 16:55:54 +0200
+        thetext: |-
+          (In reply to comment #57)
+
+          Oops, not coillocalizer, but headlocalizer:
+
+          cfg = [];
+          cfg.dataset = 'buffer://hostname:1972';
+          cfg.coilfreq = [293, 307, 314, 321]; % note I have dropped the 328 Hz one
+          cfg.gradfile = XXX.fif; % point to an already existing dataset for grad field
+          ft_realtime_headlocalizer(cfg)
+      - +@isprivate: "0"
+        commentid: "10951"
+        comment_count: "59"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-07-30 12:25:06 +0200
+        thetext: "(In reply to comment #58)\n\nDear Arjen,\nI tested both the \"svn\" and the \"git\" version, just to be sure that I'm on the latest version, and in both cases (checked manually that they both contain you cfg.grad hack commit) it simply doesn't work ... :-(\n\nThe error is the usual one, i.e.\n\nReference to non-existent field 'grad'.\n\nError in ft_realtime_headlocalizer (line 74)\nisneuromag = ft_senstype(hdr.grad, 'neuromag');\n\nand the problem is that ft_senstype kicks in to check the hdr.grad *before* you create it later with \n\nif isfield(cfg,'gradfile');\n   temp = ft_read_header(cfg.gradfile, 'coordsys', 'dewar');\n   hdr.grad = temp.grad;\nend \n\nat line 145.\n\nI tried to move this hack before the ft_senstype, i.e. to line 74, and this part is solved, but then you get another error:\n\n\nError using ft_read_header (line 187)\ndewar coordinates are sofar only supported for CTF data\n\nError in ft_realtime_headlocalizer (line 75)\n   temp = ft_read_header(cfg.gradfile, 'coordsys', 'dewar');\n\n\nso, I think this is something else to fix, in the ft_read_header this time ... and I don't want to spoil also that :-( !\n\nCiao,\nGP"
+      - +@isprivate: "0"
+        commentid: "10955"
+        comment_count: "60"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-30 12:55:33 +0200
+        thetext: |-
+          Hi GP,
+
+          Thanks for testing this out. You're right that I had overlooked that ft_senstype was also trying to parse hdr.grad, so I have moved the cfg.gradfile lines upstream, like you did.
+
+          I see ft_read_header with coordsys 'dewar' is forced to cause an error by ft_read_header:
+
+          % the support for head/dewar coordinates is still limited
+          if strcmp(coordsys, 'dewar') && ~any(strcmp(headerformat, {'fcdc_buffer', 'ctf_ds', 'ctf_meg4', 'ctf_res4', 'neuromag_fif', 'neuromag_mne', 'babysquid_fif'}))
+            error('dewar coordinates are not supported for %s', headerformat);
+          end
+
+
+          I wonder why. Keep you posted.
+      - +@isprivate: "0"
+        commentid: "10956"
+        comment_count: "61"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-30 13:00:07 +0200
+        thetext: Btw, I wonder whether you are using the most current version when that ft_read_header is thrown. Reading the error specification again; it is only to given an error when the user wants dewar coordinates for systems other than ctf and neuromag. So I am guessing it should work when you having moved up that cfg.gradfile code?
+      - +@isprivate: "0"
+        commentid: "10957"
+        comment_count: "62"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-30 13:11:05 +0200
+        thetext: |-
+          Hi guys,
+
+          is it an idea to install teamviewer on the computer that will do the realtime analysis and have Arjen look along (and control the keyboard and mouse)? You could also install teamviewer on a windows computer and then use a vncserver+vncviewer to connect to a linux computer. Arjen then would be controling the linux computer through the vncviewer.
+
+          And then have skype running simultaneously, so that you can work on it together.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "10958"
+        comment_count: "63"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-07-30 13:17:01 +0200
+        thetext: That'd be great weren't that there's currently one month left for my thesis. I think we're quite close now though to get this thing running at least.
+      - +@isprivate: "0"
+        commentid: "10970"
+        comment_count: "64"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-30 16:03:41 +0200
+        thetext: |-
+          (In reply to comment #63)
+
+          Precisely: since you only have 1 month left, I suggest you quickly look over  Gianpaolo's shoulder rather than continue to spend time on emailing back and forth.
+
+          With teamviewer it ain't more difficult than inhouse at the donders with vnc.
+      - +@isprivate: "0"
+        commentid: "11001"
+        comment_count: "65"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-02 11:45:48 +0200
+        thetext: "Let me move the discussion back from the email thread to bugzilla for future reference and to keep everyone posted.\n\n\nOn 2 Aug 2013, at 10:54, Demarchi, Gianpaolo wrote:\n\n> In principle I can turn the MEG on, without the SQUID part, just to see\n> if we can record and stream something, but without the \"magnetic\" \n> measurement of the coils positions is a tad pointless … sorry :-(\n\nIf this were to work, i.e. if the software does not fail with warm squids, it would be very helpful to test the fif chunck (which is to be passed from neuromag2ft to the buffer).\n\nI could go ahead and make some changes to neuromag2ft.c to the process_tag.c file), you would recompile and run it, a (debug) file is created on disk which we could analyze, and then we'd know whether it would work as we presently assume. Subsequently we could implement the final version with the fif_chunck in the buffer."
+      - +@isprivate: "0"
+        commentid: "11002"
+        comment_count: "66"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-08-02 11:57:38 +0200
+        thetext: "(In reply to comment #65)\n\n>Let me move the discussion back from the email thread to bugzilla for future\n> reference and to keep everyone posted.\n\nSorry, my fault ... I'm too lazy to login and use the web interface, emailing is faster ...\n\n> On 2 Aug 2013, at 10:54, Demarchi, Gianpaolo wrote:\n\n>> In principle I can turn the MEG on, without the SQUID part, just to see\n>> if we can record and stream something, but without the \"magnetic\" \n>> measurement of the coils positions is a tad pointless … sorry :-(\n\n> If this were to work, i.e. if the software does not fail with warm squids, it\n> would be very helpful to test the fif chunck (which is to be passed from\n> neuromag2ft to the buffer).\n\nThis was the idea ... I'll test this on Monday now, but if I keep the preamp off, and if I do the acquisition without any MEG/EEG channel, only with some technical tracks, it *could* be that the \"fif\" header and data file is correctly created and sent to the shared memory, so the neuromag2ft can suck it ... \nAgain, this is a guesstimate, no grants, but in principle I don't see why it should fail ;-)\n\n> I could go ahead and make some changes to neuromag2ft.c to the process_tag.c\n> file), you would recompile and run it, \n\nyes ...\n\n> a (debug) file is created on disk which\n> we could analyze, and then we'd know whether it would work as we presently\n> assume.\n\nyes ...\n\n>  Subsequently we could implement the final version with the fif_chunck\n> in the buffer.\n\nOk, I'll keep you posted asap I know whether those dirty tricks work or not ...\nCiao,\nGP"
+      - +@isprivate: "0"
+        commentid: "11003"
+        comment_count: "67"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-02 12:15:18 +0200
+        thetext: |-
+          (In reply to comment #66)
+
+          I made some small code cleanups.
+
+          mac001> svn commit *.c *.h
+          Sending        neuromag2ft.c
+          Sending        process_data.c
+          Sending        process_tag.c
+          Transmitting file data ...
+          Committed revision 8372.
+      - +@isprivate: "0"
+        commentid: "11004"
+        comment_count: "68"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-02 12:52:31 +0200
+        thetext: "(In reply to comment #66)\n\nI now also added a piece of code that opens the file \"neuromag2ft.fif\" in the present working directory and streams all relevant blocks to it. If you are able to recompile and create the file, we could have a look at its content. \n\nHopefully it can be read with the MNE reading functions that underly ft_read_header. If so, then we can use the same strategy that we use for the res4 CTF header file (i.e. copy the file to the buffer as chunk, write it to disk on the other end, decipher it using the standard reading functions).\n\nmac001> svn commit process_tag.c \nSending        process_tag.c\nTransmitting file data .\nCommitted revision 8373."
+      - +@isprivate: "0"
+        commentid: "11016"
+        comment_count: "69"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-08-05 10:13:40 +0200
+        thetext: "(In reply to comment #68)\n\nDear all,\nsadly the trick didn't work ... despite I only try to acquire non MEG channels, the thing wants to setup the HPI measurement anyway, which fails since there are no real MEG channels, because the \"powering\" part of the SQUIDs is off ...\n\nsetu ... 412-Perhaps no connection to MEG front-end electronics: Failed to close HPI coil switches: Janitor-MEG: \nCommand 'set hpi coil5 1' causes: Failed: Board in slot 249 is not present or initialized\n\nI've seen the relevant piece of code in the process_tag.c, and managed to compile the new neuromag2ft flawlessly, and runs also fine ...\n\nneuromag2ft (130805 09:50:42) About to connect to the Neuromag DACQ shared memory on this workstation (client ID \n14013)...\nneuromag2ft (130805 09:50:42) Connection ok\nneuromag2ft (130805 09:50:42) Current buffer length value = 1500\nneuromag2ft (130805 09:50:42) FieldTrip buffer server thread started (TID 1087502656)\nneuromag2ft (130805 09:50:42) Will scale up MEG mags by 1, grads by 1 and EEG data by 1\nneuromag2ft (130805 09:50:42) Waiting for the measurement to start... Press Ctrl-C to terminate this program\n\nSadly there's nobody feeding in data on the other side of the buffer :-(\nAnyway, I'll resurrect the thread as soon as I've the MEG back to business, i.e. less than one month ...\nThanks again!\nBest,\nGianpaolo"
+      - +@isprivate: "0"
+        commentid: "11249"
+        comment_count: "70"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2013-09-05 14:29:38 +0200
+        thetext: |-
+          Dear all,
+
+          We just recorded out first human at NatMEG - the new MEG lab at Karolinska, Stockholm. Making online head localization via FT possible is on our priority list. Please let me know if I can help in any way.
+
+          Best wishes,
+          Stephen
+      - +@isprivate: "0"
+        commentid: "11253"
+        comment_count: "71"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-09-05 15:01:18 +0200
+        thetext: |-
+          great, have a look at this page to get yourself set-up. :)
+
+          http://fieldtrip.fcdonders.nl/getting_started/realtime_headlocalizer
+
+          (btw, it seems this page it not linked anymore from the getting started page?)
+      - +@isprivate: "0"
+        commentid: "11287"
+        comment_count: "72"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-09-10 12:59:30 +0200
+        thetext: "(In reply to comment #68)\n\nHi all,\nfinally we're back to business after the MEG maintenance.\nI tried briefly the new hack, without much success ...\n\n[meg@sinuhe x86_64-pc-linux-gnu]$ ./neuromag2ft\nneuromag2ft (130910 12:15:05) About to connect to the Neuromag DACQ shared memory on this workstation (client ID 14013)...\nneuromag2ft (130910 12:15:05) Connection ok\nneuromag2ft (130910 12:15:05) Current buffer length value = 1500\nneuromag2ft (130910 12:15:05) FieldTrip buffer server thread started (TID 1101257024)\nneuromag2ft (130910 12:15:05) Will scale up MEG mags by 1, grads by 1 and EEG data by 1\nneuromag2ft (130910 12:15:05) Waiting for the measurement to start... Press Ctrl-C to terminate this program\nneuromag2ft (130910 12:15:17) Opened file /neuro/dacq/raw/dacqZNSSUp.\nneuromag2ft.fif: No such file or directory\nneuromag2ft.fif: No such file or directory\nneuromag2ft (130910 12:15:17) New measurement is starting...\nneuromag2ft.fif: No such file or directory\nneuromag2ft.fif: No such file or directory\nneuromag2ft.fif: No such file or directory\n....\n(a lot of these lines )\n....\nneuromag2ft.fif: No such file or directory\nneuromag2ft (130910 12:15:17) Data buffers coming soon...\nneuromag2ft (130910 12:15:17) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (130910 12:15:17) Header sent to the FieldTrip buffer\nneuromag2ft.fif: No such file or directory\nneuromag2ft.fif: No such file or directory\nneuromag2ft (130910 12:15:56) Measurement ended (36 buffers).\nneuromag2ft (130910 12:15:56) File closed (FIFF_CLOSE_FILE).\nneuromag2ft.fif: No such file or directory\nneuromag2ft (130910 12:15:56) File closed.\nneuromag2ft (130910 12:16:04) Terminated by the user\nneuromag2ft (130910 12:16:04) About to disconnect from Neuromag data server...\nneuromag2ft (130910 12:16:04) Connection closed.\nneuromag2ft (130910 12:16:04) Neuromag data server: Disconnected\nneuromag2ft (130910 12:16:04) About to disconnect from / terminate the FieldTrip buffer\nneuromag2ft (130910 12:16:04) FieldTrip buffer thread cancelled\nneuromag2ft (130910 12:16:04) Exiting\n\n\nSo, for some reason, it cannot create the neuromag2ft.fif file. \nI even tried to 'touch neuromag2ft.fif' and see whether it was filled by the neuromag2ft, but the filesize was  always zero, during streaming and after quitting the program.\nThe data streaming, on the other hand, still works ... ft_signalviewer was showing me some data on another machine ...\nAnd yes, I tried both with the August version of neuromag2ft, then I did a svn update, and recompiled everything, and the same result happens with the version of today.\nAnd yes, I tried both as meg user, and root, just in case of wrong permissions in the directory ...\n\nAny further hint and piece of code to test is more than welcome ... If needed in the next days I can setup a teamviewer session, and you can control my own laptop  and fight ...\n\nTo Stephen: try to setup the online streaming part, and when this is done, I don't think that Elekta bothered changing the fiff specs with the new Triux machine, and the rest should work the same as with my Vectorview machine (or at least I hope ;-))\n\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "11288"
+        comment_count: "73"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-10 13:13:09 +0200
+        thetext: "(In reply to comment #72)\n\n\naround line 197 in process_tag.c there is \n      perror(\"neuromag2ft.fif\");\nwhich is the cause for the errors. It means that the file to which I am trying to write the incoming header information was not opened.  \n\nCould you change line 191 from \n    ft_chunck_neuromag_fif = fopen(\"neuromag2ft.fif\", \"rb\");\ninto\n    ft_chunck_neuromag_fif = fopen(\"/tmp/neuromag2ft.fif\", \"rb\");\n\nThat should be a location the program is allowed to write. Or add another explicit path location where you know it should work."
+      - +@isprivate: "0"
+        commentid: "11297"
+        comment_count: "74"
+        attachid: "514"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-09-11 13:11:21 +0200
+        thetext: |-
+          Created attachment 514
+          neuromag2ft.fif example
+      - +@isprivate: "0"
+        commentid: "11298"
+        comment_count: "75"
+        attachid: "515"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-09-11 13:13:05 +0200
+        thetext: |-
+          Created attachment 515
+          neuromag2ft.fif old
+      - +@isprivate: "0"
+        commentid: "11299"
+        comment_count: "76"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-09-11 13:13:36 +0200
+        thetext: |-
+          (In reply to comment #73)
+
+          Here we go ...
+          I initially only changed the place where the data live, but in the the main problem, according to my rusty c programming, was that the file should be opened for writing and not for reading ...
+
+          So I changed the line
+
+          ft_chunck_neuromag_fif = fopen("neuromag2ft.fif", "rb");
+
+          to
+
+          ft_chunck_neuromag_fif = fopen("neuromag2ft.fif", "w+b");
+
+          This created finally a file, which doesn't look to be a genuine fiff file, i.e.
+
+          [meg@sinuhe x86_64-pc-linux-gnu]$ /opt/neuromag/bin/util/show_fiff neuromag2ft.fif
+
+          File neuromag2ft.fif does not start properly!
+
+          But if you just cat/more/less it, you see there's MEG stuff in .. probably is not properly closed at the end when I do ctrl-c.
+          Eyeballing, it looks like the data stream is not properly terminated and/or not containing any data (from the small size), and the fiff info tree not built ...
+
+          Anyway, this is the log, w signalviewer working properly on another computer:
+
+          [meg@sinuhe x86_64-pc-linux-gnu]$ ./neuromag2ft
+          neuromag2ft (130911 12:42:02) About to connect to the Neuromag DACQ shared memory on this workstation (client ID 14013)...
+          neuromag2ft (130911 12:42:02) Connection ok
+          neuromag2ft (130911 12:42:02) Current buffer length value = 1500
+          neuromag2ft (130911 12:42:02) FieldTrip buffer server thread started (TID 1111767360)
+          neuromag2ft (130911 12:42:02) Will scale up MEG mags by 1, grads by 1 and EEG data by 1
+          neuromag2ft (130911 12:42:02) Waiting for the measurement to start... Press Ctrl-C to terminate this program
+          neuromag2ft (130911 12:42:12) Opened file /neuro/dacq/raw/dacqSDBAKK.
+          neuromag2ft (130911 12:42:12) New measurement is starting...
+          neuromag2ft (130911 12:42:12) Data buffers coming soon...
+          neuromag2ft (130911 12:42:12) Creating a header: 309 channels, sampling rate 1000 Hz
+          neuromag2ft (130911 12:42:12) Header sent to the FieldTrip buffer
+          neuromag2ft (130911 12:43:48) Terminated by the user
+          neuromag2ft (130911 12:43:48) About to disconnect from Neuromag data server...
+          neuromag2ft (130911 12:43:48) Connection closed.
+          neuromag2ft (130911 12:43:48) Neuromag data server: Disconnected
+          neuromag2ft (130911 12:43:48) About to disconnect from / terminate the FieldTrip buffer
+          neuromag2ft (130911 12:43:48) FieldTrip buffer thread cancelled
+          neuromag2ft (130911 12:43:48) Exiting
+
+          My C is too old now, but it seems as if it never reaches this part in the process_tag.c
+
+              case FIFF_CLOSE_FILE :
+                dacq_log("File closed.\n");
+                break;
+
+          since I cannot find this line never in the log ...
+
+          EDIT: Never mind, I was wrong, if I save the acquired file instead of discarding it, I get the proper
+
+          neuromag2ft (130911 12:49:54) Measurement ended (25 buffers).
+          neuromag2ft (130911 12:49:54) File closed (FIFF_CLOSE_FILE).
+          neuromag2ft (130911 12:49:54) File closed.
+
+          but the file is still tiny and not fiff-compliant ...
+
+          BTW, I also get a 'segment fault' once in a while ... I should redscorver I do debug c stuff :-)
+
+          File(s) attached anyway ...
+          G.
+      - +@isprivate: "0"
+        commentid: "11328"
+        comment_count: "77"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-09-17 10:59:37 +0200
+        thetext: |-
+          Hi GP & Stephen,
+
+          Ideally, that file is readable by "fiff_read_meas_info" (/external/mne) which is called by ft_read_header. Can you try reading it with either one of those functions? Alternatively, please have a go at the file with a snippet of code Robert created (see below). What we want, is header information regarding the digitized head coil position indicators and gradiometers.
+
+          Yours,
+          Arjen
+
+
+
+          function decode_fiff(filename)
+
+          fid = fopen(filename, 'rb', 'ieee-be');
+          while ~feof(fid)
+            kind = fread(fid, 1, 'int32=>int32');
+            type = fread(fid, 1, 'int32=>int32');
+            size = fread(fid, 1, 'int32=>int32');
+            next = fread(fid, 1, 'int32=>int32');
+            if next<0
+              break
+            end
+            data = fread(fid, size, 'uint8=>uint8');
+            disp([kind type size next]);
+          end
+
+          fclose(fid)
+      - +@isprivate: "0"
+        commentid: "11329"
+        comment_count: "78"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-09-17 12:53:39 +0200
+        thetext: "(In reply to comment #77)\n\nDr. Stolk, welcome back!\n\nHere we go ...\nAs expected  'fiff_read_meas_info' doesn't like the badly formatted fiff file I'm trying to inject (as much as Elekta's own show_fiff):\n\n>> fileName='neuromag2ft.fif'\n\nfileName =\n\nneuromag2ft.fif\n\n>> fiff_read_meas_info(fileName)\nError using fiff_open (line 56)\nfile does not start with a file id tag\n\nError in fiff_read_meas_info (line 82)\n    [ fid, tree ] = fiff_open(source);\n \n\n\nThe snipplets you sent 'works', being somehow more low level:\n\n>> decode_fiff(fileName)\n    16777216   167772160   436207616           0\n\n\nans =\n\n     0\n\nbut I cannot judge how sense it makes :-(\n\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "11330"
+        comment_count: "79"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-17 12:55:07 +0200
+        thetext: |-
+          (In reply to comment #78)
+
+          regarding
+
+          >> fiff_read_meas_info(fileName)
+          Error using fiff_open (line 56)
+          file does not start with a file id tag
+
+          it might be possible to prepend a file-id tag.
+      - +@isprivate: "0"
+        commentid: "11395"
+        comment_count: "80"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-09-24 11:43:35 +0200
+        thetext: "(In reply to comment #78)\n\nThanks, GP, but unfortunately I'm still occupied for another short period. \n\nQuickly debugging from what you wrote, it seems that information is being chunked by neuromag2ft (as desired, hopefully containing relevant information). However, it also seems 'fiff_read_meas_info' needs more than that chunk alone to read the file correctly. \n\nCould you try and compare a real fiff file with the one created by neuromag2ft (using that decoding mscript) and see if anything's missing (perhaps that file id-tag?)? Robert pointed me to a list of definitions of the objects in a fiff file that may come in handy: e.g. those library files (fiff_types.h, etc) in \n\nfieldtrip/realtime/src/acquisition/neuromag/include\n\nYours,\narjen"
+      - +@isprivate: "0"
+        commentid: "11506"
+        comment_count: "81"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-04 16:57:03 +0200
+        thetext: |-
+          With the thesis just handed in today, I had a quick look and compared neuromag datasets on basis of their structure with our neuromag2ft chunk. It seems indeed a file-id tag is missing ([100 31 20 0] to be precise). I will have a look whether adding one does the trick for us. Keep you posted.
+          Arjen
+      - +@isprivate: "0"
+        commentid: "11616"
+        comment_count: "82"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-22 09:41:30 +0200
+        thetext: "Arjen has made a lot of progress over the last few days.\n\nI have just added the basic infrastructure to the ft_read_header function, which will allow the processing of the neuromag_fif chunk when present. Please note that the actual fif chunk still needs to be added to the fieldtrip buffer and to the neuromag2ft executable. \n\nmac001> svn commit \nSending        fileio/ft_read_header.m\nAdding         fileio/private/decode_fif.m\nSending        fileio/private/decode_nifti1.m\nSending        fileio/private/decode_res4.m\nTransmitting file data ....\nCommitted revision 8618."
+      - +@isprivate: "0"
+        commentid: "11617"
+        comment_count: "83"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-22 10:25:49 +0200
+        thetext: "I have made changes to the buffer source, defining the neuromag_fif buffer (with fixed code 8) and implementing it the same as for the ctf case.\n\nI also updated teh neuromag2ft code:\n\nmac001> svn commit process_tag.c \nSending        process_tag.c\nTransmitting file data .\nCommitted revision 8621.\n \nIt now writes the two additional tags. to the (temporary) fif file. The fif headerfile is not yet copied to the fieldtrip buffer.\n\nI suggest compiling and testing it once more on a real neuromag MEG system before we move on and write the fif headerfile content to the buffer."
+      - +@isprivate: "0"
+        commentid: "11618"
+        comment_count: "84"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-22 11:24:24 +0200
+        thetext: "(In reply to comment #83)\n\nHi, quickly ...\n\n[meg@sinuhe neuromag]$ make\ngcc -g -Wall -I ../../buffer/src -I ./include -I ./include/dacq_rel5up  -c neuromag2ft.c process_data.c process_tag.c \nprocess_tag.c: In function ‘send_header_to_FT’:\nprocess_tag.c:120: warning: assignment makes pointer from integer without a cast\nprocess_tag.c: In function ‘process_tag’:\nprocess_tag.c:191: error: expected expression before ‘<<’ token\nprocess_tag.c:349: error: expected declaration or statement at end of input\nprocess_tag.c:189: warning: unused variable ‘buf’\nprocess_tag.c:188: warning: unused variable ‘ch’\nprocess_tag.c:187: warning: unused variable ‘c’\nprocess_tag.c:186: warning: unused variable ‘block_kind’\nprocess_tag.c:349: warning: control reaches end of non-void function\nmake: *** [neuromag2ft.o] Error 1\n\nI tried to take a look at the code, but my 'C' karma is too rusty to spot a non obvious error probably ...\nIf you wish we can continue debugging off the list, and come back later when those small things are sorted ...\n\nGP\n\nPS: and  yes, I've the latest revision \n\n[meg@sinuhe fieldtrip]$ svn update\nAt revision 8621."
+      - +@isprivate: "0"
+        commentid: "11620"
+        comment_count: "85"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-22 11:59:25 +0200
+        thetext: |-
+          (In reply to comment #84)
+
+          I hope I fixed them just now. It now compiles on my linux computer (sorry, I should have tested before).
+      - +@isprivate: "0"
+        commentid: "11623"
+        comment_count: "86"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-22 14:51:49 +0200
+        thetext: |-
+          (In reply to comment #85)
+
+          Now it compiles ...
+
+          Still, neuromag2ft.fif looks "incomplete" to ft_read_header.m/fiff_read_meas_info and friends, but I didn't get fully whether this was meant to work or not ....
+
+          G.
+      - +@isprivate: "0"
+        commentid: "11624"
+        comment_count: "87"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-22 15:06:44 +0200
+        thetext: |-
+          (In reply to comment #86)
+
+          Hey GP, do you have that new neuromag2ft.fif file for me? I'll check whether it is what we expected.
+      - +@isprivate: "0"
+        commentid: "11625"
+        comment_count: "88"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-22 15:18:54 +0200
+        thetext: |-
+          (In reply to comment #87)
+          Yes,
+          sorry ... I made different versions (different opening/closing of the ACQ software), but from the size they're the same, so I'll upload only few of them ...
+          GP
+      - +@isprivate: "0"
+        commentid: "11626"
+        comment_count: "89"
+        attachid: "533"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-22 15:19:45 +0200
+        thetext: |-
+          Created attachment 533
+          neuromag2ft.fif again
+      - +@isprivate: "0"
+        commentid: "11627"
+        comment_count: "90"
+        attachid: "534"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-22 15:20:47 +0200
+        thetext: |-
+          Created attachment 534
+          neuromag2ft.fif - just different order of opening/closing
+      - +@isprivate: "0"
+        commentid: "11632"
+        comment_count: "91"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-22 23:09:17 +0200
+        thetext: "(In reply to comment #90)\n\nGreat, thanks. Quick attempt: It seems we're able to readily process this chunk using existing mne toolbox code (and a slightly modified fiff_open - little endian). I'll have a go at proceed with further tests/steps tomorrow.  \n\n\naddpath /home/action/arjsto/fieldtrip-svn/external/mne\ncd /home/action/arjsto/fieldtrip-svn/fileio/private\n\n[fid, tree] = fiff_open_le('/home/action/arjsto/Headloc/neuromag2ft.fif');\n\norig = fiff_read_meas_info(fid, tree)\n    Read a total of 8 projection items:\n        grad3v_alustava.fif : PCA-v1 (1 x 306) idle\n        grad3v_alustava.fif : PCA-v2 (1 x 306) idle\n        grad3v_alustava.fif : PCA-v3 (1 x 306) idle\n        mag5v_alustava.fif : PCA-v1 (1 x 306) idle\n        mag5v_alustava.fif : PCA-v2 (1 x 306) idle\n        mag5v_alustava.fif : PCA-v3 (1 x 306) idle\n        mag5v_alustava.fif : PCA-v4 (1 x 306) idle\n        mag5v_alustava.fif : PCA-v5 (1 x 306) idle\n\norig =\n\n       file_id: [1x1 struct]\n       meas_id: [1x1 struct]\n     meas_date: [2x1 int32]\n         nchan: 309\n         sfreq: 1000\n      highpass: 0.1000\n       lowpass: 330\n           chs: [1x309 struct]\n      ch_names: {1x309 cell}\n    dev_head_t: []\n    ctf_head_t: []\n     dev_ctf_t: []\n           dig: [0x0 struct]\n          bads: []\n         projs: [1x8 struct]\n         comps: [0x0 struct]\n      acq_pars: []\n      acq_stim: []"
+      - +@isprivate: "0"
+        commentid: "11641"
+        comment_count: "92"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-23 12:22:23 +0200
+        thetext: |-
+          (In reply to comment #91)
+          Great news!
+          Looks really that all the info is in place (apart from obvious stuff missing, since it was a empty room without coils etc ...).
+          Tell me when you're ready for prime time, that I give a shot with all the things in, including a brain ;-)
+          Best,
+          GP
+      - +@isprivate: "0"
+        commentid: "11653"
+        comment_count: "93"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-23 17:28:19 +0200
+        thetext: |-
+          I added the neuromag fif headerfile chunk to the realtime data stream, recompiled on linux.
+
+          lets keep our thumbs crossed and hope it now all comes together!
+
+          roboos@mentat001> svn commit
+          Sending        neuromag/bin/x86_64-pc-linux-gnu/neuromag2ft
+          Sending        neuromag/process_tag.c
+          Transmitting file data ..
+          Committed revision 8629.
+      - +@isprivate: "0"
+        commentid: "11658"
+        comment_count: "94"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-23 21:24:29 +0200
+        thetext: |-
+          (In reply to comment #93)
+          Great! Almost there. We'll probably face another set of small bugs, but let's have a try at it, GP. :D
+      - +@isprivate: "0"
+        commentid: "11660"
+        comment_count: "95"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-24 11:27:45 +0200
+        thetext: "(In reply to comment #93)\n\nAlmost there ... I think ...\n\nFirstly, I assume your linux is different than the dacq machine, since:\n\n[meg@sinuhe x86_64-pc-linux-gnu]$ ./neuromag2ft \n./neuromag2ft: /lib64/libc.so.6: version `GLIBC_2.7' not found (required by ./neuromag2ft)\n\nso I recompiled it ... no problem.\n\nThen, running the thing:\n\n[meg@sinuhe x86_64-pc-linux-gnu]$ ./neuromag2ft \nneuromag2ft (131024 09:54:21) About to connect to the Neuromag DACQ shared memory on this workstation (client ID 14013)...\nneuromag2ft (131024 09:54:21) Connection ok\nneuromag2ft (131024 09:54:21) Current buffer length value = 1500\nneuromag2ft (131024 09:54:21) FieldTrip buffer server thread started (TID 1100998976)\nneuromag2ft (131024 09:54:21) Will scale up MEG mags by 1, grads by 1 and EEG data by 1\nneuromag2ft (131024 09:54:21) Waiting for the measurement to start... Press Ctrl-C to terminate this program\nneuromag2ft (131024 09:54:42) Opened file /neuro/dacq/raw/dacqOJHMpk.\nneuromag2ft (131024 09:54:42) New measurement is starting...\nneuromag2ft (131024 09:54:42) Data buffers coming soon...\nneuromag2ft (131024 09:54:42) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (131024 09:54:42) Failed to open the file with the fif header information\nfopen: Success\nneuromag2ft (131024 09:54:42) Header sent to the FieldTrip buffer\nneuromag2ft (131024 09:54:53) Measurement ended (9 buffers).\nneuromag2ft (131024 09:54:53) File closed (FIFF_CLOSE_FILE).\nneuromag2ft (131024 09:54:53) File closed.\nneuromag2ft (131024 09:55:04) Terminated by the user\nneuromag2ft (131024 09:55:04) About to disconnect from Neuromag data server...\nneuromag2ft (131024 09:55:04) Connection closed.\nneuromag2ft (131024 09:55:04) Neuromag data server: Disconnected\nneuromag2ft (131024 09:55:04) About to disconnect from / terminate the FieldTrip buffer\nneuromag2ft (131024 09:55:04) FieldTrip buffer thread cancelled\nneuromag2ft (131024 09:55:04) Exiting\n\nI dunno whether this is an expected behavior, since the neuromag2ft.fif is indeed created ...\nThe error comes from process_tag.c ~line 155, but eyeballing since this part happens after the fopen\npart , and since the file is indeed created, this part throws always an error then\n                  \nif(headerfile != NULL) {\n                                  dacq_log(\"Failed to open the file with the fif header information\\n\", numbytes);\n                                  perror(\"fopen\");\n                  }\n\nso probably it should be if(headerfile == NULL) ...\n\nIf I say b*shit, take everything that I say as early morning rants ;-)\nAnyway, I include also the tiny neuromag2ft.fif\nBTW, streaming of data *still* works, signaviewer on the mac shows me some data ;-)\nYour faithful alpha tester,\nGP"
+      - +@isprivate: "0"
+        commentid: "11661"
+        comment_count: "96"
+        attachid: "535"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-24 11:30:29 +0200
+        thetext: |-
+          Created attachment 535
+          neuromag2ft.fif - another one bites the dust
+      - +@isprivate: "0"
+        commentid: "11662"
+        comment_count: "97"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-24 12:27:34 +0200
+        thetext: ">> addpath /home/action/arjsto/fieldtrip-svn/external/mne\ncd /home/action/arjsto/fieldtrip-svn/fileio/private\n>> [fid, tree] = fiff_open_le('/home/action/arjsto/Headloc/neuromag2ft.fif');\n\norig = fiff_read_meas_info(fid, tree)\nError using fiff_open_le (line 58)\nfile does not start with a file id tag\n\n\nand using decode_fiff.m (attached), it seems that this file is what it used to be.\n\n\n>> [tag] = decode_fiff('neuromag2ft.fif')\n\ntag = \n\n1x5 struct array with fields:\n    kind\n    type\n    size\n    next\n    data\n\n>> tag(1)\n\nans = \n\n    kind: 9\n    type: 0\n    size: 0\n    next: 0\n    data: []\n\n>> tag(2)\n\nans = \n\n    kind: 105\n    type: 3\n    size: 4\n    next: 0\n    data: [4x1 double]\n\n>> tag(3)\n\nans = \n\n    kind: 105\n    type: 3\n    size: 4\n    next: 0\n    data: [4x1 double]\n\n>> tag(4)\n\nans = \n\n    kind: 2\n    type: 0\n    size: 0\n    next: 0\n    data: []\n\n>> tag(5)\n\nans = \n\n    kind: []\n    type: []\n    size: []\n    next: []\n    data: []"
+      - +@isprivate: "0"
+        commentid: "11663"
+        comment_count: "98"
+        attachid: "536"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-24 12:28:26 +0200
+        thetext: |-
+          Created attachment 536
+          decode_fiff: reads the tags and data of a fif file
+      - +@isprivate: "0"
+        commentid: "11664"
+        comment_count: "99"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-24 12:29:45 +0200
+        thetext: |-
+          (In reply to comment #97)
+          I meant it is NOT like what it is used to be.
+      - +@isprivate: "0"
+        commentid: "11666"
+        comment_count: "100"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-24 13:55:41 +0200
+        thetext: |-
+          (In reply to comment #99)
+
+          Ok, now I see it's working also for me, with the right "decoding" ...
+          Please watch out the potential conflicting/confusing  file names of the new decode_fiff and  fileio/private/decode_fif.m ;-)
+
+          GP
+      - +@isprivate: "0"
+        commentid: "11667"
+        comment_count: "101"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-24 14:01:00 +0200
+        thetext: "(In reply to comment #100)\n:) \n\nChecking why the updated process_tag.c (in /realtime/src/acquisition/neuromag/) suddenly is writing this rather incomplete fif file. Previously, the file-id tag was nicely added to the beginning of the file, while now it's missing."
+      - +@isprivate: "0"
+        commentid: "11677"
+        comment_count: "102"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 11:29:14 +0200
+        thetext: "Sorry for my sloppy c-programming.\n\nI have resolved some issues with the fif headerfile, fixed some actual bugs, changed the flow of the code to make the channel names chunk and the neuromag_fif chunk more consistent, the present version should allow for starting neuromag2ft onde and sending the fif header file information multiple times, updating the networked FT buffer.\n\nroboos@mentat001> svn commit \nSending        neuromag/bin/x86_64-pc-linux-gnu/neuromag2ft\nSending        neuromag/process_tag.c\nTransmitting file data ..\nCommitted revision 8638."
+      - +@isprivate: "0"
+        commentid: "11678"
+        comment_count: "103"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-25 11:41:35 +0200
+        thetext: |-
+          (In reply to comment #102)
+          Happy testing, GP. :D
+      - +@isprivate: "0"
+        commentid: "11679"
+        comment_count: "104"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-25 11:49:49 +0200
+        thetext: |-
+          (In reply to comment #103)
+
+          I was already compiling and testing ;-)
+          By accident I svn-updated a couple of mins after you did the last commit, and I was checking online the diff ...
+          I'll let you know asap ;-)
+          G.
+      - +@isprivate: "0"
+        commentid: "11682"
+        comment_count: "105"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-25 13:58:38 +0200
+        thetext: "(In reply to comment #103)\n\nHere I am ...\n\nSo, first of all we should emphasize in the future wiki page that we've absolutely to start first ./neuromag2ft and then the acquisition software, otherwise this could lead to unpredictable outcomes (i.e. neuromag2ft segfaulting and/or acquisition getting stuck after exactly 10 secs, then everything afterwards flushed on the screen when you kill neuromag2ft).\n\nThen, more on topic,  despite the promising logs of the program\n\nneuromag2ft (131025 13:45:05) About to connect to the Neuromag DACQ shared memory on this workstation (client ID 14013)...\nneuromag2ft (131025 13:45:05) Connection ok\nneuromag2ft (131025 13:45:05) Current buffer length value = 1500\nneuromag2ft (131025 13:45:05) FieldTrip buffer server thread started (TID 1095293248)\nneuromag2ft (131025 13:45:05) Will scale up MEG mags by 1, grads by 1 and EEG data by 1\nneuromag2ft (131025 13:45:05) Waiting for the measurement to start... Press Ctrl-C to terminate this program\nneuromag2ft (131025 13:45:11) Opened file /neuro/dacq/raw/dacq4qZSVy.\nneuromag2ft (131025 13:45:11) New measurement is starting...\nneuromag2ft (131025 13:45:11) Data buffers coming soon...\nneuromag2ft (131025 13:45:11) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (131025 13:45:11) Appended 2469 bytes with channel name information\nneuromag2ft (131025 13:45:11) Appended 66367 bytes with fif header information\nneuromag2ft (131025 13:45:11) Header sent to the FieldTrip buffer\nneuromag2ft (131025 13:45:57) Terminated by the user\nneuromag2ft (131025 13:45:57) About to disconnect from Neuromag data server...\nneuromag2ft (131025 13:45:57) Connection closed.\nneuromag2ft (131025 13:45:57) Neuromag data server: Disconnected\nneuromag2ft (131025 13:45:57) About to disconnect from / terminate the FieldTrip buffer\nneuromag2ft (131025 13:45:57) FieldTrip buffer thread cancelled\nneuromag2ft (131025 13:45:57) Exiting\n\nabout appended additional info, if you try to read the buffer it \"only\" contains MEG data, and no additional relevant info (e.g. dig and grad stuff).\nNamely:\n\n>> hdr = ft_read_header('buffer://192.168.185.142:1972')\n\nhdr = \n\n             Fs: 1000\n         nChans: 309\n       nSamples: 142000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n          label: {309x1 cell}\n       chantype: {309x1 cell}\n       chanunit: {309x1 cell}\n\n>> hdr.orig\n\nans = \n\n    bufsize: 68852\n\nwhich is incidentally 16 bits less than the info appended, 66367 + 2469, but no dig/grad whatsoever ...\n\nYour faithful alpha tester,\nGianpaolo\n\n\nPS: as of today I get a threatening warning from fieldtrip about using 2013a\n\nWarning: You are using MATLAB 2013a. FieldTrip is currently not supported on 2013a\n(8.1) or newer. Using your current MATLAB version can lead to unexpected behaviour,\nwhich might not be easily noticable. Continuing is not advised.\n\nShall I be worried, for the debugging? In principle I can try to use another machine, but I didn't have any problem with 2013a so far ..."
+      - +@isprivate: "0"
+        commentid: "11689"
+        comment_count: "106"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-25 14:36:29 +0200
+        thetext: "(In reply to comment #105)\n\nyou know best where to document it, so I suggest you simply go ahead and update it according to your insights. None of us has any hands-on experience with the neuromag scanner.\n\nneuromag2ft segfaulting is not good :-( \nbut hopefully we can confirm that the communication works. The memory problem should be solved at a later time.\n\nCould you start it, and prior to stopping copy the /tmp/neuromag2ff.fif file to another location (and attach it here). It is now cleaned when recording stops.\n\nCould you in a separate run \n> fieldtrip/realtime/bin/glnxa64/recording bufferdir 1972\nfor as short time (say 10 seconds) and send Arjen the zipped bufferdir content? It represents on disk exactly the content that is streamed to the buffer, and with \"playback\" it should be possible for us to look at it in detail.\n\n\nRegarding the matlab2013a warning, please see http://bugzilla.fcdonders.nl/show_bug.cgi?id=2095#c13\n\nIt is just an extra warning, nothing functionally changed, so if it worked for you in the past, there is no reason to change. But there are known issues with 2013a, so please beware."
+      - +@isprivate: "0"
+        commentid: "11704"
+        comment_count: "107"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-25 16:45:31 +0200
+        thetext: "(In reply to comment #106)\n\n> neuromag2ft segfaulting is not good :-( \n> but hopefully we can confirm that the communication works. The memory problem\n> should be solved at a later time.\n\nYep ...\n\n> Could you start it, and prior to stopping copy the /tmp/neuromag2ff.fif file to\n> another location (and attach it here). It is now cleaned when recording stops.\n\nDone (I'll upload next ...)\n\n> Could you in a separate run \n> fieldtrip/realtime/bin/glnxa64/recording bufferdir 1972\n> for as short time (say 10 seconds) and send Arjen the zipped bufferdir content?\n> It represents on disk exactly the content that is streamed to the buffer, and\n> with \"playback\" it should be possible for us to look at it in detail.\n\nI tried various combinations of running recording with and without neuromag2ft running (with it complains of the address already in use), but the folder is always empty, apart from contents.txt. What am I doing wrong?! This should plug into neuromag2ft, isn't?! And if so, why complaining of the address already in use and not filling the bufferdir with 001 subdirs, or whatever ... ?! :-(\n\n> Regarding the matlab2013a warning, please see\n> http://bugzilla.fcdonders.nl/show_bug.cgi?id=2095#c13\n\nI saw it, I was just worried to do something nasty in the debugging now ;-)\n\n> It is just an extra warning, nothing functionally changed, so if it worked for\n> you in the past, there is no reason to change. But there are known issues with\n> 2013a, so please beware.\n\nYes, I know the EEGLAB warnings and the dmlt stuff, I just wanted to stay on the safe side ...\n\nI'll test further on Monday, but as said now I'm stuck with recording ... not recording :-(\nG."
+      - +@isprivate: "0"
+        commentid: "11705"
+        comment_count: "108"
+        attachid: "541"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-25 16:46:35 +0200
+        thetext: |-
+          Created attachment 541
+          neuromag2ft.fif - freshly baked ....
+      - +@isprivate: "0"
+        commentid: "11718"
+        comment_count: "109"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-28 09:25:44 +0100
+        thetext: "(In reply to comment #108)\nFreshy baked file seems to be ok:\n\n>> addpath /home/action/arjsto/fieldtrip-svn/external/mne\n>> cd /home/action/arjsto/fieldtrip-svn/fileio/private\n>> [fid, tree] = fiff_open_le('/home/action/arjsto/Headloc/neuromag2ft.fif');\n>> orig = fiff_read_meas_info(fid, tree)\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\n\norig = \n\n       file_id: [1x1 struct]\n       meas_id: [1x1 struct]\n     meas_date: [2x1 int32]\n         nchan: 309\n         sfreq: 1000\n      highpass: 0.1000\n       lowpass: 330\n           chs: [1x309 struct]\n      ch_names: {1x309 cell}\n    dev_head_t: []\n    ctf_head_t: []\n     dev_ctf_t: []\n           dig: [0x0 struct]\n          bads: []\n         projs: [1x8 struct]\n         comps: [0x0 struct]\n      acq_pars: []\n      acq_stim: []"
+      - +@isprivate: "0"
+        commentid: "11720"
+        comment_count: "110"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-28 09:39:02 +0100
+        thetext: "(In reply to comment #109)\n\n\">> hdr.orig\n\nans = \n\n    bufsize: 68852\n\"\n\nIt might be that the matlab end of the buffer stream is not yet up-to-date (ft_read_header requires debugging). Alternatively, the data is not correctly appended to the buffer.\n\nCould you try whether recording works? Otherwise we'll need to setup a realtime debugging session (skype or somethign).\n\n> Could you in a separate run \n> fieldtrip/realtime/bin/glnxa64/recording bufferdir 1972\n> for as short time (say 10 seconds) and send Arjen the zipped bufferdir content?\n> It represents on disk exactly the content that is streamed to the buffer, and\n> with \"playback\" it should be possible for us to look at it in detail."
+      - +@isprivate: "0"
+        commentid: "11728"
+        comment_count: "111"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-28 13:11:21 +0100
+        thetext: "(In reply to comment #110)\n\nDear all,\nsorry for the late reply, but I was deeply testing ;-)\n\nSo, first with the the good news ...\nIn the buffer there is life ! ... ehm ... a hdr.neuromag_fif field ;-)\n\nThe main problem was that I needed a mac binary, since the \"remote\" console now is my mac ... I know you'll come with all the right binaries in the future ;-)\n\nAnyway, I had a problem compiling for the mac ... Since I'm now on 10.9 I had to change the mexopts.sh accordingly, but then, for some strange reason (changes in the API?!) running compile.m gave the following errore (maybe I should open another bug later):\n\n>> compile\nCompiling library functions in util.c ...\nCompiling library functions in printstruct.c ...\nCompiling library functions in clientrequest.c ...\nCompiling library functions in tcprequest.c ...\n\n<cut>\n\nCompiling helper functions in buffer_putevt.c ...\nbuffer_putevt.c:125:16: error: non-void function 'buffer_putevt' should return a value [-Wreturn-type]\n        if (Nev == 0) return;\n                      ^\n1 error generated.\n\n    mex: compile of ' \"buffer_putevt.c\"' failed.\n\nError using mex (line 206)\nUnable to complete successfully.\n\nError in compile (line 150)\n\teval(cmd);\n\nNow, pro tempore I patched the buffer_putevt.c:125 with\n\nif (Nev == 0) return 0; \n\n\njust to let it compile ... I'll let you find the elegant solution ;-)\n\nWith the buffer.mexmaci64 freshly compiled, there's some hope ...\n\nWhile if I do:\n\nhdr = ft_read_header('buffer://192.168.185.142:1972')\n\n\n>> hdr.orig\n\nans = \n\n    bufsize: 68852\n\nif I manually use buffer, i.e.\n\n>> hdr = buffer('get_hdr', [],'192.168.185.142',1972)\n\nhdr = \n\n           nchans: 309\n         nsamples: 2000\n          nevents: 0\n          fsample: 1000\n        data_type: 9\n          bufsize: 68852\n    channel_names: {309x1 cell}\n     neuromag_fif: [1x66367 uint8]\n\nI finally get a lot of neuromag_fif info (hopefully the right tags).\nSo, finally some additional info is transmitted on the network ... yay!!!\n\nThe bad news is that it seems I'm too stupid to make \"recording\" run, that means that I've still to properly understand how it works.\n\nIf I start ./neuromag2ft before recording, recording complains of address already in use  (ft_start_buffer_server, bind: Address already in use), and recording stops there ...\n\nIf I start recording before neuromag2ft, neuromag2ft complains about (tcpserver bind: Address already in use), the network streaming doesn't seems to work ... On the mac console I get \n\n> In ft_read_header at 1012\n  In ft_realtime_signalviewer at 88 \n(Warning: could not read header from buffer://192.168.185.142:1972, retrying in 1 second )\n\nwhereas the \"bufferdir\" directory from recording is never filled ... otoh I get, sometimes, strange outputs like\n\n[meg@sinuhe glnxa64]$ ./recording test001\nStarted new client thread with packet merging = 1\nt=1382961698.003 Get header ...FAILED\nt=1382961699.010 Get header ...FAILED\nt=1382961700.012 Get header ...FAILED\nt=1382961701.015 Get header ...FAILED\n\nbut probably this is related to the fact that sometimes neuromag2ft \"freezes\" the acquisition buffer, i.e. no more data is shown in the acquisition window, and you get all the data \"flushed\" when you ctrl-c neuromag2ft, with a lot of errors from the acq console :-(\n\nAnyway, I've to give up the lab now for real measurements ... I've tried to tinker also when someone is measuring, on Friday, but as said sometimes neuromag2ft freezes the data stream and/or seg-faults, and I spoiled one measurement block :-(\n\nI'll try further tests among the slots in the next days, any feedback is anyway more than welcome!\n\nBest,\nGianpaolo"
+      - +@isprivate: "0"
+        commentid: "11729"
+        comment_count: "112"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-28 14:05:01 +0100
+        thetext: "(In reply to comment #109)\n\nHi Gianpaolo\n\nthanks for the very detailed and useful report.\n\nRegarding the absence of the updated mex, sorry, my fault. I had started MATLAB already to compile, but then throught ... well, it ptobably only has to run on linux for now. I'll recompile and post on bug #2341.\n\nRegarding the error in the mex compilation. Apparently 10.9 is more strict. The reported error with the return value shall be fixed. \n\nRegarding the recording buffer. The idea is that the neuromag2ft \"client\" writes to the recording buffer \"server\". By default the client will also start its own server. Using the --bufhost and --bufport option to neuromagft should allow you to have them coexist. But since you have already passed the buffer onto MATLAB, we might want to skip this step altogether.\n\nThe problems with process_tag inside neuromag2ft are more problematic. Apparently the internal logic is incorrect and it does weird memory stuff. That requires someone to go through the code once more. It would help to have faster feedback cycles, i.e. us (Arjen and me) looking/typing along on your sinuhe. Would that work?\n\nPS could you get Arjen the output of ft_read_header and of buffer itself in a mat file?"
+      - +@isprivate: "0"
+        commentid: "11735"
+        comment_count: "113"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-28 15:47:26 +0100
+        thetext: |-
+          (In reply to comment #112)
+
+
+          > Regarding the recording buffer. The idea is that the neuromag2ft "client"
+          > writes to the recording buffer "server". By default the client will also start
+          > its own server. Using the --bufhost and --bufport option to neuromagft should
+          > allow you to have them coexist. But since you have already passed the buffer
+          > onto MATLAB, we might want to skip this step altogether.
+
+          Ok ...
+
+          > The problems with process_tag inside neuromag2ft are more problematic.
+          > Apparently the internal logic is incorrect and it does weird memory stuff. That
+          > requires someone to go through the code once more. It would help to have faster
+          > feedback cycles, i.e. us (Arjen and me) looking/typing along on your sinuhe.
+          > Would that work?
+
+          In principle yes, the only problem is that I've to steal real measurement time from the lab, and not using "left overs" as I'm doing now ...
+          Anyway, *tentatively" let's say that I can try to book the lab on Wed. morning, for tomorrow now it's a bit too late shifting things around, telling the users and subjects, etc ... if it's fine with you obviously ...
+          I can try to let you run my mac via teamviewer, and/or I can directly let you ssh to sinuhe via a gateway machine, with my login name ...
+
+
+          > PS could you get Arjen the output of ft_read_header and of buffer itself in a
+          > mat file?
+
+          If I manage to get a "snipplet" of the lab tomorrow, I'll do it ... now as said I'm a bit scared of tinkering while real measurements are running ...
+
+          Ciao,
+          GP
+      - +@isprivate: "0"
+        commentid: "11738"
+        comment_count: "114"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-29 10:11:10 +0100
+        thetext: |-
+          (In reply to comment #112)
+
+          Hi again,
+          I'm in the lab this morning, I managed to steal some time ;-)
+
+          Attached you'll find a mat file, with the output of the following commands:
+
+          ftrdhdr = ft_read_header('buffer://192.168.185.142:1972')
+
+          bufhdr = buffer('get_hdr', [],'192.168.185.142',1972)
+
+          moreover, I'll attach some seconds of the output of "recording". It's probably useless now, but I'm quite proud I managed to make it work ;-) (self reminder: RTF --help instructions)
+
+          G.
+      - +@isprivate: "0"
+        commentid: "11739"
+        comment_count: "115"
+        attachid: "542"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-29 10:12:28 +0100
+        thetext: |-
+          Created attachment 542
+          Different hdr outputs of ft_read_header and pure buffer
+      - +@isprivate: "0"
+        commentid: "11740"
+        comment_count: "116"
+        attachid: "543"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-29 10:13:23 +0100
+        thetext: |-
+          Created attachment 543
+          Few seconds of "recording", filled by neuromag2ft
+      - +@isprivate: "0"
+        commentid: "11741"
+        comment_count: "117"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-29 11:00:03 +0100
+        thetext: |-
+          (In reply to comment #116)
+
+          Thanks GP; debugging ft_read_header and decode_fif using that header info.
+      - +@isprivate: "0"
+        commentid: "11742"
+        comment_count: "118"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-29 11:12:01 +0100
+        thetext: ">> cachechunk = decode_fif(bufhdr.neuromag_fif)\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\nWarning: No device to head transform available in fif file \n> In fileio/private/mne2grad at 78\n  In fileio/private/decode_fif at 38 \nWarning: EEG channels will likely have coordinates in head frame, not\ndevice frame \n> In fileio/private/mne2grad at 79\n  In fileio/private/decode_fif at 38 \n\ncachechunk = \n\n    grad: [1x1 struct]\n    orig: [1x1 struct]\n\n>> cachechunk.grad\n\nans = \n\n     coilpos: [510x3 double]\n     coilori: [510x3 double]\n         tra: [306x510 double]\n        unit: 'cm'\n       label: {306x1 cell}\n    coordsys: 'dewar'\n    chantype: {306x1 cell}\n        type: 'neuromag306'\n\n\nOk, seems we now have grad info. :D"
+      - +@isprivate: "0"
+        commentid: "11743"
+        comment_count: "119"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-29 11:28:43 +0100
+        thetext: "(In reply to comment #118)\nThe next time you try (with latest FT version), I expect hdr (after calling hdr = ft_read_header('buffer://192.168.185.142:1972') again) to contain a grad (and an orig) structure. \n\nI this is the case, then we can try and get ft_realtime_headlocalizer to work on that information. :) Without digitized points ft_realtime_headlocalizer will fail, but give it a quick shot prior to testing with a subject to see if nothing else is blocking us at this point."
+      - +@isprivate: "0"
+        commentid: "11747"
+        comment_count: "120"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-29 12:29:00 +0100
+        thetext: "(In reply to comment #119)\nEureka!\n\n>> hdr = ft_read_header('buffer://192.168.185.142:1972')\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\nWarning: No device to head transform available in fif file \n> In fileio/private/mne2grad at 78\n  In fileio/private/decode_fif at 34\n  In ft_read_header at 1033 \nWarning: EEG channels will likely have coordinates in head frame, not device frame \n> In fileio/private/mne2grad at 79\n  In fileio/private/decode_fif at 34\n  In ft_read_header at 1033 \n\nhdr = \n\n             Fs: 1000\n         nChans: 309\n       nSamples: 11000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n           grad: [1x1 struct]\n          label: {309x1 cell}\n       chantype: {309x1 cell}\n       chanunit: {309x1 cell}\n\nI've digitized something random, and then put the localization coils in with some tape ... the localization is awful obviously, but just to have something to feed in ... still getting data stream stuck / segfaulting once in a while, but this is a next task ...\n\nI'll send also the new hdr ...\nGreat!!!\nG."
+      - +@isprivate: "0"
+        commentid: "11748"
+        comment_count: "121"
+        attachid: "544"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-29 12:33:05 +0100
+        thetext: |-
+          Created attachment 544
+          hdr with the new ft_read_header
+      - +@isprivate: "0"
+        commentid: "11749"
+        comment_count: "122"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-29 12:51:45 +0100
+        thetext: |-
+          (In reply to comment #121)
+          Great, the new hdr is promising!
+
+          Are you trying out the digitized head positions, or did those segfaults prevent you from doing so?
+      - +@isprivate: "0"
+        commentid: "11750"
+        comment_count: "123"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-29 13:00:38 +0100
+        thetext: Added an update to ft_realtime_headlocalizer, making sure it calls ft_read_headshape with fileformat = 'neuromag_fif' (which otherwise will be determined to be 'fcdc_buffer') in order to analyze those digitized head positions.
+      - +@isprivate: "0"
+        commentid: "11762"
+        comment_count: "124"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-30 11:22:15 +0100
+        thetext: "(In reply to comment #123)\n\nHi,\nI'm trying with a digitized phantom, i.e. I have the coils, the landmarks and some head points in, but still the buffer does not contain \"dig\" stuff, i.e. the hdr.orig.dig is sadly empty ...\n\n>> hdr = ft_read_header('buffer://192.168.185.142:1972')\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\nWarning: No device to head transform available in fif file \n> In fileio/private/mne2grad at 78\n  In fileio/private/decode_fif at 41\n  In ft_read_header at 1033 \nWarning: EEG channels will likely have coordinates in head frame, not device frame \n> In fileio/private/mne2grad at 79\n  In fileio/private/decode_fif at 41\n  In ft_read_header at 1033 \n\nhdr = \n\n             Fs: 1000\n         nChans: 309\n       nSamples: 134000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n           grad: [1x1 struct]\n          label: {309x1 cell}\n       chantype: {309x1 cell}\n       chanunit: {309x1 cell}\n\n>> hdr.orig\n\nans = \n\n       file_id: [1x1 struct]\n       meas_id: [1x1 struct]\n     meas_date: [2x1 int32]\n         nchan: 309\n         sfreq: 1000\n      highpass: 0.1000\n       lowpass: 330\n           chs: [1x309 struct]\n      ch_names: {1x309 cell}\n    dev_head_t: []\n    ctf_head_t: []\n     dev_ctf_t: []\n           dig: [0x0 struct]\n          bads: []\n         projs: [1x8 struct]\n         comps: [0x0 struct]\n      acq_pars: []\n      acq_stim: []\n       bufsize: 68852\n\nI'll include the hdr as attachment anyway ...\nThis is strange, since I'm measuring the head position, accepting it and even I'm measuring the continuos head position is on ... but no dig field passed in the buffer ...\n\nBut, if I take a short file from the same session, saved, it gives me the following:\n\n>> hdr2 = ft_read_header('testwphantomdigitized.fif')\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\n\t306 MEG channel locations transformed\nOpening raw data file testwphantomdigitized.fif...\n\tRead a total of 8 projection items:\n\t\tgrad3v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tgrad3v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v1 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v2 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v3 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v4 (1 x 306) idle\n\t\tmag5v_ssp_upr.fif : PCA-v5 (1 x 306) idle\n\tRange : 12000 ... 14999  =     12.000 ...    14.999 secs\nReady.\n\nhdr2 = \n\n          label: {309x1 cell}\n         nChans: 309\n             Fs: 1000\n           grad: [1x1 struct]\n       nSamples: 3000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n       chantype: {309x1 cell}\n       chanunit: {309x1 cell}\n\n>> hdr2.orig.dig\n\nans = \n\n1x23 struct array with fields:\n\n    kind\n    ident\n    r\n    coord_frame\n\ni.e. a lot of dig info ...\nAny clue?\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "11763"
+        comment_count: "125"
+        attachid: "545"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-30 11:23:52 +0100
+        thetext: |-
+          Created attachment 545
+          hdr from the stream and hdr2 from the file
+      - +@isprivate: "0"
+        commentid: "11764"
+        comment_count: "126"
+        attachid: "546"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-30 11:24:32 +0100
+        thetext: |-
+          Created attachment 546
+          Short fiff with some digitized points ...
+      - +@isprivate: "0"
+        commentid: "11781"
+        comment_count: "127"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-30 18:19:16 +0100
+        thetext: "(In reply to comment #124)\nThis sounds as if the digitized HPI coil information (orig.dig) is only added to the fif container when the file is saved, or acquisition end. That would be a bummer since we need that information to localize the coils in real-time. Is there by any chance a software settings that changes this procedure (e.g. adding the polhemus data at acquisition onset)? \n\nAlternatively, we'll need to have one fif file saved directly after polhemus tracking (without further data acquisition), insert this file as an input argument to ft_realtime_headlocalizer (e.g. cfg.hpifile = 'XXX.fif'), then start a new fif file for data acquisition (while head position is monitored/adjusted during the acquisition). Would that be a possibility?"
+      - +@isprivate: "0"
+        commentid: "11782"
+        comment_count: "128"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-30 18:38:04 +0100
+        thetext: |-
+          (In reply to comment #127)
+          added the optionality to ft_realtime_headlocalizer (line 129)
+
+          if ~isfield(cfg, 'hpifile')
+              shape = ft_read_headshape(cfg.headerfile, 'coordsys', 'dewar', 'format', 'neuromag_fif');
+            elseif isfield(cfg, 'hpifile')
+              shape = ft_read_headshape(cfg.hpifile, 'coordsys', 'dewar', 'format', 'neuromag_fif');
+            end
+      - +@isprivate: "0"
+        commentid: "11790"
+        comment_count: "129"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-10-31 10:55:19 +0100
+        thetext: "(In reply to comment #127)\n\nCiao,\n\n> This sounds as if the digitized HPI coil information (orig.dig) is only added\n> to the fif container when the file is saved, or acquisition end. \n\nThis would really be bad ...\n\n> That would be\n> a bummer since we need that information to localize the coils in real-time. Is\n> there by any chance a software settings that changes this procedure (e.g.\n> adding the polhemus data at acquisition onset)? \n\nI'll check in the cryptic manual, but probably is as you say ... written to the header at the end ...\nCurrently I cannot do any further testing, since they're measuring in the lab (and I've already killed one block the other day with my \"remote\" tinkering ;-))\n\n> Alternatively, we'll need to have one fif file saved directly after polhemus\n> tracking (without further data acquisition), insert this file as an input\n> argument to ft_realtime_headlocalizer (e.g. cfg.hpifile = 'XXX.fif'),\n\nor as an argument to neuromag2ft, so you don't have to move any fif file on the network, even if tiny ...\n\n>  then\n> start a new fif file for data acquisition (while head position is\n> monitored/adjusted during the acquisition). Would that be a possibility?\n\nIf this is the case, I don't see any other way out ... i.e. measuring a tiny shot containing only 1 sec of data with the dig info, and then fitting the dipole positions on the data streamed (luckily the 300 Hz noise is always there ;-)) ...\nAs soon as the lab is free I try a couple of additional things, like enabling/disabling cHPI, and/or stopping/restarting raw file recording on the same fiff file ... it could well be that in that way, some relevant info is still written to the header ...\nI'll keep you posted,\nGP"
+      - +@isprivate: "0"
+        commentid: "11793"
+        comment_count: "130"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-10-31 11:43:01 +0100
+        thetext: |-
+          (In reply to comment #129)
+          Oki doki, thank you for your quick reply. Let me/us know when you know more about the orig.dig field, or whether that bypass option (cfg.hpifile) does work.
+      - +@isprivate: "0"
+        commentid: "12177"
+        comment_count: "131"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-02 17:18:32 +0100
+        thetext: "(In reply to comment #130)\n\nHere am I with some test files ...\n\nThe \"prepared\" (/neuro/dacq/prepared)  folder I guess contains the preparation done for this subject, whereas the \"meas_info\" (/neuro/dacq/meas_info ) contains a bit more info, namely (I think) also the  measurement and fit of the HPI coils (hip_meas/hpi_result) of the current run ...\nSome files are equivalent, i.e.\n\nprepK4trSD.iso = isotrak\nprepK4trSD.proj = proj\nprepK4trSD.set = parameters\nprepK4trSD.subj = subject \n\nprepK4trSD referes to a generic subject preparation, it changes from session to session, whereas the files in the meas_info folder change from run to run. Or better, isotrak, prom, parameters, and subject are clones of the prep*, while hpi* and events change with the run ...\n\nFrom the size, the hpi_meas should be a complete fiff file with some real MEG measurements of the HPI coils, but renaming it to .fif didn't do the trick and still doesn't look to be a fully legit fiff file\n\n>> ft_read_header('hpi_meas.fif')\nError using fiff_read_meas_info (line 97)\nCould not find measurement data\n\nError in ft_read_header (line 1323)\n    info = fiff_read_meas_info(filename);\n\n\nI managed to \"open\" them with the decode_fiff function, but I get a lot of useless (to me :-( ) data out\nProbably, if we/you do the trick that we used before, we can make those things digested by the neuromag2ft ...\n\nAttachment follows ...\nCiao,\n\nG."
+      - +@isprivate: "0"
+        commentid: "12178"
+        comment_count: "132"
+        attachid: "566"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-02 17:22:08 +0100
+        thetext: |-
+          Created attachment 566
+          meas_info and prepared folders - hopefully containing meaningful info for the HPI
+      - +@isprivate: "0"
+        commentid: "12293"
+        comment_count: "133"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-09 22:46:59 +0100
+        thetext: "Hi GP, just back from the USA. Hope everything is well (little one too?). \n\nThanks for sending those files. It turns out that, in contrast to the tapped online datastream, but in agreement with the .fif end product, they're in big-endian format (I checked hpi_meas.fif, isotrak.fif, and prepK4trSD.iso.fif). Also, these files contain the required file-id tag (kind=100) and directory pointer (kind=101) tag (which we are synthetically adding in the neuromag2ft software - which would thus not be needed anymore when we would chunk these stored files online).\n\nSo far so good. However, I'm encountering the same error you mentioned ('Could not find measurement data') when trying to read those fiff files using fiff_read_meas_info. This could make sense since there might be no measurement data stored in either those files. Have to see whether we can create a patch for this too."
+      - +@isprivate: "0"
+        commentid: "12310"
+        comment_count: "134"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-11 11:40:18 +0100
+        thetext: "[dig] = ft_read_isotrak('Archivio/meas_info/isotrak')\n\ndig = \n\n1x309 struct array with fields:\n    kind\n    ident\n    r\n    coord_frame\n\n\nHave to see how to support/implement this functionality in both the sender and receiver end of the FT buffer. But the goods news is that it seems we will be able to access this crucial information online."
+      - +@isprivate: "0"
+        commentid: "12311"
+        comment_count: "135"
+        attachid: "574"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-11 11:41:21 +0100
+        thetext: |-
+          Created attachment 574
+          FT_READ_ISOTRAK
+      - +@isprivate: "0"
+        commentid: "12312"
+        comment_count: "136"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-11 11:48:50 +0100
+        thetext: |-
+          (In reply to comment #135)
+
+          can you merge ft_read_isotrak with ft_read_headshape?
+      - +@isprivate: "0"
+        commentid: "12315"
+        comment_count: "137"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-11 12:11:36 +0100
+        thetext: Trying to see if I can also pull out transformation matrices. Ideally, all this information is merged with ft_read_header then, isn't it (basically a low-level version of fiff_read_meas_info.m?
+      - +@isprivate: "0"
+        commentid: "12316"
+        comment_count: "138"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-11 13:00:36 +0100
+        thetext: |-
+          bash-4.1$ svn commit
+          Sending        fileio/ft_read_header.m
+          Sending        fileio/private/decode_fif.m
+          Sending        test/test_ft_regressconfound.m   <- unrelated
+          Transmitting file data ...
+          Committed revision 9018.
+      - +@isprivate: "0"
+        commentid: "12346"
+        comment_count: "139"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-12 17:20:43 +0100
+        thetext: "Hi GP,\n\nSome good news with respect to the buffer infrastructure. Stephen Whitmarsh tested the newest implementation of neuromag2ft in Stockholm. At first sight it seems all the info we wanted is sent&received through the FT buffer (including information stored in meas_info/isotrak and meas_info/hpi_result, necessary for dipolefitting the HPI coils). So that finally works! \n\nWith respect to dipolefit accuracy, we noticed that there are some obstacles to be overcome, at least for a phantom subject. We wonder whether an well-prepared subject (with HPI coils nicely placed as desired by neuromag, and with all 5 coils) will improve accuracy. Since we made a recording of the phantom, I can also try and determine the localization error of our dipolefit procedure offline, and hopefully improve it implementing more of 'Robert's wisdom'.\n\nIf you want to have a go with the online setup, please download the latest FT version, and compile the mex file.\n\nYours,\nArjen"
+      - +@isprivate: "0"
+        commentid: "12347"
+        comment_count: "140"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-12 21:43:24 +0100
+        thetext: "(In reply to Arjen Stolk from comment #139)\n\nHi Arjen,\nsorry for the late reply, but ...\n\n> Hi GP,\n\n> Some good news with respect to the buffer infrastructure. Stephen Whitmarsh tested \n> the newest implementation of neuromag2ft in Stockholm. \n\n... one cannot be sick at home for a week, because  ...\n\n> At first sight it seems all \n> the info we wanted is sent&received through the FT buffer (including information \n> stored in meas_info/isotrak and meas_info/hpi_result, necessary for dipolefitting the > HPI coils). So that finally works! \n\n...  you just disappear for a second and someone else is \"kissing the girl\", with whom you were trying for months :-( !!! coils-tus interruptus!!! \nCongratulations to Stephen ;-)\n\nKidding apart, I'm happy that it works, and I really couldn't wait going to the lab and testing it (which hopefully will happen tomorrow ...)\n\n\n> With respect to dipolefit accuracy, we noticed that there are some obstacles to be \n> overcome, at least for a phantom subject.\n\nWhat's the difference with a real one? Too steady?!\n\n>  We wonder whether an well-prepared subject (with HPI coils nicely placed as  \n> desired by neuromag, and with all 5 coils)\n\nbtw, there's no agreement even in the elekta people whether even if enabled all the 5 coils are working, or only 4, or the 5 are available on the Triux only (sort of urban legend now )\n\n>  will  \n> improve accuracy. Since we made a recording of the phantom, I can also try and \n> determine the localization error of our dipolefit procedure offline, and hopefully \n> improve it implementing more of 'Robert's wisdom'.\n\nZen master ... !!!\n\n> If you want to have a go with the online setup, please download the latest FT \n> version, and compile the mex file.\n\nI'll do it tomorrow, let me know if I can do some more tests ...\nGoede nacht,\nGP"
+      - +@isprivate: "0"
+        commentid: "12348"
+        comment_count: "141"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-12 22:13:35 +0100
+        thetext: "You're still our #1 alpha tester. :D\n\nI fear the localization accuracy might be poor when you test tomorrow (but I hope to be proven wrong). At least, it would be good to replicate the stockholm finding, which is having the infrastructure finally work in Trento. \n\nWe also noticed there might a small bug in there (probably the one you've encountered and mentioned previously). Namely, when restarting the measurement the tmp/neuromag2ft.fif file was sometimes not being able to be opened. This is also was neuromag2ft outputs in the command window, so it was easy to notice. Restarting again would do the trick so far (as indicated by the absence of the error message 'cannot open xxx'). \n\nOh, about those coils: I have no idea on recommendations. But we noticed there seemed to be a 20 Hz sinewave present over some channels when we turned on cHPI. Perhaps this is due to the combination of specific frequencies of close by HPI coils. The phantom head might have been too small. :)"
+      - +@isprivate: "0"
+        commentid: "12349"
+        comment_count: "142"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-12 22:18:31 +0100
+        thetext: CC list test
+      - +@isprivate: "0"
+        commentid: "12350"
+        comment_count: "143"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-12 22:29:10 +0100
+        thetext: |-
+          sanity check to see whether our online HPI information matches the offline (in fiff container) information:
+
+          ft_hastoolbox('mne',1);
+          info = fiff_read_meas_info('cHPI_test_arjsto.fif')
+          dig = ft_read_isotrak('Stockholm/20131212/isotrak')
+
+          isequal(info.dig, dig)
+
+          ans =
+
+               1
+
+
+          [dev_head_t, ctf_head_t] = ft_read_hpiresult('Stockholm/20131212/hpi_result')
+
+          isequal(info.dev_head_t, dev_head_t)
+
+          ans =
+
+               1
+
+          Note that ft_read_isotrak and ft_read_hpiresult are not standalone functions, but subfunctions in decode_fif.m (in fileio/private)
+      - +@isprivate: "0"
+        commentid: "12351"
+        comment_count: "144"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-12 22:39:59 +0100
+        thetext: BTW, if you're going to test tomorrow, click the 'show sensors' button while the headlocalizer is running. This gives a good immediate impression about where the coils are dipolefitted inside the dewar. :D
+      - +@isprivate: "0"
+        commentid: "12353"
+        comment_count: "145"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-13 12:48:07 +0100
+        thetext: "(In reply to Arjen Stolk from comment #144)\n\nCiao Arjen,\nI tested quickly the setup and it didn't work as expected.\nFirstly, yes, I have on both machines the newest ft, svn-ed \n\nAt revision 9030.\n\nStarting from the end, headlocalizer doesn't work: as some time ago, it complained:\n\nReference to non-existent field 'grad'.\n\nError in ft_realtime_headlocalizer (line 74)\nisneuromag = ft_senstype(hdr.grad, 'neuromag');\n\nAnd it has good reasons to complain, since the data buffer contains, well ... only data:\n\n>> hdr = ft_read_header('buffer://192.168.185.142:1972');\n\n>> hdr = \n\n             Fs: 1000\n         nChans: 309\n       nSamples: 62000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n          label: {309x1 cell}\n       chantype: {309x1 cell}\n       chanunit: {309x1 cell}\n\n\n>> hdr.orig\n\nans = \n\n    bufsize: 71560\n\nThis happens, despite the server says it's appending the relevant data:\n\nneuromag2ft (131213 10:43:56) About to connect to the Neuromag DACQ shared memor                                                      \ny on this workstation (client ID 14013)...\nneuromag2ft (131213 10:43:56) Connection ok\nneuromag2ft (131213 10:43:56) Current buffer length value = 1500\nneuromag2ft (131213 10:43:56) FieldTrip buffer server thread started (TID 108994                                                      \n7968)\nneuromag2ft (131213 10:43:56) Will scale up MEG mags by 1, grads by 1 and EEG da                                                      \nta by 1\nneuromag2ft (131213 10:43:56) Waiting for the measurement to start... Press Ctrl                                                      \n-C to terminate this program\nneuromag2ft (131213 11:06:46) Opened file /neuro/dacq/raw/dacq3XnrCT.\nneuromag2ft (131213 11:06:46) New measurement is starting...\nneuromag2ft (131213 11:06:46) Data buffers coming soon...\nneuromag2ft (131213 11:06:46) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (131213 11:06:46) Appended 2469 bytes with channel name information\nneuromag2ft (131213 11:06:46) Appended 66367 bytes with information from /tmp/neuromag2ft.fif\nneuromag2ft (131213 11:06:46) Appended 2004 bytes with information from /neuro/dacq/meas_info/isotrak\nneuromag2ft (131213 11:06:46) Failed to open /neuro/dacq/meas_info/hpi_result\nneuromag2ft (131213 11:06:46) Header sent to the FieldTrip buffer\nneuromag2ft (131213 11:25:48) Measurement ended (1139 buffers).\nneuromag2ft (131213 11:25:48) File closed (FIFF_CLOSE_FILE).\nneuromag2ft (131213 11:25:48) File closed.\nneuromag2ft (131213 11:25:58) Opened file /neuro/dacq/raw/dacqYMW1eD.\nneuromag2ft (131213 11:25:58) New measurement is starting...\nneuromag2ft (131213 11:25:58) Data buffers coming soon...\nneuromag2ft (131213 11:25:58) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (131213 11:25:58) Appended 2469 bytes with channel name information\nneuromag2ft (131213 11:25:58) Failed to open /tmp/neuromag2ft.fif\nneuromag2ft (131213 11:25:58) Appended 2004 bytes with information from /neuro/dacq/meas_info/isotrak\nneuromag2ft (131213 11:25:58) Appended 688 bytes with information from /neuro/dacq/meas_info/hpi_result\nneuromag2ft (131213 11:25:58) Header sent to the FieldTrip buffer\nneuromag2ft (131213 11:29:08) Data buffers coming soon...\nneuromag2ft (131213 11:29:08) Creating a header: 309 channels, sampling rate 1000 Hz\nneuromag2ft (131213 11:29:08) Appended 2469 bytes with channel name information\nneuromag2ft (131213 11:29:08) Failed to open /tmp/neuromag2ft.fif\nneuromag2ft (131213 11:29:08) Appended 2004 bytes with information from /neuro/dacq/meas_info/isotrak\nneuromag2ft (131213 11:29:08) Appended 688 bytes with information from /neuro/dacq/meas_info/hpi_result\nneuromag2ft (131213 11:29:08) Header sent to the FieldTrip buffer\nneuromag2ft (131213 11:35:05) Measurement ended (356 buffers).\nneuromag2ft (131213 11:35:05) File closed (FIFF_CLOSE_FILE).\nneuromag2ft (131213 11:35:05) File closed.\n\nAs a side note, the first \"run\" it complains about \"Failed to open /neuro/dacq/meas_info/hpi_result\", which is fine, since the streaming of the data happens before this file is created. Namely, you start the acquisition, the neuromag2ft server streams out the info, but only after few seconds the acquisition sw is asking you whether you want to measure the HPI (and then the hip_result is created, if a successful fit happens) or skip it. After the very first acquisition run, the acq sw can ask you to \"reuse\" the previous HPI fit, and that's why in the second run above you don't see the error about the hpi_result anymore; this leads to a potential problem (after having solved all the other issues) that with the current program you're streaming the HPI fit of the previous run: I don't know whether this was meant or not (maybe yes), but you're going to compare the actual coils fit with a somehow outdated (of the previous run/session) set of values. As said a quick workaround is making a quick start and stop, to create a hpi_result file, but in the ideal case neuromag2ft should wait for the new hip_result of the new session to be created, before starting streaming out the info. \n\nStill, once in a while you get a failure of opening /tmp/neuromag2ft.fif, but this doesn't seem to affect to actual streaming of meg data (checked with signalviewer), but maybe it affects the streaming of the grad/hpi/extra info, since it's using the 'old' file that didn't contain, among the other things, the hip fit results.\nThat said, and despite the claims of \"appending\" info, on the client computer I do see only meg data, as stated by the hdr before ...\n\n@Stockholm_crew: have I done something blatantly wrong wrt what you have done?! If you see it please let me know, since I'm scared of thinking that the thing work or doesn't work depending whether is a Triux or Vectorview, doubling the effort of all of us ...\n\nI've done some more tests, also trying to pass the cfg.gradfile to ft_realtime_headlocalizer, but you've, correctly, removed this option in principle non necessary, if the streaming of the grad info works ...\n\nMy 2 Gcents,\n\nGP"
+      - +@isprivate: "0"
+        commentid: "12354"
+        comment_count: "146"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-13 14:17:16 +0100
+        thetext: |-
+          Hi GP,
+
+          Thanks for testing this on short notice. hdr.orig should indeed contain a .neuromag_header (captured from the realtime stream), a .neuromag_isotrak (the big endian file stored on disk), a .neuromag_hpiresult field (same as isotrak).
+
+          There's an if-statement in ft_read_header, computing the info variable by calling decode_fif when the .neuromag_header field is present online. There's a couple of reasons why it's not present online, all related to checks in neuromag2ft.c (and process_tag.c, for instance when the temporay headerfile '/tmp/neuromag2ft.fif') cannot be opened.
+
+          Did you try out the software using digitized head positions? I believe Stephen's order of start-up was: start acq (without recording), digitize, then start neuromag2ft, but I'm not entirely sure. Hopefully, he can give some recommendations here,
+
+          Yours,
+          arjen
+      - +@isprivate: "0"
+        commentid: "12359"
+        comment_count: "147"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-13 14:59:27 +0100
+        thetext: Another possibility; did you recompile the buffer mexfile? And put the mexfile in /fileo/private?
+      - +@isprivate: "0"
+        commentid: "12363"
+        comment_count: "148"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-13 15:10:21 +0100
+        thetext: |-
+          order according to Stephen:
+          1) start acquisition software
+          2) select project
+          3) select subject
+          4) select HPI digitization
+          5) start sampling (which is not recording to file yet)
+          6) start neurmag2ft (alternatively, you could do it before 5 it seems)
+          7) tick the [record raw] box which will start the actual recording
+      - +@isprivate: "0"
+        commentid: "12365"
+        comment_count: "149"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-13 16:34:28 +0100
+        thetext: |-
+          Hi GP,
+
+          Also in Stockholm we had the problem that depending on the (not fully clear) sequence of starting the neuromag_header would or would not be sent. If neuromag_header is not sent as chunk, the other two will also not be processed on the client side.
+
+          There is still a bun in process_tag.c that has to do with the start/stop sequence and the temp file.
+      - +@isprivate: "0"
+        commentid: "12367"
+        comment_count: "150"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-13 22:07:55 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #149)\n\nHi,\n all in one shot:\n\n> Thanks for testing this on short notice. hdr.orig should indeed contain a \n> .neuromag_header (captured from the realtime stream), a .neuromag_isotrak (the big \n> endian file stored on disk), a .neuromag_hpiresult field (same as isotrak).\n\n> There's an if-statement in ft_read_header, computing the info variable by calling\n> decode_fif when the .neuromag_header field is present online. There's a couple of    > reasons why it's not present online, all related to checks in neuromag2ft.c (and  \n> process_tag.c, for instance when the temporay headerfile '/tmp/neuromag2ft.fif') \n> cannot be opened.\n\n> Did you try out the software using digitized head positions? \n\nYes, on a phantom like the last time ...\n\n> I believe Stephen's \n> order of start-up was: start acq (without recording), digitize, then start \n> neuromag2ft, but I'm not entirely sure. Hopefully, he can give some recommendations \n> here,\n\nSee below ...\n\n> Another possibility; did you recompile the buffer mexfile? And put the mexfile in \n> /fileo/private?\n\nYou mean on the client?! No, honestly I forgot this step :-(\nIn fact, checking \n\n13 Dic 10:36 buffer.mexa64\n\nbut since I'm on mac\n\n29 Ott 11:27 buffer.mexmaci64\n\nso, you compiled the linux one in the  upstream ft repository, but on my side I completely forgot this step, sorry ...\n\n> order according to Stephen:\n> 1) start acquisition software\n> 2) select project\n> 3) select subject\n> 4) select HPI digitization\n> 5) start sampling (which is not recording to file yet)\n> 6) start neurmag2ft (alternatively, you could do it before 5 it seems)\n> 7) tick the [record raw] box which will start the actual recording\n\nI do the preparation in another room first, then I load on the acq machine afterwards.\nFor historical reasons, I usually started neuromag2ft before starting the acq program, because in the past this was the only way for not hanging everything. But today I tried also the other way around (first acq, then n2ft, a la Stockholm) and nothing crashed, luckily. So I really appreciated this new version ...\n\n> Also in Stockholm we had the problem that depending on the (not fully clear) sequence > of starting the neuromag_header would or would not be sent. If neuromag_header is not > sent as chunk, the other two will also not be processed on the client side.\n\nWhat I'll do asap on monday is testing again with the recompiled buffer mex (sorry again :-(), and work a bit to check different sequences.\n\n> There is still a bun in process_tag.c that has to do with the start/stop sequence and > the temp file.\n\nAnother bad issued that I had in the past was that, after starting [record raw] exactly after 10 seconds the acquisition \"hangs\", and you get all the data \"flushing\" on the screen as soon as you kill n2ft. That's why today I didn't test with the [record raw] ticked, in fact the streaming of the data happens right away as soon as you click [start], and even before the actual hpi coils fit happens. \nStill I think the server should wait for the new coils fit to happen, before streaming the data; otherwise the risk is that you'll send the fit results of a different run, or even worse, of a previous subject ...\n\nI'll come back with more info on Monday ...\nGP"
+      - +@isprivate: "0"
+        commentid: "12380"
+        comment_count: "151"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-17 22:08:51 +0100
+        thetext: "Dear all,\nthis\n\n> Another possibility; did you recompile the buffer mexfile? And put the mexfile in \n> /fileo/private?\n\nin the end did the trick. Probably it's better to automatize it in the future, maybe adding a couple of relevant lines into compile.m\n\nNow, sometimes, all the info is there, like:\n\n>> hdr.grad\n\nans = \n\n     balance: [1x1 struct]\n     chanori: [306x3 double]\n     chanpos: [306x3 double]\n    chantype: {306x1 cell}\n    chanunit: {306x1 cell}\n     coilori: [510x3 double]\n     coilpos: [510x3 double]\n    coordsys: 'dewar'\n       label: {306x1 cell}\n         tra: [306x510 double]\n        type: 'neuromag306'\n        unit: 'cm'\n\n\nThis in particular works when when all the bits are put together, i.e.\n\nneuromag2ft (131217 16:05:07) Appended 2469 bytes with channel name information\nneuromag2ft (131217 16:05:07) Appended 66367 bytes with information from /tmp/neuromag2ft.fif\nneuromag2ft (131217 16:05:07) Appended 1500 bytes with information from /neuro/dacq/meas_info/isotrak\nneuromag2ft (131217 16:05:07) Appended 680 bytes with information from /neuro/dacq/meas_info/hpi_result\n\nThen problem is that this happens pseudorandomly ...\n\n*) The first time you start neuromag2ft there are still no fits of coils available, so you get \"failed to open /neuro/dacq/meas_info/hpi_result\", but /tmp/neuromag2ft.fif is freshly created and accessible. You get, among the other things (obviously):\n\nWarning: No device to head transform available in fif file \n\n*) If you stop and restart the acquisition, now the (previous) hpi_result becomes available, but for some strange reason /tmp/neuromag2ft.fif is no more accessible, and again some part of the info is missing ...\n\nMy personal sort-of-working recipe is the following:\n\n1) start acquisition software, select project, select subject, load the HPI digitization\n2) start neuromag2ft\n3) hit \"Run\" and fit the coils: this starts streaming incomplete data, because the hpi_results is being created and still missing ...\n4) stop and restart neuromag2ft; now all the bits are in place, namely there (previous) hpi_result is available and restarting neuromag2ft makes a fresh /tmp/neuromag2ft.fif ...\n5) Hit \"restart\", to restart the acquisition: at this stage one can \"keep\" the previous \nfit, since the new one won't be used anyway, and tick \"cHPI\" if I wish ...\n\nNow I've a reliable and stable stream of data, on which I can apply\n\nft_realtime_headlocalizer(cfg)\n\nat this point I see the coils on the plots, sometimes jumping/flipping around, but sooner or later everything dies in:\n\nError using dipole_fit (line 164)\nMaximum number of iterations exceeded before reaching the minimum, please try with\nanother initial guess.\n\nIf you see the attached figure, probably this is due to using the wrong/previous HPI fit (?!)\nEyeballing, apart from fixing the /tmp/neuromag2ft.fif problem (missing an \"append\" somewhere!?), probably a good workaround would be changing a bit neuromag2ft in a way that it waits for a keypress before streaming, e.g. start acquisition, start neuromag2ft (which waits for me), do the  HPI fit, and only now in the console hit \"enter\", so the new hpi_result is used ... Then, why the ft_rt_headloc fit fails, I cannot really help ;-)\n\nMy two cents,\nG."
+      - +@isprivate: "0"
+        commentid: "12381"
+        comment_count: "152"
+        attachid: "576"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2013-12-17 22:09:44 +0100
+        thetext: |-
+          Created attachment 576
+          Strange HPI coils / sensors outcome
+      - +@isprivate: "0"
+        commentid: "12383"
+        comment_count: "153"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2013-12-18 09:58:00 +0100
+        thetext: "Thanks Gp, for the useful information. \n\nThe critical order of actions that determines the stream-capturing&sending of the chunks to the buffer needs a closer look indeed. Ideally, neuromag2ft is, as with the CTF system, running all the time, bulletproof.\n\nThe second issue is indeed to improve the fits. Right now, we're using the magnetometer channels (102), but we've been exploring the use of all 306 channels, and even specific subselections of channels. This will try require a more systematic investigation."
+      - +@isprivate: "0"
+        commentid: "12819"
+        comment_count: "154"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-02-11 21:33:03 +0100
+        thetext: "Dear GP (and Stephen),\n\nI haven't posted here for a while, but this project hasn't been out of my head. So here's an update. I have been trying to improve the dipole fit procedure, but at this point the behavior is still as you described it: \n\n\"I see the coils on the plots, sometimes jumping/flipping around, but sooner or later everything dies in\"\n\nWhen looking at the modeled data that is used for comparison with the actually recorded data (in this case: a ~10min. phantom measurement in stockholm, with sss-treatment afterwards), I do not see any abnormalities (1st slide of attachment below). However, the explained variance of actually recorded signal amplitudes at the different sensors is pretty low, i.e. much lower than reported in the Maxfilter manual (.98), see slides 1 and 2 of attachment. Comparing the topographies of actual and model data, and especially their difference, shows that there is spatial structure left in the unexplained variance (3rd column of 3rd slide). It is highly likely that this is causing the behavior you described.\n\nAt this point, it's an open question to me what is the most efficient way to proceed. Hopefully, Robert has another rabbit in his hat. Any suggestions/inside knowledge are welcome. :)\n\nYours,\nArjen\n\n\n\n\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nMatlab code history, for replication purposes of attached figure below (stockholm-data-specific)\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\ncfg = [];\ncfg.dataset =  '/home/action/arjsto/Headloc/Stockholm/cHPI_test_arjsto_sss.fif';\ncfg.coilfreq = [307, 314, 293, 321];\ncfg.bufferdata = 'first';\ncfg.blocksize = 10;\nft_realtime_headlocalizer(cfg)\n\n% debug @ line 169 in dipole_fit.m, and then @ line 324 in dipole_fit.m\n\nX = lf*mom; % 'model'\n  figure; hold on;\n  for j=1:4\n    subplot(2,2,j); hold on;\n    ft_plot_topo3d(sens.chanpos, X(:,j))\n  \n  % goodness-of-fit\n  [B,BINT,R,RINT,STATS] = regress(dat(:,j),X(:,j)); % STATS: R-square, F, p, E\n  fprintf('goodness of fit for sensor %s: %s \\n', num2str(j), num2str(STATS(1))) \n  title(['model R-square: ' num2str(STATS(1))]);\n  end\n\nfigure; hold on;\n  for j=1:4\n    subplot(2,2,j); hold on;\n    plot(X(:,j),dat(:,j),'b.')\n    xlabel('lf*mom')\n    ylabel('dat')\n  end\n\nfreqlabel = [307, 314, 293, 321]; % specific for stockholm setup during this particular recording\n  \n  cfgtopo                  = [];\n  cfgtopo.marker           = 'off';\n  cfgtopo.comment          = 'no';\n  cfgtopo.layout           = 'neuromag306all.lay';\n  data.label               = sens.label;\n  data.dimord              = 'chan_freq';\n  data.freq                = 1;\n  \n  figure; hold on;\n  for j=1:4\n    subplot(4,3,j*3-2); hold on;    \n    data.powspctrm = dat(:,j);\n    ft_topoplotTFR(cfgtopo, data);\n    title(['data hpi' num2str(j)])\n    subplot(4,3,j*3-1); hold on;  \n    data.powspctrm = X(:,j);\n    ft_topoplotTFR(cfgtopo, data);\n    title(['model hpi' num2str(j)])\n    subplot(4,3,j*3); hold on;  \n    data.powspctrm = dif(:,j);\n    ft_topoplotTFR(cfgtopo, data);\n    title(['dif hpi' num2str(j) ', ' num2str(freqlabel(j)) 'Hz'])\n  end"
+      - +@isprivate: "0"
+        commentid: "12820"
+        comment_count: "155"
+        attachid: "591"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-02-11 21:34:16 +0100
+        thetext: |-
+          Created attachment 591
+          goodness-of-fits of dipolefits on a phantom-measurement
+      - +@isprivate: "0"
+        commentid: "15570"
+        comment_count: "156"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2015-03-30 10:15:38 +0200
+        thetext: "(In reply to Arjen Stolk from comment #155)\n\nJust to update a bit the status, after the \"bump\" of Robert.\n\nFor the offline movement correction, now we are settled on a sort of \"hackerish\" solution. We get the head positions out of maxfilter (used only for that ;-)), that with the \"-hp\" switch puts the positions (quaternions) and the time in a text file, that we afterwards use either for showing the amount of movement (cimec_showmov.m, I can post if interested, just a cool name around standard ft functions), or for adding as extra \"trialinfo\" columns per trial  (cimec_addmov.m, as before). This afterwards is used in the ft_regressconfound part, to regress out the movement. \nI haven't fully given up the \"pure\" matlab/ft way, but this sounded as a viable tradeoff, waiting for fresh forces/new info ...\n\nFor the online part ... we just pull more the chin rest ;-)\n\nSince I saw this issue on men-python last week\n\nhttps://github.com/mne-tools/mne-python/issues/1883\n\nwhich in turn hints towards this WIP\n\nhttps://github.com/mne-tools/mne-python/pull/1876\n\nI've seen that in base.py there is a function \n\nget_chpi_positions (...)\n\nbut seems to be as workaround-ish are we are, i.e. if there is the maxfilter output then use it for getting the quaternions, otherwise just suck the cHPI (sinusoidal) data, AFA my crappy understanding of python ...\nSo, they don't seem to be much further ;-)\nG."
+      - +@isprivate: "0"
+        commentid: "17707"
+        comment_count: "157"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-07-31 02:16:18 +0200
+        thetext: |-
+          Dear all,
+
+          This topic hasn't been touched in a while, and it doesn't seem likely that I will be able to revisit it either. The current status seems to be that the buffer side is in good shape, but the required dipolefitting of the headposition coils isn't. I recall our suspicion was this was due a too complex interaction between the different headposition coils themselves and/or non-linear sensor sensitivity.
+
+          Moreover, it seems Trento found a workaround that allows them to use the head positions in their offline analysis. Perhaps it would be possible to document those tools, Gianpaolo? For instance, here: http://www.fieldtriptoolbox.org/example/how_to_incorporate_head_movements_in_meg_analysis?
+
+          On that note, I would like to close this bug. Feel free to reopen it though in case of new insights.
+
+          Best,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "20323"
+        comment_count: "158"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:53 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20523"
+        comment_count: "159"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:42:08 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "355"
+        date: 2012-10-29 13:04:00 +0100
+        delta_ts: 2012-10-29 13:04:33 +0100
+        desc: real-time head localizer
+        filename: animS1.gif
+        type: image/gif
+        size: "3069548"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "375"
+        date: 2012-11-21 08:10:00 +0100
+        delta_ts: 2012-11-21 08:10:55 +0100
+        desc: neuromag_headloc_flowchart
+        filename: neuromag_headloc.pdf
+        type: application/pdf
+        size: "864130"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "388"
+        date: 2012-12-03 16:33:00 +0100
+        delta_ts: 2012-12-03 16:33:53 +0100
+        desc: screen shot
+        filename: Screen shot 2012-12-03 at 16.29.41.png
+        type: image/png
+        size: "76875"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "405"
+        date: 2013-01-16 14:25:00 +0100
+        delta_ts: 2013-01-16 14:25:34 +0100
+        desc: intermediate version, has debugging stuff in it
+        filename: ft_realtime_coillocalizer.m
+        type: application/octet-stream
+        size: "9530"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "450"
+        date: 2013-04-14 18:35:00 +0200
+        delta_ts: 2013-04-14 18:35:11 +0200
+        desc: neuromag coilpos sample_chpi.fif
+        filename: neuromag_coilpos_sample.pdf
+        type: application/pdf
+        size: "595759"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "452"
+        date: 2013-04-15 17:20:00 +0200
+        delta_ts: 2013-04-15 17:20:07 +0200
+        desc: neuromag coilpos matteo_chpi.fif
+        filename: neuromag_coilpos_matteo.pdf
+        type: application/pdf
+        size: "591208"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "453"
+        date: 2013-04-15 19:04:00 +0200
+        delta_ts: 2013-04-15 19:04:17 +0200
+        desc: Log info of the fiff file
+        filename: sample_chpi_short.fif.log
+        type: text/plain
+        size: "82386"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "454"
+        date: 2013-04-15 22:04:00 +0200
+        delta_ts: 2013-04-15 22:04:11 +0200
+        desc: neuromag coilpos sample_chpi.fif part 2
+        filename: neuromag_coilpos_sample2.pdf
+        type: application/pdf
+        size: "311085"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "455"
+        date: 2013-04-15 22:11:00 +0200
+        delta_ts: 2013-04-15 22:11:18 +0200
+        desc: neuromag coilpos sample_chpi.fif part 2
+        filename: neuromag_coilpos_sample2.pdf
+        type: application/pdf
+        size: "311082"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "462"
+        date: 2013-04-25 13:21:00 +0200
+        delta_ts: 2013-04-25 13:21:12 +0200
+        desc: neuromag coilpos test_chpi.fif
+        filename: neuromag_coilpos_test.pdf
+        type: application/pdf
+        size: "589133"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "463"
+        date: 2013-04-25 13:21:00 +0200
+        delta_ts: 2013-04-25 13:21:37 +0200
+        desc: neuromag coilpos test photos
+        filename: neuromag_coilpos_test_photos.pdf
+        type: application/pdf
+        size: "703329"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "464"
+        date: 2013-04-25 13:52:00 +0200
+        delta_ts: 2013-04-25 13:52:21 +0200
+        desc: neuromag coilpos test animation
+        filename: anim_coilloc.gif
+        type: image/gif
+        size: "71707"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "465"
+        date: 2013-04-25 14:56:00 +0200
+        delta_ts: 2013-04-25 14:56:45 +0200
+        desc: neuromag coilpos test animation rigidbody constraint
+        filename: anim_coilloc_rigidbody.gif
+        type: image/gif
+        size: "73087"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "470"
+        date: 2013-04-26 19:33:00 +0200
+        delta_ts: 2013-04-26 19:33:40 +0200
+        desc: dewar vs head coordinates
+        filename: neuromag_dewar_vs_head.pdf
+        type: application/pdf
+        size: "15725"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "514"
+        date: 2013-09-11 13:11:00 +0200
+        delta_ts: 2013-09-11 13:11:21 +0200
+        desc: neuromag2ft.fif example
+        filename: neuromag2ft.fif
+        type: application/octet-stream
+        size: "66311"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "515"
+        date: 2013-09-11 13:13:00 +0200
+        delta_ts: 2013-09-11 13:13:05 +0200
+        desc: neuromag2ft.fif old
+        filename: neuromag2ft.fif.old
+        type: application/octet-stream
+        size: "66311"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "533"
+        date: 2013-10-22 15:19:00 +0200
+        delta_ts: 2013-10-22 15:19:45 +0200
+        desc: neuromag2ft.fif again
+        filename: neuromag2ft.fif
+        type: application/octet-stream
+        size: "66375"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "534"
+        date: 2013-10-22 15:20:00 +0200
+        delta_ts: 2013-10-22 15:20:47 +0200
+        desc: neuromag2ft.fif - just different order of opening/closing
+        filename: 2.fif
+        type: application/octet-stream
+        size: "66375"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "535"
+        date: 2013-10-24 11:30:00 +0200
+        delta_ts: 2013-10-24 11:30:29 +0200
+        desc: neuromag2ft.fif - another one bites the dust
+        filename: neuromag2ft.fif
+        type: application/octet-stream
+        size: "72"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "536"
+        date: 2013-10-24 12:28:00 +0200
+        delta_ts: 2013-10-24 12:28:26 +0200
+        desc: 'decode_fiff: reads the tags and data of a fif file'
+        filename: decode_fiff.m
+        type: text/plain
+        size: "618"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "541"
+        date: 2013-10-25 16:46:00 +0200
+        delta_ts: 2013-10-25 16:46:35 +0200
+        desc: neuromag2ft.fif - freshly baked ....
+        filename: neuromag2ft.fif
+        type: application/octet-stream
+        size: "66367"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "542"
+        date: 2013-10-29 10:12:00 +0100
+        delta_ts: 2013-10-29 10:12:28 +0100
+        desc: Different hdr outputs of ft_read_header and pure buffer
+        filename: allhdr.mat
+        type: application/x-matlab-workspace
+        size: "21391"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "543"
+        date: 2013-10-29 10:13:00 +0100
+        delta_ts: 2013-10-29 10:13:23 +0100
+        desc: Few seconds of "recording", filled by neuromag2ft
+        filename: test001.tar.gz
+        type: application/x-gzip
+        size: "18073227"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "544"
+        date: 2013-10-29 12:33:00 +0100
+        delta_ts: 2013-10-29 12:33:05 +0100
+        desc: hdr with the new ft_read_header
+        filename: newhdr.mat
+        type: application/x-matlab-workspace
+        size: "64545"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "545"
+        date: 2013-10-30 11:23:00 +0100
+        delta_ts: 2013-10-30 11:23:52 +0100
+        desc: hdr from the stream and hdr2 from the file
+        filename: allhdr.mat
+        type: application/x-matlab-workspace
+        size: "185825"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "546"
+        date: 2013-10-30 11:24:00 +0100
+        delta_ts: 2013-10-30 11:24:32 +0100
+        desc: Short fiff with some digitized points ...
+        filename: testwphantomdigitized.fif
+        type: application/octet-stream
+        size: "9939377"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "566"
+        date: 2013-12-02 17:22:00 +0100
+        delta_ts: 2013-12-02 17:22:08 +0100
+        desc: meas_info and prepared folders - hopefully containing meaningful info for the HPI
+        filename: Archivio.zip
+        type: application/zip
+        size: "3849076"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "574"
+        date: 2013-12-11 11:41:00 +0100
+        delta_ts: 2013-12-11 11:41:21 +0100
+        desc: FT_READ_ISOTRAK
+        filename: ft_read_isotrak.m
+        type: text/plain
+        size: "2425"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "576"
+        date: 2013-12-17 22:09:00 +0100
+        delta_ts: 2013-12-17 22:09:44 +0100
+        desc: Strange HPI coils / sensors outcome
+        filename: 20131217.jpg
+        type: image/jpeg
+        size: "34476"
+        attacher:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "591"
+        date: 2014-02-11 21:34:00 +0100
+        delta_ts: 2014-02-11 21:34:16 +0100
+        desc: goodness-of-fits of dipolefits on a phantom-measurement
+        filename: dipfit_smp10000-20000_MEGMAG_stockholm.pdf
+        type: application/pdf
+        size: "722818"
+        attacher:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        data: REMOVED

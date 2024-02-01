@@ -1,0 +1,170 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2409"
+    creation_ts: 2013-12-03 18:39:00 +0100
+    short_desc: change of syntax in bitcmp
+    delta_ts: 2015-02-11 10:40:12 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2415"
+    everconfirmed: "1"
+    reporter:
+      +content: g.flandin
+      +@name: Guillaume
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12203"
+        comment_count: "0"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2013-12-03 18:39:01 +0100
+        thetext: "A warning is displayed with recent MATLAB versions when reading Biosemi data about a change of syntax in bitcmp:\n\nWarning: BITCMP(A,N) will not accept integer valued input N in a future release. Use\nBITCMP(A,ASSUMEDTYPE) instead. \n> In ft_read_event at 299\n\n> You still can use the bitcmp function on integers of arbitrary bit length. For \n> example, bitcmp(x,N) and bitand(bitcmp(x),2^N-1) yield the same result."
+      - +@isprivate: "0"
+        commentid: "12265"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 14:45:18 +0100
+        thetext: "matlab2012b on my desktop does not give the warning, but does state in the help:\n\nC = bitcmp(A,N) will not accept N in a future release. Use bitcmp(A,ASSUMEDTYPE) instead.\n\nmatlab2013a also does not give a warning. \n\nWe don't have 2013b anywhere yet (I will ask for it), I presume that is what you are using. On my OS X desktop I cannot install 2013a or later, as that requires OSX 10.7 or newer and I have 10.6.8."
+      - +@isprivate: "0"
+        commentid: "12266"
+        comment_count: "2"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2013-12-05 14:49:49 +0100
+        thetext: |-
+          (In reply to comment #1)
+          Yes, sorry for being imprecise. The warning appears with R2013b.
+      - +@isprivate: "0"
+        commentid: "12267"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 16:29:40 +0100
+        thetext: "I have now spent >30 minutes looking at the bit handling, and don't understand what is going on. \n\nThe 24 bits in the file are converted to double precision in read_24bit.c by this\n\n    b1 = (0x000000FF & ((int32_t)buf[indx  ]));\n    b2 = (0x000000FF & ((int32_t)buf[indx+1]));\n    b3 = (0x000000FF & ((int32_t)buf[indx+2]));\n    dat_p[count] = ((int32_t) ((b3 << 24) | (b2 << 16) | (b1 << 8)))/256;\n\nthis first shifts them all the way to the left, and then 8 bits to the right again. The consequence of bit 24 being on (which signifies the sign bit, although that normally would be bit 32) is that all bits from 32 up to 25 turn on. \n\nfid = fopen('test.bin', 'wb')\nfwrite(fid, uint8(0))\nfwrite(fid, uint8(255))\nfclose(fid)\n\nbitget(int32(read_24bit('test.bin', 0, 1)), 32:-1:1)\n\nans =\n  Columns 1 through 8\n           1           1           1           1           1           1           1           1\n  Columns 9 through 16\n           1           1           1           1           1           1           1           1\n  Columns 17 through 24\n           0           0           0           0           0           0           0           0\n  Columns 25 through 32\n           0           0           0           0           0           0           0           0\n\nSomehow this is compounded with the little endianness.\n\nIf I comment out the section in ft_read_event around line 300\n      % find indices of negative numbers\n      bit24i = find(sdata < 0);\n      % make number positive and preserve bits 0-22 (counting from 0)\n      sdata(bit24i) = bitcmp(abs(sdata(bit24i))-1,24);\n      % re-insert the sign bit on its original location, i.e. bit 23 (counting from 0)\n      sdata(bit24i) = sdata(bit24i)+(2^(24-1));\n      % typecast the data to ensure that the status channel is represented in 32 bits\n      sdata = uint32(sdata);\n\nand replace it by\n    % convert to integer representation and only preserve the lowest 24 bits\n    sdata = bitand(int32(sdata), 2^24-1);\n \nthen it all just seems to work fine."
+      - +@isprivate: "0"
+        commentid: "12268"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 16:49:25 +0100
+        thetext: "I tested the new code \n  sdata = bitand(int32(sdata), 2^24-1);\non all 7 test BDF datasets that I happen to have, and the old and new give exactly the same result. So I'll switch to that.\n\nmac001> svn commit \nSending        fileio/ft_read_event.m\nTransmitting file data .\nCommitted revision 8976."
+      - +@isprivate: "0"
+        commentid: "13895"
+        comment_count: "5"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-06-19 15:57:55 +0200
+        thetext: |-
+          This is now an error in R2014b:
+          >> Error using bitcmp
+          BITCMP(A,N) does not accept integer valued input N. Use BITCMP(A,ASSUMEDTYPE) instead.
+          Error in ft_read_event (line 308)
+                sdata(bit24i) = bitcmp(abs(sdata(bit24i))-1,24);
+      - +@isprivate: "0"
+        commentid: "14363"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-16 13:15:29 +0200
+        thetext: |-
+          Hi Robert,
+
+          Could you please finish fixing this bug? It affects our test dataset and our regression testing fails because of it so it'd be nice to get it fixed before the long awaited release.
+      - +@isprivate: "0"
+        commentid: "14365"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-16 14:24:14 +0200
+        thetext: "The code to address this was already there, there was just an \n\nif true\n % old code\nelse\n % new code\nend\n\naround it. I removed the old code altogether and made a test script that comprises two bdf files that I have. There is no warning any more in MATLAB 2014a. \n\nmac011> svn commit fileio/ft_read_event.m test/test_bug2415.m\nSending        fileio/ft_read_event.m\nAdding         test/test_bug2415.m\nTransmitting file data ..\nCommitted revision 9806."
+      - +@isprivate: "0"
+        commentid: "14366"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-16 14:25:53 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          the test script also runs fine under matlab2012b
+      - +@isprivate: "0"
+        commentid: "14386"
+        comment_count: "9"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-09-19 13:22:42 +0200
+        thetext: The new version of the code works fine with MATLAB R2012b onwards but now returns an error with R2012a an earlier versions.
+      - +@isprivate: "0"
+        commentid: "14414"
+        comment_count: "10"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-22 14:47:38 +0200
+        thetext: |-
+          (In reply to Guillaume from comment #9)
+
+          I checked in Guillaume's fix using try...catch. Please check and improve if you want.
+      - +@isprivate: "0"
+        commentid: "14418"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-22 17:02:43 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #10)
+
+          thanks. I changed try-catch to matlabversion.
+
+          roboos@mentat001> svn commit fileio/
+          Sending        fileio/ft_read_event.m
+          Adding         fileio/private/matlabversion.m
+          Transmitting file data .
+          Committed revision 9824.
+      - +@isprivate: "0"
+        commentid: "15226"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:12 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

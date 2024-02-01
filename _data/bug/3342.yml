@@ -1,0 +1,176 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3342"
+    creation_ts: 2017-08-31 02:08:00 +0200
+    short_desc: why does ft_freqbaseline normalize trials using the trial-specific baseline instead of the average baseline?
+    delta_ts: 2019-08-10 12:43:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18903"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-08-31 02:08:13 +0200
+        thetext: "I couldn't find any bug report related to this, but am pretty sure it used to be the other way around and wondered about the rationale behind his change.\n\nLooking back in history, the following code clean-up might have introduced it:\nhttps://github.com/fieldtrip/fieldtrip/commit/0fe5dad4d56fe28948d2b0244f3947c78f9e1b1b\n\n@Eelke, did you intentionally make it perform the normalization per trial? \n\nAs far as I know, baseline-correcting per trial can be noisier since the baseline is estimated less robustly, namely, an average over just a few samples corresponding to the trial-specific baseline. In contrast, taking an average across all trials as a baseline generally uses many more samples. This is all theoretical and I'm not asking because of experiencing any issues. Just wondering."
+      - +@isprivate: "0"
+        commentid: "18904"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-08-31 02:24:28 +0200
+        thetext: |-
+          Just briefly for a point in case: 3 trials, where the trial-specific activation is identical across the two situations below. All that differs is how the baseline is calculated (per trial in situation #1, or across trials in situation #2).
+
+          > situation #1: normalization using trial-specific baseline (using a baseline that averages to 2 across the 3 trials, i.e. (2+3+1)/3=2)
+
+          ((2-1.5)/1.5 + (3-1)/1 + (1-.5)/.5) /3
+
+          ans =
+
+              1.1111
+
+          > situation #2: normalization using across-trial average baseline (the average is 2)
+
+          ((2-1.5)/1.5 + (2-1)/1 + (2-.5)/.5) /3
+
+          ans =
+
+              1.4444
+
+          On average there was a (2-1)/1 = 100% increase. So situation #1 is closer to the average, which doesn't really illustrate my point hehe. The main problem is that a  trial-specific baseline increases the risk for disproportionally blowing up activity modulations because of a noisy baseline in a given trial. But perhaps I'm missing something here?
+      - +@isprivate: "0"
+        commentid: "18914"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-14 07:21:11 +0200
+        thetext: Hope you don't mind me 'assigning' this one to you to avoid it getting lost in the ever-ongoing stream of notifications.
+      - +@isprivate: "0"
+        commentid: "19149"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-12-30 06:20:06 +0100
+        thetext: |-
+          Still getting wildly different results with the current implementation of baseline-correction, as compared to the old version where the baseline is based on the average across baseline intervals. The current implementation does the baseline-correction using the trial-specific baseline interval.
+
+          I'm uploading a plot of old vs. current style, left and right respectively. It seems to me the current implementation has a strong bias towards positive changes (in all channels). I feel it renders the current implementation of ft_freqbaseline useless, unless people average across trials prior to baselinecorrection, but I presume this is not intended behavior?
+      - +@isprivate: "0"
+        commentid: "19150"
+        comment_count: "4"
+        attachid: "853"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-12-30 06:21:28 +0100
+        thetext: |-
+          Created attachment 853
+          old vs new/current implementation
+
+          simulated the old style by averaging across trials prior to baselinecorrection. anything else is identical:
+
+          cfg               = [];
+          cfg.baseline 	  = [-.3 -.1];
+          cfg.baselinetype  = 'relchange';
+          freq_blc = ft_freqbaseline(cfg, freq);
+      - +@isprivate: "0"
+        commentid: "19677"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-04-01 09:12:29 +0200
+        thetext: Bumping this, as I don't know if it's (still) an issue or design choice.
+      - +@isprivate: "0"
+        commentid: "19678"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-04-01 09:33:50 +0200
+        thetext: heb ik op de 'aan' knop gedrukt?
+      - +@isprivate: "0"
+        commentid: "19681"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-04-01 10:13:31 +0200
+        thetext: "The bug report has a question as the title. The answer to the question could for example be \"just because\". \n\nIt is unclear to me what the issue is that is to be solved. Is it that the baseline computation is now done differently than it used to in the past? And is the requested action to revert to the past behaviour?\n\nI used the following code, going back year after year.\n\n---------\n\nrestoredefaultpath \naddpath('/home/common/matlab/fieldtrip-20091231');\n\ntry\n  ft_defaults\ncatch\n  fieldtripdefs\nend\n\n\n%%\n\nfreq = [];\nfreq.dimord = 'rpt_chan_freq_time';\nfreq.label = {'1', '2'};\nfreq.freq = linspace(1, 30, 30);\nfreq.time = linspace(-0.5, 1, 100);\nfreq.powspctrm(1,:,:,:) = 1*ones(1, 30, 100);\nfreq.powspctrm(2,:,:,:) = 2*ones(1, 30, 100);\n\n%%\n\ncfg= [];\ncfg.baselinetype = 'absolute';\ncfg.baseline = [-inf 0];\nft_freqbaselinefreqbl = freqbaseline(cfg, freq);\n\nif all(freqbl.powspctrm(:,1,1,1)==0)\n  fprintf('correction was done with individual trial baselines\\n');\nelse\n  fprintf('correction was done using average baseline\\n');\nend\n\n\n---------\n\nGoing back further than 2009 failed (could be solved, but this is far enough back if you ask me). And some of the older FieldTrip versions are incompatible with R2018b. \n\nBut all FT versions that worked showed that correction was done with individual trial baselines.\n\nSo it seems to me that there is no issue. You still might want the baseline correction to be done using the average over trials, but that would be new functionality."
+      - +@isprivate: "0"
+        commentid: "19683"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-04-02 04:16:41 +0200
+        thetext: Thanks for looking into this. I checked the git commit linked to above and it seems freqbaseline was initially taking the average across the baseline interval rather than across trials as I thought. This means that freqbaseline was already altered before that commit or that it never computed the average baseline in the first place as your check suggests. Guess I'm losing my marbles then, and that this gnarly per-trial-normalization was a design choice all along ...
+      - +@isprivate: "0"
+        commentid: "19684"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-04-02 10:07:32 +0200
+        thetext: "(In reply to Arjen Stolk from comment #8)\n\nI don't think it was a design choice per see. I guess the function was initially written with averaged TFRs in mind, and only later extended for trials by simply adding a for-loop. \n\nI see the use case (actually multiple) to extend the functionality, e.g. like this\n\ncfg.averageover = 'individual'\nfreq_bl = ft_freqbaseline(cfg, freq);\n \ncfg.averageover = 'trials'\nfreq_bl = ft_freqbaseline(cfg, freq);\n\ncfg.averageover = 'conditions'\nfreq_bl = ft_freqbaseline(cfg, freqC1, freqC2, ...);\n\nThis would be new functionality, so better dealt with in a separate issue (on github)."
+      - +@isprivate: "0"
+        commentid: "20530"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:43:41 +0200
+        thetext: "This closes a whole series of bugs that have recently been resolved (either FIXED/WONTFIX/INVALID). \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "853"
+      date: 2017-12-30 06:21:00 +0100
+      delta_ts: 2017-12-30 06:21:28 +0100
+      desc: old vs new/current implementation
+      filename: Screen Shot 2017-12-29 at 9.15.04 PM.png
+      type: image/png
+      size: "587732"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

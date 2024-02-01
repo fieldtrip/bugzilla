@@ -1,0 +1,169 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1517"
+    creation_ts: 2012-06-11 22:17:00 +0200
+    short_desc: dipole fitting dependent on optimization_toolbox
+    delta_ts: 2012-08-23 10:33:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jdien07
+      +@name: Joseph Dien
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6351"
+        comment_count: "0"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2012-06-11 22:17:20 +0200
+        thetext: "When I tried to use ft_dipolefitting with fieldtrip-20120608, I got the following error:\n\nLicense checkout failed.\nLicense Manager Error -5\nCannot find a license for optimization_toolbox. \nMake sure an INCREMENT line for optimization_toolbox exists in the license file, and that the formatting of the license file is correct.\n\nTroubleshoot this issue by visiting: \nhttp://www.mathworks.com/support/lme/R2012a/5\n\nIt might be helpful to test out changes by first disabling all but the core toolbox and seeing if it still runs, if compatibility is indeed a goal.  Thanks for continuing the good work not the dipole code and the quick turnaround on the previous but report!\n\nJoe"
+      - +@isprivate: "0"
+        commentid: "6352"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-11 22:38:55 +0200
+        thetext: "Hi Joe,\n\nThis error surprises me a bit, since the ft_dipolefitting calls inverse/dipole_fit, which explicitly checks for the optimization toolbox. If that is not present it will use the slower fminunc function and if it is present it will use the faster fminsearch. \n\nCould you check  what is happening on line 72 in dipole_fit.m? You might want to explicitly clear ft_hastoolbox prior to that. Or just try\n\nclear ft_hastoolbox; \nft_hastoolbox('optim')\n\nIn my case it returns 1. \n\nFrom there you could dig further into the code at line 190 in ft_hastoolbox. That is where the presence of the toolbox AND the availability of a license is checked. The idea is that if the toolbox is installed but a license not available (e.g. because they ran out on the server due to other people using them), that dipole fitting still works.\n\nA more elaborate trail of the error (i.e. the backtrace of where the error happened) might also help. And the output of the \"ver\" command.\n\nRegarding your last comment: do you know how one can \"disable\" toolboxes? The only method I can think of is to reinstall MATLAB from DVD and in the GUI installation procedure make sure that the toolbox is not selected. The license of course will remain available on our university license server, but not having the toolbox in the local installation might be enough to emulate the toolbox-not-available situation."
+      - +@isprivate: "0"
+        commentid: "6353"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-11 22:54:59 +0200
+        thetext: "(In reply to comment #1)\n\nI have just tried to reproduce it (with a completely different toolbox). \n\nAre you actually sure it is a real error?\n\nIf I do\n\n>> license('checkout','random_toolbox')\nLicense checkout failed.\nLicense Manager Error -5\nCannot find a license for random_toolbox. \nMake sure an INCREMENT line for random_toolbox exists in the license file, and that the formatting of the license file is correct.\n\nTroubleshoot this issue by visiting: \nhttp://www.mathworks.com/support/lme/R2009a/5\n\nDiagnostic Information:\nFeature: random_toolbox \nLicense path: /Users/robert/.matlab/R2009a_licenses:/Applications/MATLAB_R2009a.app/licenses/license.dat:/Applications/MATLAB_R2009a.app/licenses/license_MacBook_161051_R2009a.lic: \nFLEXnet Licensing error: -5,357.\n\nans =\n     0\n\nThen it prints very serious looking messages in the command window, but in the end it returns 0 (i.e. false). That is what ft_hastoolbox cares about, and then in dipole_fit it will use the default/core matlab fminunc version.\n\nSo it might just be \"noise\" that is printed on the screen without affecting the proper functioning."
+      - +@isprivate: "0"
+        commentid: "6354"
+        comment_count: "3"
+        attachid: "276"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2012-06-11 23:13:35 +0200
+        thetext: |-
+          Created attachment 276
+          workspace contents
+      - +@isprivate: "0"
+        commentid: "6355"
+        comment_count: "4"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2012-06-11 23:15:40 +0200
+        thetext: |-
+          Hmmm... not used to this interface...
+
+          Ah, the license error was a red herring that threw off my troubleshooting.  It'd be a good idea to disable the output to the screen with an evalc function call I think.  Anyway, the true problem is:
+
+          Error: File: fminsearch.m Line: 1 Column: 1
+          The input character is not valid in MATLAB statements or expressions.
+
+          It occurs at the call:
+
+          [param, fval, exitflag, output] = optimfun(@dipfit_error, param, options, dat, sens, vol, constr, metric, checkinside, reducerank, normalize, normalizeparam, weight);
+
+          I'm not really clear how the @ calls work so I'm having some trouble diagnosing this on my own.  After doing:
+
+          K>> which('fminsearch')
+          /Applications/MATLAB_R2012a.app/toolbox/matlab/optimfun/fminsearch.m
+
+          it looks to me like the set of input variables just doesn't match up with what fmnisearch is expecting.
+          I'm attaching the contents of my workspace so you can try to replicate this issue.
+
+          Thanks!
+
+          Joe
+      - +@isprivate: "0"
+        commentid: "6357"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-12 10:00:37 +0200
+        thetext: "(In reply to comment #4, short intermezzo)\n\nthe @ syntax (function handle) allows you to use a symbolic name for the function. So you can do \n\n>> add = @plus;\n\n>> add(1,1)\nans =\n     2\n\nwhich is the same as\n\n>> plus(1,1)\nans =\n     2\n\nSee \n>> help function_handle"
+      - +@isprivate: "0"
+        commentid: "6358"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-12 10:10:27 +0200
+        thetext: "(In reply to comment #4)\n\nI had to temporary copy dipfit_error into a separate m-file because from the command line I cannot directly call a sub-function, but then I am able to do\n\nload test.mat\noptimfun(@dipfit_error, param, options, dat,sens, vol, constr, metric, checkinside, reducerank, normalize, normalizeparam,weight)\n\n Iteration   Func-count     min f(x)         Procedure\n     0            1         0.230587         \n     1            4         0.228908         initial simplex\n     2            5         0.228908         reflect\n ...\n   112          198         0.224206         contract inside\n   113          200         0.224206         reflect\n   114          202         0.224206         contract outside\n \nOptimization terminated:\n the current x satisfies the termination criteria using OPTIONS.TolX of 1.000000e-04 \n and F(X) satisfies the convergence criteria using OPTIONS.TolFun of 1.000000e-04 \n\nans =\n   61.4638  -15.9018  -13.0530\n\nSo everything still works for me...\n\nYour error \nError: File: fminsearch.m Line: 1 Column: 1\nThe input character is not valid in MATLAB statements or expressions.\nsuggests that the file\n/Applications/MATLAB_R2012a.app/toolbox/matlab/optimfun/fminsearch.m\nis corrupt. Matlab complains that it cannot read the file. \n\nWhat about \n>> help fminsearch\nand trying out one of the examples in the help?\n\nPS I should note that I don't have MATLAB 2012a yet, so I cannot exactly reproduce your situation."
+      - +@isprivate: "0"
+        commentid: "6368"
+        comment_count: "7"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2012-06-12 16:12:52 +0200
+        thetext: |-
+          Agh...
+
+          I figured it out.  It's a compatibility conflict with eeglab11_0_0_0b.
+          Arno is including Octave versions of some of the Matlab functions it seems.
+          When I remove eeglab11_0_0_0b/functions/octavefunc from the path, everything works fine again.
+          Matlab isn't giving me the usual warnings of function name conflicts for some reason.
+          I guess I need to talk to Arno about this.  I wish he'd be more careful about these naming conflicts.
+
+          Thanks for the help!
+
+          Joe
+      - +@isprivate: "0"
+        commentid: "6369"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-12 16:16:22 +0200
+        thetext: good that it has been resolved!
+      - +@isprivate: "0"
+        commentid: "7120"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-23 10:33:54 +0200
+        thetext: closed multiple bugs that have been resolved for some time
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "276"
+      date: 2012-06-11 23:13:00 +0200
+      delta_ts: 2012-06-11 23:13:35 +0200
+      desc: workspace contents
+      filename: test.mat.zip
+      type: application/zip
+      size: "11974"
+      attacher:
+        +content: jdien07
+        +@name: Joseph Dien
+      data: REMOVED

@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1342"
+    creation_ts: 2012-02-24 09:03:00 +0100
+    short_desc: ft_denoise_pca bug?
+    delta_ts: 2012-04-02 16:26:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "1343"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5343"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-24 09:03:48 +0100
+        thetext: |-
+          See below:
+
+          Dear Jan-Mathijs,
+
+          Please excuse me for writing to you first and not in the list. I think there might be a bug with ft_denoise_pca when the option cfg.pertrial   is set to 'yes' (which as far as I understand is more thorough as an option than 'no').
+
+          More precisely, I am trying to apply it on my CTF-275 MEG data that I have already preprocessed up to a point with SPM, but I am getting the following error
+
+          Error using ft_checkdata (line 307)
+          This function requires raw data as input.
+
+          Error in ft_appenddata (line 71)
+           varargin{i} = ft_checkdata(varargin{i}, 'datatype', 'raw', 'feedback', 'no', 'hassampleinfo', 'yes');
+
+          Error in ft_denoise_pca (line 88)
+           data = ft_appenddata([], tmp{:});
+
+
+          I did not have the time to thoroughly test it but the problem seems to lie in those lines in  ft_denoise_pca
+
+
+          if strcmp(cfg.pertrial, 'yes'),
+           tmpcfg          = cfg;
+           tmpcfg.pertrial = 'no';
+          tmp             = cell(numel(varargin{1}.trial));      %****** this line seems to be the problem
+           for k = 1:numel(varargin{1}.trial)
+             tmpcfg.trials = k;
+             tmp{k,1}      = ft_denoise_pca(tmpcfg, varargin{:});
+
+           end
+           data = ft_appenddata([], tmp{:});
+           return;
+          end
+
+
+          and more specifically in the line
+
+          tmp             = cell(numel(varargin{1}.trial));
+
+          which I have substituted with
+
+          tmp             = cell(numel(varargin{1}.trial) , 1);
+
+          and it seems to be working but since I did not go through the whole code I felt insecure to just patch the code by myself and I thought to ask you first.
+
+          I would be grateful if you could take a look on that.
+
+          Moreover, I would be grateful if you could provide me with some practical advice concerning the following from your practical experience:
+
+          1. Has ft_denoise_pca given you more robust results than ft_denoise_synthetic? I know that it is two different techniques, but since it is one or the other that can be used, I would be grateful from some recommendations/considerations
+
+          2. If ft_denoise_pca is better, is it really also better to set the pertrial option to 'yes'? Naively I would assume that this should be true
+
+          3. (And very crucial) would you apply the denoising of either of the two methods before or after filtering (assuming that both the MEG and the MEGREF channels have been filtered in the same way). Would it make a difference or is it necessarery that the data of both sensor types have been baseline corrected / de-meaned / de-trended beforehand?  And then again, would there be an advantage on applying it on the continuous  data before epoching?
+
+          4. For ft_denoise_synthetic, is it right that 'G1BR' means first-order gradiometer correction, G2BR 2nd order and G3BR3rd order (I mean, it is not clear in the documentation)? Could you provide me with a reference containing a comparison of the above? I am asking you because up to now I had only heard of people mentioning the 3rd order correction as their method of choice. Finally. what happens if the 'none' option is selected?
+
+
+
+          Apologies for this bombardment of questions, please feel free to reply only when your time permits and only to the non-stupid questions - I just started spending time on this issue so I won't get offended. I just need some practical guidelines before I start exploring, otherwise I m afraid I will be lost soon.
+
+          Apologies for the audacity of this long e-mail. I also have to say that I am grateful to your team for your work.
+
+          Kind Regards,
+          Panagiotis
+      - +@isprivate: "0"
+        commentid: "5344"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-24 09:04:05 +0100
+        thetext: |-
+          ...And another potential bug...
+
+          Apologies for the double mail Jan-Mathijs, I forgot to report one more possible bug in ft_denoise_pca ; inthe data structure that it is returned, it seems that the "time" field is not being retained from the input argument structure; it rather seems to be reset to 0. I just manually copy this info  from the original data for the time being.
+
+          Hope I am not doing something wrong here..
+
+          Thanks again and all apologies,
+          Panagiotis
+      - +@isprivate: "0"
+        commentid: "5355"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-24 15:51:50 +0100
+        thetext: |-
+          duplicate
+
+          *** This bug has been marked as a duplicate of bug 1343 ***

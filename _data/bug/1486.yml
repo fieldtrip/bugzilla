@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1486"
+    creation_ts: 2012-05-23 09:34:00 +0200
+    short_desc: improve artifact detection and rejection for unstable acquisition systems
+    delta_ts: 2014-10-07 11:12:17 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - johanna.zumer
+      - jorn
+      - nathanweisz
+      - stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6169"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-23 09:34:07 +0200
+        thetext: "The following is from an email that was still in my todo box.... Better make it a joint todo item.\n\nIt pertains to bad-channel handling, which is important for less stable MEG systems but also for EEG measurements in infants.\n\nTODO: discuss in FT meeting and come up with a good plan. \n\n-----\n\nOn 17 Feb 2012, at 11:41, Weisz, Nathan wrote:\n\nthe mix of different sensor types is causing some headache already at the preprocessing level (don't want to think about the sources for now). the problem with our neuromag system at least is that it is very unstable (even with the Konstanz BTI, one bad channel usually was the bad guy for weeks / months). this creates enormous problems for sensor level stats, since this means that if not somehow taken care of efficiently plenty of sensors would be lost.\n\nas i understand it, your suggestion basically involves rerunning the rejectvisual and preprocessing multiple times. while of course this would work (and I did think of it) i would find a field in a data structure with a flag whether the channel was marked as bad or not as more efficient. but perhaps i am totally mistaken.\n\nso my home made solution at the moment is to add following lines of code to the part where ft_rejectvisual checks the input to cfg.keepchannel (empty at the moment in the official release, at least the one of a week ago):\n    case 'yes'\n      % keep all channels, also when they are not selected\n      %HACK NATHAN: aim ... when running rejectvisual on grads and mags\n      %separately with \"keepchannel\" to keep track of \"good\" channels\n      if ~isfield(data,'numrejections')\n          data.numrejections = 1;\n      else\n          data.numrejections = data.numrejections + 1;\n      end %if isfield\n      \n      if ~isfield(data,'chansel')\n          data.chansel=chansel;\n      else\n          data.chansel=data.chansel+chansel;\n      end\n\ni agree that the code may be pretty ugly. however by this means (a vector of 1 and 0 for good and bad channel respectively) i can a) remove bad channels for visualization purposes of artefacts, b) keep the channels however to interpolate them in order not to loose too many for stats, c) know which ones to dump for source analysis (cfg.channel=data.channel(find(data.chansel == 1)); or 2 depending on the rounds of rejections). this would save me a couple of steps in the preprocessing flow.\n\nfor the channels marked as bad we are currently looking at ways to interpolate. i know that Elekta has some magic software solutions but i would prefer not to use them as long as i can (we have good shielding and are quite distant from major noise sources).\n\ni hope i was not totally confusing. i would really like to stick to a solution in the standard fieldtrip release as much as possible instead of using hacked versions, since these hacked versions may not work after some fieldtrip upgrades. is there something wrong about including such a 'flag' solution in the official version?\n\nbtw, talking about ft_rejectvisual, we have encountered the problem that the window displaying the trials does not rescale after removing an extreme outlying trial. i am not aware of posts on the fieldtrip list, so i was wondering whether this is a known issue or whether it may be specific to our data."
+      - +@isprivate: "0"
+        commentid: "6480"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-20 15:38:23 +0200
+        thetext: |-
+          to hook up on this, I just implemented spherical spline interpolation for ft_channelrepair (bug 634), which might give better interpolated data. The method is based on Perrin et al. 1989, the implementation is done by Jason Farquhar (i.e. should be fast and correct)
+
+          Also, for ft_channelrepair it is possible to give a list of trials to be interpolated, i.e. for each channel only a number of trials could interpolated.
+
+          In addition it might be wise to add a cfg.channel field to ft_channelrepair such that magnetometers will not be interpolated by gradiometers or any other creepy stuff.
+      - +@isprivate: "0"
+        commentid: "6491"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-21 10:31:19 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          It should be explained on the http://fieldtrip.fcdonders.nl/tutorial/artifacts page as a 3rd method (i.e. 1=reject, 2=remove, 3=interpolate).
+
+          I would expect (consistent with other methods) cfg.trial=[1 3 5] to result in an output with only 3 trials. How to deal with trial selection and explaining to users how data should be fused back again after doing channelrepair? Or should we just interpret cfg.trial differently here?
+      - +@isprivate: "0"
+        commentid: "14563"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 10:19:07 +0200
+        thetext: "Hi Stephen, \n\nThis is something we addressed last week in the NatMEG workshop. \n\nHow should we go about documenting this in general? There is ft_rejectvisual, in combination with ismember etc. Should we make an example script that demonstrates it?"
+      - +@isprivate: "0"
+        commentid: "14564"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 11:12:17 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          I have reviewed and added some text (see the note) to http://fieldtrip.fcdonders.nl/tutorial/visual_artifact_rejection?&#manual_artifact_rejection_-_display_a_summary
+
+          It is now also possible (as of revision https://code.google.com/p/fieldtrip/source/detail?r=9881) to do something like
+
+          cfg = []
+          cfg.method = summary
+          cfg.keepchannel = yes
+          cfg.keeptrial = yes
+          dummy = ft_rejectvisual(cfg, data)
+
+          followed by
+
+          clean = ft_rejectartifact(dummy.cfg, data)
+
+          to clean the data. The ft_rejectartifact function will use the selected trials and channels that are in dummy.cfg and ignores the keepchannel/keeptrial field.

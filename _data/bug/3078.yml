@@ -1,0 +1,497 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3078"
+    creation_ts: 2016-02-22 18:47:00 +0100
+    short_desc: ft_sourceanalysis error precomputed grid.filter
+    delta_ts: 2016-05-05 20:29:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1746"
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16951"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-02-22 18:47:44 +0100
+        thetext: |-
+          When computing common filter approach in EEG using the standard_bem.mat template headmodel I got the following error in ft_sourceanalysis:
+
+          >> sourcecomb{1,subj} = ft_sourceanalysis(cfg, freqall{1,subj});
+          the input is freq data with 64 channels, 1 frequencybins and no timebins
+          converting the linearly indexed channelcombinations into a square CSD-matrix
+          the call to "ft_selectdata" took 0 seconds and required the additional allocation of an estimated 0 MB
+          using electrodes specified in the configuration
+          converting units from 'mm' to 'cm'
+          converting units from 'mm' to 'cm'
+          determining source compartment (3)
+          projecting electrodes on skin surface
+          combining electrode transfer and system matrix
+          creating dipole grid based on user specified dipole positions
+          using gradiometers specified in the configuration
+          1989 dipoles inside, 1791 dipoles outside brain
+          the call to "ft_prepare_sourcemodel" took 0 seconds and required the additional allocation of an estimated 0 MB
+          the call to "ft_selectdata" took 0 seconds and required the additional allocation of an estimated 0 MB
+
+
+          Subselecting/reordering the channels in the precomputed leadfields
+
+
+
+          Subselecting/reordering the channels in the precomputed filters
+
+          Bad cell reference operation.
+
+          Error in ft_sourceanalysis (line 505)
+          					grid.filter{k} = grid.filter{k}(:, i2);
+
+
+          The error is produced because grid.inside is a logical vector and cannot be use to loop over. By doing k = find(grid.inside(:)==1)' in line 504 in ft_sourceanalysis it's fixed. For me it seems safe to fix it like this but I want to make sure I don't overlap with somebody's work.
+
+          I'm using the most recent fieldtrip version
+          This is FieldTrip, version f6c86496e9420eeb2a3a5479c5954526e0c034c6.
+      - +@isprivate: "0"
+        commentid: "16994"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:03:44 +0100
+        thetext: OK jefe, I'll look into it.
+      - +@isprivate: "0"
+        commentid: "16995"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 10:08:54 +0100
+        thetext: |-
+          Hi Diego, I created a branch 'bug3078' on my fieldtrip-repo:
+
+          github.com/schoffelen/fieldtrip
+
+          Could you check out this branch and test whether it now works?
+
+          Also, and this is the reason why I haven't pushed it to the master release branch, I am wonrdering why the code ends up here to begin with? Should a subselection, reordering of channels really take place? I would expect the common spatial filter to have been computed using exactly the same channels (and order of channels) as in the (single condition) data that you're going to throw at the spatial filter...
+      - +@isprivate: "0"
+        commentid: "17010"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-02-25 13:10:23 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #2)
+          Thanks for looking into that Jan-Mathijs.
+
+          1) I tested you branch and I got an error not related to your commit:
+          This is what I did with github:
+
+          git pull upstream master
+          git remote add jan https://github.com/schoffelen/fieldtrip.git
+          git remote -v
+          git pull jan bug3078
+
+          >> sourcecomb{1,subj} = ft_sourceanalysis(cfg, freqall{1,subj});
+          Error using exist
+          The optional second input to exist must be 'var', 'builtin', 'class', 'dir' or 'file'.
+
+          Error in ft_sourceanalysis (line 164)
+          hasbaseline = exist('data', 'baseline');
+
+          I updated my master before merging your branch. Not clue why now ft_sourceanalysis has two data inputs and it's now documented how to deal with them. Using blame button on ft_sourceanalysis I saw the the following update cause the problem:
+          https://github.com/fieldtrip/fieldtrip/commit/ce2c080613b195b2e18c72c7401b66a71fb87aca
+
+          Having fixed hasbaseline = exist('baseline'); things work as expected
+
+
+          2) Regarding your questions about the reordering of the channels. I notice that my freq.elec.label has different order as freq.label. Could this explain your hunch? I assumed that fieldtrip deals with the reordering but should I ensure freq.elec and freq.label have always the same order?
+      - +@isprivate: "0"
+        commentid: "17011"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-25 13:30:55 +0100
+        thetext: "@2:\n\nHmmm, I would say that the order of the channels in the spatial filter is determined by the order of the channels in the leadfield/data upon the first call to ft_sourceanalysis. I think that the order as provided by cfg.channel determines the channel order. This should (if cfg.keepleadfield) result in an output, containing both the leadfield{}, a leadfielddimord and a label (where the label indicates the order of channels in the leadfield). \n\nIs this order different from data.label?"
+      - +@isprivate: "0"
+        commentid: "17012"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-02-25 18:44:37 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          Good catch: the grid.label and data.label were not equal. I'm using a custom eeg cap and I created the elec from standard_1005.elec and when I made the grid and did not include the data:
+
+          cfg                 = [];
+          cfg.elec            = elec; % elec.label order was different than data.label
+          cfg.headmodel       = vol;
+          cfg.reducerank      = 2;
+          cfg.channel         = 'all';
+          cfg.grid.resolution = 1;   % use a 3-D grid with a 1 cm resolution
+          cfg.grid.unit       = 'cm';
+          %cfg.symmetric       = 'x';
+          grid1 = ft_prepare_leadfield(cfg);
+
+          this call would have avoid the problem:
+          grid1 = ft_prepare_leadfield(cfg,data);
+
+          I'm preparing a source reconstruction EEG pipeline for Coimbra using arbitrary EEG layouts. Now I'll keep in mind that the leadfield label order should be matched with the data
+      - +@isprivate: "0"
+        commentid: "17059"
+        comment_count: "6"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-03 17:34:20 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+          alright, here is what is happening:
+
+          let us assume that we have two different data structures coming from the same machine: data_forfilt and data_forbeam. both have a freq dimension and a labelcmb field. data_forfilt is used to calculate the common spatial filter which is then applied to data_forfilt. both data structures share the same channels and channel ordering, which is non alphabetic. lets just assume that they only have three channels in this order: C, B, A
+
+          we also have a grid that was conctructed with the same channel ordering: C, B, A
+
+          so, we call ft_sourceanalysis with cfg.keepfilters = 'yes'; on data_forfilt, using the grid.
+
+          because the data has a freq dimension AND a labelcmb field, the elsif statement in line 241 evaluates to true and line 248 is run. the ft_checkdata call sorts the channels in the data in alphabetic order. it does this consistently with the labels and the actual data. all fine until here... the grid still has the original channel order of C, B, A; while the data is now in A, B, C order.
+
+          a lot of nonimportant stuff is happening now until we reach line 496. this line evaluates to true because we have a grid structure with a label, still in C, B, A order. the following lines (until 506) resort the to alphabetic order. we did not supply a filter yet, lines 507 to 512 are skipped.
+
+          we end up with a grid in alphabetic order, including its leadfield. this is consistent with the data, so everything works fine.
+
+          later in ft_sourceanalysis, the spatial filter is calculated, matching the resorted - alphabetic - order of both the grid and the data.
+
+          because we set cfg.keepfilter = 'yes', this filter is returned together.
+
+          and this is the problem: i get a filter in alphabetic order that i put into the existing cfg.grid which is NOT in alphabetic order. neither is data_forbeam.
+
+          when i now call ft_sourceanalysis on data_forbeam (C, B, A order) and the original leadfield (C, B, A) and the spatial filter (A, B, C order) i have just calculated, things go awry because the data gets resorted in line 248 (good), so does the leadfield and the grid labels in line 502ff (good) but so does also our ALREADY sorted spatial filter, because now line 507 evaluates to true and the following lines resort the spatial filter (bad).
+      - +@isprivate: "0"
+        commentid: "17060"
+        comment_count: "7"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-03 17:37:43 +0100
+        thetext: |-
+          possible solutions:
+
+          1. resort the spatial filter according to the original data
+
+          2. give the spatial filter a label field as well and operate on it, making sure that the channel order is always consistent
+
+          3. assume that spatial filters are ALWAYS in alphabetic order and delete lines 507-513
+
+          i think option 2 would be the safest, although it would require the most effort.
+          option 1 would still be kind of safe and would not require that much work.
+          option 3 is super dangerous and should not even be considered.
+      - +@isprivate: "0"
+        commentid: "17061"
+        comment_count: "8"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-03 17:40:34 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #7)
+          thanks for reporting this Thomas!
+
+          The real issue rely when computing channels combinations:
+          data = ft_checkdata(data, 'cmbrepresentation', 'full');
+
+          after line248, data channels are sorted alphabetically. I'll take a look why this happens
+      - +@isprivate: "0"
+        commentid: "17062"
+        comment_count: "9"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-03 17:44:06 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #8)
+          yeah diego, i agree that this normally should not happen anymore. it used to be a big problem a while ago but it has been almost solved. this seems to be one of the places where nobody has looked so far.
+
+          however, i would vote for a solution that works without assumptions on the channel order.
+      - +@isprivate: "0"
+        commentid: "17064"
+        comment_count: "10"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-03 18:15:08 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #9)
+          The problem is in the fixcsd subfunction of ft_checkdata, line The channels are sorted alphabetically in line 1017:
+
+          data.label = unique(data.labelcmb(:));
+
+          when converting from sparse to full representation case. At this stage there's no data.elec to revert the order. I'm working on a fix
+      - +@isprivate: "0"
+        commentid: "17065"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-03 20:27:57 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #10)
+
+          AHA! There's a monkey coming out of a sleeve (as the Dutch proverb goes)!
+
+          It's soooo 2009 to do a call to ft_freqanalysis with 'powandcsd' and an cfg.channelcmb = {'all' 'all'}. Probably it wouldn't have occurred if cfg.output = 'fourier', because there's no labelcmb to fool around with :o).
+
+
+          All craziness on a stick (again a Dutch proverb), to me the desired solution would be to be consistent with the designation of the label field in the source model structure. In other words, if for some reason the order changes in the filter, it should be reflected in the label field. What I still don't get however, is that it seems from reading the story that the precomputed leadfield still has the order c/b/a, whereas the filter has a/b/c...
+
+          I'll play around a bit with this.
+      - +@isprivate: "0"
+        commentid: "17066"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-03 21:09:39 +0100
+        thetext: |-
+          totally weird.
+
+          I started a test function in the bug3078 branch (test/test_bug3078)
+
+          So far I can confirm that the channel order in the spatial filter is reversed (using a data structure which starts from data.label = {'c';'b';'a'}, and which is converted into a free-structure either with 'powandcsd', or 'fourier'.
+
+          I think we should indeed be more explicit by outputting a label field.
+
+          T.B.C. now I am calling it a night...
+      - +@isprivate: "0"
+        commentid: "17067"
+        comment_count: "13"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-04 00:31:12 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #12)\nMmmm different possibilities to solve the issue. For now, I'd be in favor to throw an error inside fixcsd in case there's no data.elec/grad structure in the data.\n\n\nPotential fix:\n\nIn ft_sourceanalysis I'd take care of the CSD checking after the whole ft_selectdata/rollback_provenance. In this way, we can ask the following check channel order in data, elec/grad and leadfield. Once the order of the data.label and grad/elec.label is the same, then inside fixcsd we can safely add the label. You can find the proposed changes in my branch: \n\nhttps://github.com/dieloz/fieldtrip/tree/bug3078"
+      - +@isprivate: "0"
+        commentid: "17068"
+        comment_count: "14"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-04 01:09:15 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #13)
+          Indeed,using cfg.output = 'fourier'; in ft_freqanalysis avoids the channel order issue. Unfortunately, this could be problematic in a significant part of users given that the tutorial data uses the "powandcsd" option:
+
+          http://www.fieldtriptoolbox.org/tutorial/beamformer
+      - +@isprivate: "0"
+        commentid: "17069"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 07:52:09 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #14)
+
+          Diego, your last comment is a good one, but in this regard I would be in favour of changing the tutorial into  'fourier' to begin with.
+
+          I will look into ft_checkdata. I think it is undesired that the order of the labels is alphabetised with powandcsd, because there's not only a labelcmb in such a data structure, but also a label, and that one should be followed in my opinion (or is it already alphabetised in the input?)
+      - +@isprivate: "0"
+        commentid: "17070"
+        comment_count: "16"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-04 09:24:03 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #15)
+          Thanks for looking into this Jan-Mathijs
+          The input was in the right order
+      - +@isprivate: "0"
+        commentid: "17071"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 09:44:34 +0100
+        thetext: "OK, I think I now nailed part of it:\n\nin ft_checkdata, the function calls itself recursively twice, when converting the freq-structure from a 'sparsewithpow' into a 'full' representation.\n\n1) ft_checkdata(data,'cmbrepresentation','sparse') \n-> This ditches the label, because it returns a 'labelcmb' structure only, with the power represented as a {'a' 'a'} labelcmb.\n\n2) next, ft_checkdata(data, 'cmbrepresentation', 'full')\n-> Now this returns the stuff alphabetized, because there's no label in the input data anymore, and it by consequence takes the unique(labelcmb(:));\n\nSolution: keep track of the original data.label\n\nI have committed an updated version of ft_checkdata into this branch, and the channel order is now preserved.\n\nNext step now is to build in a more strict label handling, i.e. ft_sourceanalysis outputting a label along with the spatial filter"
+      - +@isprivate: "0"
+        commentid: "17072"
+        comment_count: "18"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 09:45:12 +0100
+        thetext: Strictly speaking, the change to ft_checkdata solvers Thomas' and Diego's issue, correct?
+      - +@isprivate: "0"
+        commentid: "17073"
+        comment_count: "19"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-04 09:48:34 +0100
+        thetext: |-
+          good morning!
+          it is still common practice in our group to do the powandcsd computation, mainly because using the fourier coefficients means you need to retain the single trials which is quite memory intensive. the csd can be averaged.
+
+          however, you guys are, of course, totally free to mark this functionality obsolete, although i think it still has its merits.
+
+          to answer jan-mathijs comment #11 concerning the channel order in the leadfield: this remains the same as the input when ft_prepare_leadfield is called with a data argument. i assume that no ft_checkdata (or any other function doing the alphabetic resorting) is run in that function.
+
+          concerning the proposed fix by diego: i am afraid there seem to be a problem in that cfg.channel is not necessarily touched during ft_sourceanalysis. so comparing it to cfg.elec or cfg.grad when its contents are 'all' (the default) will fail.
+      - +@isprivate: "0"
+        commentid: "17074"
+        comment_count: "20"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 10:14:22 +0100
+        thetext: |-
+          Oops Diego, I missed your comment 13 (and have made changes to my branch without pulling yours). I'd say that the grad/elec checking is irrelevant.
+
+          the data needs to be checked against the spatial filter (if provided by user),
+          or against the leadfield (which is either provided by the user, or computed within ft_sourceanalysis: in the latter case, I think care is taken to ensure the channels to be ordered according to the data, so no worry there).
+
+          I will try and merge our branches (probably need to fix some conflicts first...): don't be upset if I undo some of Diego's changes :o)
+      - +@isprivate: "0"
+        commentid: "17075"
+        comment_count: "21"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 10:23:42 +0100
+        thetext: '@Diego, I merged our branches (and undid most of your changes -> I think mine was a bit cleaner...), please merge.'
+      - +@isprivate: "0"
+        commentid: "17078"
+        comment_count: "22"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-04 13:18:02 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #18)
+          hi jan,
+          yes, the problem is solved for me. however, i am super glad that you are working on a more reliable solution by adding a label field also to the filters.
+      - +@isprivate: "0"
+        commentid: "17079"
+        comment_count: "23"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-04 13:30:23 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #22)
+          Jan-Mathijs, I just want to suggest that the unique call inside ft_checkdata (line 1017) could be problematic at some point if the labels are unsorted because a problem with ft_selectdata for example. I fully trust on your criterion but an extra check after unique (match_str or ismember) wouldn't hurt to avoid side effects.
+      - +@isprivate: "0"
+        commentid: "17080"
+        comment_count: "24"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 14:04:34 +0100
+        thetext: |-
+          no problem, but that would mean in the future that the user should do:
+
+          cfg.grid = copyfields(source.avg, cfg.grid, {'filter', 'label'})
+
+          or something less fancy, to ensure that the labels are passed along...
+      - +@isprivate: "0"
+        commentid: "17081"
+        comment_count: "25"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 14:17:29 +0100
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #23)\n\n\nHi Diego,\n\nI understand your concern, but the point is that what you refer to as 'unsorted labels' is related to the description in elec/grad, whereas at this point in the code (ft_checkdata) there is no label-field at the main level of the data structure. In general, the idea is that the elec order (and number of channels) should be the same as the data order. As a matter of fact, they quite often differ (there may be more or fewer channels in the data, as compared to the elec/grad (think of reference sensors in the MEG grad, or EOG/EMG in the data). \n\nChecking the elec labels with the data labels should be done anyway, but this is handled elsewhere (in prepare_headmodel)."
+      - +@isprivate: "0"
+        commentid: "17082"
+        comment_count: "26"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-04 14:43:58 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #24)
+          hmm.... maybe we could think about having something like:
+
+          cfg.grid.leadfield.lf
+          cfg.grid.leadfield.label
+
+          cfg.grid.filter.filt
+          cfg.grid.filter.label
+
+          in this case, it would be clear that the labels are tied to the respective leadfield or filter structure. it also looks more logical to me. and it should be easier to test....
+
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "17083"
+        comment_count: "27"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-03-04 14:48:31 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #26)
+
+          Well, this would mean a change in field names that percolates not only throughout the whole fieldtrip code base, but also to a lot of user scripts.
+
+          Adding a single label (+ensuring that the order of channels in leadfields and filters is the same, which I think now should be the case, at least if the data has been processed consistently with the code in this branch) is much less disruptive
+      - +@isprivate: "0"
+        commentid: "17084"
+        comment_count: "28"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-03-04 14:59:50 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #27)
+          yes, i understand that this would be less disruptive than my suggestion and i totally understand why this option is better for you.
+
+          and as it runs perfectly now and i have my own personal tests in place to test for this problem before releasing a new fieldtrip version to our group, i am totally happy with the result.
+
+          however, if at anytime you have an internal discussion about major changes in the ft structures, i think it would be a good idea to consistently introduce label fields whenever there is a field containing channel information. ;-)
+      - +@isprivate: "0"
+        commentid: "17173"
+        comment_count: "29"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-17 15:32:26 +0100
+        thetext: |-
+          So far, this has been solved by Jan-Mathijs
+          https://github.com/fieldtrip/fieldtrip/pull/117

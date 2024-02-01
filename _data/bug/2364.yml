@@ -1,0 +1,295 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2364"
+    creation_ts: 2013-11-05 18:54:00 +0100
+    short_desc: If first channel is filled with NaNs complete output of ft_freqanalysis is NaN
+    delta_ts: 2015-02-11 10:40:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: All
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: joscha.schmiedt
+      +@name: Joscha Schmiedt
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.herring
+      - joscha.schmiedt
+      - l.luther
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11860"
+        comment_count: "0"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2013-11-05 18:54:47 +0100
+        thetext: |-
+          If the first channel of a dataset has been filled with NaNs, e.g., as a result of ft_rejectvisual with cfg.keepchannel = 'nan', the output of ft_freqanalysis is NaN for all channels. This does not happen for channels 2:end.
+
+
+          Code for reproducing:
+
+
+          nTrials = 20;
+          data = [];
+          data.fsample = 256;
+          data.trial = arrayfun(@(x) rand(10, 512), 1:nTrials, 'UniformOutput', false);
+          data.time = repmat({(0:length(data.trial{1})-1)/data.fsample}, [1, nTrials]);
+          data.label = cellfun(@num2str, num2cell(1:10), 'UniformOutput', false);
+
+          for iTrial = 1:nTrials
+              data.trial{iTrial}(1,:) = nan;
+          end
+
+          cfg = [];
+          cfg.method = 'wavelet';
+          cfg.width = 2;
+          cfg.foilim = [10 50];
+          cfg.toi = 0:0.01:2;
+
+          tf = ft_freqanalysis(cfg, data);
+          fprintf('number of non-nans for wavelet method: %i\n', sum(~isnan(tf.powspctrm(:))))
+
+          cfg = [];
+          cfg.method = 'mtmconvol';
+          cfg.taper = 'hanning';
+          cfg.foi = 10:50;
+          cfg.t_ftimwin = 2./cfg.foi;
+          cfg.toi = 0:0.01:2;
+
+          tf = ft_freqanalysis(cfg, data);
+          sum(~isnan(tf.powspctrm(:)))
+          fprintf('number of non-nans for mtmconvol method: %i\n', sum(~isnan(tf.powspctrm(:))))
+      - +@isprivate: "0"
+        commentid: "11861"
+        comment_count: "1"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2013-11-05 19:18:47 +0100
+        thetext: "It seems to be enough if one value in the first channel is NaN. \n\nThis has been tested with ft_freqanalysis 8625 2013-10-23 09:50:42Z roevdmei"
+      - +@isprivate: "0"
+        commentid: "14567"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 12:36:27 +0200
+        thetext: |-
+          (In reply to Joscha Schmiedt from comment #1)
+
+          Given the increased support in artefact handling allowing the channel value to be represented as nan in case the channel is bad, this is bad.
+
+          Looking at the low-level code, these seem to be OK
+
+          fat = squeeze(ft_specest_mtmfft(data.trial{1}, data.time{1}, 'taper', 'hanning'))
+          fat = squeeze(ft_specest_mtmconvol(data.trial{1}, data.time{1}, 'taper', 'hanning', 'timwin', 0.5))
+      - +@isprivate: "0"
+        commentid: "14569"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 12:51:13 +0200
+        thetext: |-
+          the problem is with line 598 in ft_freqanalysis, where
+
+                acttboi  = squeeze(~isnan(spectrum(1,1,foiind(ifoi),:)));
+
+          it looks at the first channel to (I guess) determine time bins of interest.
+      - +@isprivate: "0"
+        commentid: "14570"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 13:00:58 +0200
+        thetext: |-
+          I changed the code, rather than looking at the first channel, it now uses all(isnan(..))
+
+          mac011> svn commit test/test_bug2364.m ft_freqanalysis.m
+          Sending        ft_freqanalysis.m
+          Adding         test/test_bug2364.m
+          Transmitting file data ..
+          Committed revision 9883.
+      - +@isprivate: "0"
+        commentid: "14776"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-10 13:29:17 +0100
+        thetext: As discussed with Robert during lunch, this fix now results in single-channel data (e.g. virtual channel data) to result in nans as reported by various users.
+      - +@isprivate: "0"
+        commentid: "14777"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-10 14:30:52 +0100
+        thetext: |-
+          data1 = [];
+          data1.label = {'1'};
+          data1.time = {(1:1000)/1000}
+          data1.trial = {randn(1,1000)}
+
+          data2 = [];
+          data2.label = {'1', '2'};
+          data2.time = {(1:1000)/1000}
+          data2.trial = {randn(2,1000)}
+          data2.trial{1}(1,:) = data1.trial{1};
+
+          cfg = [];
+          cfg.method = 'wavelet';
+          cfg.width = 2;
+          cfg.foilim = [10 50];
+          cfg.toi = 0:0.01:2
+          tf1 = ft_freqanalysis(cfg, data1);
+          tf2 = ft_freqanalysis(cfg, data2);
+
+          assert(isequal(tf1.powspctrm(1,:,:), tf2.powspctrm(1,:,:)))
+
+          confirms the problem.
+      - +@isprivate: "0"
+        commentid: "14778"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-10 14:45:50 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #6)\n\nin ft_freqanalysis there is at line 602 now this\n        acttboi  = ~all(isnan(squeeze(spectrum(1,:,foiind(ifoi),:))), 1);\nwhich prior to change 9883 used to be\n        acttboi  = squeeze(~isnan(spectrum(1,1,foiind(ifoi),:))); \n\nIn the example I just gave, they are different. However, I don't understand what the code is doing (yet)."
+      - +@isprivate: "0"
+        commentid: "14779"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-10 14:48:49 +0100
+        thetext: "... but it is clear that the problem is in the squeeze\n\nK>> size(spectrum(1,:,foiind(ifoi),:))\nans =\n    1     1     1   101\n\nK>> size(squeeze(spectrum(1,:,foiind(ifoi),:)))\nans =\n   101     1\n\nHere with nchan>1 the first dimension would map onto channels after the squeeze.  \n\nI have to go now, will pick this up later."
+      - +@isprivate: "0"
+        commentid: "14780"
+        comment_count: "9"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-10 15:11:49 +0100
+        thetext: |-
+          Perhaps something like the following is more appropriate:
+          temp = size(spectrum(1,:,foiind(ifoi),:));
+          spectrum = reshape(spectrum(1,:,foiind(ifoi),:),temp(2),temp(4));
+
+          as we wish to squeeze out the first and third dimension, while keeping the 2nd and 4th.
+      - +@isprivate: "0"
+        commentid: "14806"
+        comment_count: "10"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-11-12 16:05:48 +0100
+        thetext: |-
+          The following works but there might be a more elegant solution:
+
+          temp = size(spectrum(1,:,foiind(ifoi),:));
+          acttboi  = ~all(isnan(reshape(spectrum(1,:,foiind(ifoi),:),temp(2),temp(4))), 1);
+          nacttboi = sum(acttboi);
+      - +@isprivate: "0"
+        commentid: "14845"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-13 13:32:44 +0100
+        thetext: |-
+          this fixes the regression error, keeping the fix for the first issue intact.
+
+          mac011> svn commit specest/ft_specest_wavelet.m ft_freqanalysis.m test/
+          Sending        ft_freqanalysis.m
+          Sending        specest/ft_specest_wavelet.m
+          Sending        test/test_bug2364.m
+          Transmitting file data ...
+          Committed revision 9963.
+      - +@isprivate: "0"
+        commentid: "14931"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 18:00:14 +0100
+        thetext: '*** Bug 2757 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "14932"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 18:01:17 +0100
+        thetext: |-
+          I just noticed single channel mtmfft to fail.
+
+          Fs = 1000;
+          time = (1:Fs)/Fs;
+          signal = randn(size(time));
+
+
+          data = [];
+          data.time{1}  = time;
+          data.trial{1} = signal;
+          data.label    = 'A1';
+
+
+          cfg = [];
+          cfg.taper = 'boxcar';
+          cfg.method = 'mtmfft';
+          cfg.foilim = [0 500];
+          freq = ft_freqanalysis(cfg, data);
+
+          Error using reshape
+          To RESHAPE the number of elements must not change.
+
+          Error in ft_freqanalysis (line 649)
+                      powspctrm(:,ifoi,acttboi) = powspctrm(:,ifoi,acttboi) + (reshape(mean(powdum,1),[nchan 1 nacttboi]) ./ ntrials);
+      - +@isprivate: "0"
+        commentid: "14933"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-10 18:04:36 +0100
+        thetext: |-
+          sorry, my bad. It turned out that the error was due to
+            data.label    = 'A1';
+          rather than
+            data.label    = {'A1'};
+          causing a channel count mismatch.
+      - +@isprivate: "0"
+        commentid: "15252"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:47 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

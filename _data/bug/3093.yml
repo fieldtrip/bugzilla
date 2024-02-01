@@ -1,0 +1,86 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3093"
+    creation_ts: 2016-03-09 23:50:00 +0100
+    short_desc: ft_artifact_zvalue>redraw_cb looks for cfg.datafile instead of the input data
+    delta_ts: 2016-06-14 16:14:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17124"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2016-03-09 23:50:08 +0100
+        thetext: |-
+          I am getting these error messages:
+
+               Reference to non-existent field 'datafile'.
+
+               Error in ft_artifact_zvalue>redraw_cb (line 906)
+                 data = ft_read_data(cfg.datafile,   'header', hdr, 'begsample', trl(trlop,1),
+                 'endsample', trl(trlop,2), 'chanindx', sgnind, 'checkboundary',
+                 strcmp(cfg.continuous,'no'));
+
+               Error in ft_artifact_zvalue (line 498)
+                 redraw_cb(h);
+
+               Error in FT_preprocFear_chunks_TEM (line 401)
+                             [~, artifact.thetafreq{t}] = ft_artifact_zvalue(cfg,data);
+
+          The line where the error is thrown is under "else" for "if ~isempty(opt.data)" -- meaning it's trying to reload the data from the file when it can't find it in opt.  Since I am including the data as an input to ft_artifact_zvalue, I'm not sure why it's not showing up in opt.data in this subfunction.  Tracking it back into the main ft_artifact_zvalue function, I think this bit at line 478 could be the problem:
+
+          if hasdata
+            opt.data = {};
+          else
+            opt.data = data;
+          end
+
+          Isn't that backwards?  Adding a tilde to hasdata seems to fix it.  Was this changed recently?  I've only had this problem after downloading the latest version to troubleshoot another bug yesterday.
+      - +@isprivate: "0"
+        commentid: "17126"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-10 10:11:39 +0100
+        thetext: "(In reply to Teresa Madsen from comment #0)\n\nThanks for reporting. It has to do with https://github.com/fieldtrip/fieldtrip/commit/ce2c0806 related to http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3077\nwhere I made a change to deal better with cfg.inputfile input. \n\nSo actually there are three options to consider, where 3 was not working correctly on all MATLAB versions:\n\n1) cfg.dataset\n2) data provided as input arg\n3) data read from cfg.inputfile\n\nI agree to your proposed solution. This should fix it:\n\n130-229-40-210> git commit ft_artifact_zvalue.m\n[master 609bad9] FIX - hasdata should be ~hasdata, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3093 and thanks to Theresa\n 1 file changed, 1 insertion(+), 1 deletion(-)\n\n130-229-40-210> git push upstream master\nX11 forwarding request failed on channel 0\nYou're about to push master, is that what you intended? [y|n] y\nCounting objects: 5, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (3/3), done.\nWriting objects: 100% (3/3), 382 bytes | 0 bytes/s, done.\nTotal 3 (delta 2), reused 0 (delta 0)\nTo git@github.com:fieldtrip/fieldtrip.git\n   bf61f23..609bad9  master -> master"
+      - +@isprivate: "0"
+        commentid: "17477"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:47 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

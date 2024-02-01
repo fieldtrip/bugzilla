@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "324"
+    creation_ts: 2010-12-17 22:09:00 +0100
+    short_desc: ft_topoplotER errors with ft_timelockgrandaverage data (with proposed fix)
+    delta_ts: 2011-01-06 09:17:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "708"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-12-17 22:09:27 +0100
+        thetext: |-
+          I'm using fieldtrip-20101216 on Matlab 2010b on a Mac Pro running OS X 10.6.5.
+
+          I'm trying to use ft_topoplotER to plot data output from ft_timelockgrandaverage in which I used cfg.keepindividual='yes'. Thus, my data has the following fields:
+
+                   label: {129x1 cell}
+                 fsample: 250
+                     avg: [129x375 double]
+                     var: [129x375 double]
+                    time: [1x375 double]
+              individual: [19x129x375 double]
+                  dimord: 'subj_chan_time'
+                     cfg: [1x1 struct]
+
+          ft_topoplotER used to work for data like this (I used it to make grandaverage topoplots for my master's thesis a couple months ago), and I don't know when things changed. Now I get this error, even with the most basic input cfg for ft_topoplotER containing only the layout:
+
+          =================================================
+          ??? Attempted to access n(1); index out of bounds because numel(n)=0.
+
+          Error in ==> dimlength at 148
+              if ~all(n==n(1)), error('inconsistent number of repetitions for dim "%s"', seldim); end
+
+          Error in ==> dimlength at 34
+                n{k}(i) = dimlength(data, dimtok{i}, fn{k});
+
+          Error in ==> seloverdim at 39
+          [reduceddim, fntmp] = dimlength(data);
+
+          Error in ==> ft_selectdata at 546
+            if selectchan, data = seloverdim(data, 'chan', selchan, fb); end
+
+          Error in ==> ft_topoplotER at 263
+          data        = ft_selectdata(data, 'channel', cfg.channel);
+          =================================================
+
+          In dimlength.m under the 'subj' case (line 139) it seems to only expect a time-frequency related field (i.e., cov, crsspctrm, powcovspctrm, powspctrm, trial, fourierspctrm, as is coded starting at line 141), but I am attempting to plot timelock data. I do not get this error when I use an individual subject's timelock data (i.e., the data from one subject that I put into ft_timelockgrandaverage), but that's because there is no 'subj' dimension in the data (instead, it is 'rpt_chan_time').
+
+          Here's what I think is the fix: If I add the following line of code below the if statements in the 'subj' case (line 147 of dimlength.m), plotting ft_timelockgrandaverage data works without any problems:
+              if isfield(data, 'individual'),    n = [n size(data.individual,    1)]; end
+      - +@isprivate: "0"
+        commentid: "717"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-12-19 14:06:59 +0100
+        thetext: "Thanks for reporting this, Matt. The issue is related to the fact that the low level functions, which are now used to subselect data from your input, indeed did not recognize the fieldname 'individual'. Your proposed fix as such indeed does the trick. I'll incorporate it into FieldTrip a.s.a.p. \n\nSorry for the inconvenience.\n\nJM"
+      - +@isprivate: "0"
+        commentid: "719"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-12-19 14:40:16 +0100
+        thetext: |-
+          Hi Matt, I incorporated your proposed fix in dimlength. Should be available as of tonight. Thanks again for reporting. Could you check whether it now works again and close the bug if this is the case? Thanks.
+
+          JM
+      - +@isprivate: "0"
+        commentid: "728"
+        comment_count: "3"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-12-20 21:07:42 +0100
+        thetext: |-
+          Thanks, JM. This works for me using fieldtrip-20101219.
+
+          Was it just a mistake that dimlength.m wasn't looking for the 'individual' field, or should I be doing something differently with my data? It seems like it was just a mistake, but I want to make sure I'm using these functions properly.

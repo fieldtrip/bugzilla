@@ -1,0 +1,93 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2926"
+    creation_ts: 2015-07-13 12:02:00 +0200
+    short_desc: qsubcellfun doesn't forward memoverhead setting to qsubfeval
+    delta_ts: 2015-07-15 13:31:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: t.navarroschroeder
+      +@name: Tobias Navarro Schroeder
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15872"
+        comment_count: "0"
+        who:
+          +content: t.navarroschroeder
+          +@name: Tobias Navarro Schroeder
+        bug_when: 2015-07-13 12:02:57 +0200
+        thetext: "qsubcellfun accepts optional input for 'memoverhead', however, this is not being used subsequently (e.g. line 354 and line 357).\n\nSuggested Fix:\noriginal line 354: \n[curjobid curputtime] = qsubfeval(fcomp, argin{:}, 'memreq', memreq, 'timreq', timreq, 'diary', diary, 'batch', batch, 'batchid', batchid, 'backend', backend, 'options', submitoptions, 'queue', queue, 'matlabcmd', matlabcmd, 'display', display, 'jvm', jvm, 'nargout', numargout, 'whichfunction', whichfunction);\n\nfixed line 354:\n   [curjobid curputtime] = qsubfeval(fcomp, argin{:}, 'memreq', memreq, 'memoverhead', memoverhead, 'timreq', timreq, 'diary', diary, 'batch', batch, 'batchid', batchid, 'backend', backend, 'options', submitoptions, 'queue', queue, 'matlabcmd', matlabcmd, 'display', display, 'jvm', jvm, 'nargout', numargout, 'whichfunction', whichfunction);"
+      - +@isprivate: "0"
+        commentid: "15873"
+        comment_count: "1"
+        who:
+          +content: t.navarroschroeder
+          +@name: Tobias Navarro Schroeder
+        bug_when: 2015-07-13 13:37:04 +0200
+        thetext: compiled functions should not get any memoverhead, since they don't require matlab.
+      - +@isprivate: "0"
+        commentid: "15880"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-14 17:25:35 +0200
+        thetext: |-
+          you got me puzzled for a bit, it is actually qsubfeval that has memoverhead, but qsubcellfun does not have it (yet) but should have it (and pass it on).
+
+          Also timoverhead is missing.
+
+          I fixed it, it should be on home/common in 15 minutes.
+
+          mac011> svn commit
+          Sending        qsubcellfun.m
+          Transmitting file data .
+          Committed revision 10534.
+      - +@isprivate: "0"
+        commentid: "15881"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-14 17:42:27 +0200
+        thetext: |-
+          (In reply to Tobias Navarro Schroeder from comment #1)
+
+          Execution of compiled functions still requires to start up the MATLAB Compiler Runtime environment (which is basically a full-blown MATLAB instance without the GUI and without any toolboxes). So it is not really smaller (nor faster, *) than a regular MATLAB. Consequently, you should specify a timoverhead and memoverhead there as well. The only advantage is that you don't need licenses and can use all of the cluster (i.e. the 'batch' queue instead of the 'matlab' queue).
+
+          *) The first time you start a compiled "executable" the time overhead can be quite large, since the compiled "executable" needs to be unzipped. The result of unzipping is a directory somewhere under ~/.mcrCacheXX that contains all the files which are subsequently used by the MCR.
+      - +@isprivate: "0"
+        commentid: "15897"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:08 +0200
+        thetext: closed several bugs at once that were recently fixed

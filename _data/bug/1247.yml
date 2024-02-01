@@ -1,0 +1,152 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1247"
+    creation_ts: 2012-01-07 09:03:00 +0100
+    short_desc: beamformer_sam lacks '%lambda' functionality
+    delta_ts: 2012-01-18 08:51:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - don.rojas
+      - g.barnes
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4697"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-07 09:03:59 +0100
+        thetext: |-
+          To all,
+
+          I encountered a problem with the 'sam' method for ft_sourceanalysis. It looks to me that when specifying the configuration option:
+
+          cfg.sam.lambda = '5%';
+
+          i.e., lambda is a percentage, not an actual number, the beamformer_sam routine does not have comparable code as the beamformer_lcmv routine to handle that type of input. I'm wondering if simply inserting the following bit of code between lines 97 and 99 of beamformer_sam, borrowed and edited from beamformer_lcmv, will work:
+
+          if ~isempty(lambda) && ischar(lambda) && lambda(end)=='%'
+            ratio = sscanf(lambda, '%f%%');
+            ratio = ratio/100;
+            lambda = ratio * trace(all_cov)/size(all_cov,1);
+          end
+
+          This seems to work okay in limited tests, but maybe I'm making a mistake here. I'm using a recent svn code version, revision 5097.
+
+          Best,
+
+          Don
+      - +@isprivate: "0"
+        commentid: "4710"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-10 10:08:11 +0100
+        thetext: |-
+          I assigned this one to Don, who volunteered to change the code accordingly. I'll supervise the code change and commit it into the repository.
+
+          TODO: implement a test function
+      - +@isprivate: "0"
+        commentid: "4711"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-10 10:09:12 +0100
+        thetext: |-
+          Additional e-mail correspondence from Don is pasted below:
+
+
+          Jan-Mathijs,
+
+          In the discussion, for the sake of consistency, it would probably also be good to talk about the use of pre-computed filters in beamformer_sam. My reading of the code is that although the function states that it is using pre-computed filters when the configuration calls for it (lines 86-89), in fact it always re-computes the sam weights, ignoring the provided input filter.
+
+          I've been trying, so far without success, to implement so-called event-related SAM (e.g., Cheyne et al. 2006) using the beamformer_sam routine. I believe that the only thing standing in my way is this last bit, since the noise estimate in the noise-normalized power referred to in the erSAM method is obtained by applying the sam weights to the +/- average. It looks like with that implemented, it would be easy enough to replicate the erSAM method with Fieldtrip. I'm pretty certain I could get a close approximation of it with beamformer_lcmv if necessary, however.
+
+          Let me know if you'd prefer and I would be happy to revise the code myself along the lines of beamformer_lcmv and send it to you.
+
+          Best,
+
+          Don
+
+
+
+          And:
+
+          Ignore that bit about the +/- average - I'm pretty sure that the use of the smallest singular value to estimate the noise floor is already implemented. But the offer stands if you want me to take a crack at the code. I've become fairly familiar with the lcmv beamformer code and the sam code is not that different so it would not be too much work to revise the sam code to be more consistent.
+      - +@isprivate: "0"
+        commentid: "4783"
+        comment_count: "3"
+        attachid: "215"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-13 08:54:53 +0100
+        thetext: |-
+          Created attachment 215
+          Don's updated version of beamformer_sam
+      - +@isprivate: "0"
+        commentid: "4784"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-13 08:57:12 +0100
+        thetext: |-
+          @robert & gareth,
+
+          Hi guys, I am including you guys in the CC to this bug to let you know that Don and I are 'consistizing' beamformer_sam w.r.t. the other beamformer functions. No functionality deterioration is to be expected however ;-)
+      - +@isprivate: "0"
+        commentid: "4836"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-18 08:51:31 +0100
+        thetext: '@Robert: neem jij deze over? Is het een idee om toch de patch maar te committen?'
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "215"
+      date: 2012-01-13 08:54:00 +0100
+      delta_ts: 2012-01-13 08:54:53 +0100
+      desc: Don's updated version of beamformer_sam
+      filename: beamformer_sam.m
+      type: application/octet-stream
+      size: "10890"
+      attacher:
+        +content: j.schoffelen
+        +@name: Jan-Mathijs Schoffelen
+      data: REMOVED

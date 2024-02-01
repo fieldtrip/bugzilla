@@ -1,0 +1,145 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2848"
+    creation_ts: 2015-02-20 15:35:00 +0100
+    short_desc: ft_timelockstatistics doesn't cluster properly with custom neighbours struct
+    delta_ts: 2016-05-09 08:46:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: p.mostert
+      +@name: Pim Mostert
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15402"
+        comment_count: "0"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2015-02-20 15:35:42 +0100
+        thetext: |-
+          I'm trying to do a cluster-based permutation test on source-level data, defined on a mesh (so not in voxels), for one specific time point. My idea was to use ft_timelockstatistics with a custom neighbours struct, obtained from my mesh using triangle2connectivity. However, the results indicate that the clusters are not calculated correctly.
+
+          In case this is not actually a bug, then I would greatly appreciate to learn what I'm doing wrong.
+
+          I compressed the relevant script and datafiles into a zip. It is too large (~5 mb) to attach, but it can be downloaded from my Dropbox here:
+          https://www.dropbox.com/s/llhbhsqgphi3o0m/bug.zip?dl=0
+
+          Thanks,
+          Pim
+      - +@isprivate: "0"
+        commentid: "15404"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-22 10:24:25 +0100
+        thetext: |-
+          In theory it should be possible to use ft_sourcestatistics for this, specifying the neighborhood in the cfg as cfg.connectivity. Does this not work, either?
+          If not, could you be somewhat more specific as to how the clusters are incorrect?
+      - +@isprivate: "0"
+        commentid: "15409"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 10:25:58 +0100
+        thetext: I downloaded the data and copied it to /home/common/matlab/fieldtrip/data/test/ where the FT team can access it. If you want, you can delete/unshare the file again from your dropbox.
+      - +@isprivate: "0"
+        commentid: "15410"
+        comment_count: "3"
+        attachid: "703"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2015-02-23 11:34:09 +0100
+        thetext: |-
+          Created attachment 703
+          Clusters #1 and #3
+      - +@isprivate: "0"
+        commentid: "15411"
+        comment_count: "4"
+        who:
+          +content: p.mostert
+          +@name: Pim Mostert
+        bug_when: 2015-02-23 11:34:40 +0100
+        thetext: "I didn't know about cfg.connectivity. Now, when I enter an NxN logical connectivity matrix in cfg.connectivity, and morph my data into a data-structure that resembles the result from ft_sourceanalysis, then ft_sourcestatistics does indeed give me the desired results. So for me, the problem is solved at this point.\n\nPerhaps cfg.connectivity should be added to the help for ft_sourcestatistics and/or ft_statistics_montecarlo?\n\nNevertheless, using a custom neighboorhood struct with ft_timelockanalysis, as I wanted to do in the first place, should work as well, shouldn't it? Specifically, I assigned a label to each location on the mesh, named 'pnt1' through 'pnt8196' and created a neighbours-struct as described in \"help ft_prepare_neighbours\". \n\nHowever, this gives me weird clustering - see attachments. The first negative cluster appears to have \"holes\" in it (Figure 1). The second negative cluster is similar, but for the other hemisphere. The third negative cluster appears to encompass the holes in cluster #1 (Figure 2). Maybe the clustering-algorithm can't handle a neighbours-struct with 8196 elements?\n\nThanks again,\nPim"
+      - +@isprivate: "0"
+        commentid: "15413"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 11:47:32 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          @Robert: could you update the file permissions of the bug2848 directory (and possibly the underlying files), so that the ground troops can read the data :-)?
+          Thanks.
+      - +@isprivate: "0"
+        commentid: "15466"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-26 13:06:38 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+          aye aye sir!
+
+          roboos@mentat001> chmod -R g+rwX bug2848/
+      - +@isprivate: "0"
+        commentid: "15986"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-07 14:40:23 +0200
+        thetext: |-
+          I cannot reproduce the figures with the current version of the code. It may be that in the meantime the code has improved. My initial suspicion was an inconsistency between the assumed order of the 'channels' in the adjacency matrix, in comparison to the order in which the 'channels' ended up in the numeric representation of the data. Long story short, it could have been that ft_selectdata re-ordered the channels (e.g. alphabetized them), which would have led to {'pnt1';'pnt11';'pnt12'}, rather than {'pnt1';'pnt2';'etc}, while the cfg.channel was kept unordered (or vice versa), causing the order in the adjacency matrix to be different.
+
+          As I said, this does not seem to be a problem (anymore), so I suggest to close it for now. However, we should stay vigilant, because there is some buzz on the discussion list right now, dealing with clustering, and it could be that it is related to this (although the person asking the question has not been very helpful in really sketching the problem, so far)...
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "703"
+      date: 2015-02-23 11:34:00 +0100
+      delta_ts: 2015-02-23 11:34:09 +0100
+      desc: 'Clusters #1 and #3'
+      filename: Screenshot.png
+      type: image/png
+      size: "122658"
+      attacher:
+        +content: p.mostert
+        +@name: Pim Mostert
+      data: REMOVED

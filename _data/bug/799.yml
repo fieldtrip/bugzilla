@@ -1,0 +1,141 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "799"
+    creation_ts: 2011-07-06 21:24:00 +0200
+    short_desc: Bug with specifying channel combinations for Granger causality
+    delta_ts: 2011-07-13 20:36:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2533"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-07-06 21:24:53 +0200
+        thetext: |-
+          I discovered a slightly annoying bug/feature after the FT version in
+          SPM was updated from 3701 to 3780. I configure ft_connectivityanalysis
+          as follows:
+
+          cfg    = [];
+          cfg.sfmethod = 'bivariate';
+          cfg.channelcmb = channelcmb;
+          cfg.method = 'granger';
+          stat = ft_connectivityanalysis(cfg, freq);
+
+          In channelcmb I have just the 6 pairs I'm interested in. There are 7
+          channels. Previously I got in the output 12 directed pairs which makes
+          sense. Now I get 42 pairs so my specification of channelcmb is
+          ignored.
+      - +@isprivate: "0"
+        commentid: "2566"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-07-11 10:09:10 +0200
+        thetext: |-
+          Hi Vladimir,
+
+          I think I fixed it. At least it should be possible to specify cfg.channelcmb in combination with fourier-input, to get a subset of the channel pairs.
+          Could you check whether it works, and close the bug?
+
+          PS: I saw that you added spm's hilbert to specest/private. Would it be an idea to also add this to preproc/private?
+      - +@isprivate: "0"
+        commentid: "2568"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-07-11 13:01:11 +0200
+        thetext: "No, that doesn't work. One issue is that if I just specify channelcmb as a list of pairs, that is ignored as before.But also when I specify it as two cell arrays that doesn't make a difference. I looked at the bits of code that you added and they seem to be executed and channelcmb is correct at the end so it must be ignored some time later. Also when you specify channel pairs the 'coh' option doesn't work with the error:\n\n\n??? Error using ==> labelcmb2indx at 64\nthe required autocombination is not found in the input\n\nError in ==> univariate2bivariate at 103\n      powindx = labelcmb2indx(data.labelcmb);\n\nError in ==> ft_connectivityanalysis at 311\n          [data, powindx, hasrpt] = univariate2bivariate(data, 'fourierspctrm', 'crsspctrm', dtype, 'cmb', cfg.channelcmb, 'keeprpt', normrpt);\n\n\nIt seems like the auto-spectra required for normalization are not computed. \n\nYou can add hilbert wherever else you thing it's necessary. It's under GPL after all ;-)\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "2579"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-07-11 16:50:54 +0200
+        thetext: |-
+          strange, if I run fieldtrip/test/test_ft_connectivityanalysis it works. Lines 87-90 pertain to your situation, at least that's what I assume.
+
+          Could it be that you have an old copy of ft_channelcombination somewhere? The (optional) 3d input argument should result in the output channelcmb-list to contain the auto-combinations.
+      - +@isprivate: "0"
+        commentid: "2580"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-07-11 17:27:34 +0200
+        thetext: |-
+          Try:
+
+
+          cfgc             = [];
+          cfgc.method      = 'coh';
+          cfgc.sfmethod = 'bivariate';
+          cfgc.channelcmb  = {{'signal001'}, {'signal002', 'signal003'}};
+          c11              = ft_connectivityanalysis(cfgc, freq);
+      - +@isprivate: "0"
+        commentid: "2581"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-07-11 17:31:41 +0200
+        thetext: Also if you now change the method to 'granger' in the same cfg you'll get 6 row in the output when there should be 4.
+      - +@isprivate: "0"
+        commentid: "2582"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-07-11 20:07:54 +0200
+        thetext: |-
+          Hmmm, Why don't people use the exact same type of input and configurations as I am used to using ;-).
+
+          I updated ft_connectivityanalysis, ft_channelcombination, csd2transfer, and test_ft_connectivityanalysis.
+
+          Could you give it a try?
+
+          Thanks,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "2666"
+        comment_count: "7"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-07-13 20:36:54 +0200
+        thetext: Seems to work now. Thanks.

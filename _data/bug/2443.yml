@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2443"
+    creation_ts: 2014-01-20 00:00:00 +0100
+    short_desc: ft_multiplotER wants to have cfg.refchannel in powandcsd data, although I want to plot powspctrm
+    delta_ts: 2014-03-06 15:37:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12543"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-20 00:00:28 +0100
+        thetext: |-
+          I performed a computation like this
+
+          cfg = [];
+          cfg.method = 'mtmfft';
+          cfg.output = 'powandcsd'; % the CSD is needed for source reconstruction
+          cfg.taper = 'dpss';
+          cfg.foi = 5:5:150;
+          cfg.tapsmofrq = 10;       % we apply plenty of frequency smoothing
+          freq_pre  = ft_freqanalysis(cfg, data_pre);
+          freq_post = ft_freqanalysis(cfg, data_post);
+
+          and want to plot it with
+
+          cfg = [];
+          cfg.layout      = 'neuromag306planar.lay';
+          cfg.parameter   = 'powspctrm';
+          ft_multiplotER(cfg, freq_pre, freq_post);
+
+          but get an error due to cfg.refchannel
+
+          The following solves it (as workaround)
+
+          freq_pre   = rmfield(freq_pre, 'labelcmb');
+          freq_prost = rmfield(freq_post, 'labelcmb');
+      - +@isprivate: "0"
+        commentid: "12589"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-25 09:27:19 +0100
+        thetext: |-
+          sounds like the function is not smart enough (or tries to be too smart).
+          probably now it kind of assumes the user wants to plot connectivity-type data once there's a labelcmb, and does not look in cfg.parameter, which should overrule. will have a look
+      - +@isprivate: "0"
+        commentid: "12715"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-29 13:56:05 +0100
+        thetext: |-
+          bash-4.1$ svn commit -m "bugfix - made for more robust plotting when labelcmb is present in combination with a powspctrm (bug 2443)" test/test_bug2443.m private/topoplot_common.m ft_multiplotER.m ft_multiplotTFR.m ft_singleplotER.m ft_singleplotTFR.m
+          Sending        ft_multiplotER.m
+          Sending        ft_multiplotTFR.m
+          Sending        ft_singleplotER.m
+          Sending        ft_singleplotTFR.m
+          Sending        private/topoplot_common.m
+          Adding         test/test_bug2443.m
+          Transmitting file data ......
+          Committed revision 9142.

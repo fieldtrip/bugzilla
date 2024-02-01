@@ -1,0 +1,56 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "954"
+    creation_ts: 2011-09-12 13:39:00 +0200
+    short_desc: bug in ft_prepare_singleshell in fieldtrip version 20110911
+    delta_ts: 2011-09-14 14:26:21 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.wollbrink
+      +@name: Andreas Wollbrink
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3141"
+        comment_count: "0"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2011-09-12 13:39:46 +0200
+        thetext: "using the same input arguments (cfg and seg) ft_prepare_singleshell behaves differently for version 20110901 and 20110911\n\nI used the following setup:\n\nseg = \n\n          dim: [256 256 256]\n    transform: [4x4 double]\n     coordsys: 'ctf'\n         unit: 'mm'\n      anatomy: [256x256x256 double]\n        brain: [256x256x256 logical]\n          cfg: [1x1 struct]\n\ncfg = [];\n\n\nin fieldtrip-20110901 the command \n\nvol = ft_prepare_singleshell(cfg, seg);\n\nreturns a perfect volume conductor model.\n\n\nin fieldtrip-20110911 it stops with the error message:\n\n??? Reference to non-existent field 'seg'.\n\nError in ==> prepare_mesh_segmentation at 63\n[mrix, mriy, mriz] = ndgrid(1:size(mri.seg,1), 1:size(mri.seg,2), 1:size(mri.seg,3));\n\nError in ==> ft_prepare_mesh at 124\n  bnd = prepare_mesh_segmentation(cfg, mri);\n\nError in ==> ft_prepare_singleshell at 89\n  vol.bnd = ft_prepare_mesh(cfg, mri);"
+      - +@isprivate: "0"
+        commentid: "3149"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-09-13 10:05:34 +0200
+        thetext: "I think this may be my fault, as I commented out line 25 in prepare_mesh_segmentation, (which Cristiano and I discussed together) in order to solve a problem that others were having, regarding having a cfg.tissue=[1 2 3] and then this line erroneously setting it back to only =1.  \n\nI have put that line back in, and it now states:\n\nif ~isfield(mri,'tissue') && any(ismember(fieldnames(mri),{'gray' 'brain' 'scalp'})) && (~isfield(cfg,'tissue') || length(cfg.tissue)==1), cfg.tissue=1;end\n\nHopefully this will solve both problems for now?"

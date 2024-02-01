@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1055"
+    creation_ts: 2011-10-18 20:34:00 +0200
+    short_desc: ensure that ft_neighbourplot internally uses the new-style elec/grad and not the old one
+    delta_ts: 2011-11-11 11:19:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3595"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-18 20:34:51 +0200
+        thetext: |-
+          I notice the following code
+
+          -------
+          % get the the grad or elec if not present in the data
+          if exist('data', 'var') && isfield(data, 'grad')
+            fprintf('Using the gradiometer configuration from the dataset.\n');
+            sens = data.grad;
+          elseif exist('data', 'var') && isfield(data, 'elec')
+            fprintf('Using the electrode configuration from the dataset.\n');
+            sens = data.elec;
+          elseif isfield(cfg, 'grad')
+            fprintf('Obtaining the gradiometer configuration from the configuration.\n');
+            sens = cfg.grad;
+          elseif isfield(cfg, 'elec')
+            fprintf('Obtaining the electrode configuration from the configuration.\n');
+            sens = cfg.elec;
+          elseif isfield(cfg, 'gradfile')
+            fprintf('Obtaining the gradiometer configuration from a file.\n');
+            sens = ft_read_sens(cfg.gradfile);
+            % extract true channelposition
+          elseif isfield(cfg, 'elecfile')
+            fprintf('Obtaining the electrode configuration from a file.\n');
+            sens = ft_read_sens(cfg.elecfile);
+          elseif isfield(cfg, 'layout')
+            fprintf('Using the 2-D layout to determine the neighbours\n');
+            lay = ft_prepare_layout(cfg);
+            sens = [];
+            sens.label = lay.label;
+            sens.pnt = lay.pos;
+            sens.pnt(:,3) = 0;
+          else
+            error('Did not find gradiometer or electrode information.');
+          end;
+          sens = fixsens(sens); % ensure up-to-date description of sensor-array (Oct 2011)
+          -------
+
+          It should be ensured that all "input channels" contain the fixed sensor array, so that the fixsens is not needed here.
+
+          The following functions should be checked
+          - ft_checkdata
+          - ft_checnconfig
+          - ft_read_sens
+
+          The bottom section (with the lay) should be converted locally in a correct elec-like struct.
+      - +@isprivate: "0"
+        commentid: "3596"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-18 20:36:55 +0200
+        thetext: the same goes for ft_prepare_layout
+      - +@isprivate: "0"
+        commentid: "3597"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-18 20:48:30 +0200
+        thetext: "and for \nft_prepare_localspheres \nft_prepare_sourcemodel\nft_scalpcurrentdensity\nft_scalpcurrentdensity\n\n(search for FIXME)\n\nI have replaced fixsens by ft_datatype_sens. \n\nPerhaps it is a good idea to search for ft_datatype_sens and fixsens and for each instance check whether it is really needed."
+      - +@isprivate: "0"
+        commentid: "3837"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-09 09:57:43 +0100
+        thetext: in checkdata, is it sufficient to check for the occurence of data.grad or data.elec and call ft_datatype_sens, or should there be additional conditions (e.g. only in case of raw, freq, timelock or spike data)?
+      - +@isprivate: "0"
+        commentid: "3838"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-09 10:14:06 +0100
+        thetext: oh, forget that question, this is dealt with in all datatype_XXX functions already
+      - +@isprivate: "0"
+        commentid: "3877"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-10 16:24:52 +0100
+        thetext: fixed for ft_neighbourplot, see bug 1132 for all other functions
+      - +@isprivate: "0"
+        commentid: "3895"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:35 +0100
+        thetext: I closed all bugs that were recently resolved.

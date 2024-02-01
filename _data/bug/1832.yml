@@ -1,0 +1,175 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1832"
+    creation_ts: 2012-11-14 13:18:00 +0100
+    short_desc: ensure that the MNI template grid works without the user having to deal with unit conversions
+    delta_ts: 2013-11-20 14:56:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8274"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-11-14 13:18:41 +0100
+        thetext: "it includes the following code\n\n% NOTE: the path to the template file is user-specific\ntemplate = ft_read_mri('~/matlab/fieldtrip/external/spm8/templates/T1.nii');\ntemplate.coordsys = 'spm'; % so that FieldTrip knows how to interpret the coordinate system\n \n% segment the template brain and construct a volume conduction model (i.e. head model): this is needed\n% for the inside/outside detection of voxels.\ncfg          = [];\ntemplate_seg = ft_volumesegment(cfg, template);\n \ncfg          = [];\ncfg.method   = 'singleshell';\ntemplate_vol = ft_prepare_headmodel(cfg, template_seg);\n \n% construct the dipole grid in the template brain coordinates\n% the source units are in cm\n% the negative inwardshift means an outward shift of the brain surface for inside/outside detection\ncfg = [];\ncfg.grid.xgrid  = -20:1:20;\ncfg.grid.ygrid  = -20:1:20;\ncfg.grid.zgrid  = -20:1:20;\ncfg.grid.tight  = 'yes';\ncfg.inwardshift = -1.5;\ncfg.vol        = template_vol;\ntemplate_grid  = ft_prepare_sourcemodel(cfg);\n\nThe different FT objects (structures) should all have the field \"unit\" with either mm, cm or m.\n\nTODO: \n1) make test script that checks on the units in these objects (with assert)\n2) also go through the rest of the example script and check on units"
+      - +@isprivate: "0"
+        commentid: "8278"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-14 16:50:19 +0100
+        thetext: turns out that I was misunderstanding Zuka, and the conversion was not necessary. I will make the testscript anyway and check, cannot harm to have that
+      - +@isprivate: "0"
+        commentid: "8653"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:37:01 +0100
+        thetext: |-
+          template_grid has no .units
+          should it take over those from the vol?
+      - +@isprivate: "0"
+        commentid: "8654"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:37:50 +0100
+        thetext: adding the wise bosses to CC, cause they might know whether a template_grid should have a .unit field. Should it?
+      - +@isprivate: "0"
+        commentid: "8659"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 10:50:45 +0100
+        thetext: "(In reply to comment #3)\n\nThe unit field is optional in many data structures, so not required, but still desired.\n\nIf an input object from a mat file does not have a unit field, somewhere along the line ft_convert_units would be called, which together with ft_estimate_units would assign the correct units.\n\nWhen the object is created from the most recent FieldTrip version itself, it should have units. \n\nRelated to this code, I suggest to test for in the following\n\ncfg = ...\ntemplate_seg = ft_volumesegment(cfg, template);\ncfg = ...\ntemplate_vol = ft_prepare_headmodel(cfg, template_seg);\ncfg = ...\ntemplate_grid  = ft_prepare_sourcemodel(cfg);\n\neach of the outputs having a unit.\n\nWhat happens if you take a grid with mm and a vol with cm and do ft_prepare_leadfield?\nOr with an cfg.grad that is inconsistent?"
+      - +@isprivate: "0"
+        commentid: "8662"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:56:19 +0100
+        thetext: |-
+          (In reply to comment #4)
+          if vol has .unit and I call
+
+            cfg = ...
+            cfg.vol        = template_vol;
+            template_grid  = ft_prepare_sourcemodel(cfg);
+
+          then template_grid does not have .unit currently
+
+          gonna check the leadfield stuff after the group meeting
+      - +@isprivate: "0"
+        commentid: "8663"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-12 10:58:21 +0100
+        thetext: just call ft_convert_units(template_grid)
+      - +@isprivate: "0"
+        commentid: "8665"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-12 11:07:28 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          who should call this, the FT function or the user?
+      - +@isprivate: "0"
+        commentid: "8666"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-12-12 11:09:23 +0100
+        thetext: I don't care
+      - +@isprivate: "0"
+        commentid: "9289"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-31 11:25:17 +0100
+        thetext: I do care, cause it's my bug ;) so?
+      - +@isprivate: "0"
+        commentid: "9290"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-01-31 11:26:03 +0100
+        thetext: readded JM, cause he didn' care but I'd like him to care ;)
+      - +@isprivate: "0"
+        commentid: "10940"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-24 12:35:29 +0200
+        thetext: "okay, the grid issue seems to be resolved. new issue:\n\ntemplate_grid = \n      xgrid: [-70 -60 -50 -40 -30 -20 -10 0 10 20 30 40 50 60 70]\n      ygrid: [-90 -80 -70 -60 -50 -40 -30 -20 -10 0 10 20 30 40 50]\n      zgrid: [-60 -50 -40 -30 -20 -10 0 10 20 30 40 50 60 70 80]\n        dim: [15 15 15]\n        pos: [3375x3 double]\n       unit: 'mm'\n\n\n% prepare leadfield\ncfg         = [];\ncfg.grid    = template_grid;\ncfg.vol     = template_vol;\ncfg.channel = 'EEG';\ncfg.elec = ft_read_sens('standard_1020.elc');\ntemplate_grid_lf     = ft_prepare_leadfield(cfg)\n\ntemplate_grid_lf = \n\n          pos: [3375x3 double]\n          dim: [15 15 15]\n        xgrid: [-70 -60 -50 -40 -30 -20 -10 0 10 20 30 40 50 60 70]\n        ygrid: [-90 -80 -70 -60 -50 -40 -30 -20 -10 0 10 20 30 40 50]\n        zgrid: [-60 -50 -40 -30 -20 -10 0 10 20 30 40 50 60 70 80]\n         unit: 'cm'\n\nwhoopsy, what's going on there, change of unit without conversion? The pos-field is actually converted properly, but the xgrid/ygrid/zgrid variables not, which make this look a bit weird. action: remove xgrid/ygrid/zgrid?"
+      - +@isprivate: "0"
+        commentid: "10941"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-24 12:37:17 +0200
+        thetext: 'another minor question: the leadfield structure is always in ''cm'', no matter what the input units are. fine with primates, but strange when someone wants to do this on a mosquito brain'
+      - +@isprivate: "0"
+        commentid: "10942"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-24 13:26:20 +0200
+        thetext: |-
+          Discussed in FT-meeting 24 July:
+          -units would ideally reflect the units in the input data, unless otherwise specified. probably the electrodes' positions should take precedence.
+          -xyzgrid discrepancy: probably xyzgrid should not be present to begin with: after calling ft_prepare_sourcemodel, the xyzgrid are redundant and probably not explicitly used anymore. Note: it could be that some code still explicitly checks for the presence of these field, in order to determine which 'default' behavior to show.
+
+          Course of action:
+          discuss with Robert.
+          if he agrees, do as above.
+          if he doesn't agree, do something else.

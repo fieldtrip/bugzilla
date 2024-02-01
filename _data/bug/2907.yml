@@ -1,0 +1,196 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2907"
+    creation_ts: 2015-06-11 14:53:00 +0200
+    short_desc: read_eep_trg.mex* behave differently that read_eep_trg.m on files with magic number "RIFF"
+    delta_ts: 2019-08-10 12:33:35 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: thomas.hartmann
+      +@name: Thomas Hartmann
+    assigned_to:
+      +content: thomas.hartmann
+      +@name: Thomas Hartmann
+    cc:
+      - ddewong
+      - litvak.vladimir
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15769"
+        comment_count: "0"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2015-06-11 14:53:05 +0200
+        thetext: |-
+          line 683ff:
+
+                if filetype_check_header(filename, 'RIFF')
+                  scaler = 1000; % for 32-bit files from ASAlab triggers are in miliseconds
+                elseif filetype_check_header(filename, 'RF64');
+                  scaler = 1; % for 64-bit files from ASAlab triggers are in seconds
+                end
+
+          this fails for my cnt files (recorded with ASA). mine have a 'RIFF' magic number but the triggers are in seconds.... is there any other way to detect this, maybe?
+
+          best,
+          thomas
+      - +@isprivate: "0"
+        commentid: "15770"
+        comment_count: "1"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2015-06-11 15:46:58 +0200
+        thetext: ok, the problem is actually not in the ft_read_event function as it works fine on 32bit machines. the problem is the compiled read_eep_trg.mex* functions as they seem to do the scaling themselve.......
+      - +@isprivate: "0"
+        commentid: "15772"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-11 19:29:50 +0200
+        thetext: |-
+          Hi Thomas,
+
+          Please discuss with Daniel and Sarang (CC).
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15779"
+        comment_count: "3"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2015-06-12 11:20:47 +0200
+        thetext: |-
+          hey guys!
+          so, what's the advantage of the mex file anyway? i cannot imagine that the speedup would be really significant.... and for me, just deleting the mex file solved the bug for me....
+      - +@isprivate: "0"
+        commentid: "15780"
+        comment_count: "4"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2015-06-12 13:30:53 +0200
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #3)
+          It was part of the mex package that was recently compiled in order to provide RF64 compatibility.  We can discard the read_eep_trig.mex* files if the .m file works fine for both RIFF and RF64 formats.
+
+          D
+      - +@isprivate: "0"
+        commentid: "15781"
+        comment_count: "5"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2015-06-12 14:45:12 +0200
+        thetext: |-
+          (In reply to Daniel Wong from comment #4)
+          do you have one of these RF64 files lying around? my system produces the RIFF versions.... i think, we would only need to take a look at the trg files...
+
+          best,
+          thomas
+      - +@isprivate: "0"
+        commentid: "15784"
+        comment_count: "6"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2015-06-15 16:11:11 +0200
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #5)
+          Just sent one to your unitn account.
+
+          D
+      - +@isprivate: "0"
+        commentid: "16421"
+        comment_count: "7"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2015-11-23 21:39:31 +0100
+        thetext: |-
+          Hi everybody, it seemed the mex file for read_eep_trg implements different code than the m-file. As far as I see, the trigger latencies are in full seconds for both data formats. In addition, it seems the final quantity that we desire (the trigger latency in samples) is already contained in the trigger file as well, so we might as well just use that. I have therefore replaced line 697:
+            event(i).sample   = round((trg(i).time/scaler) * hdr.Fs) + 1;    % convert from ms to samples
+                  event(i).value    = trg(i).code;
+
+          with:
+                  event(i).sample   = trg(i).offset;
+                  event(i).value    = trg(i).type;
+
+          Note that the m-file will produce an offset in *bytes* rather than in samples. I also changed "code" (string) to "type" (numerical), according to the expectation that event codes are always numbers. (This was also the previous behavior before using the new eeprobe code to read ANT data.)
+
+          The "scaler" code preceding this section is then no longer necessary, and I have removed it.
+
+          @Robert, I would recommend disabling the corresponding m-file (external/eeprobe/read_eeg_trg.m) since it does not produce the expected output.
+
+          Cheers,
+          Sarang
+      - +@isprivate: "0"
+        commentid: "16422"
+        comment_count: "8"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2015-11-23 21:41:32 +0100
+        thetext: |-
+          @Robert, I would recommend disabling the corresponding m-file (external/eeprobe/read_eeg_trg.m) since it does not produce the expected output. It seems I do not have write permission to do this myself.
+
+          @Thomas, this now works for both new and old ANT data from Konstanz; perhaps you should double-check with your own data when you get a chance.
+      - +@isprivate: "0"
+        commentid: "16469"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-30 14:50:17 +0100
+        thetext: |-
+          I have disabled the m-file by renaming it
+
+          188-252> svn commit
+          Adding         read_eep_trg.bak
+          Deleting       read_eep_trg.m
+
+          Committed revision 10952.
+      - +@isprivate: "0"
+        commentid: "17686"
+        comment_count: "10"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-07-22 18:00:04 +0200
+        thetext: '*** Bug 3166 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "20202"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

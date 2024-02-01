@@ -1,0 +1,189 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2532"
+    creation_ts: 2014-04-11 13:40:00 +0200
+    short_desc: Problem in ft_apply_montage
+    delta_ts: 2014-05-14 20:08:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13302"
+        comment_count: "0"
+        attachid: "611"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-04-11 13:40:51 +0200
+        thetext: |-
+          Created attachment 611
+          Example inputs
+
+          I get a crash in ft_apply_montage when applying to EEG sensors. Not sure how to fix it. It has to do with changing the number of channels but still trying get channel types with indices based on the old channel number. Example attached. The command is:
+
+          sens = ft_apply_montage(sens, sensmontage, 'keepunused', 'no');
+
+          The error is:
+
+          Index exceeds matrix dimensions.
+
+          Error in ft_apply_montage (line 406)
+              sens.chantype = input.chantype(sel2,:);
+      - +@isprivate: "0"
+        commentid: "13407"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-04-28 17:09:56 +0200
+        thetext: "Hi Vladimir,\n\nI am naive to the actual implementation of apply_montage, but since this has been around for some weeks, I thought I give it a shot. However, I am pretty confused. The statement in line 406 makes absolutely no sense, the same counts for line 415. The function ft_apply_montage has exactly one output argument, which is called 'input' (very convenient name for an output variable ^^). These lines are the last two things happening in the function and are changing the not existing sens-variable, which is then also not further used. \n\nSo, there are two errors here:\n1) sens should probably be changed to input\n2) the indexing by sel2 is wrong, as input.chantype should be indexed according to .labelnew and not, as currently, to .labelorg\n\n1) was introduced together with http://code.google.com/p/fieldtrip/source/detail?spec=svn7112&r=7112 when Robert changed the variable input and output name, but apparently forgot to change the name in those lines\n2) shouldn't be an issue at all, since this is already dealt with earlier in the code since revision 8923: http://code.google.com/p/fieldtrip/source/detail?spec=svn8923&r=8923\n\nTherefore I would propose to just delete these lines, but I need an executive decision by the roboos or jansch (added to CC)."
+      - +@isprivate: "0"
+        commentid: "13435"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-04-30 13:58:33 +0200
+        thetext: "we discussed this at the FT meeting.\n\nResolution\n1) we will extend the definition of the montage with a chantypeold/new field\n2) we will extend the definition of the montage with a chanunitold/new field\n3) if the montage does not specify chantype, the output will not have the chantype field. Idem for chanunit.\n4) if the chantype/unit need to be updated, it is the responsibility of th ecalling code to specify the type and/or unit \n\nad 1 and 2: both old/new should be specified in the montage, or should be absent"
+      - +@isprivate: "0"
+        commentid: "13446"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 12:07:43 +0200
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #2)
+          Good. We have something along these lines in some places in SPM already. One thing I don't understand is why you need chantypeold and chanunitold. It's not really necessary for the montage and it should be in the data anyway.
+      - +@isprivate: "0"
+        commentid: "13447"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-01 12:15:00 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #3)
+
+          the montage can in principle change the chantype and chanunits. I.e. ICA on EEG should not have eeg chantypes as output, but if you reverse apply the (artifact-pruned) mixing matrix the result is again interpretable as eeg. Right now ft_apply_montage is unaware of chantype and chanunit, which means that they might become inconsistent with the actual data after calling ft_apply_montage.
+
+          ... oh, I guess that I only now really understand your question: It is specifically about the old representations of type/unit, not about the new ones. You are right, the old representation is in the input data and would not have to be present in the montage.
+
+          so this would be the desired structure:
+
+          %   montage.tra      = MxN matrix
+          %   montage.labelorg = Nx1 cell-array
+          %   montage.labelnew    = Mx1 cell-array
+          %   montage.chantypenew = Mx1 cell-array
+          %   montage.chanunitnew = Mx1 cell-array
+      - +@isprivate: "0"
+        commentid: "13448"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 12:17:30 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          Yes, that's what I meant.
+      - +@isprivate: "0"
+        commentid: "13514"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-09 17:03:37 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #5)
+          Hi guys,
+
+          I see the bug that causes a crash is still there and there was no fix. Should I just comment those lines out for now? The bug might affect our SPM course demos.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "13520"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-11 08:55:46 +0200
+        thetext: '*** Bug 2416 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13521"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-11 09:06:59 +0200
+        thetext: I just started looking at this bug. I realise that with inverse=yes, org and new swap their roles (either for label/chantype/chanunit). Hence both need to be present.
+      - +@isprivate: "0"
+        commentid: "13523"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-11 10:28:36 +0200
+        thetext: "I have made ft_apply_montage fully aware of chantype and chanunit. They are treated just like labels, i.e. with org and new. In case the input (data or montage) don't contain them, the output will also not contain it.\n\nroboos@mentat001> svn commit\nSending        forward/ft_apply_montage.m\nTransmitting file data .\nCommitted revision 9480.\n\nI can imagine that there will be some places in other existing code or in (test) scripts where the chantype and chanunits now will disappear. This should not be considered as a bug, but as a feature. In case the chantype and units are not explicitly specified, they are unknown and therefore not to be trusted. However, there are cases where they could be specified, e.g. in megplanar (T/cm?). \n\nI will file a separate bug for improving the channel unit handling in ft_apply_montage."
+      - +@isprivate: "0"
+        commentid: "13525"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-11 11:18:59 +0200
+        thetext: I think for now that we are done. To be followed up as bug 2570.
+      - +@isprivate: "0"
+        commentid: "13621"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:49 +0200
+        thetext: closed several of my bugs that have been resolved
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "611"
+      date: 2014-04-11 13:40:00 +0200
+      delta_ts: 2014-04-11 13:40:51 +0200
+      desc: Example inputs
+      filename: montage_bug.mat
+      type: text/plain
+      size: "4181"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

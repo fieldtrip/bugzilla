@@ -1,0 +1,115 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2613"
+    creation_ts: 2014-06-18 10:02:00 +0200
+    short_desc: ft_freqanalysis inconvenience with comp+raw
+    delta_ts: 2014-07-15 17:25:11 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - f.devries
+      - L.Tiedemann
+      - mathilde.bonnefond
+      - rene.scheeringa
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13865"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:02:50 +0200
+        thetext: "Floris wrote:\n\nI just reran a script which I use to plot TFRs of ICA components and I discovered with help of Mathilde Bonnefond that there is an inconvenience in the ft_freqanalysis function since it changed on the 12th of June 2014. \n\nThis implies that if you run ft_componentanalysis before ft_freqanalysis on preprocessed data, there are both 'raw' and 'comp' features detected by ft_freqanalysis, leading to the function defining the input as 'raw+comp' and expecting a dimord field in the data structure, which is not supplied by default.\n\nThere is a workaround, one may delete the 'topo' and 'topolabel' fields from the input data, ft_freqanalysis works normally again.\n\nYou may already be aware of this, but I thought it may be good to let you know."
+      - +@isprivate: "0"
+        commentid: "13866"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:04:40 +0200
+        thetext: |-
+          Floris wrote:
+
+          I have now put the data (comp) and the cfg (cfg) on the temporary disk under 4RobertOostenveld (filename 'debugft_freq4robert.mat')
+      - +@isprivate: "0"
+        commentid: "13867"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:09:21 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\nI have copied the test data to /home/common/matlab/fieldtrip/test/bug2613.mat and can reproduce the problem with\n\n>> load(dccnpath('/home/common/matlab/fieldtrip/test/bug2613.mat'));\n>> ft_freqanalysis(cfg, comp)\n\nthe input is component data with 56 components and 65 original channels\nthe input is raw data with 56 channels and 182 trials\nWarning: the data does not contain a trial definition \n> In utilities/private/warning_once at 158\n  In utilities/private/fixsampleinfo at 66\n  In ft_datatype_raw at 157\n  In ft_datatype_comp at 105\n  In ft_checkdata at 217\n  In ft_freqanalysis at 209 \nWarning: reconstructing sampleinfo by assuming that the trials are consecutive segments of a continuous recording \n> In utilities/private/warning_once at 158\n  In utilities/private/fixsampleinfo at 79\n  In ft_datatype_raw at 157\n  In ft_datatype_comp at 105\n  In ft_checkdata at 217\n  In ft_freqanalysis at 209 \nselecting 182 trials\nReference to non-existent field 'dimord'.\n\nError in ft_selectdata_old (line 468)\n    rpttapflag = ~isempty(strfind(data.dimord, 'rpttap'));\n\nError in ft_selectdata (line 78)\n  [varargout{1:nargout}] = ft_selectdata_old(varargin{:});\n\nError in ft_freqanalysis (line 215)\n  data = ft_selectdata(data, 'rpt', cfg.trials);"
+      - +@isprivate: "0"
+        commentid: "13869"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:27:56 +0200
+        thetext: |-
+          I fixed it
+
+          mac011> svn commit ft_freqanalysis.m test/
+          Sending        ft_freqanalysis.m
+          Adding         test/test_bug2613.m
+          Transmitting file data ..
+          Committed revision 9636.
+
+          The fix consists of changing from ft_selectdata_old to the new/newer/newest implementation.
+
+          @Floris: Note however that your cfg is incorrect. The cfg.trials field refers to trials  up to trial number 2409, whereas there are only 182 trials in the data structure.
+      - +@isprivate: "0"
+        commentid: "13870"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:28:16 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          sorry, typo: 2409 should read 240
+      - +@isprivate: "0"
+        commentid: "13872"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-18 10:29:50 +0200
+        thetext: '*** Bug 2614 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "14134"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:11 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

@@ -1,0 +1,168 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1976"
+    creation_ts: 2013-02-06 19:07:00 +0100
+    short_desc: Inverse solution with one time point and one trial fails
+    delta_ts: 2014-02-24 10:56:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: pawel.kordowski
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9336"
+        comment_count: "0"
+        who:
+          +content: pawel.kordowski
+          +@name: ""
+        bug_when: 2013-02-06 19:07:50 +0100
+        thetext: if you put only one time point and one trial into ft_sourceanalysis avg has a wrong dimension and generates an error in function computing inverse problem, see attached file
+      - +@isprivate: "0"
+        commentid: "9337"
+        comment_count: "1"
+        attachid: "421"
+        who:
+          +content: pawel.kordowski
+          +@name: ""
+        bug_when: 2013-02-06 19:08:17 +0100
+        thetext: |-
+          Created attachment 421
+          bug example
+      - +@isprivate: "0"
+        commentid: "9344"
+        comment_count: "2"
+        who:
+          +content: pawel.kordowski
+          +@name: ""
+        bug_when: 2013-02-07 10:44:52 +0100
+        thetext: |-
+          consider line 807 and 882 from ft_sourceanalysis:
+
+          807: avg = reshape(avg, [1 Nchans Nsamples]);
+
+          882: dip(i) = minimumnormestimate(grid, sens, vol, squeeze(avg(i,:,:)), optarg{:});
+
+          and following MATLAB feature:
+
+          >> Nchans = 21; Nsamples = 1; A = zeros(Nchans,Nsamples); A = reshape(A,[1 Nchans Nsamples]); size(squeeze(A(1,:,:)))
+
+          ans =
+
+               1    21
+
+          >> Nchans = 21; Nsamples = 2; A = zeros(Nchans,Nsamples); A = reshape(A,[1 Nchans Nsamples]); size(squeeze(A(1,:,:)))
+
+          ans =
+
+              21     2
+
+          it generated an error in line 211 of minimumnormestimate
+
+          211: mom = w * dat;
+
+          same occurs for another inverse solution methods
+      - +@isprivate: "0"
+        commentid: "9355"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-07 12:27:18 +0100
+        thetext: "Hi Pawel,\n\nThanks for spotting this, and including the useful example test file.\nIt is a silly Matlab feature.  For now, I will make this patch in the MNE section of ft_sourceanalysis (as of SVN version 7450):\n\n      if size(avg,3)==1\n        squeeze_avg = avg(i,:)';\n      else\n        squeeze_avg = squeeze(avg(i,:,:));\n      end\n      if hascovariance \n        dip(i) = minimumnormestimate(grid, sens, vol, squeeze_avg, optarg{:}, 'noisecov', squeeze(Cy(i,:,:)));\n      else\n        dip(i) = minimumnormestimate(grid, sens, vol, squeeze_avg, optarg{:});\n      end\n\nThen your test script runs fine.\n\nHowever, I wonder which other methods within ft_sourceanalysis this may apply to.  Note, some methods won't like only 1 time point, but it's ok for MNE, so I don't think it's as simple as adding these lines for all methods.  I will add more later about that."
+      - +@isprivate: "0"
+        commentid: "9356"
+        comment_count: "4"
+        who:
+          +content: pawel.kordowski
+          +@name: ""
+        bug_when: 2013-02-07 12:56:19 +0100
+        thetext: this bug applies to lcmv too
+      - +@isprivate: "0"
+        commentid: "9506"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-21 15:50:17 +0100
+        thetext: |-
+          I have updated it for all timelock methods.
+          Svn commit 7520.
+
+          test function added svn commit 7521, based on your bug example attached to this bug.  (this means a test of the code will run automatically if changes to ft_sourceanalysis are made in future)
+
+          I consider this bug fixed, but please re-open if you are not satisfied.
+      - +@isprivate: "0"
+        commentid: "11453"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-25 16:24:45 +0200
+        thetext: "Hi Johanna,\n\nthe test script \"test_bug1976\" contains towards the end the following \n\ntest_bug1049\ncd /home/common/matlab/fieldtrip/test\ntest_bug1298\ncd /home/common/matlab/fieldtrip/test\ntest_bug1563\ncd /home/common/matlab/fieldtrip/test\ntest_bug1599\ncd /home/common/matlab/fieldtrip/test\ntest_ft_sourceanalysis\ncd /home/common/matlab/fieldtrip/test\ntest_ft_sourcemovie\ncd /home/common/matlab/fieldtrip/test\ntest_ft_timelockanalysis_new\ncd /home/common/matlab/fieldtrip/test\ntest_historical\ncd /home/common/matlab/fieldtrip/test\ntest_testbug1563\ncd /home/common/matlab/fieldtrip/test\n\nI suggest that those lines are removed and that we don't do tests twice. \n\nRight now one of the test scripts fails (due to a completely unrelated plotting error). Once test_bug1976 runs again to completion, I will disable these lines from your script. Ok?"
+      - +@isprivate: "0"
+        commentid: "11468"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-09-26 11:51:45 +0200
+        thetext: Hi Robert, yes that makes sense to not run the tests twice; thus fine with me to comment out those lines.
+      - +@isprivate: "0"
+        commentid: "12251"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 09:48:38 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          Johanna wrote "I consider this bug fixed, but please re-open if you are not satisfied." It seems to me that the bug has been resolved, but the present status is "REOPENED". I will close it once more as FIXED, if anyone objects please reopen and state why there is still a concern.
+      - +@isprivate: "0"
+        commentid: "12939"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:34 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "421"
+      date: 2013-02-06 19:08:00 +0100
+      delta_ts: 2013-02-06 19:08:17 +0100
+      desc: bug example
+      filename: inverse.m
+      type: application/octet-stream
+      size: "2548"
+      attacher: pawel.kordowski
+      data: REMOVED

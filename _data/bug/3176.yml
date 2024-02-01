@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3176"
+    creation_ts: 2016-08-22 17:22:00 +0200
+    short_desc: ft_electroderealign problems with cfg.headshape.pnt and .pos
+    delta_ts: 2017-01-17 11:29:43 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jens.klinzing
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17751"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-22 17:22:56 +0200
+        thetext: |-
+          ft_electroderealign requires the field cfg.headshape.pnt. However, even if this field is present it is moved to .pos in line 271 by calling cfg.headshape = fixpos(cfg.headshape).
+
+          One line later (line 272) ft_electroderealign calls headshape = mesh2edge(cfg.headshape) which refers to the field .pnt, leading to the error:
+
+          ----
+          Reference to non-existent field 'pnt'.
+
+          Error in mesh2edge (line 82)
+          newbnd.pnt  = bnd.pnt;
+
+          Error in ft_electroderealign (line 272)
+              headshape = mesh2edge(cfg.headshape);
+          ----
+
+          You can recreate the problem by loading the vol from:
+          ftp://ftp.fieldtriptoolbox.org/pub/fieldtrip/tutorial/headmodel_fem/vol.mat
+
+          ...and executing the following code:
+          elec          = ft_read_sens('standard_1020.elc');
+          cfg           = [];
+          cfg.method    = 'interactive';
+          cfg.elec      = elec;
+          cfg.headshape = vol;
+          elec_aligned  = ft_electroderealign(cfg);
+      - +@isprivate: "0"
+        commentid: "17754"
+        comment_count: "1"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2016-08-23 10:59:40 +0200
+        thetext: "The problem occurs because mesh2edge is called from fieldtrip/private. There is another mesh2edge in fieldtrip/forward/private. \n\nThere the line 82\nnewbnd.pnt = bnd.pnt; (fieldtrip/private)\n\n...is replaced by \nbnd = fixpos(bnd);\nnewbnd.pos = bnd.pos; (fieldtrip/forward/private)\n\n...which fixes the problem. Can this be changed also in the fieldtrip/private/mesh2edge?\n\nI don't know if this would break any other functions. If it doesn't here is a pull request making the change:\nhttps://github.com/fieldtrip/fieldtrip/pull/210"
+      - +@isprivate: "0"
+        commentid: "17755"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-08-23 12:39:06 +0200
+        thetext: "(In reply to Jens Klinzing from comment #1)\n\nhmm, the fieldtrip/bin/synchronize-private.sh script should be automatically triggered after every commit and should cause any identical files to remain identical (in case one copy is updated).\n\nI see in the sh script that \n\n# mesh2edge.m\nARRAY=()\nARRAY+=(forward/private/mesh2edge.m)\nARRAY+=(plotting/private/mesh2edge.m)\nsync ${ARRAY[*]}\n\nwhich is consistent with \n\nmac011> find . -name mesh2edge.m\n./forward/private/mesh2edge.m\n./plotting/private/mesh2edge.m\n./private/mesh2edge.m\n\nso the one in fieldtrip/private is not listed in the sync script, which has caused it to get out of sync with the (already previously fixed) other copies. \n\nI see some other changes in forward/private/mesh2edge.m that are not in private/mesh2edge.m, so I'll copy the whole file over.\n\nthis fixes it:\n\nmac011> git commit\n[master 3b00b78] FIX - mesh2edge was not synched properly, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3176 and thanks to Jens\n 2 files changed, 14 insertions(+), 5 deletions(-)\n\nmac011> git push upstream master\nX11 forwarding request failed on channel 0\nYou're about to push master, is that what you intended? [y|n] y\nCounting objects: 5, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (5/5), done.\nWriting objects: 100% (5/5), 557 bytes | 0 bytes/s, done.\nTotal 5 (delta 3), reused 0 (delta 0)\nremote: Resolving deltas: 100% (3/3), completed with 3 local objects.\nTo git@github.com:fieldtrip/fieldtrip.git\n   146d785..3b00b78  master -> master\n\n\nI will ignore the PR. Thanks anyway for that, as that was the fastest way for me to figure out what was wrong."
+      - +@isprivate: "0"
+        commentid: "18183"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-17 11:29:43 +0100
+        thetext: closed multiple bugs that were resolved some time ago

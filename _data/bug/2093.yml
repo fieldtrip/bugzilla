@@ -1,0 +1,350 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2093"
+    creation_ts: 2013-04-05 00:07:00 +0200
+    short_desc: NEX file reader errors
+    delta_ts: 2019-08-10 12:41:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1825
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=322
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1512
+      - http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2035
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: braingirl
+      +@name: Teresa Madsen
+    cc:
+      - braingirl
+      - n.n.oosterhof
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10013"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2013-04-05 00:07:20 +0200
+        thetext: |-
+          I'm having a couple of problems reading in my .nex files:
+
+          1) read_nex_event only reads the Strobed "marker" (type 6) and none of the actual "events" (type 1).  I was able to edit this function myself to incorporate other single timestamp events, but it may also be useful to incorporate "intervals" and other variable types.
+
+          2) In merged files, with multiple AD segments strung together with time gaps in between, the number of samples reported in the header is the actual number of data samples, not the timestamp of the last sample, so...
+
+              a) ...when I try to extract data around events after the gap, they sometimes end up falsely producing an error that the trial would end after the end of the data file.
+
+              b) ...and when I tried importing the continuous data without event triggering, it uses the number of data samples as the last timestamp to collect, so I'm missing a chunk of data as long as the gap between segments.
+
+              c) ...finally, trying to separately import each un-merged file and then append the data is not ideal for other reasons, but I still can't get the 2nd file to work.  That's just a mess...I couldn't even pin down the problem, it was just giving me gibberish, so the file may just be corrupted.
+
+          I'm open to suggestions on how to correct for this in my custom trialfun, but I'm not sure it's going to work without going deeper into the data import process, since ft_read_data is the one giving the error based on the number of samples in the header.  Is there a way to correct the header data?
+
+          Thanks,
+          Teresa
+      - +@isprivate: "0"
+        commentid: "10017"
+        comment_count: "1"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2013-04-05 21:38:39 +0200
+        thetext: "Ah, now I've found this:  http://fieldtrip.fcdonders.nl/getting_started/neuralynx?&#discontinuous_recordings \n\nBut the same thing can occur in PLX and NEX files and the functions that read them don't seem to have the same warning and interpolation options."
+      - +@isprivate: "0"
+        commentid: "16563"
+        comment_count: "2"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2016-01-05 18:20:31 +0100
+        thetext: Test update.  Feel free to ignore.
+      - +@isprivate: "0"
+        commentid: "17781"
+        comment_count: "3"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2016-09-09 17:43:27 +0200
+        thetext: "It's been a few years, but now that I'm a more confident programmer and have learned git, I'm going to work on merging my old workarounds into FieldTrip's current NEX file handling in a way that's worth sharing with the rest of the community.  I'll try to make sure I don't change anything in a way that affects the output for people who already using it successfully as is.\n\nMy top priority is to fix read_nex_event to import events, intervals, and multiple markers, rather than the one marker (\"strobed\") channel that is currently supported.  I'm also changing the way it gets the sampling frequency to avoid crashing on files that have no continuous channels.  \n\nI've pretty much given up on the merged files mentioned in #2 of the original bug report here, because it turned out that my fix was introducing a shift in the event timestamps that occurred after the merge point.  I'm going back to just loading the original files separately and using ft_appenddata, which I don't even remember why I rejected in the first place.\n\nAnyway, I just wanted to let you know I'm working on this, in case you have any tips or warnings.  Be on the lookout for a pull request in the next few days, hopefully.\n\nThanks,\nTeresa"
+      - +@isprivate: "0"
+        commentid: "17784"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-12 15:52:16 +0200
+        thetext: "(In reply to Teresa Madsen from comment #3)\n\nHi Teresa\n\nMuch appreciated.\n\nAn important aspect (in general) is to maintain backward compatibility to stuff that works/worked and thereby not break things in implementing improvements. \n\nI have a file /home/common/matlab/fieldtrip/data/test/original/lfp/plexon/p213parall.nex\nthat is used for testing. Please get a copy from \nhttps://dl.dropboxusercontent.com/u/3206396/p213parall.nex\n\nCould you make a test script (in fieldtrip/test) that takes this file and compares it with the known correct results from ft_read_xxx? You could simply do\n\nif ~exist(bug2093.mat', 'file')\n% run only once, using old fieldtrip code\nold.hdr = ft_read_header(...)\nold.dat = ft_read_data\nold.evt = ft_read_event\nsave('bug2093.mat', 'old')\nelse\n% all future test executions with newer FT code\nload('bug2093.mat')\nend\n\nnew.hdr = ft_read_header(...)\nnew.dat = ft_read_data\nnew.evt = ft_read_event\n\nand then compare old versus new, e.g. using \"assert\".\n\nI could add the test file with the reference results to our test directory, and maintain the test.\n\nYou could also add other files to this for which you know the correct content.\n\nbest\nRobert"
+      - +@isprivate: "0"
+        commentid: "17794"
+        comment_count: "5"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2016-09-14 16:41:54 +0200
+        thetext: |-
+          Thanks for suggesting that.  There were a few kinks to work out, but I think I have read_nex_event.m working as it should now.  The test file I wrote (test_bug2093.m) currently references my local data storage for the test data input and output, but you can easily change those 2 lines at the top.  My pull request is here:  https://github.com/fieldtrip/fieldtrip/pull/216
+
+          Also, thanks for linking those other related bugs.  At some point, I probably will go back and fix some of the other NEX reading issues, but for now, read_nex_event was the only one in the way of my work.  Now that it's fixed, I need to go back to my data analysis for a while.
+      - +@isprivate: "0"
+        commentid: "17795"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-14 17:11:01 +0200
+        thetext: |-
+          (In reply to Teresa Madsen from comment #5)
+
+          thanks, I have merged it. Could you perhaps contribute some additional test data (for future reference)?
+
+          If you feel that the issue has been resolved, please close it on bugzilla.
+      - +@isprivate: "0"
+        commentid: "18297"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-25 13:41:03 +0100
+        thetext: "Hi Theresa,\n\nI am doing some regression testing and noticed the test script for this bug to fail because of the data not being present. \n\nCould you share the test data that you are referring to in the test script? Specifically the S:\\Teresa\\Analyses\\FieldTrip\\test files\\bug2093.mat file, I have the other one. \n\nthanks\nRobert"
+      - +@isprivate: "0"
+        commentid: "18306"
+        comment_count: "8"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-25 19:19:15 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          As you had suggested, the file 'bug2093.mat' was meant to be created by the bug test script itself (line 19), using the current master branch, and then switch to the developmental branch, reimport & compare the two versions.
+
+          If you mean you'd like what I have saved as the old version (what FieldTrip used to import before my changes), I've uploaded it here:
+          https://emory.box.com/s/mrsusderdx0yd9wzs1f3awnuhg0q0soo
+
+          Let me know if you're able to access it.  This file was saved on 9/13/16, so it should have used the master branch at that time.
+
+            old.hdr = ft_read_header('p213parall.nex');
+            old.dat = ft_read_data('p213parall.nex');
+            old.evt = ft_read_event('p213parall.nex');
+      - +@isprivate: "0"
+        commentid: "18307"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-25 21:53:03 +0100
+        thetext: |-
+          (In reply to Teresa Madsen from comment #8)
+
+          thanks, I indeed would like to have the old version as reference. I realize that I could recreate it by checking out an old FT version, but I guessed you would still have it.
+
+          I cannot access the box.com link. It states "the file had been deleted or is not accessible to you". I do have a box.com account, but that does not suffice.
+
+          Can you try opening up the permissions, or send it another way?
+      - +@isprivate: "0"
+        commentid: "18308"
+        comment_count: "10"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-01-26 16:50:22 +0100
+        thetext: |-
+          Regarding the proposed PR at github [1] that was merged, the associated test file gives the following error in Matlab (2015a) and Octave (4.0.3):
+
+            Undefined function or variable 'git'.
+
+            Error in test_bug2093 (line 12)
+              git checkout master
+
+          This makes sense given that the test function uses 'git' directly while it is not a matlab command or function. The test depends on the presence of some file in the hard-coded path 'S:\Teresa\Analyses\FieldTrip\test files\p213parall.nex' which would make it fail on almost any machine. I also did not find the testmatfile in the test directory.
+
+          Bottom line: the current test would seem to fail in almost all cases - i.e. on any machine without this specific 'testmatfile'. Should the file be added? Or should the test be removed? Or anything else?
+
+          [1] https://github.com/fieldtrip/fieldtrip/pull/216/files
+      - +@isprivate: "0"
+        commentid: "18309"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-30 09:48:13 +0100
+        thetext: |-
+          (In reply to nno from comment #10)
+
+          Hi Nic,
+
+          I have already added something to ft_test to filter on file dependencies. You can use the option dccnpath=yes/no, which searches for the string (and function) dccnpath in each test. The idea is that all test scripts that load from disk, should use that function. The path to read is slightly different between our compute cluster, windows desktops and my macbook.
+
+          I just re-ran the test script with a FT version from December 2012 and recreated the test file. I have updated the test script to reflect the required changes to the file locations, and added the dccnpath function. I also removed the git call statements.
+
+          @Theresa, nothing to be done for now.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "18310"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-30 09:48:47 +0100
+        thetext: for now I am assuming that the test will pass. I will execute it together with the next test batch.
+      - +@isprivate: "0"
+        commentid: "18311"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-30 09:50:49 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #12)\n\noh, I should have added this as well. \n\nroboos@mentat001> git commit -a\n[master 6a06499] recreated test file and updated test script, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2093#c11\n 1 file changed, 13 insertions(+), 10 deletions(-)\n\nI pushed it to the upstream master."
+      - +@isprivate: "0"
+        commentid: "18314"
+        comment_count: "14"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-30 15:34:56 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+
+          Thanks for fixing this, Robert.  I'm sorry I didn't get back to you in time.
+
+          FYI, the git calls within Matlab are just dependent on this simple wrapper:  https://github.com/manur/MATLAB-git
+
+          ~Teresa
+      - +@isprivate: "0"
+        commentid: "18316"
+        comment_count: "15"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-01-30 16:44:18 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #11)
+
+          Hi Robert,
+
+          re the commit [1], I don't understand the logic here. It would seem to me that if  "~exist(testmatfile, 'file')" evaluates to true, then an exception should be thrown that the test file does not exist. Or alternatively the FT version should be verified and an error be thrown if it is not an 'old' version of FT. This is the code:
+
+              if ~exist(testmatfile, 'file')
+                % run only once, this is to be done using an old FT version
+                old.hdr = ft_read_header(testnexfile);
+                old.dat = ft_read_data(testnexfile);
+                old.evt = ft_read_event(testnexfile);
+
+                save(testmatfile, 'old')
+              else
+                % all future test executions with newer FT code
+                load(testmatfile)
+              end
+
+          In the current situation, if dccnpath is present but testmatfile is missing (for whatever reason), then it seems that the current code would use the current FT, evaluate "ft_read_event(testnexfile)" twice, and do the trivial comparison of a structure with itself. If the argument is to be made that it is impossible that dccnpath is present but testmatfile is missing, then that part of the code can be removed from the test. That is probably the best solution, as a failing test would indicate something unexpectedly happened (such as a missing test file). Maybe the code used to generate the test file should be included as a comment, together with the SHA1 of the commit that is meant with "old FT version".
+
+          best,
+          Nick
+
+          [1] https://github.com/fieldtrip/fieldtrip/commit/6a06499e9c0a055b93ff2faacc775cf582c23921
+      - +@isprivate: "0"
+        commentid: "18318"
+        comment_count: "16"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-30 17:26:28 +0100
+        thetext: |-
+          (In reply to nno from comment #15)
+
+          Commenting the original code makes sense to me.  The last commit to read_nex_event before my changes was c8de94a3e13df7d10737381f1070a0d467c9bfbb
+      - +@isprivate: "0"
+        commentid: "18319"
+        comment_count: "17"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-01-30 17:28:42 +0100
+        thetext: "(In reply to Teresa Madsen from comment #16)\n\n> Commenting the original code makes sense to me.  The last commit to read_nex_event \n> before my changes was c8de94a3e13df7d10737381f1070a0d467c9bfbb\n\nDo you want to send a PR? Or shall I send one?"
+      - +@isprivate: "0"
+        commentid: "18320"
+        comment_count: "18"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-30 18:20:53 +0100
+        thetext: |-
+          (In reply to nno from comment #17)
+
+          Done.  https://github.com/fieldtrip/fieldtrip/pull/311
+      - +@isprivate: "0"
+        commentid: "18321"
+        comment_count: "19"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-01-30 19:12:02 +0100
+        thetext: |-
+          (In reply to Teresa Madsen from comment #18)
+
+          Thanks for sending the PR. I changed the status to "reopened".
+      - +@isprivate: "0"
+        commentid: "18322"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-30 22:05:55 +0100
+        thetext: good point. I have merged https://github.com/fieldtrip/fieldtrip/pull/311
+      - +@isprivate: "0"
+        commentid: "18323"
+        comment_count: "21"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-01-30 22:52:10 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #20)
+
+          > good point. I have merged https://github.com/fieldtrip/fieldtrip/pull/311
+
+          With the PR merged into master and status set to resolved it would seem this is all ready and done, thanks!
+      - +@isprivate: "0"
+        commentid: "20305"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:39 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20505"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:52 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

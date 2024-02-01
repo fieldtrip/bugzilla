@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "981"
+    creation_ts: 2011-09-22 14:06:00 +0200
+    short_desc: ft_headmodelplot doesn't work with a multisphere volume conduction model in the input
+    delta_ts: 2011-11-11 11:19:54 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - iversen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3294"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 14:06:25 +0200
+        thetext: this is likely caused by the vol.label getting lost along the way
+      - +@isprivate: "0"
+        commentid: "3671"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-21 12:24:48 +0200
+        thetext: "John suggested this:\n\n\n====\ngit diff git-svn...HEAD -- forward/ft_prepare_vol_sens.m\ndiff --git a/forward/ft_prepare_vol_sens.m b/forward/ft_prepare_vol_sens.m\n@@ -165,7 +165,8 @@ elseif ismeg\n \n       % use the original sensor array instead of the one with a subset of\n       % channels, because we need the complete mapping of coils to channels \n-      sens = sens_orig;\n+      %sens = sens_orig; %***JRI*** this breaks using cfg.channel to fit a\n+      %subset of channels\n       \n       % remove the coils that do not contribute to any channel output\n       % since these do not have a corresponding sphere\n\n\n@@ -189,7 +190,10 @@ elseif ismeg\n           % the coil-specific spheres in the volume conductor should not have a label\n           % because the label is already specified for the coils in the\n           % sensor array\n-          vol = rmfield(vol, 'label');\n+          % *** JRI ***: vol.label is used below, so don't remove it!\n+            % FIXME something's wrong with the logic: should below\n+            % use sens.label, since they are identical?\n+            %vol = rmfield(vol, 'label');\n         end\n         return\n       end\n@@ -235,9 +239,16 @@ elseif ismeg\n         chanindex = strmatch(coillabel, vol.label, 'exact');  % what is the index of this channel in the list of local spheres\n         multisphere.r(i,:) = vol.r(chanindex);\n         multisphere.o(i,:) = vol.o(chanindex,:);\n+        multisphere.label{i} = vol.label{chanindex}; % *** JRI ***\n       end\n-      vol = multisphere;\n+      %vol = multisphere; % *** JRI *** wrong, this clobbers other necessary fields of vol,\n+      % so use original and only replace what has changed\n+      vol.r = multisphere.r;\n+      vol.o = multisphere.o;\n+      vol.label = multisphere.label;\n+      % *** JRI ***\n+\n       % finally do the selection of channels and coils\n       % order them according to the users specification\n       [selchan, selsens] = match_str(channel, sens.label);\n@@ -253,6 +264,7 @@ elseif ismeg\n       % make the same selection of coils in the multisphere model\n       vol.r = vol.r(selcoil);\n       vol.o = vol.o(selcoil,:);\n+      vol.label = vol.label(selcoil); % *** JRI ***\n \n     case 'nolte'\n       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+      - +@isprivate: "0"
+        commentid: "3859"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-10 10:39:01 +0100
+        thetext: |-
+          Hi John,
+
+          We intend to deprecate ft_headmodelplot, because we think that most functionality of this function is covered by other (and newer) (and less ugly) plotting functions. Those are in fieldtrip/plotting, e.g. ft_plot_sens, and ft_plot_vol.
+
+          This would mean that we will most likely remove this function altogether. Could you live with that?
+
+          @Robert: moving to the compat-directory is not straightforward due to the function's dependencies. There are quite a few private functions on which ft_headmodelplot depends, which themselves also rely on private functions etc. First I thought just to include the relevant private code as subfunctions, but it will be quite a lot. Would you agree not to svn move it as it is, but to really deprecate it (and throw an error if it is called?)
+      - +@isprivate: "0"
+        commentid: "3860"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-10 10:45:38 +0100
+        thetext: "(In reply to comment #2)\n> @Robert: moving to the compat-directory is not straightforward due to the ...\n\nOr move it anyway and then add a warning line to the function like \n\nwarning('The ft_headmodelplot function is deprecated and is not supported any more by the FieldTrip team. Please look at this FAQ (insert wiki page) for the suggested alternative approach. If you still want to use this function and get errors like ... (insert the first dependency error that they would get), you can manually move this function from its present location into the fieldtrip main directory, where it still may work')\n\nIt is a long warning, but should get the message across. A key ingredient is the FAQ that should explain how to plot the different geometrical objects that are involved in source modeling."
+      - +@isprivate: "0"
+        commentid: "3861"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-10 10:50:18 +0100
+        thetext: thanks for the suggestions. Will do.
+      - +@isprivate: "0"
+        commentid: "3863"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-10 11:46:10 +0100
+        thetext: |-
+          Created FAQ: http://fieldtrip.fcdonders.nl/faq/how_can_i_visualize_the_different_geometrical_objects_that_are_needed_for_forward_and_inverse_computations
+
+          and svn moved ft_headmodelplot
+      - +@isprivate: "0"
+        commentid: "3886"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-11 09:36:14 +0100
+        thetext: setting this one to wontfix -> ft_headmodelplot is now deprecated
+      - +@isprivate: "0"
+        commentid: "3939"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:54 +0100
+        thetext: I closed all bugs that were recently resolved.

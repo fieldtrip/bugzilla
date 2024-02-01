@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1178"
+    creation_ts: 2011-11-23 09:05:00 +0100
+    short_desc: ft_channelcombination fails with 3rd input argument
+    delta_ts: 2016-05-09 08:50:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4175"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-23 09:05:40 +0100
+        thetext: "if I do the following\n\ndatachannel = \n    'a1'    'a2'    'a3'    'b1'    'b2'    'b3'\n>> ft_channelcombination({'all', 'b*'}, datachannel, 1)\nans = \n    'a1'    'b1'\n    'a2'    'b1'\n    'a3'    'b1'\n    'b2'    'b1'\n    'b3'    'b1'\n    'a1'    'b2'\n    'a2'    'b2'\n    'a3'    'b2'\n    'b3'    'b2'\n    'a1'    'b3'\n    'a2'    'b3'\n    'a3'    'b3'\n    'a1'    'a1'\n    'a2'    'a2'\n    'a3'    'a3'\n    'b1'    'b1'\n    'b2'    'b2'\n    'b3'    'b3'\n\nthen I would not expect the combinations that end with a1, a2, a3. My expectation is that autocombinations are kept within the set, and not that they are added outside the scope of the selected set."
+      - +@isprivate: "0"
+        commentid: "4238"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-23 15:48:57 +0100
+        thetext: why would this matter?
+      - +@isprivate: "0"
+        commentid: "4239"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-23 15:51:01 +0100
+        thetext: Oh I see the point, I thought it was about the order of the channel pairs. But you mean that the a's should not be in the output. From the functionality of the function it makes sense, yet if one wants to compute coherence later on, then the auto-combinations for the 'a'-channels still need to be there.
+      - +@isprivate: "0"
+        commentid: "4304"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-28 15:42:16 +0100
+        thetext: |-
+          I share Roberts expectations, but also JM's point seems fair. What would be the best solution? Change the function's help to explain its behavior, or change the behavior?
+
+          Related, the help string contains the following sentence:
+          "Please note that the default behaviour is to exclude to exclude symetric pairs and auto-combinations." To me it suggests the behavior Robert expected, and I think the sentence needs some attention.
+      - +@isprivate: "0"
+        commentid: "4322"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-29 10:25:35 +0100
+        thetext: |-
+          if you represent it as matrix with "from-to" connections, then the default behavior is to return the upper triangle (or the lower one?). The auto-connections are on the diagonal, the lower (or upper?) ones can also be returned.
+
+          To me it makes sense to have two options, whether you want unidirectional (only upper) or bidirectional (upper+lower triangle), and whether you want auto (diagonal) combinations or not. So there are 2x2 options:
+          - upper
+          - upper+lower
+          - upper+auto
+          - upper+lower+auto
+
+          Based on these options, I think the users interface to the function could also be unambiguous.
+      - +@isprivate: "0"
+        commentid: "4646"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 12:36:42 +0100
+        thetext: Clear description :). Changed status to new.
+      - +@isprivate: "0"
+        commentid: "4985"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-27 08:45:58 +0100
+        thetext: assigned bug to get all bugs lined up before the grand bug binge
+      - +@isprivate: "0"
+        commentid: "15987"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-07 14:56:24 +0200
+        thetext: "Rather than upper and lower, I think that, if anything, the distinction should be 'column' and 'row', because this describes the inflow and outflow. A given element on the lower triangular part can either be in or outflow.\n\na grep on ft_channelcombination yields:\n\nft_connectivityanalysis\nft_freqanalysis\nft_mvaranalysis\n\nOnly ft_connectivityanalysis calls it with the 3d input argument. The other two call it the old-fashioned way. \n\nFrankly, at this moment in time I don't think it worthwile to pursue this."
+      - +@isprivate: "0"
+        commentid: "16080"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-08 16:51:52 +0200
+        thetext: |-
+          Following up on this: I made a new implementation, which I think is cleaner.
+          It now allows for two optional additional inputs, where the first one determines the inclusion of the auto-combinations, and the second one determines the upper/lower/both triangle behavior.
+
+          According to the test function, the default behavior (i.e. without addition input arguments) mirrors the old functionality (which I copied over into the function body of test_ft_channelcombination).
+      - +@isprivate: "0"
+        commentid: "16081"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-08 16:53:20 +0200
+        thetext: committed to SVN-repository revision 10654

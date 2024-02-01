@@ -1,0 +1,150 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "658"
+    creation_ts: 2011-05-11 20:44:00 +0200
+    short_desc: Neuromag-306 data incompatible with ft_rejectvisual
+    delta_ts: 2011-05-23 10:36:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ekanal
+      +@name: Eliezer Kanal
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2092"
+        comment_count: "0"
+        attachid: "48"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-05-11 20:44:36 +0200
+        thetext: |-
+          Created attachment 48
+          bad scale in channel view
+
+          Neuromag-306 data contains both magnetometers and gradiometers, each of which should be viewed on a unique scale. Personal experience has shown that to show both side-by-side the gradiometers should be scaled down by a factor of 10-20. As rejectvisual simply plots all channels next to each other, the gradiometer traces are completely out of proportion to the scale of the plot, making them unusable. (See attached images.)
+
+          The way I've solved this is by including enabling two extra cfg parameters in ft_rejectvisual, "magscale" and "gradscale". I implemented them as follows:
+
+          if ~isempty(cfg.magscale)
+            scaled = 1;
+            chansel = match_str(tmpdata.label, ft_channelselection('MEG*1', tmpdata.label));
+            for i=1:length(tmpdata.trial)
+              tmpdata.trial{i}(chansel,:) = tmpdata.trial{i}(chansel,:) .* cfg.magscale;
+            end
+          end
+          if ~isempty(cfg.gradscale)
+            scaled = 1;
+            chansel = match_str(tmpdata.label, ft_channelselection({'MEG*2','MEG*3'}, tmpdata.label));
+            for i=1:length(tmpdata.trial)
+              tmpdata.trial{i}(chansel,:) = tmpdata.trial{i}(chansel,:) .* cfg.gradscale;
+            end
+          end
+
+          This simply copies the other channel scaling techniques that start at line 230. I don't know whether this code would interfere with other types of systems, but I figured I'd submit it so you can examine/test it out.
+      - +@isprivate: "0"
+        commentid: "2093"
+        comment_count: "1"
+        attachid: "49"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-05-11 20:45:10 +0200
+        thetext: |-
+          Created attachment 49
+          bad channels in Trial view
+      - +@isprivate: "0"
+        commentid: "2108"
+        comment_count: "2"
+        attachid: "52"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-05-13 20:10:11 +0200
+        thetext: |-
+          Created attachment 52
+          bad data in time-frequency plot
+
+          I just noticed today that this issue also affects ft_multiplotTFR, when using the `neuromag306all.lay` file. See attachment.
+      - +@isprivate: "0"
+        commentid: "2136"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-05-17 11:23:44 +0200
+        thetext: |-
+          I have just implemented two new channel selection options to ft_channelselection.m: MEGGRAD and MEGMAG, which should work on Neuromag-306 and Yokogawa systems.
+
+          Thanks for your proposed fix for the scaling issue; I have changed it a bit to use this new channel selection and added it to ft_rejectvisual.
+
+          I am not sure the ft_multiplotTFR bug is due to the same scaling issue as the one involved in ft_rejectvisual. I am setting this bug to resolved; I will look into the multiplotTFR thing with the Neuromag-306 test data we have here, and file a new bug if I can reproduce the issue. If I cannot reproduce it, I will get back to you.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "48"
+        date: 2011-05-11 20:44:00 +0200
+        delta_ts: 2011-05-11 20:44:36 +0200
+        desc: bad scale in channel view
+        filename: grad-channelView.png
+        type: image/png
+        size: "31272"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "49"
+        date: 2011-05-11 20:45:00 +0200
+        delta_ts: 2011-05-11 20:45:10 +0200
+        desc: bad channels in Trial view
+        filename: grad-trialView.png
+        type: image/png
+        size: "135736"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "52"
+        date: 2011-05-13 20:10:00 +0200
+        delta_ts: 2011-05-13 20:10:11 +0200
+        desc: bad data in time-frequency plot
+        filename: neuromag306all-muktiplotTFR.png
+        type: image/png
+        size: "116980"
+        attacher:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        data: REMOVED

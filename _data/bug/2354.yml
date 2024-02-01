@@ -1,0 +1,197 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2354"
+    creation_ts: 2013-10-31 15:48:00 +0100
+    short_desc: averaging of avg/rpt fails for ERFs in ft_topoplot/topoplot_common
+    delta_ts: 2014-05-16 21:13:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11799"
+        comment_count: "0"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-10-31 15:48:07 +0100
+        thetext: "Dear fieldtrip developers,\ni encountered a bug when plotting topographies using ft_topoplotER. i think it might also apply to other functions. \nI just updated fieldtrip to yesterday's version, so i'm confident it hasn't been fixed yet.\n\nwhat happens is the following (see also example script/data)\n1) i have a data-structure containing ERFs of individual subjects, thus a struct with the field 'data.individual'. (data are from a neuromag system)\n2) i want to plot some topographies of a specific time window and i'm indicating cfg.parameter = 'individual';\n3) the function reports computing an average over trials but then crashes printing an error: \n\n'Reference to non-existent field 'individual'.'\nError in topoplot_common (line 522)\ndat    = data.(cfg.parameter);\n\nError in ft_topoplotER (line 169)\ncfg = topoplot_common(cfg, varargin{:});\n\n\nThe problem is that topoplot_common averages across the rpt/subj dimension (line 279 ff), for that purpose ft_timelockanalysis is applied which (sensibly) changes the 'individual' to an 'avg' field, yet cfg.parameter (to extract the data later, line 522) remains unchanged. \nI would suggest either to change the parameter at that point, or to follow the tf-logic (line 303) and add\n\ndata.(cfg.parameter)  = data.avg; \n\nto line 286. this does solve the problem.\n\nI used to use a different workaround and average across subjects by hand before plotting (see also the example script), but this is rather annoying and an easy fix in my view.\n\nBest\nPhilipp"
+      - +@isprivate: "0"
+        commentid: "11800"
+        comment_count: "1"
+        attachid: "548"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-10-31 15:48:54 +0100
+        thetext: |-
+          Created attachment 548
+          test script
+      - +@isprivate: "0"
+        commentid: "11803"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-31 15:58:46 +0100
+        thetext: |-
+          Dear Philipp,
+
+          Thanks for posting. I see that the attachment to this bug already contains some data. That's great! We'll look into it a.s.a.p.
+
+          JM
+      - +@isprivate: "0"
+        commentid: "11821"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-01 12:38:44 +0100
+        thetext: |-
+          Thanks Philipp,
+
+          I could reproduce the problem with your data and have fixed it in today's version. This also affected ft_singleplotER and ft_multiplotER.
+
+          The change is in revision 8685
+      - +@isprivate: "0"
+        commentid: "11822"
+        comment_count: "4"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-11-01 13:46:32 +0100
+        thetext: |-
+          cool, thanks
+          p
+          (In reply to comment #3)
+      - +@isprivate: "0"
+        commentid: "11832"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-02 15:33:41 +0100
+        thetext: "Hi Jan-Mathijs,\n\nYour change in http://code.google.com/p/fieldtrip/source/detail?r=8685\ncauses a number of regression test scripts to fail. For reference; test_bug1245 AND  test_tutorial_clusterpermutationtimelock are two of them.\n\nThe change entails that after \ndata = ft_timelockanalysis(tmpcfg, data)\nyou do\ndata.(cfg.parameter) = data.avg\ndata = rmfield(data, 'avg');\n\nbut in the test scripts I found that cfg.parameter='avg', i.e. you rename avg to avg and subsequently remove it!\n\nI fixed one case in http://code.google.com/p/fieldtrip/source/detail?r=8704, extending the test script a bit and am about to commit two more changes, as I just figured out the pattern of problems introduced in commit 8685.\n\nThe reason for me reopening this bug is that it ain't fully clear to me how your change is supposed to work. I guess it relies on ft_timelockanalysis averaging whatever parameter is useful, and returning this in avg. In Philipp's case the parameter of interest is \"individual\", but it might also be \"trial\" (as a matrix). It might be that, rather than using ft_timelockanalysis with its limited parameter handling, ft_selectdata is the better choice with cfg.avgoverxxx=yes.\n\ncheers\nRobert"
+      - +@isprivate: "0"
+        commentid: "11833"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-02 15:37:20 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          roboos@mentat001> svn commit
+          Sending        ft_singleplotER.m
+          Sending        private/topoplot_common.m
+          Transmitting file data ..
+          Committed revision 8708.
+      - +@isprivate: "0"
+        commentid: "11835"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-03 12:00:25 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          Too rash, indeed. I am aware of the fact that nowadays, it would be better to use ft_selectdata. For  a quick fix for the time being I opted for Philipp's suggestion. Did not think it through long enough, apparently.
+
+          Note, that for the plotting functions ft_selectdata should probably also replace the code that is actually selecting the data to be plotted. Also, once we open that can of worms, we should probably also consider to use ft_selectdata for prepare_freq_matrices, and prepare_timefreq_data.
+      - +@isprivate: "0"
+        commentid: "11844"
+        comment_count: "8"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-11-04 09:46:52 +0100
+        thetext: "sorry to add something again, although i have the impression the potential changes go further than this bug.\n\ni think my initial idea should work if one does not remove the 'avg' field (i think JM did this for memory reasons? but this is just the average so it shouldn't take that much.) alternatively one could create a tmpdata struct and take the necessary fields from there (which is actually done for tf data).\n\nand second, i'm not sure if ft_selectdata works. in my case i'm rather sure it does not. remember here it is about the individual field. there is no avgoversubj option (and the avgoverrpt option does not work (at least not in my first few attempts). i'm always getting errors (i think the function assumes a cell array, as for trials). \n\nbest\np\n\n(In reply to comment #7)"
+      - +@isprivate: "0"
+        commentid: "11845"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-04 09:55:37 +0100
+        thetext: "Dear Philipp, \nThanks for feedback. It's on our long-standing to do list to make ft_selectdata better suited to generate output that meets the user's expectation. At some point in the future this may be the case, so that we can start using this to be used as a more intermediate-level function, rather than using the high-level ft_timelockanalysis function.\nFor now, I think that Robert added some lines in the code, that only throws away the avg field, when the cfg.parameter is not avg (which makes sense). So, the bottom line is that I think the code still works for you, correct?"
+      - +@isprivate: "0"
+        commentid: "11846"
+        comment_count: "10"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2013-11-04 10:07:17 +0100
+        thetext: |-
+          ah okay,
+          now i see the 'if', didn't know where to look...
+          i wasn't sure if you were still adding some new things to solve this (also cause it's still open).
+          thanks again
+          p
+          (In reply to comment #9)
+      - +@isprivate: "0"
+        commentid: "12036"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-24 12:14:23 +0100
+        thetext: The issue at hand seems to be solved for now. When working on ft_selectdata related bugs, we will revisit the issue that this function should replace the calls to ft_timelockanalysis, ft_freqdescriptives etc, if possible
+      - +@isprivate: "0"
+        commentid: "13697"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-16 21:13:31 +0200
+        thetext: |-
+          roboos@mentat001> svn commit private/topoplot_common.m -m "bugfix - resolved regression error in test_bug2354 with timelock.individual"
+          Sending        private/topoplot_common.m
+          Transmitting file data .
+          Committed revision 9547.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "548"
+      date: 2013-10-31 15:48:00 +0100
+      delta_ts: 2013-10-31 15:48:54 +0100
+      desc: test script
+      filename: example.zip
+      type: application/zip
+      size: "957999"
+      attacher:
+        +content: philipp.ruhnau
+        +@name: Philipp Ruhnau
+      data: REMOVED

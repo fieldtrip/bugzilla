@@ -1,0 +1,5 @@
+---
+title: spike
+---
+
+{% include component %}

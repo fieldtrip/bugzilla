@@ -1,0 +1,271 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2987"
+    creation_ts: 2015-10-17 10:56:00 +0200
+    short_desc: support user specification of analog trigger channels, e.g. in EDF files
+    delta_ts: 2019-08-10 12:31:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - jdien07
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16199"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 10:56:36 +0200
+        thetext: "Arjen (CC) ran into EDF files with a noisy analog trigger channel. So far ft_read_event only supported EDF+ annotations. \n\nHe made some suggestions by mail, changes to the code and made the commit r10780. I think this needs to be reviewed for consistency with other code."
+      - +@isprivate: "0"
+        commentid: "16200"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 11:00:06 +0200
+        thetext: |-
+          As before in bug 2954, a challenge is how to make the low level functionality available to the end user at the different levels of the fieldtrip interface.
+
+          We have
+          1) ft_definetrial
+          2) ft_trialfun_general or a user's trialfun
+          3) ft_read_event
+          4a) private/read_trigger, which calls ft_read_data
+          4b) or some file format specific code
+      - +@isprivate: "0"
+        commentid: "16201"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 11:17:27 +0200
+        thetext: |-
+          at the level of 3 (ft_read_event) there is now (after commit 10780) a complicated clutter due to overlapping functionality between the chanindx, trigindx and trig label options. Probably Arjen did not consider the (previously existing) chanindx and just implemented trigindx+triglabel in parallel.
+
+          fileio/private/read_trigger uses the option chanindx to specify which channels contain continuously sampled TTL values. One level up, in ft_read_event, the selection of channels that contain the TTL values does not seem to be consistent.
+
+          In fileio/private/read_trigger the specification that analog TTL values are to be thresholded is not handled consistently. The options denoise, fixneuromag, fixartinis, and threshold all relate to this.
+      - +@isprivate: "0"
+        commentid: "16202"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 11:19:30 +0200
+        thetext: let me add Jorn to the CC list, since he was probably the last one to have worked on this (and I don't want to bork Artinis support)
+      - +@isprivate: "0"
+        commentid: "16203"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-17 11:38:09 +0200
+        thetext: |-
+          the new peak and through functionality in read_trigger largely replicates the up and down functionality, except that the thresholding is different. Also the naming of peak and through events is not consistent with the naming of other threshold crossing events.
+
+          Would it not be better to implement a consistent threshold option, either on absolute value, relative value, percentiles, medians, etc? Combined with that thresholding, the up and down option can be used. If desired, ft_read_event can call read_trigger twice (as it does now)
+      - +@isprivate: "0"
+        commentid: "16204"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-10-19 09:13:02 +0200
+        thetext: "Hiho,\n\nI implemented the 'fixartinis' flag in the believe that it maintains naming convention, and seemed to be minimally invasive ;) I was just also the one implementing triglabel in 10482 (because for our systems, all analog channels are always appended to the nirs data, so I cannot work with indices. I could use chantype though, but neither of them seemed to be already in place). \n\nThe 'fixartinis' option is implement to also deal with the noisy AD channels by discretizing the values (i.e. rounding). Threshold detection is not suitable for our system, because legal values can be arbitrary, e.g. proper trigger values can be anything between -4V and 4V. The 'denoise' option just helps for REALLY noisy signals (it neglects changes below 0.8, and our channels are not THAT noisy). The 'threshold' option might do it for us, too (which is supposed to work like 'denoise', but with an arbitrarily set threshold, right?). It'd be also fine to remove the triglabel again (I can communicate settings that will work for our systems to our users, i.e. users would have to manually search for 'ADC*' channels)."
+      - +@isprivate: "0"
+        commentid: "16205"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-19 09:18:30 +0200
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #5)
+
+          Should we perhaps go for a "discretise" option, supporting various approaches such as thresholding and percentiles?
+      - +@isprivate: "0"
+        commentid: "16206"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-10-19 09:21:39 +0200
+        thetext: should be generic enough, so it sounds like a good solution to me.
+      - +@isprivate: "0"
+        commentid: "16220"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-20 21:09:26 +0200
+        thetext: |-
+          What about building in a flexibility-preserving discretization procedure as follows? The user can define whatever he/she wants to use for calculating a data-dependent threshold on the fly:
+
+          if ~isempty(threshold)
+              % the trigger channels contain an analog (and hence noisy) TTL signal and should be thresholded
+              if ischar(threshold) % evaluate string (e.g., threshold = 'nanmedian')
+                threshold = eval([threshold '(dat)']);
+              end
+              dat(abs(dat)<threshold) = 0;
+          end
+      - +@isprivate: "0"
+        commentid: "16221"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-20 22:47:56 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #8)
+
+          Actually, made it such that read_trigger.m first digitizes the signal, based on a threshold, or threshold function, prior to find up- and down- transitions (which the code was already doing):
+
+          if ~isempty(threshold)
+            % the trigger channels contain an analog (and hence noisy) TTL signal and should be thresholded
+            if ischar(threshold) % evaluate string (e.g., threshold = 'nanmedian')
+              threshold = eval([threshold '(dat)']);
+            end
+            % discretize the signal
+            dat(abs(dat)<threshold)  = 0;
+            dat(abs(dat)>=threshold) = 1;
+          end
+
+
+          Furthermore, ft_read_event.m will only perform this trigger detection on edf data when the detectflank input variable is specified. Otherwise, it will continue reading the annotation channel as before:
+
+          if ~isempty(detectflank) % parse the trigger channel for events
+                event = read_trigger(filename, 'header', hdr, 'dataformat', dataformat, 'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', chanindx, 'detectflank', detectflank, 'trigshift', trigshift, 'threshold', threshold);
+          elseif issubfield(hdr, 'orig.annotation') && ~isempty(hdr.orig.annotation) % read out the annotation channel for events
+          ...
+      - +@isprivate: "0"
+        commentid: "16222"
+        comment_count: "10"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-10-21 08:06:38 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #9)
+
+          An approach to user-specified analog channel thresholding is illustrated here, in the context of EDF data formats:
+
+          http://www.fieldtriptoolbox.org/getting_started/edf
+
+          Considering this bug resolved, accordingly. Best regards, Arjen
+      - +@isprivate: "0"
+        commentid: "16352"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-11-13 14:43:10 +0100
+        thetext: "Hi Arjen,\n\njust checking back on this. Hmm, your implementation only allows for one trigger value to be sent when using the thresholding. (Due to the dat(hi)=1). So, your 'discretizing' is more like a 'binarization'. \n\nAlso, it does not work when having multiple AD channels (we have 8) (because dat will be NxM, and threshold will be 1xM, so dat>threshold results in an error). So, I'm afraid I need to stick with something like round(20*dat)/20 ti 'discretize' our AD channels."
+      - +@isprivate: "0"
+        commentid: "16353"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-13 17:44:47 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #11)
+
+          Hey Jorn,
+
+          Sorry I broke your functionality. I didn't know you were using the continuous bit above the threshold. Maybe we should make a 'binarythreshold' option?
+
+          Ciao!
+          Arjen
+      - +@isprivate: "0"
+        commentid: "16357"
+        comment_count: "13"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-11-16 09:19:53 +0100
+        thetext: |-
+          Hi Arjen,
+
+          oh, no worries, you didn't break anything for me. It's just that I cannot replace the fixartinis option with what you implemented, which is what I initially had hoped for. I am not sure though if the binarization will break something for anyone else? Anyway, the main purpose of my comment was: I need to keep on having the fixartinis option for our AD channels in.
+      - +@isprivate: "0"
+        commentid: "16358"
+        comment_count: "14"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2015-11-16 09:32:05 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #13)
+          Hey Jorn, not sure whether I understand what the fixartinis feature is doing, but let me know when you need me considering to change anything. :)
+      - +@isprivate: "0"
+        commentid: "16361"
+        comment_count: "15"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-11-16 09:42:51 +0100
+        thetext: "Hey Arjen, \nIt's a way of discretizing the signal into fixed steps, e.g. now in steps of 0.1. Through 10*round(..)/10, the signal is allowed to 'fluctuate' by 10*0.5 (i.e. 0.05). Smaller channels will be removed.\n \nA dummy example:\n\nreal data is:\n[0.01 -0.02 0.04 1.02 -0.04 0.23]\n\nI do *10, then I round, then I divide by 10, so\n* 10 -> [0.1 -0.2 0.4 10.2 -0.4 2.3]\nround -> [0 0 0 10 0 2]\n/10 -> [0 0 0 1.0 0 0.2]\n\nIt's not a beautiful solution, rather a quick and dirty hack. But it's good enough ;)"
+      - +@isprivate: "0"
+        commentid: "16362"
+        comment_count: "16"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-11-16 09:43:29 +0100
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #15)
+          correction: 'fluctuate' by 0.5 / 10
+      - +@isprivate: "0"
+        commentid: "16364"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-16 10:35:49 +0100
+        thetext: "(In reply to Jörn M. Horschig from comment #16)\n\nJust to take a step back. In the case of Arjens EDFs we figured out that certain details regarding trigger detection were too important to leave hidden in a sub-sub-sub-function (ft_definetrial->ft_trialfun_xxx->ft_read_event->read_trigger) where where users would have a more difficult time finding the relevant options. So instead we decided to make ft_trialfun_edf.m. \n\nWould the same reasoning not also apply to the data from Artinis? If so, then ft_trialfun_artinis.m would be needed. If the artinis case is so sold and fixed that it would never require scrutiny from a user, then it is appropriate to keep in a sub-sub-sub-function."
+      - +@isprivate: "0"
+        commentid: "16365"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-11-16 10:40:13 +0100
+        thetext: That might be another option indeed. I am still figuring out how to best handle this for our data (but we only have this one sort of AD channel). I'll check back on this soon.
+      - +@isprivate: "0"
+        commentid: "20120"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:36 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

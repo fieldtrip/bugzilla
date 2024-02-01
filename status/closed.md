@@ -1,0 +1,5 @@
+---
+title: Closed
+---
+
+{% include status %}

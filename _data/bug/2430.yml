@@ -1,0 +1,236 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2430"
+    creation_ts: 2014-01-08 09:07:00 +0100
+    short_desc: add support for LSF backend
+    delta_ts: 2019-08-10 12:29:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    cc:
+      - bugzilla
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12427"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 09:07:35 +0100
+        thetext: |-
+          Gio wrote
+
+          New place, new grid computing system... while at the NIN I use SGE,
+          now at MGH they use LSF:
+          http://en.wikipedia.org/wiki/Platform_LSF
+
+          I modified qsub to make it work with LSF, pretty simple, the syntax is
+          slightly different but it works well. I attached a patch that makes it
+          work for me (only code, I didn't change the documentation, let me know
+          if you want me to do it).
+      - +@isprivate: "0"
+        commentid: "12428"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 09:14:51 +0100
+        thetext: |-
+          Hi Gio,
+
+          thanks for the patch. I won't attach it here as I already applied it to the code.
+
+          mac001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubfeval.m
+          Transmitting file data ..
+          Committed revision 9075.
+
+          I also changed two lines of documentation (for the backend option in qsubfeval and qsubcellfun).
+
+          When I grepped the code for occurrences of sge or torque, I noticed that "qsublist" (a helper function) has this piece of system specific code.
+
+            case 'kill'
+              sel = strmatch(jobid, list_jobid);
+              if ~isempty(sel)
+                % remove it from the batch queue
+                if ~isempty(getenv('SLURM_ENABLE'))
+                  system(sprintf('scancel --name %s', jobid));
+                else
+                  system(sprintf('qdel %s', pbsid));
+                end
+                % remove the corresponing files from the shared storage
+                system(sprintf('rm -f %s*', jobid));
+                % remove it from the persistent lists
+                list_jobid(sel) = [];
+                list_pbsid(sel) = [];
+              end
+
+          So it distinguishes only slurm and the rest. Probably "the rest" was initially implemented for the DCCN, and never reconsidered for any of the others. I don't know if it works for SGE. It for sure does not work for system or local.
+
+          Better would be to use the same detection of the backend as in qsubfeval and deal with all cases explicitly.
+
+          Note that this is used (and you can try it) to kill all remaining jobs if qsubcellfun detects that one of the jobs has an error, or if you press ctrl-c during qsubcellfun (as in that case qsubcellfun cannot receive the results any more, so no reason to continue the computations).
+      - +@isprivate: "0"
+        commentid: "12429"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 09:29:45 +0100
+        thetext: "I made the kill option consistent w.r.t. the default backend.\n\nmac001> svn commit \nAdding         qsub/private/defaultbackend.m\nSending        qsub/qsubfeval.m\nSending        qsub/qsublist.m\nTransmitting file data ...\nCommitted revision 9076.\n\nSince nobody has complained about it, I don't think it is too important to implement passing of the custom specification of the backend to qsublist.\n\nFor reference: qsubcellfun has a local function \"cleanupfun\" (passed to \"onCleanup\") which does qsublist('killall')."
+      - +@isprivate: "0"
+        commentid: "12430"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 09:31:36 +0100
+        thetext: |-
+          Gio, could you look up the "kill" option in qsublist for LSF? Just send me the line of code (system call), I'll paste it in my copy.
+
+          Are you aware of any other documentation that should be updated? Could you check the wiki?
+      - +@isprivate: "0"
+        commentid: "12439"
+        comment_count: "4"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-01-08 16:09:56 +0100
+        thetext: |-
+          Hi Robert,
+
+          Thanks for adding the code. I didn't know that it was possible to kill jobs, it's really neat.
+
+          To kill the job, we need the job id, so we need to parse the output of the system call to get the job id.
+          at qsubfeval, after l. 449:
+
+            case 'lsf'
+              % the result of bsub returns a string in format: "Job <job_number> is submitted to default queue <queue_name>"
+              % parse the job number
+              pbsid_beg = strfind(result, '<');
+              pbsid_end = strfind(result, '>');
+              result = result(pbsid_beg(1)+1:pbsid_end(1)-1);
+
+          at qsublist, l. 105 becomes:
+                     system(sprintf('bkill %s', pbsid));
+
+          It works well on my tests.
+      - +@isprivate: "0"
+        commentid: "12440"
+        comment_count: "5"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-01-08 16:12:58 +0100
+        thetext: |-
+          An additional remark is that sometimes the system call throws an error. There is no clear exception-handling at the moment.
+
+          I'd suggest to add at qsubfeval, l. 449:
+
+              if status
+                error(result)
+              else
+                pbsid_beg = strfind(result, '<');
+                pbsid_end = strfind(result, '>');
+                result = result(pbsid_beg(1)+1:pbsid_end(1)-1);
+              end
+
+          maybe the part:
+
+              if status
+                error(result)
+
+          could go before l. 444 "switch backend" so that it catches all the exceptions. F.e. I get sometimes:
+          "MEMLIMIT: Cannot exceed queue's hard limit(s). Job not submitted."
+          "Queue only accepts interactive jobs. Job not submitted."
+          when I specify the wrong values.
+      - +@isprivate: "0"
+        commentid: "12442"
+        comment_count: "6"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-01-08 16:24:29 +0100
+        thetext: "One more thing, I realized I used the wrong options for bsub. The current options specify the resources that are requested, but actually the qsubcellfun indicates the limits. \n\nSo, for the time limit qsubfeval, l.406 should be:\n\n      submitoptions = [submitoptions sprintf('-W %.0f ', ceil((timreq+timoverhead) / 60))]; % in minutes\n\nwhich is the Wall time, in minutes. (if you want cpu time, you should use -c instead of -W)\n\nFor the memory limit, qsubfeval, l.410 should be:\nsubmitoptions = [submitoptions sprintf('-M %.0f ', ceil((memreq+memoverhead) / 1024^2))];  % in MB\n\nwhich is the total process resident set size limit. Just as reference if future problems come up, according to the documentation, the default values should be in KB, but it can be modified by the LSF_UNIT_FOR_LIMITS option in the lsf.conf file.\n\nIn my setup, if I run:\n  cat $LSF_ENVDIR/lsf.conf | grep LSF_UNIT_FOR_LIMITS\nI get:\n  LSF_UNIT_FOR_LIMITS=M\n\nIt might differ in other setups."
+      - +@isprivate: "0"
+        commentid: "12446"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 17:00:22 +0100
+        thetext: |-
+          mac001> svn commit
+          Sending        qsub/qsubfeval.m
+          Sending        qsub/qsublist.m
+          Transmitting file data ..
+          Committed revision 9082.
+
+          Note that in the svn comment I forgot to mention that it also deals with #c6.
+      - +@isprivate: "0"
+        commentid: "12860"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 17:24:24 +0100
+        thetext: |-
+          Hi Gio,
+
+          I believe this is completed, right? If so, can you set it to status=resolved?
+
+          thanks
+          Robert
+      - +@isprivate: "0"
+        commentid: "12861"
+        comment_count: "9"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2014-02-18 17:30:12 +0100
+        thetext: Done, it works great on my setup. Thanks
+      - +@isprivate: "0"
+        commentid: "12864"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 18:38:32 +0100
+        thetext: "(In reply to Gio Piantoni from comment #9)\n\nthanks\n\nyou may want to check out bug #1937, it allows (for torque only) submitting complex job trees. See test/inspect_bug1937.m\n\nI can imagine LSF having similar functionality, if so, it would be nice to add. \n\nWith cfg.inputfile and cfg.outputfile the \"waitfor\" option allows for submitting much more elaborate analysis than simply with qsubcellfun."
+      - +@isprivate: "0"
+        commentid: "20031"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:25 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

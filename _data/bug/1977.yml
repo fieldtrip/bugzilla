@@ -1,0 +1,259 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1977"
+    creation_ts: 2013-02-07 09:48:00 +0100
+    short_desc: unexpected interaction between masking and the handling of nan values
+    delta_ts: 2019-08-10 12:02:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1332
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1371
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: ingrid.nieuwenhuis
+      +@name: Ingrid Nieuwenhuis
+    cc:
+      - dlozanosoldevilla
+      - eelke.spaak
+      - ingrid.nieuwenhuis
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9338"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 09:48:59 +0100
+        thetext: |-
+          On 6 Feb 2013, at 23:28, Ingrid Nieuwenhuis wrote:
+
+          Hi Robert,
+
+          I'll write in English in case you want to forward this to people. I noticed that:
+          1) cfg.maskparameter is not documented anymore, apparently an depreciated option?
+          2) NaNs are taken out of the data now before calling ft_plot_topo
+
+          The thing is, I'd like to mask out the channels with Nans, because there is no data there, I also don't want it interpolated from the neighbours. But now I can't since the channels are taken out of the data, so I get an error when interpolating the mask parameter line 189 in ft_plot_topo (line 189):
+          maskimagetmp = griddata(chanX', chanY, datmask, xi', yi, interpmethod);
+
+          I'm trying to solve this, but its tricky. I've started by building in an option to not remove the NaNs in ft_topoplotTFR. So I still have the chans with NaNs in ft_plot_topo. But subsequently it has to be dealt with there, since otherwise my Zi is all Nans after line 200: [Xi,Yi,Zi] = griddata(chanX', chanY, dat, xi', yi, interpmethod);
+
+          It looks like you don't want to deal with NaNs in ft_plot_topo since you have the following warning:
+          % check for nans in the data, these should be dealt with by the caller
+          if any(isnan(dat))
+           warning('the data passed to ft_plot_topo contains NaNs, the interpolation will have unexpected results. NaNs should be dealt with by the caller function.');
+          end
+
+          Would be great if we can get the code working again to allow masking channels. Are you OK with dealing with NaNs in ft_plot_topo? -> when interpmethod is v4 and NaNs are in the data, to take out the NaNs channels in the data after making the mask based on the channels including the NaN ones?
+
+          Cheers,
+          Ingrid
+      - +@isprivate: "0"
+        commentid: "9339"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 09:50:20 +0100
+        thetext: |-
+          (In reply to comment #0)
+
+          I am not aware of it being deprecated. Also, these still document it:
+
+          roboos@mentat001> grep -l ^%.*maskparameter *plot*.m
+          ft_multiplotER.m
+          ft_multiplotTFR.m
+          ft_singleplotER.m
+          ft_singleplotTFR.m
+          ft_sourceplot.m
+
+          The remainder of your email suggests that it is missing from the topoplot documentation (which it is indeed).
+
+          TODO -> document it in ft_topoplotER and ft_topoplotTFR
+      - +@isprivate: "0"
+        commentid: "9340"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 09:51:58 +0100
+        thetext: "(In reply to comment #0)\n\nI see that in ft_plot_topo there is\n\n% check for nans in the data, these should be dealt with by the caller\nif any(isnan(dat))\n  warning('the data passed to ft_plot_topo contains NaNs, the interpolation will have unexpected results. NaNs should be dealt with by the caller function.');\nend\n\n\nI think this relates to\n------------------------------------------------------------------------\nr6446 | eelspa | 2012-09-11 13:56:12 +0200 (Tue, 11 Sep 2012) | 2 lines\ntopoplots now support nan values per channel; these will be removed and interpolated for display purposes (bugs 1332,1371)\n\nSee\nhttp://code.google.com/p/fieldtrip/source/detail?spec=svn7447&r=6446\nhttp://bugzilla.fcdonders.nl/show_bug.cgi?id=1332\nhttp://bugzilla.fcdonders.nl/show_bug.cgi?id=1371\n\n> The thing is, I'd like to mask out the channels with Nans, because there is \n> no data there, I also don't want it interpolated from the neighbours. But now \n> I can't since the channels are taken out of the data, so I get an error when\n>  interpolating the mask parameter line 189 in ft_plot_topo (line 189):\n> maskimagetmp = griddata(chanX', chanY, datmask, xi', yi, interpmethod);\n\nFair point, the interaction between masking and removing nans is now unexpected. At the moment you cannot mask channels containing nans. as they are removed before we get to the masking, and removing them results in them getting interpolated."
+      - +@isprivate: "0"
+        commentid: "9341"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 10:09:02 +0100
+        thetext: "Let's say that there is data that contains nans in some channels. \n\nAs I see it, there are two possible ways to deal with it:\n1) interpolate over the hole\n2) show the hole\n\nI am not sure whether this should be addressed using cfg.maskparameter. That one is meant for significance masking. Also without significance masking you may want to do option 1 or 2, and perhaps you want to combine option 1 or 2 with significance masking of other channels.\n\nI took the example data from bug 1332 and \n>> load data.mat\n>> ft_topoplotTFR([], diftfr) \nshows a fully interpolated topo. \n\n>> diftfr.label(isnan(diftfr.powspctrm(:,1,1)))\nans = \n    'MLT21'\n    'MLT51'\n    'MRT21'\n    'MRT41'\n    'MRT52'\n    'MRT53'\n\nthen with\n>> layout = ft_prepare_layout([], diftfr)\n>>ft_plot_topo(layout.pos(1:273,1), layout.pos(1:273, 2), diftfr.powspctrm(:,1,1), 'mask', layout.mask, 'interpmethod', 'v4')\nI get an empty figure (because of the nans) and with \n\n>>ft_plot_topo(layout.pos(1:273,1), layout.pos(1:273, 2), diftfr.powspctrm(:,1,1), 'mask', layout.mask, 'interpmethod', 'nearest')\nI get a patchy figure with holes.\n\nWhat you desire is a mix between the two, i.e. a smooth figure with holes. Right?"
+      - +@isprivate: "0"
+        commentid: "9342"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 10:16:43 +0100
+        thetext: "At the high-level (ft_topopltXX) I suggest letting the user make a choice. E.g.\n\ncfg.maskparameter = field with values between 0 and 1 (remains as is)\ncfg.interpolatenan = yes/no\n\ninterpolatenan=no means make a hole, interpolatenan=yes means to make a smooth full topo.\n\nAt the high level interpolatenan=yes results in removing the channels (this is the present default). The low-level code will not get any nans and smoothly interpolate (no change needed).\n\nAt the high level interpolatenan=no means that all channels are retained. The low-level code then has to deal with the nans. At the low-level, this can then be integrated with the (optionally specified by the user) maskparameter. \n\nIf you agree to this design, please go ahead and implement it accordingly."
+      - +@isprivate: "0"
+        commentid: "9389"
+        comment_count: "5"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-02-07 21:52:40 +0100
+        thetext: |-
+          Aha, the problem was that in to code where the NaN-channels are taken out of the data, they are not taken out of the data mask. So if you'd mask and you had nan in the data, you'd always get an error, since the maskdatavector was too long. I've fixed that, because that was just a bug.
+
+          Then there's still the case of not wanting to remove the nans and masking away those channels. I'll now implement cfg.interpolatenan as proposed in ft_topoplotTFR, and document the cfg.maskparameter in both topoplotTFR and topoplotER.
+
+          Then in ft_plot_topo, the nans have to be removed in the data (but not the mask) before interpolating, to prevent the interpolation to fail. I'll also implement that.
+      - +@isprivate: "0"
+        commentid: "9391"
+        comment_count: "6"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-02-07 22:29:18 +0100
+        thetext: committed in revision 7455. Note I also changed interpolation method for the mask to nearest to obtain expected behavior. (otherwise the interpolation will only be until the electrodes, not till the outline. Also sometimes even outside of the head with 'v4'. So nearest although ugly is best,
+      - +@isprivate: "0"
+        commentid: "9392"
+        comment_count: "7"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-02-07 22:30:29 +0100
+        thetext: 'see previous comment: committed in revision 7455'
+      - +@isprivate: "0"
+        commentid: "9405"
+        comment_count: "8"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-13 13:30:37 +0100
+        thetext: |-
+          some test scripts recently started failing, could you verify whether this was due to a code change related to this bug?
+
+          newly failing test scripts:
+          test_bug1243
+          test_bug255
+          test_ft_topoplotER
+          test_tutorial_clusterpermutationtimelock
+          test_tutorial_eventrelatedstatistics
+      - +@isprivate: "0"
+        commentid: "9434"
+        comment_count: "9"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-02-15 01:25:39 +0100
+        thetext: "Can you provide more info on nature of failing of the test scripts, so I can check? There was a bug in the code indeed due to my changes, but I fixed it already a day later. \n\n(In reply to comment #8)"
+      - +@isprivate: "0"
+        commentid: "9436"
+        comment_count: "10"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-02-15 10:37:42 +0100
+        thetext: |-
+          (In reply to comment #9)
+          Sure: you can have a look at the dashboard to have a look in which part they failed:
+
+          http://fieldtrip.fcdonders.nl/development/dashboard
+
+          Might be you can wait till the next dashboard run will be made and see if those test scripts are still failing
+      - +@isprivate: "0"
+        commentid: "9437"
+        comment_count: "11"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-02-15 10:40:28 +0100
+        thetext: Additionally, the test scripts are located in the <ft>/test/ directory, so it's possibly easier to run them yourself instead of looking at the dashboard.
+      - +@isprivate: "0"
+        commentid: "9785"
+        comment_count: "12"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-03-13 01:47:41 +0100
+        thetext: "I Checked the test scripts on the dashboard. They now all pass. \nnewly failing test scripts:\ntest_bug1243\ntest_bug255\ntest_ft_topoplotER\ntest_tutorial_clusterpermutationtimelock\ntest_tutorial_eventrelatedstatistics\n\nHowever, there was still an error when masking the data and there were nans. The nans were not taken out of the maskdatavector. I've now added that as well. @ revision 7647 is should all be OK."
+      - +@isprivate: "0"
+        commentid: "9786"
+        comment_count: "13"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-03-13 01:50:40 +0100
+        thetext: 'My last entry (comment 12) was not fully clear. It sais "newly failing test scripts:" I just copied that line from comment 8. To be clear: These scripts now all passed.'
+      - +@isprivate: "0"
+        commentid: "9822"
+        comment_count: "14"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-03-15 00:18:28 +0100
+        thetext: |-
+          I don't know what happened, but the implementation of cfg.interpolatenan = yes/no is gone. Maybe someone took it out because of the errors (see comment 8)? Does anyone know? I still like this option. What was the problem with it? I don't have all the test data, so running the test scripts from here is not as easy as it seems for me. I'm not very familiar with this testing procedure. I'll built it in again in my own version and test it more thoroughly. If it passes I'll commit in a few days. Would be great if someone could let me know what happened.
+
+          Thanks,
+          ingrid
+      - +@isprivate: "0"
+        commentid: "9823"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-15 08:53:09 +0100
+        thetext: |-
+          (In reply to comment #14)
+
+          did it disappear recently, as in "yesterday it was there, today it is gone", or is it an option that existed once upon a time and not any more?
+      - +@isprivate: "0"
+        commentid: "9839"
+        comment_count: "16"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-03-15 18:16:29 +0100
+        thetext: 'Yes, it disappeared recently: I implemented it this February (see comment 7) and now it''s gone.'
+      - +@isprivate: "0"
+        commentid: "10072"
+        comment_count: "17"
+        who:
+          +content: ingrid.nieuwenhuis
+          +@name: Ingrid Nieuwenhuis
+        bug_when: 2013-04-12 20:38:18 +0200
+        thetext: I've re-added cfg.interpolatenan back in topoplot_common. version 7804. Hope the test scripts keep working. I had it in my code for 1 month without any problems.
+      - +@isprivate: "0"
+        commentid: "19869"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:02:51 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

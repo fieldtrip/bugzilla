@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3071"
+    creation_ts: 2016-02-17 02:10:00 +0100
+    short_desc: ft_version leaves excessive tmp files
+    delta_ts: 2019-08-10 12:41:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: rhancock
+      +@name: Roeland Hancock
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - rhancock
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16834"
+        comment_count: "0"
+        who:
+          +content: rhancock
+          +@name: Roeland Hancock
+        bug_when: 2016-02-17 02:10:24 +0100
+        thetext: When Fieldtrip is obtained via git, calls to ft_version (in version e744a4b245f397215b0c16c990a84efe826258b3) create temp files that are not reliably cleaned up on all systems. In my case, repeated indirect (e.g. through ft_selectdata) calls to ft_version create a crippling number of files in /tmp.
+      - +@isprivate: "0"
+        commentid: "16835"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-17 09:23:03 +0100
+        thetext: I would not expect ft_version to write anything to disk. Could you be more specific?
+      - +@isprivate: "0"
+        commentid: "16840"
+        comment_count: "2"
+        who:
+          +content: rhancock
+          +@name: Roeland Hancock
+        bug_when: 2016-02-17 17:33:45 +0100
+        thetext: |-
+          On line 79, ft_version calls tempname, which creates a temporary file. An alternative approach to getting the commit number would be something like
+          [status, output]=system('git log --pretty=format:"%H" -1');
+          which simply returns the commit number in output, without the need for parsing temporary files.
+
+
+          Lines 78-101:
+
+          elseif isgit
+            tmpfile = tempname;
+
+            olddir = pwd();
+            cd(ftpath);
+            [status, output] = system(sprintf('git show > %s', tmpfile));
+            cd(olddir);
+            if status > 0
+              % FIXME the command line tools will probably not be available on windows
+              error('you seem to have an GIT development copy of FieldTrip, yet ''git show'' does not work as expected');
+            end
+
+            fp = fopen(tmpfile);
+            if fp>0
+              line = fgetl(fp); % the first line contains the commit number
+              fclose(fp);
+              rev = regexp(line, ' ', 'split');
+              rev = rev{2};
+
+              % this is a string like 4d3c309129f12146885120c2853a11362e048ea7
+              ftver = rev;
+            else
+              ftver = 'unknown';
+            end
+      - +@isprivate: "0"
+        commentid: "16842"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-17 17:57:33 +0100
+        thetext: "(In reply to Roeland Hancock from comment #2)\n\nAh I see. Silly that the temp file does not get removed afterwards.\n\nYour proposal is indeed much better.\n\nI tried it with https://github.com/robertoostenveld/fieldtrip/commit/c3789e60800d5999625aefc46adb1cb177191df2\n\nwhich is basically\n\nelseif isgit\n  % use git system call to determine latest revision\n  olddir = pwd();\n  cd(ftpath);\n  [status, output] = system('git log -1 --pretty=format:\"%H\"');\n  cd(olddir);\n  if status > 0\n    % FIXME the command line tools will probably not be available on windows\n    error('you seem to have an GIT development copy of FieldTrip, yet ''git'' does not work as expected');\n  else\n    ftver = output;\n  end\n\nHwoever, from the command line \ngit log -1 --pretty=format:\"%H\nand also \ngit log -1\nwork fine, but from within MATLAB both system calls cause MATLAB to hang.\n\nDoes it work for you?"
+      - +@isprivate: "0"
+        commentid: "16843"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-02-17 17:57:50 +0100
+        thetext: note to self, see https://github.com/robertoostenveld/fieldtrip/commits/bug3071-ft_version
+      - +@isprivate: "0"
+        commentid: "16844"
+        comment_count: "5"
+        who:
+          +content: rhancock
+          +@name: Roeland Hancock
+        bug_when: 2016-02-17 18:05:21 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #3)\nAh, that does hang in Matlab. But \n[status,output]=system('git --no-pager log -1 --pretty=format:\"%H\"');\nseems to work."
+      - +@isprivate: "0"
+        commentid: "18841"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-16 16:48:51 +0200
+        thetext: hmm, this has actually been fixed already quite some time ago. Time to close this bug.
+      - +@isprivate: "0"
+        commentid: "20301"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:36 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20501"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,74 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2783"
+    creation_ts: 2014-12-15 18:09:00 +0100
+    short_desc: ft_definetrial doesn't work with timelock data of 'rpt_chan_time' with only 1 trial
+    delta_ts: 2019-08-10 12:31:18 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2782
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14952"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-12-15 18:09:46 +0100
+        thetext: "Hello,\nSimilar to the bug I just filed (bug 2782), I again have a timelock structure with dimord 'rpt_chan_time' and only 1 trial (in the .trial field).\n\nIf I run this:\ncfg=[];\ncfg.trials=1;\ncfg.offset=-67;\ntmp=ft_redefinetrial(cfg,timelock)\n\nthen I get tmp out with .avg field rather than .trial. \nThe reason for this is that on line 108, the data is converted to raw and the dimord is not saved.   Then the processing is done, and then at the end on line 321 it converts it back to timelock.  However, because only 1 trial exists, ft_checkdata assumes it is averaged data and creates a .avg field rather than the original .trial.   This is incorrect and causes problems for my code further on expecting a .trial field.\n\nUnlike bug 2782 in which the user (me) is a bit silly to call ft_selectdata to select 1 trial when there is already only 1 trial, in this case the cfg.offset is doing something necessary so I can't skip the call to ft_redefinetrial.\n\nThank you,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "15094"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-01-27 13:42:55 +0100
+        thetext: |-
+          This should be fixed now. Since there is no way of determining from raw data with one trial (which is what ft_redefinetrial works with in its main body) whether it originated from timelock-data with only a .avg or (also) a .trial, I added the latter as a special case. (This is also how timelock data in general was already being treated by ft_redefinetrial.)
+
+          I considered adding some option 'forcesinglerpt' or so to ft_checkdata, to handle the special case there, but in the end I think that would be rather ugly, since the bookkeeping of what the original data type was belongs in the function calling ft_checkdata anyway.
+
+          bash-4.1$ svn commit ft_redefinetrial.m test/test_bug2783.m
+          Sending        ft_redefinetrial.m
+          Adding         test/test_bug2783.m
+          Transmitting file data ..
+          Committed revision 10126.
+      - +@isprivate: "0"
+        commentid: "20101"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:18 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

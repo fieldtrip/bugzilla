@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2559"
+    creation_ts: 2014-05-02 16:16:00 +0200
+    short_desc: ft_databrowser crashes on plotting timelock averaged component data
+    delta_ts: 2019-08-10 12:29:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1887
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2539
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2518
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.herring
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13480"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-05-02 16:16:01 +0200
+        thetext: "Plotting timelock averaged independent components used to work fine in the past but ft_databrowser now crashes on line 266:\n\n\"Reference to non-existent field 'trial'.\n\nError in ft_databrowser (line 273)\n    if strcmp(cfg.continuous, 'yes') && (numel(data.trial) > 1)\"\n\n\nThe problem seems to be that earlier on line 246 ft_checkdata is called and converts the .avg field into a .trial field for raw data, but not for timelocked comp data. \n\n% check if the input data is valid for this function\n  data = ft_checkdata(data, 'datatype', {'raw', 'comp'}, 'feedback', 'yes', 'hassampleinfo', 'yes');\n\nThis is because ft_checkdata recognizes the data as being comp (and timelock) due to the presence of unmixing and topolabel which I guess were removed previously after calling ft_timelockanalysis (related to bug2518).\n\nI will create a testscript that produces the error."
+      - +@isprivate: "0"
+        commentid: "13481"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-05-02 16:25:50 +0200
+        thetext: |-
+          Adding         test_bug2559.m
+          Transmitting file data .
+          Committed revision 9467.
+      - +@isprivate: "0"
+        commentid: "13684"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-05-16 11:09:46 +0200
+        thetext: 'According to ft_datatype_comp, a comp datatype should contain the following fields:  time, trial, label, topo, unmixing. Time-locked component data does not contain a trial field, I therefore propose to update ft_datatype to also check for the presence of a trial field (which it currently does not).'
+      - +@isprivate: "0"
+        commentid: "13739"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-05-21 15:03:01 +0200
+        thetext: |-
+          ft_checkdata can now handle 'timelock+comp' but ft_databrowser still crashes when plotting timelock+comp data IF cfg.viewmode is 'component' or not specified (if not specified it is set to 'component' automatically as hascomp==1).
+
+          The problem here lies with ft_databrowser detecting the data as containing component information and ft_checkdata removing all the component fields. ft_databrowser then tries to plot data that has been removed.
+
+          Now it depends whether we would like to plot timelock+comp data as comp or raw data, i.e. with or without topographies. In the former case timelock+comp should be converted to comp instead of raw, in the latter case ft_databrowser should not set cfg.viewmode to 'component' if hascomp==1.
+
+          In any case I'm not sure if it is a good idea that ft_databrowser sets the default based on hascomp on the input data as the input data can be changed by ft_checkdata. If used at all, this decision should be based on the output of ft_checkdata.
+      - +@isprivate: "0"
+        commentid: "14237"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-08-06 12:30:40 +0200
+        thetext: I did some shuffling around in ft_checkdata and related functions a while ago, this seems also to have resolved this bug.
+      - +@isprivate: "0"
+        commentid: "20054"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:45 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,216 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3343"
+    creation_ts: 2017-09-02 06:06:00 +0200
+    short_desc: ft_senstype, and ft_senslabel in particular, do not work reliably on iEEG data
+    delta_ts: 2019-08-10 12:41:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+      - sandongriffin
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18905"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-02 06:06:19 +0200
+        thetext: "The issue is due to widely variable nature of iEEG and naming schemes. Below are reconstructed examples of electrode labels that caused issues when, for instance, trying to append different electrode structures. ft_appendsens does not allow doing so given that it found that not all iEEG electrode groups have the same 'eeg' senstype. It also causes issues with ft_plotting_sens, which will try to plot coils when it believes to have detected a 'ctf' senstype. \n\n\nelec.elecpos = randn(3,2);\nelec.chanpos = elec.elecpos;\nelec.label = {'AF1';'AF2'};\n\nft_senstype(elec)\n\nans =\n\neeg1010\n\n\nelec.elecpos = randn(3,2);\nelec.chanpos = elec.elecpos;\nelec.label = {'BR1';'BR2'};\n\nft_senstype(elec)\n\nans =\n\neeg1010\n\n\nBR and AF were actually occurring electrode names. Since we do not have control over the electrode naming with iEEG (this is determined by the medical institutes where the iEEG recordings take place), would it be somehow possible to make ft_senslabel more strict regarding other recording types, i.e. the eeg1010 and ctf systems?"
+      - +@isprivate: "0"
+        commentid: "18906"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-02 06:08:14 +0200
+        thetext: |-
+          Made a copy&paste error. For the second replication, it should read:
+
+          elec.elecpos = randn(3,2);
+          elec.chanpos = elec.elecpos;
+          elec.label = {'BR1';'BR2'};
+
+          ft_senstype(elec)
+
+          ans =
+
+          ctf
+      - +@isprivate: "0"
+        commentid: "18907"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-09-02 07:42:06 +0200
+        thetext: not inhibited by any deep thinking at this 'early' hour, but does adding a chantype to the array help? do we actually have an 'ieeg' chantype?
+      - +@isprivate: "0"
+        commentid: "18908"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-02 07:57:45 +0200
+        thetext: |-
+          We don't have an ieeg chantype (nor ecog or seeg), but from what I've seen no iEEG data ever came with this information or perhaps our low-level reading functions do not extract it. But we could have ft_electrodeplacement attach a chantype? If so, we would need to add support to functions the like of ft_plot_sens.
+
+          Somewhat related, .besa file formats have the ability to carry chantype information but I have never seen this information specified in any data. Just in case, I added support as below. Note I had to distinguish between 'ecog' and 'ieeg', but it'd be technically also appropriate to make CORTICALGRID being saved out as 'ieeg'.
+
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_TRIGGER]==1) = {'trigger'}; % test data did not have any of the below set to 1
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_CORTICALGRID]==1) = {'ecog'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_INTRACRANIAL]==1) = {'ieeg'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_SCALPELECTRODE]==1) = {'eeg'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_MAGNETOMETER]==1) = {'megmag'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_AXIAL_GRADIOMETER]==1) = {'megaxial'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_PLANAR_GRADIOMETER]==1) = {'megplanar'};
+            data.chantype([data.orig.channel_info.channel_states(:).BSA_CHANTYPE_MEGREFERENCE]==1) = {'megref'};
+      - +@isprivate: "0"
+        commentid: "18909"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-02 18:57:37 +0200
+        thetext: "p.s. it seems chantype does not resolve the issue, unfortunately.\n\n\nelec.elecpos = randn(3,2);\nelec.chanpos = elec.elecpos;\nelec.label = {'BR1';'BR2'};\nelec.chantype = {'eeg';'eeg'}\n\nelec = \n\n     elecpos: [3x2 double]\n     chanpos: [3x2 double]\n       label: {2x1 cell}\n    chantype: {2x1 cell}\n\n>> ft_senstype(elec)\n\nans =\n\nctf"
+      - +@isprivate: "0"
+        commentid: "18916"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-14 18:57:03 +0200
+        thetext: "elec.elecpos = randn(2,3);\nelec.chanpos = elec.elecpos;\nelec.label = {'BR1';'BR2'};\nelec.chantype = {'eeg';'eeg'}\n\n>> ft_datatype_sens(elec)\nans = \n     balance: [1x1 struct]\n     chanpos: [2x3 double]\n    chantype: {2x1 cell}\n    chanunit: {2x1 cell}\n     elecpos: [2x3 double]\n       label: {2x1 cell}\n        type: 'ctf'\n        unit: 'dm'\n\n\nwhich, at line 151 of ft_datatype_sens, returns true for:\nismeg = ft_senstype(sens, 'meg');\n\nnamely:\nft_senstype(elec)\nans =\nctf\n\n\nPossible solution #1:\navoid calling ft_senstype in ft_dataype_sens when there already is a chantype (we can make ft_electrodeplacement spit out chantype = 'eeg')\n\nPossible solution #2:\na more clean fix would be to somehow avoid having ft_senstype being so easily convinced it's a MEG senstype (or a EEG cap for that matter). to see this gullibility in action:\n\nelec.elecpos = randn(8,3);\nelec.chanpos = elec.elecpos;\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8'};\n>> ft_senstype(elec)\nans =\neeg\n\n> score: great\n\nelec.elecpos = randn(9,3);\nelec.chanpos = elec.elecpos;\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8';'BR1'};\nft_senstype(elec)\nans =\nctf\n\n> score: fail if the BR1 were an iEEG electrode label\n\nelec.elecpos = randn(9,3);\nelec.chanpos = elec.elecpos;\nelec.label = {'1';'2';'3';'4';'5';'6';'7';'8';'AF1'};\nft_senstype(elec)\nans =\neeg\n\n> surprising pass! I was expecting this to incorrectly say eeg1010, which it will do (correctly) in case there are only electrodes belonging to the EEG1010 system:\n\nelec.elecpos = randn(2,3);\nelec.chanpos = elec.elecpos;\nelec.label = {'AF1';'AF2'};\nft_senstype(elec)\nans =\neeg1010\n\nSo, this last toy example maybe narrows the solution to check for all electrodes combined for the CTF case as well? That is, if there's something in there (or maybe a large portion) that doesn't fit the MEG dewar specific description, maybe not call it ctf? The toughest scenario from the iEEG side from be it a single depth shaft with labels BR1, BR2, BR10. ft_senstype (ft_senslabel actually) would have to recognize that say BR1 and BR2 are ctf, but maybe the others aren't. Here, still it would helpful if ft_senstype could also take into the equation an already specified chantype field.\n\nJust for the global picture, I feel this issue is going to grow into a pain as several people have already encountered it in my direct environment."
+      - +@isprivate: "0"
+        commentid: "18917"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-14 19:12:04 +0200
+        thetext: |-
+          Possible solution #3:
+          Related to #1, we create a new chantype 'ieeg' that will be a no-go area for ft_senstype. iEEG sens data is always created through ft_electrodeplacement or imported from bioimage suite using the bis2fieldtrip conversion tool. We could make both append a chantype = 'ieeg'. The only problem I can currently think of is that when import their data manually (i.e. matlab fiddling), that the chantype field will be a required format (if they, for instance, want to use appendsens for appending it to 'normally' imported iEEG sens data).
+
+          Any thoughts, RO, JM, RvdM?
+      - +@isprivate: "0"
+        commentid: "18918"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-15 09:27:41 +0200
+        thetext: "(In reply to Arjen Stolk from comment #6)\n\nI see on line 393 in ft_senstype for the \"last resort\" attempts when islabel that for eeg1005 it already requires that there are >10. The same could be done for btiref and ctfref (with an appropriate number, say 50% of the expected channels.\n\nFurthermore, it does not use chantype in any way. I have now added chantype handling in case it defaults to 'eeg'. The rationale now is that\n\nseeg and ecog are both considered ieeg\nseeg, ecog and ieeg are all considered eeg\n\nAnd it returns the most specific category that applies.  \n\nmac011>     git push --set-upstream origin bug3343-chantype\nCounting objects: 147, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (134/134), done.\nWriting objects: 100% (147/147), 37.34 KiB | 0 bytes/s, done.\nTotal 147 (delta 104), reused 23 (delta 13)\nremote: Resolving deltas: 100% (104/104), completed with 46 local objects.\nTo github.com:robertoostenveld/fieldtrip.git\n * [new branch]      bug3343-chantype -> bug3343-chantype\nBranch bug3343-chantype set up to track remote branch bug3343-chantype from origin."
+      - +@isprivate: "0"
+        commentid: "18919"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-15 09:29:22 +0200
+        thetext: |-
+          I have merged https://github.com/fieldtrip/fieldtrip/pull/521
+
+          Arjen, you may want to check whether the test script matches your expectations.
+      - +@isprivate: "0"
+        commentid: "18927"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-15 18:02:07 +0200
+        thetext: This looks great, at first sight. Will do some more testing later. Shall I make ft_electroplacement append an ieeg chantype (and probably bis2ftieldtrip too)?
+      - +@isprivate: "0"
+        commentid: "18935"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-21 18:33:10 +0200
+        thetext: "(In reply to Arjen Stolk from comment #9)\n\nft_electrodeplacement is not only for ECoG and sEEG, also for regular EEG. I propose \n\ncfg.chantype  = string\n\nwhere it defaults to ieeg for method='mri' and eeg for method='headshape' and '1020'. When specified as empty by the researcher (i.e. emptyismeaningfull in ft_getopt), the chantype should not be added at the end of the function. Otherwise the cfg.chantype can be duplicated for all channels."
+      - +@isprivate: "0"
+        commentid: "18936"
+        comment_count: "11"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-21 18:38:59 +0200
+        thetext: The function already pivots already around headshape vs. volume input. Is the latter always going to be ieeg (I guess so), and the former eeg (I guess not)? If true, cfg.chantype would be obsolete. Otherwise, what to set for a default? Alternatively, I wonder whether we still need this since I think your adjustments solved the issue (haven't been able to test rigorously yet). That is, a call to ft_sens_data (I forgot the exact name) may lead to a complete data structure (though, it that fails all localization effort is wasted, so better not at the end of the function).
+      - +@isprivate: "0"
+        commentid: "18937"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-21 18:44:07 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #11)
+
+          no, MRI can also be used for localizing EEG electrodes (although it hardly ever happens). If you do combined EEG/fMRI you get the scalp electrode "artifacts/locations" for free in the anatomical MRI. I should ask Rene for an example.
+
+          If you don't need it any more, please don't bother. I see the chantype mainly as decoration of the elec structure, not as a necessity.
+      - +@isprivate: "0"
+        commentid: "18938"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-09-21 18:48:39 +0200
+        thetext: Ok, let's call this a day then. I might resurrect the issue if I do find we need chantype at some point, but for now not kicking a dead horse.
+      - +@isprivate: "0"
+        commentid: "18939"
+        comment_count: "14"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2017-09-21 22:10:10 +0200
+        thetext: |-
+          Joining the party late as I was holidaying where Irma the hurricane didn't end up luckily, but I don't have any insights to add.
+
+          In similar spirit I struggled with this in ft_prepare_layout too, where the automatic detection also ended up with EEG/MEG type layouts. The auto-detection is a "problem" that will only get worse in the future since the number of supported data types will likely increase (non-cooled MEG sensors? ???). From that perspective it is probably wise to keep the status of the chantype field as decorative? If it at some point needs to become more influential, it is possible best to take an conservative approach, and default quickly to 'unknown' if there's ambiguity.
+      - +@isprivate: "0"
+        commentid: "20256"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:58 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20455"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:08 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

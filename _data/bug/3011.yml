@@ -1,0 +1,93 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3011"
+    creation_ts: 2015-11-24 17:52:00 +0100
+    short_desc: error in ft_componentanalysis
+    delta_ts: 2016-06-14 16:14:48 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: tobias.stdgl
+      +@name: Tobias
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16431"
+        comment_count: "0"
+        who:
+          +content: tobias.stdgl
+          +@name: Tobias
+        bug_when: 2015-11-24 17:52:33 +0100
+        thetext: "ft_componentanalysis produces error during backprojection of the components after ica:\n \ncfg        = [];\ncfg.method = 'runica';\ncfg.runica.maxsteps =50;\ncomp = ft_componentanalysis(cfg, megdata);\n\nworks fine. then:\n\ncfg           = [];\ncfg.unmixing  = comp.unmixing;\ncfg.topolabel = comp.topolabel;\ncomp_origin = ft_componentanalysis(cfg, megdata);\n\nproduces the following error:\n*************************\n...\nstarting decomposition using predetermined unmixing matrix\napplying the backprojection matrix to the gradiometer description\n\nReference to non-existent field 'checksize'.\n\nError in ft_checkconfig (line 693)\nif strcmp(checksize, 'yes') && ~isinf(cfg.checksize)\n\nError in ft_postamble_trackconfig (line 53)\ncfg = ft_checkconfig(cfg, 'trackconfig', 'off', 'checksize', 'yes');\n\nError in ft_postamble (line 55)\n  evalin('caller', ['ft_postamble_' cmd]);\n\nError in ft_componentanalysis (line 867)\nft_postamble trackconfig\n\nError in prepro_ica (line 140)\n    comp_origin = ft_componentanalysis(cfg, meg_all_revis);\n******************************\n\nData is CTF275.\nI am using the fieldtrip version at the Donders.\nWhen using an older version, fieldtrip-20131231, no error occurs."
+      - +@isprivate: "0"
+        commentid: "16471"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-30 16:07:08 +0100
+        thetext: |-
+          I can reproduce with this
+
+          data = ft_freqsimulation([])
+          comp = ft_componentanalysis([], data)
+
+          cfg           = [];
+          cfg.unmixing  = comp.unmixing;
+          cfg.topolabel = comp.topolabel;
+          comp2 = ft_componentanalysis(cfg,data)
+
+          Reference to non-existent field 'checksize'.
+
+          Error in ft_checkconfig (line 693)
+          if strcmp(checksize, 'yes') && ~isinf(cfg.checksize)
+
+          Error in ft_postamble_trackconfig (line 53)
+          cfg = ft_checkconfig(cfg, 'trackconfig', 'off', 'checksize', 'yes');
+
+          Error in ft_postamble (line 55)
+            evalin('caller', ['ft_postamble_' cmd]);
+
+          Error in ft_componentanalysis (line 867)
+          ft_postamble trackconfig
+      - +@isprivate: "0"
+        commentid: "16472"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-30 16:18:34 +0100
+        thetext: "it happens in the codeblock starting at line 206, and on line 230\n\n  % remove all cfg settings  that do not apply\n  tmpcfg.xxx          = cfg.xxx;\n  ...\n  cfg                 = tmpcfg;\n\nThe handling of the merging of global settings from ft_default changed, that is why it now shows up as error. But in general it is not our style to explicitly remove cfg fields, nor to make assumptions on which cfg fields are to be kept.\n\nI changed it to \n  % update some settings where there is no further choice to be made by the user\n  cfg.numcomponent = 'all';\n  cfg.method       = 'predetermined unmixing matrix';\nwhere no fields are being removed any more. \n\n\nmac011> svn commit ft_componentanalysis.m \nSending        ft_componentanalysis.m\nTransmitting file data .\nCommitted revision 10953."
+      - +@isprivate: "0"
+        commentid: "17481"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:48 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

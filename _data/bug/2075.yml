@@ -1,0 +1,103 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2075"
+    creation_ts: 2013-03-22 12:46:00 +0100
+    short_desc: Event Selection GUI (ft_trialfun_general)
+    delta_ts: 2015-07-15 13:30:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: daniel.wong
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc: johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9948"
+        comment_count: "0"
+        who:
+          +content: daniel.wong
+          +@name: ""
+        bug_when: 2013-03-22 12:46:39 +0100
+        thetext: |-
+          I had some trouble loading specific event codes using the GUI in ft_trialfun_general.  (This is the GUI you get by setting cfg.trialdef.eventtype='gui').  While I would be allowed to select a specific event value, the trial selection window would list times for all events.  The problem lies in this part of ft_trialfun_general:
+
+               if (ischar(eventvalue(j)) && ~strcmp(eventvalue(j), 'Inf')) || ...
+                    (isnumeric(eventvalue(j)) && eventvalue(j)~=Inf))
+                  settings=[settings; [eventtype(i), eventvalue(j)]];
+                else
+                  settings=[settings; [eventtype(i), {[]}]];
+                end
+
+          It turns out that at least for my system, eventvalue(j) is a cell, so the ischar function will return a 0.  This means that we get settings = ['trigger', []], which causes trial selection window to list all events.  I made the following modification to the code on my system to get it to work properly:
+
+               if (ischar(eventvalue(j)) && ~strcmp(eventvalue(j), 'Inf')) || ...
+                    (isnumeric(eventvalue(j)) && eventvalue(j)~=Inf) || ...
+                    (iscell(eventvalue(j)) && ischar(eventvalue{j}) && ~strcmp(eventvalue{j}, 'Inf'))
+                  settings=[settings; [eventtype(i), eventvalue(j)]];
+                else
+                  settings=[settings; [eventtype(i), {[]}]];
+                end
+
+          But perhaps somebody would like to put in a more elegant fix to the actual code to account for the possible datatypes for eventvalue (i.e. cell/character/numeric or just cell/numeric?).
+
+
+          Regards,
+          Daniel Wong
+
+          --
+          Daniel Wong, PhD (IBBME, University of Toronto)
+          Erasmus Mundus Postdoctoral Fellow, Max Planck Institute
+          Neural Oscillations Group
+          Department of Psychology
+          University of Konstanz
+          Tel. +49 1609 9814144
+      - +@isprivate: "0"
+        commentid: "9994"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-04-03 13:38:21 +0200
+        thetext: |-
+          Hi Dan,
+          Is this specific to using the GUI option?
+
+          Also, can you please attach to this bug a small sample file of the relevant header/event file?   What is the value of eventvalue  that causes this problem?
+
+          Also, what is your recording system?
+
+          thanks!
+      - +@isprivate: "0"
+        commentid: "10005"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-04-04 11:46:40 +0200
+        thetext: |-
+          I've changed the code to check for cell/numeric as you suggested. I've also added the ability to select multiple events at once in the gui using the control/shift key.
+
+          Committed using Git

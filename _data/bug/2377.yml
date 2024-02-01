@@ -1,0 +1,470 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2377"
+    creation_ts: 2013-11-14 13:39:00 +0100
+    short_desc: elec.tra gets incorrectly scaled after geometrical unit conversion
+    delta_ts: 2013-11-29 14:42:10 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "686"
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11932"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-14 13:39:16 +0100
+        thetext: "1) ft_datatatype_sens still doesn't have default scaling and crashes when no scaling is specified. I temporarily fixed it by commenting out the error on line 213.\n\n2) I think line 559 of ft_compute_leadfield should be  \n\nscale = scalingfactor(dipoleunit, 'A*m');\n\nas multiplication with lf should convert from dipole units to channel units. So you should first convert from whatever unit the user specifies to A*m and then apply the leadfield. This also gives reasonable numbers as expected."
+      - +@isprivate: "0"
+        commentid: "11933"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-14 14:39:28 +0100
+        thetext: "regarding 1: that is a duplicate and I have already been working on 1 this morning (and will continue for another 30 mins).\n\nregarding 2: you are right, although I rather do it like this\n\nif ~isempty(dipoleunit)\n  scale = scalingfactor('A*m', dipoleunit); % compue the scaling factor from A*m to the desired dipoleunit\n  lf    = lf/scale;                         % the leadfield is expressed in chanunit per dipoleunit, i.e. chanunit/dipoleunit\nend\n\nwith \n\n>> scalingfactor('A*m', 'nA*m')\nans =\n   1.0000e+09\n\nthe leadfield gets 1e9 times smaller.\n\n\nmac001> svn commit\nSending        forward/ft_compute_leadfield.m\nTransmitting file data .\nCommitted revision 8780."
+      - +@isprivate: "0"
+        commentid: "11934"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-14 17:46:03 +0100
+        thetext: |-
+          (In reply to comment #1)
+
+          EEG units are not supported properly by ft_datatype_sens. At the moment units are not added (see line 276) and the 'upcoming' version only works for MEG.
+      - +@isprivate: "0"
+        commentid: "11935"
+        comment_count: "3"
+        attachid: "559"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-14 18:16:59 +0100
+        thetext: |-
+          Created attachment 559
+          Input examples
+      - +@isprivate: "0"
+        commentid: "11936"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-14 18:19:00 +0100
+        thetext: |-
+          (In reply to comment #3)
+          When adding units to elec and commenting out the error in ft_datatype_sens, I could get ft_compute_leadfield to work but the lf order of magnitude for both BEM and spheres is 1e-8 which doesn't seem sensible. The inputs are attached. Try:
+
+          figure;plot(ft_compute_leadfield(pnt, sens, vol,  'dipoleunit', 'nA*m', 'chanunit', units));
+      - +@isprivate: "0"
+        commentid: "11941"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 11:30:05 +0100
+        thetext: |-
+          I have improved the implementation of unit handling for geometry and amplitude in ft_datatype_sens and related functions. Extended the test script with a few EEG cases and made a stricter check on fixing old grad/elec structures.
+
+          mac001> svn commit
+          Sending        fileio/ft_chantype.m
+          Sending        fileio/ft_read_sens.m
+          Sending        test/test_ft_datatype_sens.m
+          Sending        utilities/ft_datatype_sens.m
+          Transmitting file data ....
+          Committed revision 8784.
+
+          The test_ft_datatype_sens script now runs through if I edit ft_datatype_sens.m and change the default version in either 2011v2 or in 2013/upcoming.
+
+          Note that this does not close all issues yet, but I just want to report this piece of progress.
+      - +@isprivate: "0"
+        commentid: "11942"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 11:31:37 +0100
+        thetext: "(In reply to comment #2)\n\nIn 2011v2 it was not required. I have made it required in upcoming/2013. \n\nSee http://code.google.com/p/fieldtrip/source/detail?r=8784"
+      - +@isprivate: "0"
+        commentid: "11943"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 11:32:14 +0100
+        thetext: |-
+          (In reply to comment #3 and comment #4)
+
+          I will try with the examples.
+      - +@isprivate: "0"
+        commentid: "11944"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 11:38:11 +0100
+        thetext: "(In reply to comment #7)\n\nI am surprised to see the \"inner_skull_surface\" in the structure, and it is incorrect as it is the inside of the CSF. I guess this is a remnant of Cristiano's changes.\n\n>> vol\nvol = \n                   unit: 'm'\n                      r: [0.0752 0.0775 0.0819 0.0976]\n                      o: [4.2658e-04 -0.0203 0.0034]\n                      c: [0.3300 1 0.0042 0.3300]\n                   type: 'concentricspheres'\n                    cfg: [1x1 struct]\n           skin_surface: 4\n    inner_skull_surface: 1"
+      - +@isprivate: "0"
+        commentid: "11945"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 11:42:56 +0100
+        thetext: |-
+          I just fixed a problem in channelposition dealing with elec.tra
+
+          mac001> svn commit
+          Sending        forward/private/channelposition.m
+          Transmitting file data .
+          Committed revision 8786.
+      - +@isprivate: "0"
+        commentid: "11947"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-15 12:54:45 +0100
+        thetext: "based on your test data I made test_bug2377, which in first instance works fine regarding the relative amplitudes. \n\nThe absolute amplitude indeed seems to be wrong. But that is also something that is known not to be resolved yet, see also bug #686."
+      - +@isprivate: "0"
+        commentid: "11997"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-20 23:03:55 +0100
+        thetext: "mbp> svn commit\nSending        fileio/ft_chantype.m\nSending        fileio/ft_chanunit.m\nSending        forward/ft_apply_montage.m\nSending        forward/ft_senstype.m\nAdding         test/test_bug2377b.m\nSending        utilities/ft_datatype_sens.m\nTransmitting file data ......\nCommitted revision 8824.\n\nI improved the support for handling of electrode sensor definition for upcoming ft_datatype_sens.\n\nft_chantype and ft_chanunit now properly deal with known sensor arrays. \n\nft_apply_montage had a bug in it (using the old elec definition and not the new one), causing the tra not to be made on the fly. Now the tra will be added as eye(chan) if the number of channels and electrodes is identical.\n\nI also made a second test script, going through the various reconstuctions/fixes of elec.\n\nI suspect that there is still an issue with unknown electrode sets, i.e. channel names that are not recognized. I'll test that as well..."
+      - +@isprivate: "0"
+        commentid: "11998"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-20 23:06:09 +0100
+        thetext: |-
+          (In reply to comment #11)
+
+          yup, unknown channel names in the elec struct result in an error:
+
+          ------
+          Error using eval
+          Undefined function or variable 'unknown'.
+
+          Error in ft_senslabel (line 84)
+          if isempty(eval(type))
+
+          Error in ft_chantype (line 548)
+            type(match_str(label, ft_senslabel(ft_senstype(label)))) = {'eeg'};
+
+          Error in test_bug2377b (line 34)
+          sens.chantype = ft_chantype(sens);
+          ------
+
+          this will percolate further down in the code. So still some work to be done here.
+      - +@isprivate: "0"
+        commentid: "11999"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-20 23:29:53 +0100
+        thetext: |-
+          (In reply to comment #12)
+
+          It now also works for non-standard channel labels. I.e. any elec structure will get 'V' as default chanunit.
+
+          mbp> svn commit
+          Sending        fileio/ft_chantype.m
+          Sending        forward/ft_senslabel.m
+          Sending        test/test_bug2377b.m
+          Transmitting file data ...
+          Committed revision 8826.
+      - +@isprivate: "0"
+        commentid: "12044"
+        comment_count: "14"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-25 13:08:56 +0100
+        thetext: |-
+          (In reply to comment #13)
+          There is still a problem with tra in elec. You said you added default tra in ft_apply_montage but if I just do:
+
+          elec = ft_read_sens('biosemi128.sfp')
+          elec = ft_datatype_sens(elec, 'version', 'upcoming', 'amplitude', 'V', 'distance', 'mm');
+
+          I get an error:
+
+          Reference to non-existent field 'tra'.
+
+          Error in ft_datatype_sens (line 165)
+                    sens.tra(i,:)    = sens.tra(i,:) * scalingfactor(sens.chanunit{i}, amplitude);
+      - +@isprivate: "0"
+        commentid: "12045"
+        comment_count: "15"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-25 14:04:09 +0100
+        thetext: |-
+          (In reply to comment #14)
+          I found another problem. When ft_prepare_vol_sens is done on MEG localspheres it strips all the fields except .r and .o. This is because of lines 248-251 where a new variable is created and then assigned back to vol. As a result ft_compute_leadfield now crashes with:
+
+          Reference to non-existent field 'unit'.
+
+          Error in ft_compute_leadfield (line 573)
+            assert(strcmp(vol.unit,  'm'), 'unit conversion only possible for SI input units');
+      - +@isprivate: "0"
+        commentid: "12046"
+        comment_count: "16"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-25 15:24:13 +0100
+        thetext: |-
+          (In reply to comment #15)
+          A third bug: now all of a sudden there is a problem with projecting electrodes on the scalp surface. Instead of being on the surface they end up inside the head as if they were shrunk by a factor of ~2. This happens for both 3-shell sphere and BEMCP. I attach the 3-shell example (before ft_prepare_vol_sens).
+      - +@isprivate: "0"
+        commentid: "12047"
+        comment_count: "17"
+        attachid: "563"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-25 15:24:53 +0100
+        thetext: |-
+          Created attachment 563
+          Example for scalp projection bug
+      - +@isprivate: "0"
+        commentid: "12054"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 18:59:52 +0100
+        thetext: |-
+          (In reply to comment #17)
+
+          thanks for helping with debugging the code, very useful. I will add the cases to the test script. I know that on my other computer I already have some code that fixes some stuff, so will not fix it right now (but promise to do it soon).
+      - +@isprivate: "0"
+        commentid: "12055"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 21:47:41 +0100
+        thetext: "(In reply to comment #14)\n\n\nmbp> svn commit utilities/ft_datatype_sens.m\nSending        utilities/ft_datatype_sens.m\nTransmitting file data .\nCommitted revision 8860.\n\nI have added the following\n\n      if ~isfield(sens, 'tra') && ~ismeg\n        warning('constructing average reference over all EEG channels');\n        sens.tra = eye(nchan) - 1/nchan;\n      end\n\nAs you see, I added a warning. The potential issue is that of later changing the channel selection and then ending up with a an average reference over all channels and not only of the selected channels.\n\ne.g. \n\nelec.tra = eye(10) - 1/10;\n\nfollowed by \n\nsel = 1:7;\nelec.tra = elec.tra(sel,:);\nelec.label = elec.label(sel);\n\nresults in 10 electrodes for the reference and 7 channels.\n\nRight now the EEG referencing is handled implicitly as average referencing by not having a tra. With the new scheme it all becomes dependent on the sequence of steps.\n\nThe same problem actually exists in data handling: the re-referenging is done at the time of the preprocessing, channels can be selected later, and the resulting CSD (e.g. for DICS) or covariance is not average reference.\n\nI don't have the solution for this yet, but will first look at your comment #15, #16 and #17."
+      - +@isprivate: "0"
+        commentid: "12056"
+        comment_count: "20"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 22:01:46 +0100
+        thetext: |-
+          (In reply to comment #19)
+          I'm not too happy about having another warning that will appear for every EEG conversion in SPM. Why not have eye(nchan) as a tra that will either be fixed subsequently when applying montages or if not, then treated the same as average reference (as was the case until now). That will solve the selection problem and will keep all the scalings.
+      - +@isprivate: "0"
+        commentid: "12057"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 22:17:19 +0100
+        thetext: |-
+          Your comment #15 and comment #16 are easy to explain.
+
+          if elec.chanpos does not exist, it is recomputed on the fly. That does not work as expected for data with an  average reference tra. For channel "i" the position is based on the position of channel "i" minus the average position of all channels. That happens on line 258 in utilities/private/channelposition.m
+
+          Do you know where the chanpos got lost?
+      - +@isprivate: "0"
+        commentid: "12058"
+        comment_count: "22"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 22:20:44 +0100
+        thetext: |-
+          (In reply to comment #21)
+          Wasn't it when you fixed the previous bug?
+      - +@isprivate: "0"
+        commentid: "12059"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 22:28:57 +0100
+        thetext: |-
+          (In reply to comment #20)
+
+          I think you should decide where and when you want to define the referencing in SPM. FT will not give a warning, unless it has to "invent" a tra at a rather arbitrary moment. If you give your elec a tra, the warning will not be issued.
+
+          As I wrote in my comment: it is not clear to me at which moment the tra should be added. The traditional FT way is to add it implicitly at the latest step (i.e. do the avgref in ft_compute_leadfield), unless the user explicitly adds the tra somewhere before. If the user adds it himself, it is his responsibility that the channel selection and referencing remain consistent. I would rather keep it like that, i.e. not add a tra and not mess with the units of the forward model until ft_compute_leadfield.
+
+          In general my feeling is that part of the stuff you are trying to get into FT is better off in SPM because SPM is more limited in what it is meant to do (e.g. no BEM source reconstruction of bipolar monkey data).
+      - +@isprivate: "0"
+        commentid: "12060"
+        comment_count: "24"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 22:34:54 +0100
+        thetext: |-
+          (In reply to comment #23)
+          I have an option for the user to define what the reference was. But the sensors have to be read and stored somewhere until that is done and it's not possible to store something in the @meeg object without doing format checks on it. I don't insist on you adding a tra. If you just put an if in ft_datatatype_sens to prevent it from crashing, that'd be good enough.
+      - +@isprivate: "0"
+        commentid: "12061"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 22:48:33 +0100
+        thetext: "(In reply to comment #24)\n\nthen I will remove the \n\n    if ~isempty(amplitude)\n      % update the tra matrix for the units of amplitude\n      if ~isfield(sens, 'tra') && ~ismeg\n        warning('constructing average reference over all EEG channels');\n        sens.tra = eye(nchan) - 1/nchan;\n      end\n\nand replace it by \n\n    if ~isempty(amplitude) && isfield(sens, 'tra')\n\nand don't attempt to update tra when the channel amplitude is updated. \n\nAgreed?\n\nIn SPM the grad and elec units should be SI anyway, and should remain SI consistently. Any change of units should be done in the data (convert it from something to SI) or to the leadfield (convert it from SI to something). Although we now try to implement in-between-changes  in ft_datatype_sens, I don't see any normal scenario's in which it should be used."
+      - +@isprivate: "0"
+        commentid: "12062"
+        comment_count: "26"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 22:54:47 +0100
+        thetext: |-
+          (In reply to comment #25)
+          Yes, in SPM it'll always be V for the amplitude as we discussed. Just to make you feel better, I also have a major headache now to get the beamforming toolbox to work with everything in meters but also stay backward compatible with the way things were before. Consistently working in mm made things so much simpler for me.
+      - +@isprivate: "0"
+        commentid: "12063"
+        comment_count: "27"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 22:57:37 +0100
+        thetext: |-
+          (In reply to comment #26)
+
+          BTW, have you thought of how the interpolated head model would work? Given your philosophy, it would make sense to store the leadfield in SI units, but for units of distance it'd make sense to use mm so that one could to CheckReg with the anatomical image.
+      - +@isprivate: "0"
+        commentid: "12064"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-26 22:59:56 +0100
+        thetext: "(In reply to comment #26)\n\nBummer. Sometimes I wonder whether all this effort in the details of the code will actually pay off... I hope so.\n\n \nmbp> svn commit\nSending        utilities/ft_datatype_sens.m\nTransmitting file data .\nCommitted revision 8862."
+      - +@isprivate: "0"
+        commentid: "12066"
+        comment_count: "29"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-26 23:04:38 +0100
+        thetext: |-
+          (In reply to comment #28)
+          I think the main advantage is improvement of support for Neuromag. Since this is now the only MEG system still manufactured, we have to support it better and this whole two sensor types issue is the main thing people have problems with. Also this will make it easier to compare results with other software if they also  support proper units.
+      - +@isprivate: "0"
+        commentid: "12087"
+        comment_count: "30"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-28 11:26:11 +0100
+        thetext: |-
+          (In reply to comment #29)
+          Hi Robert,
+
+          Will you fix the other two bugs? The problem with local spheres should be quite easy unless there is something I'm missing. The problem with electrodes seems to be arising because we previously wanted to plot electrode locations after projection on surface. Do I understand correctly that this is just a plotting issue and the leadfields should be correct for EEG. If so I can carry on with testing without waiting for your fixes.
+      - +@isprivate: "0"
+        commentid: "12105"
+        comment_count: "31"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-28 23:57:20 +0100
+        thetext: |-
+          (In reply to comment #30)
+          There is another issue I've just encountered. The lines in ft_datatype_sens trying to determine the channel type fail when the number of coils contributing to a channel is not 1 or 2. This means that they will fail for any grad to which a montage was applied (such as ICA). A principled solution I think would be something like balancing used for CTF grads so that the montage applied is kept and reverted before going into that code.
+      - +@isprivate: "0"
+        commentid: "12106"
+        comment_count: "32"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-11-29 00:47:50 +0100
+        thetext: |-
+          (In reply to comment #31)
+          I made some fixes to ft_prepare_vol_sens including for the local spheres problem. Please check.
+      - +@isprivate: "0"
+        commentid: "12137"
+        comment_count: "33"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 14:42:10 +0100
+        thetext: |-
+          (In reply to comment #32)
+
+          I have changed it a bit, your code caused other fields (such as label) also to stay inside the vol. I have added only type and unit, as no other fields are needed in ft_compute_leadfield.
+
+
+          mac001> svn commit forward/
+          Sending        forward/ft_prepare_vol_sens.m
+          Transmitting file data .
+          Committed revision 8922.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "559"
+        date: 2013-11-14 18:16:00 +0100
+        delta_ts: 2013-11-14 18:16:59 +0100
+        desc: Input examples
+        filename: eeg_lf_scaling.mat
+        type: application/octet-stream
+        size: "11974"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "563"
+        date: 2013-11-25 15:24:00 +0100
+        delta_ts: 2013-11-25 15:24:53 +0100
+        desc: Example for scalp projection bug
+        filename: project_bug.mat
+        type: application/octet-stream
+        size: "9024"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED

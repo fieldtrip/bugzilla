@@ -1,0 +1,448 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1652"
+    creation_ts: 2012-08-13 18:18:00 +0200
+    short_desc: redesign the functions that use segmentations and clarify the representation for segmentation and parcellation
+    delta_ts: 2013-01-21 18:37:50 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson:
+      - "1725"
+      - "1738"
+    blocked: "1651"
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - lilla.magyari
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7000"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-08-13 18:18:04 +0200
+        thetext: "hi Robert,\n\ndidn't we want to call validate_seg at the beginning of ft_prepare_mesh? Or where is it used? \n\nWhen I call ft_prepare_mesh, I think validate_seg is not called at all. (because validate_seg did not lead to an error message on my ill-formed segmentation (see bug1651) when ft_prepare_mesh was used -I got other type of error message-. But validate_seg did lead to an error message when I called it separately (validate_seg(seg). And I can't find it in the script of ft_prepare_mesh, indeed.).\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "7001"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-13 18:44:49 +0200
+        thetext: It indeed still had to be added to prepare_mesh_segmentation, but that can only be done with proper testing. Hence I suppose you do the testing.
+      - +@isprivate: "0"
+        commentid: "7371"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:14:38 +0200
+        thetext: "There are a variety of plans that relate to the segmentations. Last week JM also stumbled over one of the problems with the segmentations, so we have to make sure that we have a good plan. Subsequently we can implement it, which is probbaly not that much work.\n\n1) documentation starts here\n http://fieldtrip.fcdonders.nl/development/how_is_the_segmentation_described \n\n2) implementation of function, these ones are closely involved\n  ft_datatype -> ft_datatype_segment\n  ft_prepare_mesh\n  ft_prepare_headmodel\n  private/validate_seg\n  private/triangulate_seg\n  ft_prepare_atlas and ft_volumelookup\n\n3) implementation of the data format -> here we should consider a consistent representation of segmentations for headmodel construction and for parcelations (e.g. also for brain atlases). Furthermore, we have to consider if we can use the same data organization for volume and surface parcelations. This is relevant in the scope of HCP.\n\nFor atlases I looked at the present ft_prepare_atlas output, and suggest to change it e.g. into the following (which I already formatted into matlab help):\n\n% For example, the AFNI TTatlas+tlrc parcelated atlas looks like this\n%\n% atlas =\n%            dim: [161 191 141]\n%      transform: [4x4 double]\n%          coord: 'tal'\n%         brick0: [161x191x141 uint8]   % values from 1 to N, 0 means unknown\n%         brick1: [161x191x141 double]  % values from 1 to M, 0 means unknown\n%   brick0label: {Nx1 cell}\n%   brick1label: {Mx1 cell}\n\nSimilarly, a surface based atlas can be described as\n\n% An example of a surface based Brodmann parcelation looks like this\n%\n% atlas =\n%              pos: [8192x3]              % vertices of the cortical sheet\n%              tri: [16382x3]             % triangles of te cortical sheer\n%            coord: 'ctf'\n%         brodmann: [8192x1 uint8]        % values from 1 to M, 0 means unknown\n%    brodmannlabel: {Nx1 cell}\n\n\nRegarding the label label: we should consider that we already have agreed upon e.g. cov and covdimord, so xxx and xxxdimord. To keep it consequent, we should then also use brodmann and brodmannlabel rather than brodmann_label. This is a general idea: xxxdescription going with xxx."
+      - +@isprivate: "0"
+        commentid: "7372"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:16:19 +0200
+        thetext: "There are a variety of plans that relate to the segmentations. Last week JM also stumbled over one of the problems with the segmentations, so we have to make sure that we have a good plan. Subsequently we can implement it, which is probbaly not that much work.\n\n1) documentation starts here\n http://fieldtrip.fcdonders.nl/development/how_is_the_segmentation_described \n\n2) implementation of function, these ones are closely involved\n  ft_datatype -> ft_datatype_segment\n  ft_prepare_mesh\n  ft_prepare_headmodel\n  private/validate_seg\n  private/triangulate_seg\n  ft_prepare_atlas and ft_volumelookup\n\n3) implementation of the data format -> here we should consider a consistent representation of segmentations for headmodel construction and for parcelations (e.g. also for brain atlases). Furthermore, we have to consider if we can use the same data organization for volume and surface parcelations. This is relevant in the scope of HCP.\n\nFor atlases I looked at the present ft_prepare_atlas output, and suggest to change it e.g. into the following (which I already formatted into matlab help):\n\n% For example, the AFNI TTatlas+tlrc parcelated atlas looks like this\n%\n% atlas =\n%            dim: [161 191 141]\n%      transform: [4x4 double]\n%          coord: 'tal'\n%         brick0: [161x191x141 uint8]   % values from 1 to N, 0 means unknown\n%         brick1: [161x191x141 double]  % values from 1 to M, 0 means unknown\n%   brick0label: {Nx1 cell}\n%   brick1label: {Mx1 cell}\n\nSimilarly, a surface based atlas can be described as\n\n% An example of a surface based Brodmann parcelation looks like this\n%\n% atlas =\n%              pos: [8192x3]              % vertices of the cortical sheet\n%              tri: [16382x3]             % triangles of te cortical sheer\n%            coord: 'ctf'\n%         brodmann: [8192x1 uint8]        % values from 1 to M, 0 means unknown\n%    brodmannlabel: {Nx1 cell}\n\n\nRegarding the label label: we should consider that we already have agreed upon e.g. cov and covdimord, so xxx and xxxdimord. To keep it consequent, we should then also use brodmann and brodmannlabel rather than brodmann_label. This is a general idea: xxxdescription going with xxx."
+      - +@isprivate: "0"
+        commentid: "7373"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:16:58 +0200
+        thetext: Please also revisit 1297
+      - +@isprivate: "0"
+        commentid: "7374"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:17:35 +0200
+        thetext: is it needed to explicitly specify the segmentation type or can that be determined on the fly?
+      - +@isprivate: "0"
+        commentid: "7375"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:19:38 +0200
+        thetext: "here is a piece of code to convert 2005 style atlases to the new 2012 format, it should be integrated into ft_prepare_atlas. The code below was written to do it afterwards, which is not ideal.\n\n      sel0   = (atlas.descr.brick==0);\n      label0 = atlas.descr.name(sel0);\n      value0 = atlas.descr.value(sel0);\n      % construct a new array with parcel or atlas values\n      if numel(label0)<=intmax('uint8')\n        new_brick0 = zeros(atlas.dim, 'uint8');\n      elseif numel(label0)<=intmax('uint16')\n        new_brick0 = zeros(atlas.dim, 'uint16');\n      elseif numel(label0)<=intmax('uint32')\n        new_brick0 = zeros(atlas.dim, 'uint32');\n      else\n        new_brick0 = zeros(atlas.dim);\n      end\n      for i=1:numel(label0)\n        % replace the original value with numbers from 1 to N\n        new_brick0(atlas.brick0==value0(i)) = i;\n      end\n      \n      sel1   = (atlas.descr.brick==1);\n      label1 = atlas.descr.name(sel1);\n      value1 = atlas.descr.value(sel1);\n      % construct a new array with parcel or atlas values\n      if numel(label1)<=intmax('uint8')\n        new_brick1 = zeros(atlas.dim, 'uint8');\n      elseif numel(label1)<=intmax('uint16')\n        new_brick1 = zeros(atlas.dim, 'uint16');\n      elseif numel(label1)<=intmax('uint32')\n        new_brick1 = zeros(atlas.dim, 'uint32');\n      else\n        new_brick1 = zeros(atlas.dim);\n      end\n      for i=1:numel(label1)\n        % replace the original value with numbers from 1 to N\n        new_brick1(atlas.brick1==value1(i)) = i;\n      end\n      \n      atlas = rmfield(atlas, {'brick0', 'brick1', 'descr'});\n      if numel(label0)>0\n        % it being zero should never happen\n        atlas.brick0 = new_brick0;\n        atlas.brick0_label = label0;\n      end\n      if numel(label1)>0\n        % it being zero can happen for WFU atlasses\n        atlas.brick1 = new_brick1;\n        atlas.brick1_label = label1;\n      end"
+      - +@isprivate: "0"
+        commentid: "7376"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:45:25 +0200
+        thetext: "I have just added the code and pieces of documentation to ft_datatype_segment\n\nmbp> svn commit utilities/ft_datatype_segment.m \nSending        utilities/ft_datatype_segment.m\nTransmitting file data .\nCommitted revision 6467.\n\nshould we consider calling it ft_datatype_parcelation or ft_datatype_atlas?\n\nPlease have a look at that function and let me know whether it makes sense according to you."
+      - +@isprivate: "0"
+        commentid: "7377"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-16 14:49:59 +0200
+        thetext: |-
+          what kind of test script should we implement for this?
+
+          Perhaps store a few old segmentations and atlases in a mat file, and pass them through ft_checkdata?
+
+          Now that I think of it, the plan was to extend ft_checkdata with an option "segmentationstyle". I see that it already has on line 196
+            data = ft_datatype_segmentation(data, 'segmentationstyle', segmentationstyle);
+          but ft_datatype_segmentation does not do anything with it yet. I guess that validate_seg has to be used for that.
+      - +@isprivate: "0"
+        commentid: "7378"
+        comment_count: "9"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-16 17:38:29 +0200
+        thetext: |-
+          (In reply to comment #8)
+          hi Robert,
+
+          we should discuss this, because I have been working this week on validate_seg (though I haven't committed any changes yet). I made a script from validate_seg that converts any type of segmentation (exclusive, cummulative and mixed) to a cummulative representation. (And this could placed in ft_datatype_segmentation).
+
+          At the moment, ft_prepare_mesh is calling prepare_mesh_segmentation that is converting the segmentation of the different tissue-types to an indexed representation and then it is passed to triangulate_seg to make a mesh out of it. At the moment, the conversion (in prepare_mesh_segmentation) works only if the different tissue-types are cummulative. Here, I guess we could call ft_datatype to make a conversion if the tissues are not cummulative. My script now can do this for any exclusive or mixed representation.
+
+          But I have also discovered that when only 1 tissue is in the segmentation and it is exlusive (e.g. seg.skull), ft_prepare_mesh makes successfully a mesh out of it. It is because prepare_mesh_segmentation calls imfill (but this imfill is effective only for 1 tissue). As far as I remember you wanted to avoid function from the signal processing toolbox when only 'brain' is segmented. So, in this case this function should be placed somewhere else or not called. (For example, ft_datatype_segmentation could do the job of having imfill when only 1 tissue type is presented that is not 'brain'.)
+      - +@isprivate: "0"
+        commentid: "7379"
+        comment_count: "10"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-17 14:15:51 +0200
+        thetext: |-
+          Robert: we discussed this over lunch and came up with the following idea
+           raw -> comp
+           volume -> segmentation
+           source -> parcelation
+
+          furthermore, we had segmentationstyle=indexed/exclusive/cumulative
+          better drop the cumulative and ensure that the triangulations are always made from the outside boundary, not from any inside boundaries.
+
+          So segmentationstyle=indexed/probabilistic, where probabilistic also covers the binary boolean case.
+
+          Note that source.inside and volume.inside are also closely related!!
+      - +@isprivate: "0"
+        commentid: "7380"
+        comment_count: "11"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-17 15:27:13 +0200
+        thetext: |-
+          (In reply to comment #10)
+          I committed my version of validate_seg which converts any exclusive or cummulative or mixed representation of seg into a cummulative representation. You can find attached also a test script for testing validate_seg with different versions of seg.
+      - +@isprivate: "0"
+        commentid: "7381"
+        comment_count: "12"
+        attachid: "308"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-17 15:27:58 +0200
+        thetext: |-
+          Created attachment 308
+          test script for testing my version of validate_seg
+      - +@isprivate: "0"
+        commentid: "7384"
+        comment_count: "13"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-17 15:42:23 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          I have found both versions
+          parcellation:
+          http://www.thefreedictionary.com/parcellation
+          and parcelation:
+          http://www.amazon.com/CROSSBRED-PARCELATION-EXCAVATING-POSTSUBURBAN-METROPOLITAN/dp/3639316967
+      - +@isprivate: "0"
+        commentid: "7385"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-17 16:07:32 +0200
+        thetext: "(In reply to comment #13)\n\ngoogle prefers the double-l version. When I search for parcelation it suggests\n\nDid you mean: PARCELLATION  \n\nparcelation = About 5,830 results\nparcellation = About 120,000 results\n\nI will use \"svn move\" to rename the function. \n\nPS my apple spelling check suggests \"percolation\" ;-)"
+      - +@isprivate: "0"
+        commentid: "7386"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-17 16:30:41 +0200
+        thetext: "bash-3.2$ svn add test_triangulate_seg.m \nA         test_triangulate_seg.m\nbash-3.2$ svn commit test_triangulate_seg.m ../private/triangulate_seg.m\nSending        private/triangulate_seg.m\nAdding         test/test_triangulate_seg.m\nTransmitting file data ..\nCommitted revision 6472.\n\nadded imfill functionality in triangulate_seg. Uses SPM, rather than the image processing toolbox."
+      - +@isprivate: "0"
+        commentid: "7444"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-19 22:29:43 +0200
+        thetext: also to be done (following discussion with JM and Lilla) is to reimplement ft_prepare_atlas and to rename it to ft_read_atlas. The output should be either consistent with the segmentation or the parcellation datatype.
+      - +@isprivate: "0"
+        commentid: "7447"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-19 22:49:15 +0200
+        thetext: |-
+          (In reply to comment #16)
+
+          made a separate bug out of the ft_read_atlas implementation, see 1725.
+      - +@isprivate: "0"
+        commentid: "7465"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 11:57:52 +0200
+        thetext: "The ft_datatype_segment code functionality has been moved to ft_read_atlas, the documentation to ft_datatype_segmentation and ft_datatype_parcellation.\n\n\nroboos@mentat001> svn commit ft_datatype_segment.m \nDeleting       ft_datatype_segment.m\nCommitted revision 6492."
+      - +@isprivate: "0"
+        commentid: "7466"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 12:01:06 +0200
+        thetext: |-
+          (In reply to comment #18)
+
+          Added placeholder for detecting segmentation and parcellation data representations, not yet functional.
+
+          roboos@mentat001> svn commit ft_datatype.m
+          Sending        ft_datatype.m
+          Transmitting file data .
+          Committed revision 6493.
+      - +@isprivate: "0"
+        commentid: "7467"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 12:06:36 +0200
+        thetext: "todo: \n- move the functionality from validate_seg into ft_datatype_segmentation.\n- document the 2005 and 2012 style segmentations (i.e. document revisions)\n- document the required, optional, deprecated, obsoleted fields"
+      - +@isprivate: "0"
+        commentid: "7563"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-24 17:37:02 +0200
+        thetext: |-
+          (In reply to comment #20)
+
+          Lilla and I implemented the core functionality of ft_datatype_segmentation. moving some code from ft_volumesegment to separate functions.
+
+          manzana> svn commit ft_volumesegment.m private/vol*
+          Sending        ft_volumesegment.m
+          Adding         private/volumefillholes.m
+          Adding         private/volumesmooth.m
+          Adding         private/volumethreshold.m
+
+          manzana> svn commit private/volume*m utilities/private/volume*m
+          Sending        private/volumefillholes.m
+          Sending        private/volumesmooth.m
+          Sending        private/volumethreshold.m
+          Adding         utilities/private/volumefillholes.m
+          Adding         utilities/private/volumesmooth.m
+          Adding         utilities/private/volumethreshold.m
+
+
+          Note that validate_seg is still useful, but not in use at the moment. Interesting functionality includes checking that the brain is inside the skull, and if there is no "air" between the tissue types.
+      - +@isprivate: "0"
+        commentid: "7564"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-24 17:41:49 +0200
+        thetext: "Implemented a test function, made the data available on home/common.\n\nImplemented the core functionality of ft_datatype_segmentation.m based on the two representations (indexed and probabilistic).\n\nUse some code that is shared with ft_volumesegment.\n\nmanzana> svn commit \nSending        private/triangulate_seg.m\nAdding         test/test_bug1652.m\nSending        utilities/ft_checkdata.m\nSending        utilities/ft_datatype_segmentation.m\nTransmitting file data ....\nCommitted revision 6525."
+      - +@isprivate: "0"
+        commentid: "7565"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-24 17:47:04 +0200
+        thetext: "to do \n- document the 2005 and 2012 style segmentations (i.e. document revisions)\n- document the required, optional, deprecated, obsoleted fields\n- start using ft_datatype_segmentation in ft_prepare_headmodel \n- start using ft_datatype_segmentation in ft_prepare_mesh\n- add hasbrainmask to ft_checkdata, rename hasbrain into hasbrainmask"
+      - +@isprivate: "0"
+        commentid: "7567"
+        comment_count: "24"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-24 17:52:47 +0200
+        thetext: |-
+          manzana> svn commit utilities/ft_checkdata.m utilities/ft_datatype_segmentation.m
+          Sending        utilities/ft_checkdata.m
+          Sending        utilities/ft_datatype_segmentation.m
+          Transmitting file data ..
+          Committed revision 6527.
+      - +@isprivate: "0"
+        commentid: "7568"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-24 17:53:10 +0200
+        thetext: "(In reply to comment #24)\n\nto do \n- document the 2005 and 2012 style segmentations (i.e. document revisions)\n- document the required, optional, deprecated, obsoleted fields\n- start using ft_datatype_segmentation in ft_prepare_headmodel \n- start using ft_datatype_segmentation in ft_prepare_mesh"
+      - +@isprivate: "0"
+        commentid: "7645"
+        comment_count: "26"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-09-27 15:47:31 +0200
+        thetext: |-
+          (In reply to comment #25)
+          I looked at the ft_volumesegment function and discussed the script with JM. I am working on it (I'd like to come up with a new way of handling the threshold and smoothing values in the function).
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "7669"
+        comment_count: "27"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-29 12:29:26 +0200
+        thetext: "I made an implementation for ft_datatype_parcellation and test functions.\n\nmbp> svn commit \nSending        ft_prepare_atlas.m\nAdding         test/test_datatype_parcellation.m\nAdding         test/test_datatype_segmentation.m\nSending        utilities/ft_checkdata.m\nSending        utilities/ft_datatype.m\nSending        utilities/ft_datatype_parcellation.m\nSending        utilities/ft_datatype_segmentation.m\nSending        utilities/ft_datatype_source.m\nSending        utilities/ft_datatype_volume.m\nSending        utilities/private/fixdimord.m\nTransmitting file data ..........\nCommitted revision 6604.\n\nSee http://code.google.com/p/fieldtrip/source/detail?r=6604 for all details."
+      - +@isprivate: "0"
+        commentid: "7670"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-29 13:33:04 +0200
+        thetext: |-
+          (In reply to comment #27)
+
+          reminder to myself:
+
+          A volume can be converted to a source structure (and subsequently also vice versa). Check whether this also works for converting a segmentation to a parcellation (and vice versa). This can be implemented in test_datatype_segmentation.
+      - +@isprivate: "0"
+        commentid: "9037"
+        comment_count: "29"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-17 16:46:06 +0100
+        thetext: |-
+          (In reply to comment #28)
+          hi Robert,
+
+          I am writing here  because this bug is dealing with ft_datatype_segmentation.
+
+          I tried the following:
+
+          I made a probabilistic tissue-map with ft_volumesegment.m
+
+          and then I called ft_datatype_segmentation with the following option:
+
+          ft_datatype_segmentation(tpm,'segmentationstyle','indexed')
+
+          I was expecting an error message because the tissue-probabilistic maps are overlapping, hence, no conversion is possible.
+
+          But this code does not lead to an error! It makes an indexed representation.
+
+          I am wondering if the overlapping representations should be detected either  by utilities/private/convert_segmentationstyle.m. (it is not detecting now because it detected overlaps only between binary tissue-representations.) or by ft_datatype_segmentation?
+
+          Can I change the code that it would lead to an error message?
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "9059"
+        comment_count: "30"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-17 21:43:47 +0100
+        thetext: "(In reply to comment #29)\n\nis there any smart thresholding done in the conversion?\n\n... let me look. Yes, it seems so. At line 174 it jumps into the function\n\nfunction segmentation = convert_segmentationstyle(segmentation, fn, dim, style)\n% CONVERT_SEGMENTATIONSTYLE is a helper function for converting between probabilistic\n% and indexed representations. It is used by ft_datatype_segmentation and\n% ft_datatype_parcellation.\n%\n% See also FIXSEGMENTATION, DETERMINE_SEGMENTATIONSTYLE\nswitch style\n  case 'indexed'    \n    % convert the probabilistic representation to an indexed representation\n    threshold = 0.5;\n...\n\nSo if p>0.5 it is assigned to a tissue class. There is this code\n\n        error('overlapping tissue probability maps cannot be converted to an indexed representation');\n        % FIXME in principle it is possible to represent two tissue types at one voxel\n\nwhich suggests that it can be improved. I consider the version you wrote for the tutorial (and that I converted to a 4-liner) to be better, i.e. assign the class of the most probable tissue. That considers all tissues at once, instead of looping over the tissues without knowledge of the other tissues. I suggest we adopt that approach also here (but then for a variable number of tissue types).\n\nThe only unresolved issue then is how to deal with unlikely voxels, i.e. out-of-head voxels with a 0.1% chance of being something. Overall there should be some threshold: if a voxel is unlikely to be of any of the specified tissues, it should become 0.\n\nI think that we should do the following: If there is one tissue, there are two classes (0 and 1). Any probabilistic value below 0.5 becomes 0, and a value above 0.5 becomes 1. Sofar the same as what is done now. Now onto N tissue types: say N=3. Then there are 4 options (nothing/csf/grey/white). So the threshold is 0.25. In general the threshold is 1/(N+1). \n\nThe tutorial code was something like\n[~, tissuetype] = max(cat(4, tpm.csf, tpm.gray, tpm.white), [], 4);\nand then\nseg.white = (tissuetype==3)  & seg.brain;  \nseg.gray  = (tissuetype==2)  & seg.brain;  \nseg.csf   = (tissuetype==1) & seg.brain;  \n\nThe seg.brain does not apply here, but the most likely probability does. So change this into \n[maxprob, tissuetype] = max(cat(4, tpm.csf, tpm.gray, tpm.white), [], 4);\nand then you can\ntissuetype(maxprob<1/4) = 0;\nto mask the unlikely voxels.\n\nSo in convert_segmentationstyle it might become\n\nn = length(fn)\ntpm = cell(1,n);\nfor i=1:n\ntpm(i) = segmentation.(fn{i});\nend\ntmp = cat(4, tpm{:});\n[maxprob, tissuetype] = max(cat(4, tpm.csf, tpm.gray, tpm.white), [], 4);\ntissuetype(maxprob<1/(n+1)) = 0;\n\nHow do you like this?"
+      - +@isprivate: "0"
+        commentid: "9065"
+        comment_count: "31"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-18 12:23:25 +0100
+        thetext: "(In reply to comment #29)\nhi Robert,\n\nI am a bit concerned about the fact that if we convert the tpm into a binary representation (or indexed) with convert_segmentationstyle by using a threshold of 0.25 as you suggested, there is slight chance that this representation will be different from a binary representation of white, gray and csf computed by ft_volumesegment. It is because the binary mask in ft_volumesegment creates first the \"brain\" from csf, white, gray and uses that for the white,gray,csf binary masks.\n \nI think there are two solutions for this:\n(1) create \"brain\" on the fly with convert_segmentationstyle (this involves using the volumesmooth and volumethreshold functions as it is in ft_volumesegment). But this requires spm.\n(2) it should not be allowed to convert a tpm to indexed representation with convert_segmentationstyle (it should give an error message) \n\nWhat do you think?\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "9066"
+        comment_count: "32"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-18 14:09:45 +0100
+        thetext: |-
+          (In reply to comment #31)
+
+          I get the point, regardless of how you achieve the representation, they should always be the same.
+
+          Let us sit together with Jan-Mathijs and discuss how to proceed. I am not available today, but let's do it early next week.
+
+          Before that, we'll have to inventorise all currently possible and/or desired conversions. Could you give it a try? Like
+          - what high level functions convert representations according to the users explicit wish?
+          - what high level functions convert representations without the users knowing about it?
+          - where are the actual conversions done in the code?
+          - how do the conversions work?
+      - +@isprivate: "0"
+        commentid: "9077"
+        comment_count: "33"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-01-21 18:37:50 +0100
+        thetext: "(In reply to comment #32)\n\nHi Robert,\n\nI followed your questions, but I focused mainly on what happens when csf, white, gray tissue-probability maps are input and if they get binarized (either in a probabilistic or in an indexed representation).\n\n- what high level functions convert representations according to the users\nexplicit wish?\n\nft_volumesegment:\nwhen csf, white, gray, skull, scalp is asked for output, it will create binary masks of csf, white, gray. (this can be done also when the input is csf,gray, white tpm)\n\n\nThere is actually no other function where users explicitly can specify conversion.\n\nIt is because the function which could be used by users and does conversion, is the ft_datatype_segmentation function. But here, the option for conversion exists but it is not documented.\n\nOther functions which users use and do conversion are the ft_prepare_headmodel and the ft_prepare_mesh functions. But the users do not \"explicitly\" specify any conversion, it just happens so that when the input is csf, white, gray tissue-probability map, the output will be a mesh of the brain or of the csf,white,gray tissues.\n\n\n\n- what high level functions convert representations without the users knowing\nabout it?\n\nft_prepare_mesh \nft_prepare_headmodel\n\n(conversion happens in both by calling other low-level functions)\n\n- where are the actual conversions done in the code?\n\nin ft_datatype_segmentation\n\nand in convert_segmentationstyle\n\n\n\n\n- how do the conversions work?\n\nin ft_datatype_segmentation 'brain' tissue is computed from csf,white,gray tpm with using the volumesmooth, and volumethreshold functions:\n\nbrain = csf+white+gray\nvolumesmooth with value 5\nvolumethreshold with value 0.5\n\nThis is done in the same way as in ft_volumesegment.\n\nin ft_convert_segmentationstyle\nthe csf,white and gray can be converted to binary csf,white and gray masks. This is done by a threshold of 0.5.\n\nOther remarks:\n\nI tried different cfg options and the csf, white and gray tissue-probability map as input for the ft_prepare_mesh function.\n\nAt the moment, when ft_prepare_mesh is called with cfg.tissue ={'gray','white','csf'}, the function will create a triangulated mesh which is based on the 0.5 threshold (of convert_segmentationstyle). Of course, the mesh looks weird afterwards anyway, so I do not know if such triangulation makes sense at all. But it is possible.\n\nBut the problem arises when cfg.method = 'hexahedral' is specified, different hexahedral meshes will be created dependently form the content of cfg.tissue.\n\nWhen \ncfg.method = 'hexahedral' and no cfg.tissue is specified, convert_segmentationstyle will apply a 0.5 treshold on the tpm, and will create a binary mask for each tissues. based on these binary masks the hexahadral mesh will be created.\n\nBut when cfg.tissue = {'gray','white','csf'} is specified, no conversion will happen but vgrid is still going to create a mesh! So, some conversion happens in vgrid.\n\n\nLilla"
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "308"
+      date: 2012-09-17 15:27:00 +0200
+      delta_ts: 2012-09-17 15:27:58 +0200
+      desc: test script for testing my version of validate_seg
+      filename: test_segmentation.m
+      type: application/octet-stream
+      size: "9518"
+      attacher:
+        +content: lilla.magyari
+        +@name: Lilla Magyari
+      data: REMOVED

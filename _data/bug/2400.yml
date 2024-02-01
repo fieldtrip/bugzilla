@@ -1,0 +1,214 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2400"
+    creation_ts: 2013-11-29 19:39:00 +0100
+    short_desc: FT randsample samples with replacement, while the statistics toolbox does not
+    delta_ts: 2014-04-01 16:42:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2497
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: craig.richter
+      +@name: Craig Richter
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: philipp.ruhnau
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12148"
+        comment_count: "0"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2013-11-29 19:39:41 +0100
+        thetext: This can cause unexpected behaviour when the user assumes that the call to randsample is invoking the statistics toolbox.
+      - +@isprivate: "0"
+        commentid: "13059"
+        comment_count: "1"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-03-12 09:02:18 +0100
+        thetext: |-
+          is this being worked on?
+          I just encountered it as well.
+
+          at least the help should be changed!
+      - +@isprivate: "0"
+        commentid: "13060"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-12 09:13:19 +0100
+        thetext: "Hi Craig and Philipp, thanks for notifying, I'll get to work on it.\n\nAs I understand it, it pertains to external/stats/randsample.m which serves as drop-in replacement for the stats toolbox version.\n\n>> which randsample.m\n/Volumes/Data/roboos/matlab/fieldtrip/external/stats/randsample.m\n\n>> restoredefaultpath\n>> which randsample.m\n/Applications/MATLAB_R2012b.app/toolbox/stats/stats/randsample.m\n\nThe drop-in replacement functions are supposed to behave identical. I see in the help of the Mathworks version that there are 5 use cases:\n\n%   Y = RANDSAMPLE(N,K) returns Y as a column vector of K values sampled..\n%   Y = RANDSAMPLE(POPULATION,K) returns K values sampled uniformly at random,..\n%   Y = RANDSAMPLE(N,K,REPLACE) or RANDSAMPLE(POPULATION,K,REPLACE) returns a..\n%   Y = RANDSAMPLE(N,K,true,W) or RANDSAMPLE(POPULATION,K,true,W) returns a..\n%   Y = RANDSAMPLE(S,...) uses the random number stream S for random number.. \n\nof which only the first two are matched by the FT implementation.\n\nI will start by implementing a quick fix for some of the potential issues by checking on the number of input arguments."
+      - +@isprivate: "0"
+        commentid: "13061"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-12 09:13:47 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          Oh, I see that there is already a check
+
+          if nargin>2
+            error('only two input variables are supported');
+          end
+      - +@isprivate: "0"
+        commentid: "13063"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-12 09:16:57 +0100
+        thetext: |-
+          looking at http://code.google.com/p/fieldtrip/source/list?path=/trunk/external/stats/randsample.m&start=8410
+          I see that the function was renamed by Marcel (marvger) in revision 622 from rndsample to randsample, although he was aware of the incompatibility.
+      - +@isprivate: "0"
+        commentid: "13064"
+        comment_count: "5"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2014-03-12 09:25:19 +0100
+        thetext: |-
+          huh,
+          in any case the help needs to be changed as currently the output is with replacement
+      - +@isprivate: "0"
+        commentid: "13065"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-12 09:38:35 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #4)\n\n\nand prior to that it has been called randsample\n\nhttp://code.google.com/p/fieldtrip/source/list?path=/trunk/private/rndsample.m&start=621\n\nI.e. the history of the function name is \n\nrandsample -> rndsample -> randsample\n\nand at a certain point it moved from fieldtrip/private (where people could not use it directly) to external/stats.\n\nLooking at the code, I see it presently at use in\n\nmac001> find . -name \\*.m -exec grep -H randsample {} \\;\n./external/dmlt/+dml/crossvalidator.m:              tmp = [tmp; randsample(F{f}(iidx),maxsmp - length(iidx),true)];\n./external/dmlt/external/glmnet/cvglmnet.m:% g2=randsample(2,100,true);\n./external/dmlt/external/glmnet/cvglmnet.m:    foldid = randsample([repmat(1:nfolds,1,floor(N/nfolds)) 1:mod(N,nfolds)],N);\n./external/dmlt/external/glmnet/glmnet.m:%    g2=randsample(2,100,true);\n./external/dmlt/external/glmnet/glmnet.m:%    g4=randsample(4,100,true);\n./external/dmlt/external/glmnet/glmnetPlot.m:%    g2=randsample(2,100,true);\n./external/dmlt/external/glmnet/glmnetPlot.m:%    g4=randsample(4,100,true);\n./external/dmlt/external/glmnet/glmnetPredict.m:%    g2=randsample(2,100,true);\n./external/dmlt/external/glmnet/glmnetPredict.m:%    g4=randsample(4,100,true);\n./private/resampledesign.m:    resample(i,:) = randsample(1:Nrepl, Nrepl);\n./private/resampledesign.m:      tmp           = randsample(1:Nrepl/Nrep(1), Nrepl/Nrep(1));\n./private/resampledesign.m:      tmp(i,:) = sort(randsample(1:Nrepl/Nrep(1), Nrepl/Nrep(1)));\n./external/stats/randsample.m:function [y] = randsample(x, k)\n./external/stats/randsample.m:% $Id: randsample.m 8410 2013-08-21 14:16:44Z eelspa $\n\nThe use in dmlt requires the version from the matlab/stats toolbox to be used, as it has (mostly) 3 input args.\n\nThe use in resampledesign is restricted to cfg.resampling='bootstrap', which is not used by default. The comments in the code make clear that there it is meant to resample with replacement, which is what is implemented in the external/stats version (although with incorrect help). So the issue can be addressed by removing the version from external/stats and replacing the call in the resampledesign to make correct use of the matlab/stats version (i.e. add the \"true\" option).  \n\n\n\nmac001> svn commit  external/stats/randsample.m private/resampledesign.m\nDeleting       external/stats/randsample.m\nSending        private/resampledesign.m\nTransmitting file data .\nCommitted revision 9284."
+      - +@isprivate: "0"
+        commentid: "13066"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-12 09:46:49 +0100
+        thetext: "(In reply to Philipp Ruhnau from comment #5)\n\nThe functions in external/stats function should be proper drop-in replacements to reduce the number of stats toolbox licenses that are needed when running it on a compute cluster or in training workshops, not functions with the same name but slightly different functionality. Hence changing the documentation would not address the actual problem. Removing the function does address the core problem, although does increase toolbox license requirements in specific cases.\n\nIt still would be nice to have a drop-in replacement function for randsample, but it should then be implemented from scratch (not looking at the Mathworks code, only at its help) to ensure consistent behavior.  \n\nSee also http://fieldtrip.fcdonders.nl/faq/matlab_requirements?s[]=drop#replacements_for_functions_from_mathworks_toolboxes although I now realize that that documentation is outdated. It would be good to have a set of test scripts for all fieldtrip/external/stats functions (and idem for fieldtrip/external/signal). We do have http://code.google.com/p/fieldtrip/source/browse/trunk/test/test_nanstat.m but that tests only a specific subset (which are implemented as mex files)."
+      - +@isprivate: "0"
+        commentid: "13188"
+        comment_count: "8"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-04-01 16:31:47 +0200
+        thetext: |-
+          I've written a replacement for randsample.  It performs the functions of the statistics toolbox randsample except for the RandStream option, and weighted resampling, but should satisfy the demands of FT listed above by Robert.  It performs on par with the Mathworks code.  What is the best way to test it, since a number of functions depend upon it?
+
+          function [rnd] = randsample(varargin)
+
+          % Randsample replacement: Craig Richter 2014
+
+          if nargin==4
+              error('The Fieltrip replacement of randsample does not support weighted resampling')
+          elseif nargin==3
+              if varargin{3} ~= 0 && varargin{3} ~= 1
+                  error('Replacement input must be zero, one or ''true/false'' ')
+              else
+                  replace_opt = varargin{3};
+              end
+          elseif nargin==2
+              replace_opt = 0;
+          end
+
+          n = varargin{1};
+          k = varargin{2};
+
+          if k>n
+              error('population must be larger than selection')
+          end
+
+          if replace_opt % sample with replacement
+              if length(n)==1
+                  rnd = randi(n,k,1); % sample k from 1:n
+              elseif length(n)>1
+                  rnd = n(randi(length(n),k,1))'; % sample k from population n
+              end
+          else % sample without replacement
+              if length(n)==1 % sample k from 1:n
+                  pop = 1:n;
+              elseif length(n)>1
+                  pop = n;
+              end
+              [~,indx] = sort(rand(length(pop),1));
+              rnd = pop(indx(1:k))';
+          end
+      - +@isprivate: "0"
+        commentid: "13189"
+        comment_count: "9"
+        who:
+          +content: craig.richter
+          +@name: Craig Richter
+        bug_when: 2014-04-01 16:42:22 +0200
+        thetext: |-
+          Well, I found the first bug (in one of the error checks) :-/, here is the updated code:
+
+          function [rnd] = randsample(varargin)
+
+          % Replacement for randsample: Craig Richter 2014
+
+          if nargin==4
+              error('The Fieltrip replacement of randsample does not support weighted resampling')
+          elseif nargin==3
+              if varargin{3} ~= 0 && varargin{3} ~= 1
+                  error('Replacement input must be zero, one or ''true/false'' ')
+              else
+                  replace_opt = varargin{3};
+              end
+          elseif nargin==2
+              replace_opt = 0;
+          end
+
+          n = varargin{1};
+          k = varargin{2};
+
+          if ~replace_opt && k>n
+              error('population must be larger than selection')
+          end
+
+          if replace_opt % sample with replacement
+              if length(n)==1
+                  rnd = randi(n,k,1); % sample k from 1:n
+              elseif length(n)>1
+                  rnd = n(randi(length(n),k,1))'; % sample k from population n
+              end
+          else % sample without replacement
+              if length(n)==1 % sample k from 1:n
+                  pop = 1:n;
+              elseif length(n)>1
+                  pop = n;
+              end
+              [~,indx] = sort(rand(length(pop),1));
+              rnd = pop(indx(1:k))';
+          end

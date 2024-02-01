@@ -1,0 +1,179 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "914"
+    creation_ts: 2011-08-31 15:50:00 +0200
+    short_desc: qsubcellfun should use proper working directory and meaningful job IDs
+    delta_ts: 2011-09-14 14:33:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2991"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-08-31 15:50:59 +0200
+        thetext: |-
+          When I run a very simple sequence of test commands (the one mentioned in the reference docs for qsubcellfun, in fact):
+
+              fname = 'power';
+              x1    = {1, 2, 3, 4, 5};
+              x2    = {2, 2, 2, 2, 2};
+              y     = qsubcellfun(fname, x1, x2);
+
+          The function takes forever (well, half an hour at least, and then I Ctrl+C'ed it) to return. Executing qstat in a shell tells me that the individual jobs were done a few seconds after they were submitted.
+      - +@isprivate: "0"
+        commentid: "2993"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-08-31 16:13:11 +0200
+        thetext: "After doing some debugging, it seems like, although the _input.mat, .sh, and .m files related to a job are created, the job execution itself malfunctions, since there is no corresponding _output.mat file, ever.\n\nI do get .sh.oXXX and .sh.eXXX files (presumably created by the torque system?), which seem to contain standard output and error output, respectively. For the contents of those files, see below:\n\n\neelspa@mentat286:~/MATLAB/maier-analysis\n661 $ cat job_95750684.sh.o1998\nStarting version  79  of MATLAB\nExecuting /opt/matlab79/bin/matlab -singleCompThread -nosplash -nodisplay -r job_95750684\n\n                            < M A T L A B (R) >\n                  Copyright 1984-2009 The MathWorks, Inc.\n                Version 7.9.0.529 (R2009b) 64-bit (glnxa64)\n                              August 12, 2009\n\n\n  To get started, type one of these: helpwin, helpdesk, or demo.\n  For product information, visit www.mathworks.com.\n\n>> \n\neelspa@mentat286:~/MATLAB/maier-analysis\n662 $ cat job_95750684.sh.e1998\n??? Undefined function or variable 'job_95750684'.\n\n\nThe weird thing is, that if I manually start matlab, go to my home directory, and execute 'job_95750684', then everything seems to work: some computation is done and matlab exits (as it should, because qsubexec is called), and a _output.mat file is generated."
+      - +@isprivate: "0"
+        commentid: "2996"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-08-31 16:40:10 +0200
+        thetext: |-
+          I found the issue: in my home directory, I have a startup.m file that automatically executes "cd MATLAB", so MATLAB starts in another directory than assumed by the auto-generated shell script.
+
+          Removing my startup.m is a temporary fix, but this seems inelegant. Maybe we should use a '~/.ftqsub/' folder to place all the temporary stuff in? If we start matlab from that folder, any startup.m in other folders will be ignored of course. Another advantage is that we then don't get all this junk floating around users' home directory in case a job fails.
+      - +@isprivate: "0"
+        commentid: "2997"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-08-31 17:19:08 +0200
+        thetext: |-
+          qsub/private/feval does the following, which I would expect to overrule the pwd that results from your startup.m
+
+          "fexec.m" line 69 of 225 --30%-- col 3
+
+            % try setting the same path directory
+            option_path = ft_getopt(optin, 'path');
+            setcustompath(option_path);
+
+            % try changing to the same working directory
+            option_pwd = ft_getopt(optin, 'pwd');
+            setcustompwd(option_pwd);
+
+          I agree that we can consider another directory for the temporary files, but ideally they are cleaned up already by qsubexec and by qsubget:
+
+          manzana> grep delete *.m
+          qsubexec.m:  delete(inputfile);
+          qsubget.m:    delete(shellscript);
+          qsubget.m:    delete(matlabscript);
+          qsubget.m:    delete(outputfile);
+          qsubget.m:    % the files cannot be deleted if the user changes the present working
+          qsubget.m:    delete(logfile_e);
+          qsubget.m:    delete(logfile_o);
+      - +@isprivate: "0"
+        commentid: "3016"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-08-31 18:02:29 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          it indeed does not clean up properly...
+      - +@isprivate: "0"
+        commentid: "3017"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-08-31 18:06:24 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          and it makes the temporary files in the homedir, instead of in the pwd (which I think would be more appropriate), whereas the o and e files are in the pwd.
+
+          We could consider making the tmp files in a hidden directory as you suggest, but over the course of years it would fill up with junk. And we cannot use the /tmp directory, because it is not shared over mentats.
+      - +@isprivate: "0"
+        commentid: "3022"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-09-01 09:18:56 +0200
+        thetext: "The setcustompwd does work I think, but the pwd stored in optin will be set to the working directory in which qsubfeval was called. Since the .m-files are stored in the home directory, matlab cannot find them.\n\nShall I change qsubfeval so that all temporary files are generated in the calling matlab's pwd? Or shall I implement the hidden-directory feature?\n\nAnd should I also look at the deletion of the temporary files?\n\n\n(In reply to comment #3)\n> qsub/private/feval does the following, which I would expect to overrule the pwd\n> that results from your startup.m\n> \n> \"fexec.m\" line 69 of 225 --30%-- col 3\n> \n>   % try setting the same path directory\n>   option_path = ft_getopt(optin, 'path');\n>   setcustompath(option_path);\n> \n>   % try changing to the same working directory\n>   option_pwd = ft_getopt(optin, 'pwd');\n>   setcustompwd(option_pwd);\n> \n> I agree that we can consider another directory for the temporary files, but\n> ideally they are cleaned up already by qsubexec and by qsubget:\n> \n> manzana> grep delete *.m\n> qsubexec.m:  delete(inputfile);\n> qsubget.m:    delete(shellscript);\n> qsubget.m:    delete(matlabscript);\n> qsubget.m:    delete(outputfile);\n> qsubget.m:    % the files cannot be deleted if the user changes the present\n> working\n> qsubget.m:    delete(logfile_e);\n> qsubget.m:    delete(logfile_o);"
+      - +@isprivate: "0"
+        commentid: "3023"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-09-01 09:27:06 +0200
+        thetext: |-
+          (In reply to comment #6)
+          > The setcustompwd does work I think, but the pwd stored in optin will be set to
+          > the working directory in which qsubfeval was called. Since the .m-files are
+          > stored in the home directory, matlab cannot find them.
+
+          No, scrap that, I was confused. Once inside qsubexec (and feval), everything works fine actually. The issue is that matlab cannot find the temporary job_XXXXXX.m script (located in the home dir), when the startup.m issues a cd command. So what would actually solve this issue is if we change the matlab command from:
+
+          matlab -r job_XXXXXX
+
+          to
+
+          matlab -r "run ~/job_XXXXXX"
+
+          (untested, but should work)
+
+          This still leaves the directories-stuff of course.
+      - +@isprivate: "0"
+        commentid: "3025"
+        comment_count: "8"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-09-01 12:44:34 +0200
+        thetext: |-
+          The changes I made:
+          - The temp files are now stored in the calling matlab's pwd;
+          - Job IDs are now meaningful strings;
+          - A job's stdout and stderr are now redirected to /dev/null (errors are caught by fexec anyway, so this shouldn't be a problem).
+      - +@isprivate: "0"
+        commentid: "3226"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 14:33:50 +0200
+        thetext: "I closed all the bugs that were in the status RESOLVED. \n\nThis includes the ones that we just discussed in the weekly fieldtrip meeting, but also the bugs that we did not discuss."

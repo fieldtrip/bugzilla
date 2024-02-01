@@ -1,0 +1,100 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1600"
+    creation_ts: 2012-07-06 14:55:00 +0200
+    short_desc: .inside not updated in ft_checkdata(data,'datatype','source')
+    delta_ts: 2012-11-29 09:13:23 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6743"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-06 14:55:50 +0200
+        thetext: when data is of type 'volume'.   Instead, .inside remains a matrix e.g. [181 217 181], rather than Nx1 list.   Does this matter? or is it ok/intended to leave .inside matching the .dim, which is supposed to be [181 217 181] ?
+      - +@isprivate: "0"
+        commentid: "6745"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-06 15:44:57 +0200
+        thetext: the inside-field is a vector in a source-structure, but should be a 3D-boolean matrix in a volume-structure (this is just a matter of definition). So I guess in your case this is how it is and indeed intended.
+      - +@isprivate: "0"
+        commentid: "6746"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-06 15:49:42 +0200
+        thetext: Ok.  Sorry I didn't clarify this, but I meant that the output of data_new=ft_checkdata(data_volume,'datatype','source'), when data_volume is type 'volume' is converted so that data_new is type 'source', but it still has the 3D-boolean matrix for .inside.   I agree data_volume.inside should have the 3D boolean, but shouldn't data_new.inside be a vector?
+      - +@isprivate: "0"
+        commentid: "6748"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-06 16:17:54 +0200
+        thetext: I think so, too. There should be a private function fixinside that could take care of this. Apparently, it is not properly called...
+      - +@isprivate: "0"
+        commentid: "6749"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-06 16:38:04 +0200
+        thetext: "fixinside is indeed only called if the input parameter/flag called 'inside' is not empty.  How should this be changed?  \n1) Is ft_checkdata correct, but the call to it from ft_sourcegrandaverage (for example) incorrect?  (requiring something like data_source=ft_checkdata(data_volume,'datatype','source','inside',something)\nor \n2) should ft_checkdata be modified around lines 389?"
+      - +@isprivate: "0"
+        commentid: "8459"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-28 15:31:14 +0100
+        thetext: "--- ft_checkdata.m      (revision 7013)\n+++ ft_checkdata.m      (working copy)\n@@ -605,7 +605,7 @@\n   \n   % these fields should not be reshaped\n   exclude = {'cfg' 'fwhm' 'leadfield' 'q' 'rough' 'pos'};\n-  if ~strcmp(inside, 'logical')\n+  if ~isempty(inside) && ~strcmp(inside, 'logical')\n     % also exclude the inside/outside from being reshaped\n     exclude = cat(2, exclude, {'inside' 'outside'});\n   end\nbash-3.2$ svn commit ft_checkdata.m\nSending        ft_checkdata.m\nTransmitting file data .\nCommitted revision 7029."
+      - +@isprivate: "0"
+        commentid: "8460"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-28 15:32:38 +0100
+        thetext: |-
+          bash-3.2$ svn add test_bug1600.m
+          A         test_bug1600.m
+          bash-3.2$ svn commit test_bug1600.m
+          Adding         test_bug1600.m
+          Transmitting file data .
+          Committed revision 7031.

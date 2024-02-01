@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2715"
+    creation_ts: 2014-09-30 12:32:00 +0200
+    short_desc: 'ft_math: suggestions for improvement'
+    delta_ts: 2015-01-12 09:20:02 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - r.oostenveld
+      - s.vanpelt
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14531"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-30 12:32:37 +0200
+        thetext: |-
+          I was looking into the possibility to use cfg.operation in combination with cfg.scalar, where cfg.scalar is a matrix ;-).
+
+          Purpose: doing a bias correction on a TFR power spectrum according to e.g. Bokil et al J Neurosci Methods 20067:
+
+          m = repmat(shiftdim(freq.dof./2,-1),[numel(freq.label) 1 1]);
+          powspctrm_biascorrected = log(freq.powspctrm) - psi(m) + log(m);
+
+          The idea here would be that m has the same size as freq.powspctrm, but is not scalar (because it may vary over time).
+
+          I can get this to work with:
+
+          cfg.operation = 'log(x1)-psi(s)+log(s)';
+          cfg.scalar    = m;
+
+          in combination with a small hack around line 237:
+            if isscalar(s)
+              y = arrayfun(...
+            elseif size(s)==size(arginval{1})
+              y = feval(operation, arginval{:});
+            end
+
+          This is of course not uber-nice because strictly speaking cfg.scalar is not scalar anymore.
+
+
+          Shall we build in support for non-scalar cfg.scalar (and call it cfg.matrix)? I think it should be do-able if we explicitly require this field to have the same size as the data.(cfg.parameter).
+
+          Along the way I noticed that cfg.scalar is not touched and lost to posterity in the output.cfg. Although ugly, I suggest to touch it (if user-defined) around line 177
+      - +@isprivate: "0"
+        commentid: "14532"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-30 20:43:38 +0200
+        thetext: agreed (cfg.matrix) and agreed (touching them for posterity). I suggest to keep cfg.matrix outside of the regular documentation.
+      - +@isprivate: "0"
+        commentid: "14535"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-01 09:54:43 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "enhancement - added undocumented option cfg.matrix for element wise operations, and touch cfg.scalar/matrix for output cfg" ft_math.m
+          Sending        ft_math.m
+          Transmitting file data .
+          Committed revision 9868.

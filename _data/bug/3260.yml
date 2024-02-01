@@ -1,0 +1,152 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3260"
+    creation_ts: 2017-03-01 07:06:00 +0100
+    short_desc: inconsistent surface/cortex colors
+    delta_ts: 2019-08-10 12:41:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18435"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-01 07:06:42 +0100
+        thetext: |-
+          ft_sourceplot (at line 1166):
+          cortex_light = [0.781 0.762 0.664];
+          cortex_dark  = [0.781 0.762 0.664]/2;
+
+          whereas ft_plot_mesh relies on:
+          cortex.m: [255 213 119]/255 = 1.0000 0.8353 0.4667
+          brain.m: [202 100 100]/255 = 0.7922 0.3922 0.3922
+
+          Personally, I use cortex_light most frequently as the others are just not very realistic (even for a colorblind). Does anyone know of a better cortex color? And should we try to be more consistent across functions?
+
+
+
+          [ftver, ftpath] = ft_version;
+          load([ftpath filesep 'template/anatomy/surface_pial_left.mat']);
+
+          % cortex_light
+          figure;
+          ft_plot_mesh(mesh, 'facecolor', [0.781 0.762 0.664], 'EdgeColor', 'none');
+          view([-90 20]); lighting gouraud; camlight;
+
+          % cortex_dark
+          figure;
+          ft_plot_mesh(mesh, 'facecolor', [0.781 0.762 0.664]/2, 'EdgeColor', 'none');
+          view([-90 20]); lighting gouraud; camlight;
+
+          % cortex
+          figure;
+          ft_plot_mesh(mesh, 'facecolor', 'cortex', 'EdgeColor', 'none');
+          view([-90 20]); lighting gouraud; camlight;
+
+          % brain
+          figure;
+          ft_plot_mesh(mesh, 'facecolor', 'brain', 'EdgeColor', 'none');
+          view([-90 20]); lighting gouraud; camlight;
+      - +@isprivate: "0"
+        commentid: "18436"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-01 07:15:41 +0100
+        thetext: Note that 'realistic' is perhaps not the best choice of description given that intraop photos typically highlight a red/rose brain. I was more thinking of the gray tint typically used in publications.
+      - +@isprivate: "0"
+        commentid: "18438"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-01 11:01:10 +0100
+        thetext: |-
+          I don't like the cortex_dark that much. Is it really used in ft_sourceplot?
+
+          What about creating a cortex_light.m and making the stuff configureable in ft_sourceplot?
+
+          This would allow the user to choose, and to use the cortex_light in ft_plot_mesh
+      - +@isprivate: "0"
+        commentid: "18441"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-01 20:17:06 +0100
+        thetext: it seems that the cortex_dark is only used in ft_sourceplot when a curv-field is present. I wonder whether we should just ditch it.
+      - +@isprivate: "0"
+        commentid: "18442"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-01 20:40:52 +0100
+        thetext: "Thanks for the swift response. It seems cortex_dark is used together with cortex_light to create a depth perspective across gyri and sulci:\n\n\"\n%------do the plotting\ncortex_light = [0.781 0.762 0.664];\ncortex_dark  = [0.781 0.762 0.664]/2;\nif isfield(surf, 'curv')\n  % the curvature determines the color of gyri and sulci\n  color = surf.curv(:) * cortex_dark + (1-surf.curv(:)) * cortex_light;\nelse\n  color = repmat(cortex_light, size(surf.pos,1), 1);\nend\n\nft_plot_mesh(surf,'edgecolor', 'none', 'vertexcolor', color);\n\"\n\nI have moved this feature downstream to ft_plot_mesh, invoked by vertexcolor = 'curv', and added cortex_light.m and cortex_dark.m to plotting/private. \n\nAdditionally moved lower level configurations (e.g. cfg.facecolor) upstream to ft_sourceplot (note, default cfg.vertexcolor = 'curv').\n\nsee: https://github.com/fieldtrip/fieldtrip/pull/352"
+      - +@isprivate: "0"
+        commentid: "18443"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-01 20:45:16 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\nI see this comment just now. Plotting with facecolor 'cortex_light' and the cortex_dark/cortex_light curvature-dependent mix produces similar but not identical results: \n\n[ftver, ftpath] = ft_version;\nload([ftpath filesep 'template/anatomy/surface_pial_left.mat']);\n\nfigure;\nft_plot_mesh(mesh, 'facecolor', 'cortex_light', 'EdgeColor', 'none');\nview([-90 20]); lighting gouraud; camlight;\n\nfigure;\nft_plot_mesh(mesh, 'vertexcolor', 'curv', 'EdgeColor', 'none');\nview([-90 20]); lighting gouraud; camlight;"
+      - +@isprivate: "0"
+        commentid: "18444"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-03-01 20:46:06 +0100
+        thetext: |-
+          (In reply to Arjen Stolk from comment #5)
+
+          Note that the latter requires the new functionality (which is not pulled in yet).
+      - +@isprivate: "0"
+        commentid: "20284"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:22 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20483"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:34 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

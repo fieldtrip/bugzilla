@@ -1,0 +1,189 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2510"
+    creation_ts: 2014-03-25 09:20:00 +0100
+    short_desc: ft_statfun_diff throws an error
+    delta_ts: 2019-08-10 12:29:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: pepperberggeit
+      +@name: Scholten
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc:
+      - dlozanosoldevilla
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13143"
+        comment_count: "0"
+        who:
+          +content: pepperberggeit
+          +@name: Scholten
+        bug_when: 2014-03-25 09:20:07 +0100
+        thetext: |-
+          ft_statfun_diff throws an error because 'diff' already has a function in MatLab.
+          If the fieldtrip function is renamed as ft_statfun_dif, no error appears.
+      - +@isprivate: "0"
+        commentid: "13144"
+        comment_count: "1"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-03-25 09:30:37 +0100
+        thetext: |-
+          (In reply to Scholten from comment #0)
+          Hi,
+          Thanks for reporting it, I could reproduce the error. However, to avoid ambiguity, you can invoke statfuns using the whole prefix:
+           cfg.statistic = 'ft_statfun_diff';
+          best
+          Diego
+      - +@isprivate: "0"
+        commentid: "13146"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 13:38:37 +0100
+        thetext: is there any documentation that suggests to use cfg.statistic='diff' on the wiki? If so, we should update it to use the full function name.
+      - +@isprivate: "0"
+        commentid: "13147"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 13:39:29 +0100
+        thetext: |-
+          B.t.w. I was also able to reproduce it:
+
+          ft_default = [];
+
+          % make fake dataset
+          timelock = cell(1,10);
+          for idat = 1:10
+            timelock{idat}.label = {'chan1','chan2','chan3'};
+            timelock{idat}.dimord = 'chan_time';
+            timelock{idat}.avg = rand(3,30);
+            timelock{idat}.time = 0.1:0.1:3;
+            timelock{idat}.cfg = [];
+          end
+
+          % do stats - montecarlo
+          cfg = [];
+          cfg.method      = 'montecarlo';
+          cfg.statistic   = 'diff';
+          cfg.alpha       = 0.05;
+          cfg.correctm    = 'no';
+          cfg.numrandomization = 500;
+          cfg.design = [ones(1,5) ones(1,5).*2; 1:5 1:5;];
+          cfg.ivar   = 1;
+          cfg.uvar   = 2;
+          stat = ft_timelockstatistics(cfg,timelock{:});
+
+          ...
+          Error using diff
+          Function 'diff' is not supported for class 'struct'.
+
+          Error in ft_statistics_montecarlo (line 282)
+            [statobs] = statfun(cfg, dat, design);
+
+          Error in statistics_wrapper (line 308)
+              [stat, cfg] = statmethod(cfg, dat, design);
+
+          Error in ft_timelockstatistics (line 108)
+          [stat, cfg] = statistics_wrapper(cfg, varargin{:});
+      - +@isprivate: "0"
+        commentid: "13148"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-03-25 13:46:36 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+          I didn't find the "diff" statistic through tutorials: we always use either independent of dependent ttests. Not sure if we should change the convention for the rest of ft_statfun_*
+      - +@isprivate: "0"
+        commentid: "13149"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 14:04:40 +0100
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #4)
+
+          if we change it on the wiki, it makes it more clear that there is a function behind it (in which one can look for help and implementation details).
+      - +@isprivate: "0"
+        commentid: "13151"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-03-25 14:16:30 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+          Ok I'll go through tutorial and test scripts to change the convention
+      - +@isprivate: "0"
+        commentid: "13728"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2014-05-20 22:39:44 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #6)
+
+          documentation update finished
+
+          Sending        test_tutorial_clusterpermutationfreq.m
+          Sending        test_tutorial_clusterpermutationtimelock.m
+          Sending        test_tutorial_eventrelatedstatistics.m
+          Transmitting file data ...
+          Committed revision 9559.
+
+          Sending        ft_statfun_actvsblT.m
+          Sending        ft_statfun_depsamplesFmultivariate.m
+          Sending        ft_statfun_depsamplesT.m
+          Sending        ft_statfun_depsamplesregrT.m
+          Sending        ft_statfun_diff.m
+          Sending        ft_statfun_indepsamplesF.m
+          Sending        ft_statfun_indepsamplesT.m
+          Sending        ft_statfun_indepsamplesZcoh.m
+          Sending        ft_statfun_indepsamplesregrT.m
+          Sending        ft_statfun_mean.m
+          Sending        ft_statfun_pooledT.m
+          Sending        ft_statfun_roc.m
+          Transmitting file data ............
+          Committed revision 9560.
+      - +@isprivate: "0"
+        commentid: "20041"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:34 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

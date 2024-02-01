@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2886"
+    creation_ts: 2015-04-30 14:46:00 +0200
+    short_desc: ft_freqstatistics crashes for freq/freq_time data without channels
+    delta_ts: 2019-08-10 12:30:59 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipp.ruhnau
+      +@name: Philipp Ruhnau
+    assigned_to: fieldtriptoolbox
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15626"
+        comment_count: "0"
+        attachid: "709"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2015-04-30 14:46:30 +0200
+        thetext: "Created attachment 709\nexample of freqstatistic crash without channels present\n\nHey there,\ni have run into a problem I didn't have on a previous version of fieldtrip.\nwhen i want to use cluster correction on time-freq data with only one channel (like average graph mapping or global field) the function crashes in the process (findcluster). \nI think the missing spatial dimension is not properly detected (ahem, detect something missing...).\nAnyway, I attach a little example script that shows the error.\n\nOne can circumvent this by adding a singular channel dimension, see my code.\nbut this is not so nice, either the help of ft_freqstatistics needs amending or a fix (reshape or so) needs to be done.\n\ntried this with a very recent fieldtrip (beginning of the week).\nit was working like half a year back.\n\nciao \nphilipp\n\n\nNB1: by the way ft_checkdata crashes without a label for structures of dimord 'time_freq', which in my view wouldn't need a label field, right? ...\n\nNB2: ft_singleplotTFR will not plot a stat structure which is (correcly) containing a dimord 'freq_time' without a singleton channel dimension, because a label field is required as input because of NB1... circulus vitiosus"
+      - +@isprivate: "0"
+        commentid: "15627"
+        comment_count: "1"
+        attachid: "710"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-30 18:08:01 +0200
+        thetext: "Created attachment 710\nupdated script\n\nthanks for the clear script. \n\nsome of the problems are caused by your lines where you \n\n%% now set up fake ft structures\nft1 = [];\nft1.powspctrm = set1;\nft1.dimord = 'subj_freq_time';\nft1.freq = freqArray;\nft1.time = timeArray;\n% for some reason we also need to define a label otherwise checkdata\n% crashes\nft1.label = {'average'};\n\nwhich fail to create a fully supported data structure. It is surprising that you get this far, since\n\n>> ft_datatype(ft1)\nans =\nfreq\n\nalthough ft_datatype_freq states that label is a required field (and hence chan should be part of the dimord).\n\nIf I make the data as subj_chan_freq_tiume with a single chan, it works \"better\". At least I get through ft_singleplotTFR(cfg,stats).\n\nIn your lines 72-76 I then use\n\nfigure;\nimagesc(timeArray, freqArray, squeeze(stats.stat))\nset(gca, 'YDir', 'normal')\nalpha(double(squeeze(stats.mask)))\ntitle('Yeah alpha effect')\n\nto make it work (squeezing out the singleton dimension). \n\nCould you try again with attached version and see whether your (perceived?) problem persists? If this solves it, then I think it is just an incorrect data handling. \n\nWith your input data it should probably have given an explicit error early on."
+      - +@isprivate: "0"
+        commentid: "15628"
+        comment_count: "2"
+        who:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        bug_when: 2015-04-30 18:24:21 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          hey Robert,
+          that is what I do from lines 123
+          sure that does work, I was just confused for 3 reasons
+          1) it did work in previous ft versions (who knows whether that was right)
+          2) the parametric (analytic) option does work. yet not the plotting, and nobody in the audience has any idea...
+          3) why would there be a necessity for a channel dimension? ok, i guess if you just define it that way i have to live with it, I find it simply uncomfortable to reshape and squeeze.
+
+          so yeah, I guess one option is to stop the user (me) earlier and tell me what I'm doing wrong (but also adapt the help) or somehow ignore the non existent dimension.
+          or reshape the data in ft_checkdata assuming a single dimension when there is only one label?
+
+          dunno. you can also just ignore this, in the end it is minor and whoever reaches this specific problem did some data formatting himself and will figure out why
+          cheers
+          philipp
+      - +@isprivate: "0"
+        commentid: "15629"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-30 21:04:56 +0200
+        thetext: "(In reply to Philipp Ruhnau from comment #2)\n\nit is in general not possible for us to predict how FT functions behave on unpredictable input data structures. If the structures are close to ones that are supported, it might work, but it might as well not work. Also \"not working\" might change over time, since we don't put efforts in backward compatibility for unsupported functionality. \n\nThe ft_datatype_xxx functions describe (and define) the supported data structures. Furthermore, http://www.fieldtriptoolbox.org/faq/how_are_the_various_data_structures_defined lists the various structures and (some) functions that work on them. Please add there on the wiki if you have suggestions for improving general documentation."
+      - +@isprivate: "0"
+        commentid: "20082"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:30:59 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "709"
+        date: 2015-04-30 14:46:00 +0200
+        delta_ts: 2015-04-30 14:46:30 +0200
+        desc: example of freqstatistic crash without channels present
+        filename: cluster_time_freq_issue.m
+        type: text/x-matlab
+        size: "4371"
+        attacher:
+          +content: philipp.ruhnau
+          +@name: Philipp Ruhnau
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "710"
+        date: 2015-04-30 18:08:00 +0200
+        delta_ts: 2015-04-30 18:08:01 +0200
+        desc: updated script
+        filename: cluster_time_freq_issue.m
+        type: text/x-matlab
+        size: "4410"
+        attacher:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        data: REMOVED

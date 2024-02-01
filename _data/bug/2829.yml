@@ -1,0 +1,112 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2829"
+    creation_ts: 2015-02-06 14:20:00 +0100
+    short_desc: error in clusterstat due to cfg.inside (but related to cfg.dim in ft_freqstatistics)
+    delta_ts: 2015-02-11 10:40:53 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15171"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-06 14:20:47 +0100
+        thetext: |-
+          Hello,
+          I think this might be related to Robert's recent change: https://code.google.com/p/fieldtrip/source/detail?spec=svn10137&r=10137
+
+          My freq data is:
+              powspctrm: [4-D double]
+                  label: {63x1 cell}
+                   freq: [4 6 8 10 12 14 16 18 20 22 24 26 28 30]
+                   time: [1x251 double]
+                 dimord: 'subj_chan_freq_time'
+                    cfg: [1x1 struct]
+
+
+          I am running ft_freqstatistics (which ran fine a few weeks ago; I've just svn updated an hour ago) and it crashes:
+
+          Reference to non-existent field 'inside'.
+
+          Error in clusterstat (line 171)
+              tmp(cfg.inside) = postailobs;
+
+          Error in ft_statistics_montecarlo (line 358)
+            [stat, cfg] = clusterstat(cfg, statrand, statobs);
+
+          Error in ft_freqstatistics (line 190)
+              [stat, cfg] = statmethod(cfg, dat, design);
+
+
+          I think the problem is the recent change in ft_freqstatistics that assigns a cfg.dim which for this data is [63 14 161] (chan_time_freq).
+
+          Then in ft_statistics_montecarlo, there is this line since isfield(cfg,'dim') is true:
+                % input data can be reshaped into a 3D volume, use bwlabeln/spm_bwlabel rather than clusterstat
+          However is this right to consider it a 3D volume?
+          In any case, there is no cfg.inside as it is not a 3D volume.
+
+          Thank you,
+          Johanna
+      - +@isprivate: "0"
+        commentid: "15174"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-06 15:49:05 +0100
+        thetext: |-
+          yes, that is my bad. The bug was also detected as an error in test_bug1984_2187.
+
+          I fixed it. The test script test_bug1984_2187 again works. I don't know whether this deals with all possible cases, so please reopen if your case still fails.
+      - +@isprivate: "0"
+        commentid: "15175"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-06 15:49:33 +0100
+        thetext: |-
+          mac011> svn commit
+          Sending        private/clusterstat.m
+          Transmitting file data .
+          Committed revision 10176.
+      - +@isprivate: "0"
+        commentid: "15254"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:53 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

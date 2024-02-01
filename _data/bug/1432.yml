@@ -1,0 +1,56 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1432"
+    creation_ts: 2012-04-17 13:55:00 +0200
+    short_desc: ft_prepare_singleshell and ft_prepare_headmodel give different results
+    delta_ts: 2012-06-12 12:59:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: c.micheli
+      +@name: Cristiano Micheli
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5922"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-17 13:55:27 +0200
+        thetext: "Whereas the test script test_ft_prepare_singleshell prescribes they should produce identical results.\n\nThis part of the test script runs fine (note that I added (and committed) the rmfield() calls to remove the cfg):\n\n    % with an MRI in the input\n    cfg         = [];\n    cfg.method  = 'singleshell';\n    vol1        = ft_prepare_headmodel(cfg, mri);\n\n    cfg         = [];\n    vol1b       = ft_prepare_singleshell(cfg, mri);\n\n    % the following needs to be done to be able to make the comparison\n    vol1 = rmfield(vol1, 'cfg');\n    vol1b = rmfield(vol1b,'cfg');\n\n    success     = success && isequal(vol1, vol1b);\n    if ~success\n      error('ft_prepare_singleshell and ft_prepare_headmodel gave different outputs');\n    end\n\nBut this then fails (vol2 and vol2b are not equal):\n\n    % with a filename in the input\n    cfg         = [];\n    cfg.method  = 'singleshell';\n    cfg.hdmfile = hdmfile;\n    vol2        = ft_prepare_headmodel(cfg);\n\n    cfg         = [];\n    cfg.headshape = hdmfile;\n    vol2b       = ft_prepare_singleshell(cfg);\n\n    % the following needs to be done to be able to make the comparison\n    vol2 = rmfield(vol2, 'cfg');\n    vol2b = rmfield(vol2b,'cfg');\n\n    success     = success && isequal(vol2, vol2b);\n    if ~success\n      error('ft_prepare_singleshell and ft_prepare_headmodel gave different outputs');\n    end\n\nSee:\n\n    >> vol2\n\n    vol2 = \n\n         bnd: [1x1 struct]\n        type: 'nolte'\n        unit: 'cm'\n\n    >> vol2b\n\n    vol2b = \n\n         bnd: [1x1 struct]\n        type: 'nolte'\n        unit: 'cm'\n\nSo far so good, but:\n\n    >> vol2.bnd\n\n    ans = \n\n         pnt: [21285x3 double]\n         fid: [1x1 struct]\n        unit: 'cm'\n\n    >> vol2b.bnd\n\n    ans = \n\n        pnt: [21285x3 double]\n        tri: [42566x3 double]\n        \nAnd I don't know what the desired/best behaviour is, or if both are equally good. I checked out ft_datatype_headmodel for clues, but could not find any."
+      - +@isprivate: "0"
+        commentid: "6034"
+        comment_count: "1"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-05-02 16:03:47 +0200
+        thetext: "(In reply to comment #0)\n\nThe problem was given by ft_prepare_mesh, not allowing input strings as filenames containing the boundaries to be read correctly.\nThis is changed here:\n\n1003 $ svn commit ft_prepare_mesh.m\nSending        ft_prepare_mesh.m\nTransmitting file data .\nCommitted revision 5726.\n\n\nand here:\n1006 $ svn commit ft_prepare_mesh.m ./forward/ft_fetch_headshape.m \nSending        forward/ft_fetch_headshape.m\nSending        ft_prepare_mesh.m\nTransmitting file data ..\nCommitted revision 5727.\n\n\nAccordingly the test file works correctly.\nMost of the errors occurred because of a recently introduced function (ft_fetch_headshape) that handles the boundary inputs efficiently. \nThe absence of this function in ft_prepare_singleshell.m caused the problems since the management of the boundary input was still done explicitly inside the function (and not efficiently).\n\nActually, ft_prepare_singleshell should be deprecated at some pointbecause ft_prepare_heamodel takes over its functionality.\n\nBest,\nCristiano"

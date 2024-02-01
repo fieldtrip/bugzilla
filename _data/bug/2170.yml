@@ -1,0 +1,174 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2170"
+    creation_ts: 2013-05-15 10:02:00 +0200
+    short_desc: ft_read_event changed for neuromag
+    delta_ts: 2015-01-26 12:46:49 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: maess
+      +@name: Burkhard Maess
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - Chiran.Doshi
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10459"
+        comment_count: "0"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2013-05-15 10:02:04 +0200
+        thetext: "The reading of events has changed for neuromag files. \nPreviously it was:\n\neventtype: 'STI101'\neventvalues: the non-zero values in channel STI101\n\nnow it is so that the former eventvalues show up as eventtype and the eventvalues are all set zero.\n\nIs this intended? Previously, one could deliver a list of wanted eventvalues. But now one would wish to deliver a list of eventtypes, which is not accepted."
+      - +@isprivate: "0"
+        commentid: "10461"
+        comment_count: "1"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2013-05-15 10:46:56 +0200
+        thetext: "cfg = [];\ncfg.dataset=filename;\ncfg.trialdef.eventtype  = '?';\ncfg                      = ft_definetrial(cfg); \n\n% results in this output\nevaluating trialfunction 'ft_trialfun_general'\n\t306 MEG channel locations transformed\nOpening raw data file /scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif...\n\tRange : 16000 ... 442999  =     16.000 ...   442.999 secs\nReady.\nreading the events from '/scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif'\nthe following events were found in the datafile\nevent type: '0' with event values: 0\nevent type: '1' with event values: 0\nevent type: '20' with event values: 0\nevent type: '200' with event values: 0\nevent type: '201' with event values: 0\nevent type: '202' with event values: 0\nevent type: '203' with event values: 0\nevent type: '204' with event values: 0\nno trials have been defined yet, see FT_DEFINETRIAL for further help\nfound 122 events\ncreated 0 trials\n\n% problem is that the datatype is wrongly recognized \n\n>> cfg.dataformat\n\nans =\n\nbabysquid_fif\n\n>> cfg.headerformat\n\nans =\n\nbabysquid_fif\n\n\n% however, when providing the headerformat, the problem persists\ncfg = [];\ncfg.dataset=filename;\ncfg.dataformat='neuromag_mne';\ncfg.headerformat='neuromag_mne';\ncfg.trialdef.eventtype  = '?';\ncfg                      = ft_definetrial(cfg); \n\n% results in\nevaluating trialfunction 'ft_trialfun_general'\n\t306 MEG channel locations transformed\nOpening raw data file /scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif...\n\tRange : 16000 ... 442999  =     16.000 ...   442.999 secs\nReady.\nreading the events from '/scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif'\nthe following events were found in the datafile\nevent type: '0' with event values: 0\nevent type: '1' with event values: 0\nevent type: '20' with event values: 0\nevent type: '200' with event values: 0\nevent type: '201' with event values: 0\nevent type: '202' with event values: 0\nevent type: '203' with event values: 0\nevent type: '204' with event values: 0\nno trials have been defined yet, see FT_DEFINETRIAL for further help\nfound 122 events\ncreated 0 trials\nthe call to \"ft_definetrial\" took 1 seconds and required the additional allocation of an estimated 1 MB"
+      - +@isprivate: "0"
+        commentid: "10487"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-17 14:15:07 +0200
+        thetext: "(In reply to comment #1)\n\nthis then relates to the changes for http://bugzilla.fcdonders.nl/show_bug.cgi?id=1914\n\nthe babysquid system exports the data in fif format. However, some aspects are slightly different from the neuromag machines, hence the ability to specify babysquid_fif.\n\nI made a test script:\n\nroboos@mentat002> svn commit test_bug2170.m -m \"enhancement - created initial test script for http://bugzilla.fcdonders.nl/show_bug.cgi?id=2170\"\nAdding         test_bug2170.m\nTransmitting file data .\nCommitted revision 8130.\n \n\nThe two test files both return neuromag_fif, so I cannot reproduce it yet.\n\nIn ft_filetype there is around 277\n\n % known BabySQUID file types, these should go before Neuromag\nelseif filetype_check_extension(filename, '.fif') && exist(fullfile(p, [f '.eve']), 'file')\n  type = 'babysquid_fif';\n  manufacturer = 'Tristan Technologies';\n  content = 'MEG data';\nelseif filetype_check_extension(filename, '.eve') && exist(fullfile(p, [f '.fif']), 'file')\n  type = 'babysquid_eve';\n  manufacturer = 'Tristan Technologies';\n  content = 'MEG data';\n  \n  % known Neuromag file types\nelseif filetype_check_extension(filename, '.fif')\n  type = 'neuromag_fif';\n  manufacturer = 'Neuromag';\n  content = 'MEG header and data';\nelseif filetype_check_extension(filename, '.bdip')\n  type = 'neuromag_bdip';\n  manufacturer = 'Neuromag';\n  content = 'dipole model';\n\nwhich suggests that you have an *.eve file. Can you confirm this?\n\nFor me it is not clear whether the eve file is babysquid specific or whether it is something from neuromag in general. I have never heard a neuromag user about them."
+      - +@isprivate: "0"
+        commentid: "10488"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-17 14:19:39 +0200
+        thetext: "(In reply to comment #1)\n\nthe assignment of cfg.headerformat etc happens ft_checkconfig with the dataset2files option and uses\n~/matlab/fieldtrip/fileio/private/dataset2files.m\nwhich is also present at \n~/matlab/fieldtrip/private/dataset2files.m\n\ncould you try\nft_filetype('/scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif')\nand post the result?"
+      - +@isprivate: "0"
+        commentid: "10495"
+        comment_count: "4"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2013-05-21 10:15:19 +0200
+        thetext: |-
+          of course, no problem
+
+          >> ft_defaults
+          >> ft_filetype('/scr/nobel1/Sara/arnold/an05a/an05a4_ss.fif')
+
+          ans =
+
+          babysquid_fif
+
+          best,
+          Burkhard
+      - +@isprivate: "0"
+        commentid: "10496"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-21 10:55:29 +0200
+        thetext: "(In reply to comment #4)\n\nthanks. It means that you have an eve accompanying your fif. In ft_filetype around line 277 there is\n\n  % known BabySQUID file types, these should go before Neuromag\nelseif filetype_check_extension(filename, '.fif') && exist(fullfile(p, [f '.eve']), 'file')\n  type = 'babysquid_fif';\n  manufacturer = 'Tristan Technologies';\n  content = 'MEG data';\nelseif filetype_check_extension(filename, '.eve') && exist(fullfile(p, [f '.fif']), 'file')\n  type = 'babysquid_eve';\n  manufacturer = 'Tristan Technologies';\n  content = 'MEG data';\n\nwhich is followed by the regular neuromag_fif detection. \n\nThe consequence is that the eve file is read (in ft_read_event around line1087) rather than the continuously sampled trigger channels from the fif file. \n\nI suppose we should change the detection: the presence of an */eve is not enough evidence for it being data from the tristan babysquid system. \n\nI also suppose we should change the event reading: rather than \n1) reading the trigger from the fif file in case of neuromag_fif\n2) reading the *.eve file in case of babysquid_fif\nwe should always combine 1 and 2, i.e. read it from both. Something similar happens for the CTF data format, which also represents \"triggers/events\" in the raw data file and potentially also in an extra marker file and in an extra class file. This requires the two to be merged in the event structure.  \n\nWould you mind sharing your dataset with me for testing purposes?"
+      - +@isprivate: "0"
+        commentid: "10497"
+        comment_count: "6"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2013-05-21 14:23:05 +0200
+        thetext: |-
+          well, I do not mind - here it comes.
+
+          ll an05a/an05a4_ss.*
+          -rw-rw-r-- 1 maess    neuro      3904 May 15 07:55 an05a/an05a4_ss.eve
+          -rw-rw-rw- 1 megguest neuro 540969443 Dec 14 10:33 an05a/an05a4_ss.fif
+
+          yes, indeed - I have a .eve file with the same name stored next to the
+          fif-file. I have uploaded both files to dropbox:
+
+
+          https://www.dropbox.com/s/jlv4hvkklio2lp1/an05a4_ss.bug2170.zip
+      - +@isprivate: "0"
+        commentid: "10500"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-21 15:13:18 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          I have copied it to my dropbox. You may now want to remove the files from yours, as bugzilla is open access and anyone reading your message could in principle download them.
+
+          best
+          Robert
+      - +@isprivate: "0"
+        commentid: "12162"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-02 10:34:59 +0100
+        thetext: |-
+          consistently deal with neuromag fif and eve file, also used for Tristan BabySQUID datasets. See http://bugzilla.fcdonders.nl/show_bug.cgi?id=1914 and http://bugzilla.fcdonders.nl/show_bug.cgi?id=2170
+
+          mac001> svn commit ft_read_event.m ft_filetype.m private/
+          Sending        ft_filetype.m
+          Sending        ft_read_event.m
+          Deleting       private/read_babysquid_eve.m
+          Adding         private/read_neuromag_eve.m
+          Transmitting file data ...
+          Committed revision 8930.
+      - +@isprivate: "0"
+        commentid: "12948"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:37 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+      - +@isprivate: "0"
+        commentid: "15091"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-26 12:46:49 +0100
+        thetext: |-
+          there was a regression 'error' detected by the test script, which was due to unique({event1.type}) returning STI 1 up to 8 plus an additional "Trigger". The extra channel is due to some code that Thomas Hartmann contributed w.r.t. reconstructing full triggers if the bits were shifted by a single or a few samples.
+
+          Note that it was not an actual error. I updated the test script.
+
+          roboos@mentat001> svn commit test/test_bug2170.m
+          Sending        test/test_bug2170.m
+          Transmitting file data .
+          Committed revision 10125.

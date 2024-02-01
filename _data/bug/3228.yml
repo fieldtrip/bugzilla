@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3228"
+    creation_ts: 2017-01-03 07:48:00 +0100
+    short_desc: 'ft_volumesegment: implement dartel as an alternative way for segmentation'
+    delta_ts: 2017-05-14 11:32:38 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3255
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2793"
+    blocked: "3255"
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to: fieldtriptoolbox
+    cc:
+      - a.stolk8
+      - brungio
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18129"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-03 07:48:54 +0100
+        thetext: as discussed with Bruno at Biomag. He has code to do this, which can probably be easily incorporated.
+      - +@isprivate: "0"
+        commentid: "18289"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-25 08:43:46 +0100
+        thetext: "Hi,\n\nplease bear with me, this is the first time I work on bugzilla and I am sure I won't contribute in the right format. I hope this helps anyway.\n\nI have used SPM12 quite a bit in the ft pipelines I developed. In the last iteration I am using Dartel-based normalization of native-space contrasts computed in native grids. \n\nHere I am giving the procedures for doing MNI grids based on the new segmentation in SPM, and also the procedures for doing the Dartel-based analysis (big picture approach).\n\nThe code below for calling SPM routines is based on the batch system (need to dig the actual functions, and quite a few must be common to SPM8).\n\n1. AC-center the anatomical to improve the segmentation. \n\nM=eye(4);\nM(1:3,end)=-AC; %AC is AC location in mm, [3,1] vector\nbatch.spm.util.reorient.transform.transM = M;\n%run the batch.\n\n2. use the new segmentation to extract the TPMs. The grey-matter TPM will be used to create the volume conduction model.\n\nbatch: batch.spm.spatial.preproc\nrequires TPM.nii in spmdir/tpm\n\n3. MNI grid approach: estimate normalization from AC-centered native-space anatomical to MNI:\n\nbatch.spm.tools.oldnorm.est\n\n4. MNI grid approach: MNI normalize subject-specific grey-matter TPMs\nbatch.spm.tools.oldnorm.write\n\n5. MNI grid approach: average MNI-normalized grey-matter TPMs, and eventually exclude regions based on MNI atlases (e.g., AAL, although lately I prefer the Neuromorphometrics atlas in spm12/tmp)\n\ncfg=[];\ncfg.grid.resolution=resolution;\ncfg.mri=mri; %group-average MNI grey TPM with non-interesting regions set to 0\ncfg.threshold=0.25;%\ncfg.smooth=0;\ngroupgrid=ft_prepare_sourcemodel(cfg);\n\n6. various alignment steps\n\n7. MNI grid approach: prepare volume conduction and source models using the new segmentation\n\nclear seg\nseg.gray=Gray; %spm_read_vol('c1acs.nii'); %c1 from ac-centered anatomical\nseg.white=White; %spm_read_vol('c2acs.nii'); \nseg.csf=CSF; %spm_read_vol('c3acs.nii');\nseg.dim=MRI_HeadShapes.dim; %MRI_HeadShapes is the AC anatomical aligned to\n                            %digitized headshape\nseg.transform=MRI_HeadShapes.transform;\nseg.coordsys=MRI_HeadShapes.coordsys;\nseg.unit=MRI_HeadShapes.unit;\n\n\ncfg=[];\ncfg.output='brain'; %create brain mask from segmentation\nseg=ft_volumesegment(cfg,seg); %not sure why I do this and the following three\nseg.gray=Gray;\nseg.white=White;\nseg.csf=CSF;\n\ncfg=[];\ncfg.method='singleshell';\nvol=ft_prepare_headmodel(cfg,seg);\n            \ncfg = [];\ncfg.grid.warpmni   = 'yes';\ncfg.grid.template  = groupgrid;\ncfg.grid.nonlinear = 'yes'; \ncfg.mri            = seg; \ngrid               = ft_prepare_sourcemodel(cfg);\n\n\nThe Dartel-based approach is much more involved!\n\n1. ac-center native-space anatomicals;\n2. segment ac-centered anatomicals;\n3. create Dartel template using the anatomical segmentations at 2. Note, the stereotaxic space is specific to the group of participants. Further steps are required to move to/from MNI:\nbatch.spm.tools.dartel.warp\n\n4. normalize something from native to MNI through Dartel to estimate the Dartel-to-MNI transformation (e.g., participant-specific grey-matter TPMs):\nbatch.spm.tools.dartel.mni_norm\n\n5. normalize the Dartel template to MNI for eventual visualization and sanity checks:\n\n!cp -fv Template_6.nii Template_6_MNI.nii %Template_6.nii is the Dartel template\nload Template_6_2mni.mat %contains mni structure with Dartel-to-MNI transforms\nM = mni.affine;\nP='Template_6_MNI.nii';\nNii = nifti(P);\nNii.mat = M;\nNii.mat_intent = 4;\ncreate(Nii); %note, this changes the header not the data, so voxels are equispaced in Dartel not MNI space\n\n\n6. transform atlases to Dartel space (here example based on aal_for_spm12 http://www.gin.cnrs.fr/AAL)\n\neval(['!cp -fv AAL.nii AAL_Dartel.nii'])\n\ninfile='AAL_Dartel.nii';\nM1=spm_vol(infile);\nM1=M1.mat;\n\nM2=spm_vol([darteldir,'Template_6.nii,1']);\nM2=M2.mat;\nload([darteldir,'Template_6_2mni.mat'])\nM3 = mni.affine;\n\nM=M2*(M3\\M1);\nP=infile;\nNii = nifti(P);\nNii.mat = M;\nNii.mat_intent = 4;\ncreate(Nii); %now AAL_Dartel header is squeezed to Dartel space\n\nThe next step is to resize bounding box and voxel size of the Dartel-normalized atlas so that it corresponds to what in the Dartel template:\n\nvtarg=spm_vol([maskdir,'Template_6.nii,1']);\n\nresize_img_BLG_nearNeighb('AAL_Dartel.nii',... %will attach this function later\n    nan(1,3), nan(2,3), 0,vtarg.mat,vtarg.dim) %resize atlas to dartel template\n\n'rAAL_Dartel.nii' can now be used for label-based removal of uninteresting regions from the Dartel-space grey-matter TPM\n\n\n7. transform the Dartel-space TPM with uninteresting regions set to 0 from Dartel to native space\n\nbatch.spm.tools.dartel.crt_iwarped\nbatch.spm.tools.dartel.crt_iwarped.interp = 7;\n\nand set to a binary mask.\n\n8. prepare native-space grids with specific resolution\n\nmaskforgridfn=fn_for_native-space_mask computed at 7.\ntargetvoxdim=in_mm;\nBB=nan(2,3); %if nans it uses bounding box of original volume\nresize_img_BLG_nearNeighb(maskforgridfn, targetvoxdim, BB, 1);\n\n\nvm=spm_vol(['r',maskforgridfn]);\n[Mask,XYZ]=spm_read_vols(vm);\nMask=Mask(:)==1;\n\ncfg=[];\ncfg.grid.pos     =XYZ'/10;%   = N*3 matrix with position of each source\ncfg.grid.inside  =Mask;\ncfg.grid.dim     =vm.dim;%\ncfg.unit='cm';\ngrid=ft_prepare_sourcemodel(cfg);\n    \n\n9. the forward model is computed as above. Now we need to compute the leadfields for the native-space grid. Before doing so, we transform the positions so that they include the alignment of the native-space anatomical to the digitized headshape.\n\nvgridmask=spm_vol((['r',maskforgridfn]); %the native-space grid mask at 7. \nMgridmask=vgridmask.mat;\n\nvanat=spm_vol(anatfn); %the ac-centered anatomical for this subject\nManat=vanat.mat;\n\nMheadshapes=MRI_HeadShapes.transformorig; %form MRI-to-headshape alignment\n\nM1=Mgridmask;\nM2=Mheadshapes;\nM3=Manat;\n            \ndim=grid.dim; %native-space grid from 8.\n[X,Y,Z] = ndgrid(1:dim(1), 1:dim(2), 1:dim(3));\nposvox=[X(:) Y(:) Z(:)];\n          \nM=M2*inv(M3)*M1; \ngrid.pos = ft_warp_apply(M,posvox)/10;\n \nNow we can compute leadfields using grid\n\n\n10. when done with our native-space analyses we can finally dartel-normalize the contrasts/encoding/whatever measures of interest from native to group space. Note, this also uses a smoothing of the dartel-normalized images, which boosts SNR further than what already done by the improved Dartel-based alignment of anatomies. We have two options here.\n\n10.a. we Dartel-normalize native-space stuff then smooth\n\nbatch.spm.tools.dartel.crt_warped %dartel normalize\nTHEN\nbatch.spm.spatial.smooth %smooth\n\n10.b. directly normalize to MNI (includes a smoothing step):\n\nbatch.spm.tools.dartel.mni_norm\n\nThe SPM community prefers 10.a. Note that with this option the Dartel normalization is slower than with option 10.b. Also, 10.a. produces volumes with the same resolution of the Dartel template, which should be overkill for MEG. Ideally, one would resample the output of 10.a. to a target resolution and find out how 10.a. can be sped up."
+      - +@isprivate: "0"
+        commentid: "18290"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-25 08:44:29 +0100
+        thetext: |-
+          @comment 1: JM copied this over from bug 2793.
+
+          Thanks Bruno for the documentation. I suggest to move it into this bug, because I think it's more appropriate to document it here :o).
+      - +@isprivate: "0"
+        commentid: "18291"
+        comment_count: "3"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-01-25 09:14:07 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #2)
+          :-)
+
+          Perhaps a large chunk of the dartel functionality should extend ft_prepare_headmodel rather than ft_volumesegment. In ft_prepare_headmodel, one could also include the atlas-based approach for eliminating structures based on labels in MNI atlases.
+
+          For the dartel-based pipeline, ft_volumesegment should just include the new SPM12 default segmentation as an option (should be "unified segmentation", called "new segmentation" in SPM8).
+
+          One additional function might also be required - ft_darteltemplate - to put together information from different experiment participants and prepare the dartel template.
+
+          The dartel-based normalization could finally extend ft_volumenormalise
+
+          In the grand scheme, we should also consider how this should be integrated with the stats functions. One thought about this is that the quite high overhead for dartel normalisation might make permutation-based group analyses quite difficult (I am sticking to parametric stats, for the moment). It should be possible to bring down this overhead through code hacking.
+
+          Check e.g., slide 28 of https://www.tnu.ethz.ch/fileadmin/user_upload/teaching/SPM2016/Ridgway2016_SPMZurich_VBM.pdf to have a glimpse of the difference between traditional group-level normalization (template 0), and dartel-based normalization (template 6).
+
+          What do you think?
+      - +@isprivate: "0"
+        commentid: "18629"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-06 06:13:00 +0200
+        thetext: |-
+          (In reply to Bruno L. Giordano from comment #3)
+
+          Hi gents,
+
+          Any idea what the timeline of this endeavor may be? Working with iEEG data, normalization of electrode positions remains an ongoing battle. The sample sizes are typically small and the atlases play an important role for selecting electrodes/areas of interest, hence it matters whether each electrode ends up. Currently, nonlinear warping with the default settings of spm8 (in ft_volumenormalize) doesnt provide reliable results, in worst case scenarios depth electrodes ending up outside the brain.
+
+          We're currently in the process of wrapping and writing up an iEEG pipeline, in which we illustrate and cite the normalization techniques currently supported by fieldtrip through spm. It would be great if we could use this occasion to demonstrate and advertise the dartel technique. If it could be implemented in the coming few weeks or so, I could still add it.
+
+          Best,
+          Arjen
+      - +@isprivate: "0"
+        commentid: "18631"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-05-07 12:18:51 +0200
+        thetext: |-
+          I don't think it is realistic that it will be added smoothly anytime soon.
+
+          I have managed to strip the ugly example code in spm (getting rid of the batch manager etc), to get a DARTEL based normalization. Yet I am not sure so much what the advantage of this is beyond the most recent improvement (using the new-style segmentation). Bruno clearly has a good opinion about the benefits for his projects (and has hands on experience), but the extent to which this generalizes to the general FT-population, and  whether it is worth the hassle is still unclear to me.
+      - +@isprivate: "0"
+        commentid: "18661"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-13 09:26:34 +0200
+        thetext: These things indeed require a lot of fiddling, judging from my limited experiences with getting SPM12's affreg implemented. At the same time, it may be worth the effort if dartel produces reliable results. What's your take on how dartel stacks up to the other coreg procedures out there, Bruno?
+      - +@isprivate: "0"
+        commentid: "18662"
+        comment_count: "7"
+        attachid: "840"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-05-13 12:36:05 +0200
+        thetext: "Created attachment 840\nDartel iterations\n\nHi,\n\nI find going a Dartel-based pipeline much preferable for multiple reasons:\n\n1. as you can see from the attached image, the spatial specificity of the anatomical template is much higher, implying better realignment of individuals, and more accurate anatomical labeling of group results (e.g., it seems to be the current SPM method of choice for VBM). One could reasonably object to these being important for MEG, given the high spatial blur of sources. This question is obviously empirical. See point 3.\n\n2. Dartel MEG source analyses rely on projection grids that are isotropic in native space but not in group space. The traditional FT approach relies on projection grids that are isotropic in group space but not in native space. This difference is critical for MVPA searchlight analyses, perhaps even more so for the multimodal fMRI/MEG project for which I developed the Dartel pipeline. Indeed, few reviewers would likely accept MVPA of fMRI on non-isotropic native \"grids\".\n\n3. The Dartel MEG pipeline relies on spatial smoothing of native-space \"contrast\" maps (e.g., MEG power, or RSA correlations in my case). I might be wrong, but with the MNI grid approach smoothing is usually not implemented. Smoothing of single subject maps prior to group analysis acknowledges imperfections in the normalizations. More importantly, spatial blur is reasonably expected to boost the power of group analyses. This corresponds to my experience. Obviously, what I am saying is that Dartel is expected to be beneficial because it improves the anatomical specificity of the template while decreasing that of functional results ;-)\n\nThe Dartel pipeline is obviously much more involved and requires more steps than the traditional MNI pipeline. I would love to have the time right now to work on including it in the FT distribution, but at the moment I can't do much more than sharing commented code snippets. \n\nIt would probably be a good idea to compare common statistics such as MEG power in the two pipelines before investing more time on this. This would be easy for me, but it could possibly happen only in e.g., July.\n\n   Bruno"
+      - +@isprivate: "0"
+        commentid: "18663"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-14 06:28:30 +0200
+        thetext: "Thanks, Bruno, for this overview.\n\n\"1. as you can see from the attached image, the spatial specificity of the anatomical template is much higher, implying better realignment of individuals, and more accurate anatomical labeling of group results (e.g., it seems to be the current SPM method of choice for VBM). One could reasonably object to these being important for MEG, given the high spatial blur of sources. This question is obviously empirical. See point 3.\"\n\n- The template on the right looks way more crisp than the one on the left indeed. This anatomical precision would certainly be important for mapping over iEEG data, if not just for MEG. It's not clear to me how or why the dartel technique affords, or maybe causes, these anatomically more realistic template brains. Forgive my ignorance in this matter, but does the '6th iteration' here also imply that dartel is somehow also more efficient at it than other techniques?\n\n- Another recent observation with iEEG data (looking at single-subject electrode locations seems a good way for exposing shortcomings) is that electrodes sometimes are entirely off in the template brains. I can't really tell whether that is due to the template used (it seems to matter in some instances) or the algorithm itself. What is an issue though is that the quality of the scans are occasionally so-so, for instance in the case of a 'post-implant scan' (i.e. with electrode-related noise) or a contrast scan. Do you happen to have any idea whether dartel also disproportionally outperforms other techniques with inferior scan quality, or does it maybe become of an issue even?   \n\n\n\"The Dartel pipeline is obviously much more involved and requires more steps than the traditional MNI pipeline. I would love to have the time right now to work on including it in the FT distribution, but at the moment I can't do much more than sharing commented code snippets.\n\nIt would probably be a good idea to compare common statistics such as MEG power in the two pipelines before investing more time on this. This would be easy for me, but it could possibly happen only in e.g., July.\"\n\n- It seems the implementation will stand or fall with your effort and expertise. I would be grateful for a method that seems to have the potential to boost both MEG and iEEG group-based analysis, and could provide help in the form of testing the code out on several iEEG datasets (e.g. comparing electrode positions in single subject space with template space)."
+      - +@isprivate: "0"
+        commentid: "18664"
+        comment_count: "9"
+        who:
+          +content: brungio
+          +@name: Bruno L. Giordano
+        bug_when: 2017-05-14 11:32:38 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #8)
+
+          It's simply a much better volumetric alignment method that relies on much more complex methods ;-) https://www.ncbi.nlm.nih.gov/pubmed/17761438
+
+          6th iteration is the 6th iteration of the alignment process. The template on the left was the 0th iteration.
+
+          Dartel can potentially be used to create special templates (e.g., lesions) because it does not rely on external atlases when creating a template truly specific to your group of subjects. Perhaps if you have implant artifacts you can mask out roughly the same problematic region from all anatomicals. There should be similar examples in the  literature/online.
+
+          I have given Jan-Mathijs quite a few commented code snippets. Perhaps you can check them in the coming weeks?
+
+             Bruno
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "840"
+      date: 2017-05-13 12:36:00 +0200
+      delta_ts: 2017-05-13 12:36:05 +0200
+      desc: Dartel iterations
+      filename: Template_0_6-01.jpg
+      type: image/jpeg
+      size: "367916"
+      attacher:
+        +content: brungio
+        +@name: Bruno L. Giordano
+      data: REMOVED

@@ -1,0 +1,78 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "979"
+    creation_ts: 2011-09-22 13:14:00 +0200
+    short_desc: 'mtmfft: cumtapcnt doesn''t support variable number of tapers'
+    delta_ts: 2011-10-26 16:22:38 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3288"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-09-22 13:14:07 +0200
+        thetext: Cumtapcnt now only contains, per trial, a number instead of a vector. Hence, it doesn't support variable number of tapers. This field is used in ft_freqdescriptives if I'm correct, so we cannot just change it into a vector. Which other functions use the cumtapcnt field?
+      - +@isprivate: "0"
+        commentid: "3289"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 13:29:08 +0200
+        thetext: |-
+          Hi Roemer,
+
+          I think you are mixing up things a bit here.
+
+          Cumtapcnt should be a vector Ntrials x 1. At least this is the behavior all functions that use it expect.
+          The issue you refer to is related to mtmconvol. The bottom line is that for mtmfft all frequencies by construction always have the same number of tapers, for a given trial. Therefore, it suffices to indicate this with 1 value per trial, justifying the dimensions of the cumtapcnt field. In the past we had some discussions related to the variable number of tapers (over frequencies) in the context of mtmconvol. As far as I can remember this has not been resolved yet, and it even seems that the cumtapcnt field is not created correctly (as in: functions that use it get confused when trying to make sense of the cumtapcnt field when the data comes from mtmconvol).
+      - +@isprivate: "0"
+        commentid: "3292"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 13:35:38 +0200
+        thetext: "One addition: \n\nthis is what cumtapcnt is supposed to do:\n\neach entry corresponds to a trial, and indicates how many tapers went into this estimate.\nin other words: sum(freq.cumtapcnt)==size(freq.fourierspctrm,1)\n\nif cfg.keeptrials = 'yes' and cfg.keeptapers = 'no', the cumtapcnt field is still relevant because it indicates the dof for that trial. \n\nfor TFRs in principle it should be possible to support variable number of tapers per frequency (note that in the case of mtmconvol per construction the number of tapers for a given frequency is fixed over trials (because the t_ftimwin does not change)). This is of course only supported when cfg.keeptrials = 'yes' but cfg.keeptapers = 'no'; Thus with cfg.output='fourier' it should throw an error, because of the fact that we are concatenating along the dimension of the tapers (and thus if some frequency has fewer tapers it does not fit). In the first case it would make sense to indeed make the cumtapcnt field NtrialsxNfreq, but only in the case that this adds information (i.e. the number of tapers over frequencies not being constant)"
+      - +@isprivate: "0"
+        commentid: "3643"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-20 14:23:03 +0200
+        thetext: It seems to work now. Set to wontfix

@@ -1,0 +1,136 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "348"
+    creation_ts: 2010-12-30 09:55:00 +0100
+    short_desc: make spatial clustering on 2D 'meshes' more general
+    delta_ts: 2014-01-15 14:42:03 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: b.reuderink
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "758"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-12-30 09:55:20 +0100
+        thetext: |-
+          This in order to also support clustering on cortical meshes. As such, the cfg.neighbours defined for sensor-level data could be considered to be replaced by a sparse connectivity matrix. Or it could exist as an alternative to the neighbourhood structure.
+
+          To do:
+          -investigate the clustering code and see what is needed to directly use a connectivity matrix in the input
+          -implement it
+
+          To do2 (side project):
+          -write a converter from mne2fieldtrip to get a datatype source representation of the MNE-data.
+      - +@isprivate: "0"
+        commentid: "759"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-12-30 10:17:27 +0100
+        thetext: Addressing this would also take away the need to have the additional 'issource', 1 key-value pair in statistics_montecarlo
+      - +@isprivate: "0"
+        commentid: "760"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2010-12-30 10:41:54 +0100
+        thetext: "This is a reply by stephan moretti:\n\n\nDear Hanneke,\n\nActually I do this kind of analysis using the MNE solution from the Brainstrom pipeline. I do the following. First you have to determine a connectivity matrix that determines which vertices of your cortical mesh are neighbors. I do that with a brainstrom script called tess_vertices_connectivity.m. You can download brainstrom for free. Let's call the connectivity matrix C. If C(i,j) = 1 then vertices i and j are connected, if C(i,j) = 0, then not.\nLater I changed the clusterstat.m of FT a little bit:\n\nlines 38 to 48 I changed:\n\nif isfield(cfg, 'neighbours') && ~isempty(cfg.neighbours) && ~isfield(cfg,'connectivity')\n  channeighbstructmat = makechanneighbstructmat(cfg);\n  issource = 0;\nelseif isfield(cfg, 'connectivity')\n  disp('Using precomputed connectivity matrix !');\n  channeighbstructmat = cfg.connectivity; % connectivity has been already computed this is what I introduced\n  issource = 0;\nelse\n  issource = 1;\n  % cfg contains dim and inside that are needed for reshaping the data to a volume, and inside should behave as a index vector\n  cfg = fixinside(cfg, 'index');\nend\n\nBy doing so, FT does not calculate a connectivity matrix based on distance, but using directly your connectivity matrix C (see below):\n\nThe next trick is to create a FT data structure from your MNE data, so that you can use ft_timelockstatistics.m. As a cortical mesh has the same 3d coordinates as a sensor helmet, I \"press\" my MNE surface data in a sensor data structure that I can use later with ft_timelockstatistic.m. This could look like this:\n\n \nMneERF1.grad.pnt=brain.vert; %brain.vert contains the vertices of my cortical mesh; be sure that the unit is cm\nfor i = 1:7000\n MneERF1.label{i}=sprintf('A%g',i);\nend\nMneERF1.grad.label = MneERF1.label;\nMneERF1.grad.tra = eye(7000);\nMneERF1.cfg.channel = UmneERF1.label;\nMneERF1.grad.ori = zeros(7000,3);\nfor i = 1:23\n    MneERF1.individual(i,:,:) = squeeze(MNEsolution(:,i,:)); % Here I put the individual MNE solutions if I have 23 subjects; this depends a little bit of your data matrix\nend\nMneERF1.dimord= 'subj_chan_time;\n\nNow you can use timelockstatistic.m as described in the FT tutorial on sensor space data to calculate a non-parametric cluster based permutation statistic on your MNE surface data (for example MneERF1, MneERF2 are two conditions that you want to compare). The only difference is that you would introduce cfg.connectivity = C;, so that later\nclusterstat.m uses your C matrix to determine your neighbours. \n\nI hope that helps,\n\nBest,\n\nStephan"
+      - +@isprivate: "0"
+        commentid: "11859"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-05 16:38:30 +0100
+        thetext: |-
+          Notes to self:
+
+          -It seems that the subfunction makechanneighbstructmat in clusterstat is the same code as the private function channelconnectivity. Verify this and merge.
+          -The help to findcluster states that the neighbourhood matrix is assumed to be upper triangular. According to the code the matrix that enters the function isn't. Check whether the statement in the help is indeed assumed, and/or if the output changes according to the input being or not being upper triangular
+          -Add a function triangleconnectivity that creates a connectivity matrix based on a triangulation.
+          -Clean up the issource functionality for the statistics functions
+      - +@isprivate: "0"
+        commentid: "11862"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-05 21:38:14 +0100
+        thetext: 'NOTE added: ft_statistics_montecarlo has an option randomseed, but uses old-fashioned initialization of rand, and not Johanna''s function. Probably this should be replaced while we are at it.'
+      - +@isprivate: "0"
+        commentid: "11872"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-06 15:12:03 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          Discussed in FT-meeting
+
+          -It seems that the subfunction makechanneighbstructmat in clusterstat is the
+          same code as the private function channelconnectivity. Verify this and merge.
+
+          Yes, agreed it can be merged.
+
+          -The help to findcluster states that the neighbourhood matrix is assumed to be
+          upper triangular. According to the code the matrix that enters the function
+          isn't. Check whether the statement in the help is indeed assumed, and/or if the
+          output changes according to the input being or not being upper triangular
+
+          It doesn't seem to matter whether a triangular matrix (either upper or lower) of a full symmetric matrix is in input. Nor for the mex file as for the native m file. Will remove statement in the documentation section
+
+          -Add a function triangleconnectivity that creates a connectivity matrix based
+          on a triangulation.
+
+          Function is created, will be added.
+
+          -Clean up the issource functionality for the statistics functions
+
+          To be done.
+
+          (In reply to comment #4)
+
+          Check where the randomseed functionality is dealt with: could be a preamble. If so, check whether preamble is correctly used within function and remove code. Otherwise replace with randomseed, or implement correct handling of preambles
+      - +@isprivate: "0"
+        commentid: "11882"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-07 11:23:37 +0100
+        thetext: "svn commit -m \"enhancement - restructured some code to also deal with clustering based on a triangulation, bug348\" ft_statistics_montecarlo.m private/statistics_wrapper.m private/clusterstat.m private/findcluster.m private/triangle2connectivity.m test/test_ft_statistics_montecarlo.m\nSending        ft_statistics_montecarlo.m\nSending        private/clusterstat.m\nSending        private/findcluster.m\nSending        private/statistics_wrapper.m\nAdding         private/triangle2connectivity.m\nAdding         test/test_ft_statistics_montecarlo.m\nTransmitting file data ......\nCommitted revision 8729.\n\nQuite some changes:\n-added pre and postambles in ft_statistics_montecarlo (the ones that I think apply, including the randomseed)\n-tried to make the clustering more generic: create cfg.connectivity in ft_statistics_montecarlo, if clustering is required. \n-statistics_wrapper is still very ugly...\n\nCreated a test-function that is simulating some data and then testing the functionality of the clustering on channel and source level, with two types of sourcemodels, a 3d grid and a mesh. For now, the only thing which is 'tested' is whether it runs through. Visual inspection of the results looks OK however."

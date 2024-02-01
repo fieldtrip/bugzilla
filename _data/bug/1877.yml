@@ -1,0 +1,131 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1877"
+    creation_ts: 2012-12-10 14:54:00 +0100
+    short_desc: ft_filetype will recursively check all subfolders
+    delta_ts: 2019-08-10 12:03:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bart.gips
+      +@name: Bart Gips
+    assigned_to:
+      +content: bart.gips
+      +@name: Bart Gips
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8603"
+        comment_count: "0"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-10 14:54:26 +0100
+        thetext: |-
+          Line ~635
+
+          says:
+
+          elseif isdir(filename) && any(ft_filetype({ls.name}, 'neuralynx_ds','nowarning',true))
+            % a downsampled Neuralynx DMA file can be split into three seperate lfp/mua/spike directories
+            % treat them as one combined dataset
+
+
+          the any(ft_filetype({ls.name})) is very annoying. If you by accident input a wrong directory (which can happen if you use ft_read_spike(dir)) ft_filetype will check all subdirectories for neuralynx data.
+
+          I have added a flag that will sillence every warning saying it cannot read the files in the subdirectories in this particular case.
+          However I would also like to add a flag that adds a counter that counts how many times the function has been called recursively so that the function can be forced to stop digging.
+          (i.e. add a persistent variable keeping track of the amount of function calls, provided that it has been called like: any(ft_filetype({ls.name}, 'neuralynx_ds','nowarning',true,'subdirCount',true))
+
+          Is this okay?
+      - +@isprivate: "0"
+        commentid: "8622"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 17:24:21 +0100
+        thetext: "After a quick review, my feeling is that this is not a good change.\n\nThere is no way that any ft_xx high level function would pass the nowarning option, which makes the option irrelevant for most people.\n\nIf you want to avoid a warning, you would use \nwarning('off', 'ID')\nin matlab. If you think that FT should not repeat the warning many times, please use warning_once\n\nAbout the code in general: the parsing of default options should all happen at the same place, and not with 10 lines in between \n\nSo rather than the current\n\n  7122     bargip % check whether nowarning has been flagged.\n  7122     bargip % this is flagged used below: any(ft_filetype({ls.name}, 'neuralynx_ds','nowarning',true))\n  7122     bargip % without this flag, ft_filetype would give a warning for every file in the\n  7122     bargip % directory it cannot determine the filetype of.\n  7122     bargip nowarning = ft_getopt(varargin,'nowarning',0);\n  7122     bargip\n  5629     roboos if isa(filename, 'memmapfile')\n     1     roboos   filename = filename.Filename;\n     1     roboos end\n     1     roboos\n     1     roboos % % get the optional arguments\n  4437     roboos % checkheader = ft_getopt(varargin, 'checkheader', true);\n\nit would come here after the \"get the optional arguments statement\"\n\nA better name of the option would be \"warning\", which could then assume the value \"always\", \"once\", or \"never\".\n\nThe specifics of the neuralynx format is better discussed in general at the FT meeting, rather that adding code (=bloat in this case) to fieldtrip. I see a much more elegant solution here. Let's discuss on Wednesday (which means you have to attend once more)."
+      - +@isprivate: "0"
+        commentid: "8623"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-10 17:28:37 +0100
+        thetext: "again some general points: \n- the nowarning option is not documented\n- it takes a default value of 0, which should be false\n- values like 'yes'/'no' should be supported (using the istrue helper function)\n- please use consistent spacing in the code:\n  7122     bargip         type{i} = ft_filetype(filename{i}, desired,'nowarning',nowarning);\nshould have been \n  7122     bargip         type{i} = ft_filetype(filename{i}, desired, 'nowarning', nowarning);\nKeeping the code \"clean\" with this level of detail may sound as a nuisance, but is very important to keep the code readable and thereby maintainable over the next 5 years."
+      - +@isprivate: "0"
+        commentid: "8627"
+        comment_count: "3"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-11 09:41:08 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          Agreed, I'll revert the changes.
+          Thanks for the advice.
+          Making changes to the 'neuralynx directory' filetype detection/structure would be better than the workaround.
+
+          I'll join the meeting tomorrow.
+      - +@isprivate: "0"
+        commentid: "8678"
+        comment_count: "4"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-12-12 16:54:46 +0100
+        thetext: "Added this subfunction to check for neuralynx_cds\n\n\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n% SUBFUNCTION that checks whether the directory is neuralynx_cds\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nfunction res = filetype_check_neuralynx_cds(filename)\n\nres=false;\nfiles=dir(filename);\ndirlist=files([files.isdir]);\n\n% 1) check for a subdirectory with extension .lfp, .mua or .spike\nhaslfp   = any(filetype_check_extension({dirlist.name}, 'lfp'));\nhasmua   = any(filetype_check_extension({dirlist.name}, 'mua'));\nhasspike = any(filetype_check_extension({dirlist.name}, 'spike'));\n\n% 2) check for each of the subdirs being a neuralynx_ds\nif haslfp || hasmua || hasspike\n  sel=find(filetype_check_extension({dirlist.name}, 'lfp')+...\n    filetype_check_extension({dirlist.name}, 'mua')+...\n    filetype_check_extension({dirlist.name}, 'spike'));\n  \n  neuralynxdirs=cell(1,length(sel));\n  \n  for n=1:length(sel)\n    neuralynxdirs{n}=fullfile(filename, dirlist(sel(n)).name);\n  end\n  \n  res=any(ft_filetype(neuralynxdirs, 'neuralynx_ds'));\nend\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n__________________________\nThis should be okay. \nShould we test this on an actual neuralynx_cds dataset?\nRight now I just made the three directories all containing a mock test.nev file.\n\nI'll look it over in the morning for any glaring errors and I'll commmit it then."
+      - +@isprivate: "0"
+        commentid: "9103"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-23 13:58:32 +0100
+        thetext: While browsing through the NEW bugs, this one caught my eye. It seems it should be assigned to Bart?
+      - +@isprivate: "0"
+        commentid: "9106"
+        comment_count: "6"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2013-01-23 14:09:12 +0100
+        thetext: |-
+          (In reply to comment #5)
+          Whoops, forgot to close it.
+          Fixed since r7161:
+          http://code.google.com/p/fieldtrip/source/detail?r=7161
+      - +@isprivate: "0"
+        commentid: "19909"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:27 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

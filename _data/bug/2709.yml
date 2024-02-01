@@ -1,0 +1,103 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2709"
+    creation_ts: 2014-09-28 12:20:00 +0200
+    short_desc: 'config/subsref results in: Non-overloaded subscripting can produce only one result'
+    delta_ts: 2015-02-11 10:39:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14519"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-28 12:20:56 +0200
+        thetext: |-
+          Using this section in the natmeg dipole fitting hands-on
+
+          cfg = [];
+          cfg.dataset = dataset;
+          cfg.trialdef.prestim        = 0.2;
+          cfg.trialdef.poststim       = 0.4;
+          cfg.trialdef.rsp_triggers   = [256 4096];
+          cfg.trialdef.stim_triggers  = [1 2];
+          cfg.trialfun                = 'trialfun_oddball_stimlocked';
+
+          cfg = ft_definetrial(cfg);
+
+          cfg.continuous    = 'yes';
+          cfg.hpfilter      = 'no';
+          cfg.detrend       = 'no';
+          cfg.demean        = 'yes';
+          cfg.baselinewindow = [-inf 0];
+          cfg.dftfilter     = 'yes';
+          cfg.dftfreq       = [50 100];
+          cfg.lpfilter      = 'yes';
+          cfg.lpfreq        = 120;
+          cfg.channel       = 'EEG';
+          cfg.precision     = 'single';
+
+          data_eeg = ft_preprocessing(cfg);
+
+          ---
+
+          I get this error
+
+          Error using subsref
+          Non-overloaded subscripting can produce only one result.
+
+          Error in config/subsref (line 66)
+            [varargout{:}] = subsref(subsref(x, index(1)), index(2:end));
+
+          Error in ft_preprocessing (line 526)
+                nsamples = cfg.trl(i,2)-cfg.trl(i,1)+1;
+
+          ----
+
+          The workaround is not to use configuration tracking, but it should be fixed nevertheless.
+      - +@isprivate: "0"
+        commentid: "14673"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-19 09:48:09 +0200
+        thetext: "I also encountered it in test_bug1646, where it was triggered by calling cfg.tissue{1}. \n\nThis solves it\n\nroboos@mentat001> svn commit @config/subsref.m\nSending        @config/subsref.m\nTransmitting file data .\nCommitted revision 9917.\n\nHowever, I noticed that \n\na(1).b = 1\na(2).b = 1:2\na(3).b = 1:3\n\na = config(a);\n\n{a.b} % works\nans = \n    [1]    [1x2 double]    [1x3 double]\n\n{a(:).b} % fails without error\nans = \n    [1]\n\nI will add this test case to the test_config script."
+      - +@isprivate: "0"
+        commentid: "15217"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:39:59 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

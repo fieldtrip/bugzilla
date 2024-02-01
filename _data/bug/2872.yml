@@ -1,0 +1,195 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2872"
+    creation_ts: 2015-03-28 09:17:00 +0100
+    short_desc: implement support for Jinga-Hi JAGA16 system
+    delta_ts: 2019-08-10 12:41:35 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - mdeshon
+      - meechoi
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15557"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 09:17:17 +0100
+        thetext:
+      - +@isprivate: "0"
+        commentid: "15558"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 09:18:41 +0100
+        thetext: There are a number of things to be implemented, but I'll start with the file format.
+      - +@isprivate: "0"
+        commentid: "15559"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 09:22:24 +0100
+        thetext: |-
+          first version of file reading has been implemented.
+
+          mac011> svn commit
+          Sending        ft_read_data.m
+          Sending        ft_read_header.m
+          Adding         private/jaga16_packet.m
+          Transmitting file data ...
+          Committed revision 10282.
+      - +@isprivate: "0"
+        commentid: "15560"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 10:07:07 +0100
+        thetext: |-
+          mac011> svn commit
+          Sending        ft_filetype.m
+          Sending        ft_read_data.m
+          Sending        ft_read_header.m
+          Transmitting file data ...
+          Committed revision 10283.
+
+          it now works for the regular files and for the raw UDP stream (without timestamps, useful with netcat debugging). File format is also auto detected.
+
+          try this:
+
+          hdr = ft_read_header(filename);
+          dat = ft_read_data(filename);
+      - +@isprivate: "0"
+        commentid: "15561"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 12:14:41 +0100
+        thetext: "mac011> svn commit fileio/ realtime/example/\nSending        fileio/private/jaga16_packet.m\nSending        realtime/example/ft_realtime_signalproxy.m\nAdding         realtime/example/private/jaga16_packet.m\nTransmitting file data .\nCommitted revision 10285.\n\nmac011> svn commit\nAdding         ft_realtime_jaga16proxy.m\nTransmitting file data .\nCommitted revision 10286.\n\nI made a first implementation to copy data from the jaga16 to the fieldtrip buffer using native MATLAB (and a relatively standard mex file for tcp/udp support). So this does not use any code from jinga-hi.\n\nYou can test it with\n\non the command line in one terminal:\n  cd fieldtrip/realtime/bin/maci64\n  ./buffer\n\non the command line in another terminal:\n  cd fieldtrip/realtime/bin/maci64\n  ./bufferViewer\n\nin MATLAB:\n  addpath fieldtrip/realtime/example\n  cfg = [];\n  ft_realtime_jaga16proxy(cfg);\n\nand then click \"connect\" in the bufferViewer.\n\nThe bufferViewer is not so fast in display and there is too much polling going on, so the computer gets a bit clogged up. These are things that need to be improved.\n\nIf you do \n  cfg = [];\n  cfg.channel = 1:2;\n  cfg.decimate = 2;\n  ft_realtime_jaga16proxy(cfg);\nthe demonstration runs smoother. Note that the decimation is a kludge."
+      - +@isprivate: "0"
+        commentid: "15562"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-28 14:43:03 +0100
+        thetext: "I just made a start with an plain C implementation of a very basic jaga2ft executable. The aim is to have it compile as command-line application on all platforms (linux, windows, osx).\n\nThe code is contained in fieldtrip/realtime/src/acquisition/jaga, see also https://github.com/fieldtrip/fieldtrip/tree/master/realtime/src/acquisition and http://www.fieldtriptoolbox.org/development/realtime/implementation\n\nmac011> svn commit\nAdding         jaga\nAdding         jaga/Makefile\nAdding         jaga/jaga2ft.c\nTransmitting file data ..\nCommitted revision 10289. \n\nNote that at the moment my focus is only on getting some bytes from UDP."
+      - +@isprivate: "0"
+        commentid: "15563"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-29 11:07:32 +0200
+        thetext: "I completed the C implementation of jaga2ft, which is a command line application that copies data from UDB 55000 to the fieldtrip buffer.\n\nAs expected, it runs with much less CPU and system load than the ft_realtime_jaga16proxy MATLAB function. \n\nI also did some cleanups of some header files (a.o. converting tabs to spaces and added some comments).\n\nmac011> svn commit\nSending        fileio/private/jaga16_packet.m\nAdding  (bin)  realtime/bin/maci64/jaga2ft\nSending        realtime/online_eeg/ft_realtime_ouunpod.m\nSending        realtime/src/acquisition/README\nSending        realtime/src/acquisition/jaga/jaga2ft.c\nSending        realtime/src/buffer/src/buffer.h\nSending        realtime/src/buffer/src/cleanup.c\nSending        realtime/src/buffer/src/compiler.h\nSending        realtime/src/buffer/src/message.h\nSending        realtime/src/buffer/src/platform_includes.h\nSending        realtime/src/buffer/src/rdadefs.h\nSending        realtime/src/buffer/src/rdaserver.c\nSending        realtime/src/buffer/src/rdaserver.h\nSending        realtime/src/buffer/src/socketserver.h\nSending        realtime/src/buffer/src/swapbytes.h\nSending        realtime/src/buffer/src/tcprequest.c\nTransmitting file data ................\nCommitted revision 10294."
+      - +@isprivate: "0"
+        commentid: "15566"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-29 12:34:13 +0200
+        thetext: |-
+          I just updated the documentation on http://www.fieldtriptoolbox.org/development/realtime/jinga-hi
+
+          The description with the optional hostname and port still needs to be implemented.
+      - +@isprivate: "0"
+        commentid: "15567"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-29 13:55:21 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          The hostname and port arguments are now optional. Default is to start a local buffer. See help for details.
+
+          mac011> svn commit src/acquisition/brainproducts/rda2ft.c src/acquisition/jaga/jaga2ft.c bin/maci64/jaga2ft bin/maci64/rda2ft
+          Sending        bin/maci64/jaga2ft
+          Sending        bin/maci64/rda2ft
+          Sending        src/acquisition/brainproducts/rda2ft.c
+          Sending        src/acquisition/jaga/jaga2ft.c
+          Transmitting file data ....
+          Committed revision 10297.
+      - +@isprivate: "0"
+        commentid: "15568"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-29 19:44:09 +0200
+        thetext: "Some small code cleanups were needed for compilation on linux.\n\nroboos@mentat002> svn commit \nAdding  (bin)  realtime/bin/glnxa64/jaga2ft\nSending        realtime/src/acquisition/jaga/jaga2ft.c\nTransmitting file data ..\nCommitted revision 10302.\n\nmac011> svn commit\nSending        realtime/bin/maci64/jaga2ft\nTransmitting file data .\nCommitted revision 10303."
+      - +@isprivate: "0"
+        commentid: "15588"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-04 17:07:18 +0200
+        thetext: "I just compiled the jaga2ft realtime application on my Raspberry Pi (which has raspbian on it). It compiles out of the box, which is nice since it has a big-endian CPU and compatibility is not trivial!\n\nI connected the RPi over wifi to my home network and over wired ethernet to the router,   and it works just fine: data is received from UDP and I can read and process data by connecting over wifi. \n\nNote that wifi is not needed, it is just that I don't have a screen or keyboard attached to the RPi and hence prefer connecting from another computer. Local processing of the data should not be a problem at all.\n\nrobert@thuis ~/realtime $ svn commit\nAdding  (bin)  bin/raspberrypi/jaga2ft\nSending        bin/raspberrypi/modeeg2ft\nSending        bin/raspberrypi/modeeg2ft_2chn\nSending        bin/raspberrypi/playback\nSending        bin/raspberrypi/recording\nSending        bin/raspberrypi/serial_event\nSending        src/rebuild.sh\nTransmitting file data .......\nCommitted revision 10321."
+      - +@isprivate: "0"
+        commentid: "15803"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-21 06:47:22 +0200
+        thetext: "I implemented the sample adjustment for incoming events. They are now not jittered any more with the blocksize of the data. The timing of the previous data block is used to compute the approximate sample number. \n\nmac011> svn commit \nSending        bin/maci64/buffer\nSending        bin/maci64/buffer_rda\nSending        bin/maci64/playback\nSending        bin/maci64/recording\nSending        bin/maci64/sine2ft\nSending        src/buffer/src/Makefile\nAdding         src/buffer/src/clock_gettime.c\nSending        src/buffer/src/dmarequest.c\nAdding         src/buffer/src/gettimeofday.c\nAdding         src/buffer/src/osx\nAdding         src/buffer/src/osx/clock_gettime.h\nSending        src/buffer/src/platform_includes.h\nSending        src/buffer/src/tcpsocket.c\nSending        src/buffer/src/util.c\nAdding         src/buffer/src/win32/gettimeofday.h\nDeleting       src/buffer/src/win32/poll.c\nTransmitting file data ..............\nCommitted revision 10463."
+      - +@isprivate: "0"
+        commentid: "18544"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-07 09:12:37 +0200
+        thetext: the jaga16 has been supported for some time now. Time to close this issue.
+      - +@isprivate: "0"
+        commentid: "20285"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:22 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20484"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

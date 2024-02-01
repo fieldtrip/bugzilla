@@ -1,0 +1,69 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2528"
+    creation_ts: 2014-04-08 14:53:00 +0200
+    short_desc: ft_math problem with .avg in timelock data
+    delta_ts: 2014-04-08 22:35:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2185
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13261"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-04-08 14:53:52 +0200
+        thetext: "I see related bug 2051 (now closed).\n\nMy data is timelock with keeptrials='yes' and it also has .avg field.  I want to call ft_math as such:\n\ncfg=[];\ncfg.operation='subtract';\ncfg.parameter='avg';\ndata1_data2=ft_math(cfg,data1,data2);\n\nI first received an error due to not finding .avg field.  This is because it was removed by ft_selectdata (line 99).\n\nBut then I realised I was on FT version r9293, and so did an SVN update to current (r9378).\n\nNow I get an error within ft_selectdata_new (called by ft_math line 99)\n\nMy input looks like:\ndata1 = \n          avg: [63x2000 double]\n          var: [63x2000 double]\n         time: [1x2000 double]\n          dof: [63x2000 double]\n        label: {63x1 cell}\n        trial: [42x63x2000 double]\n       dimord: 'rpt_chan_time'\n    trialinfo: [42x5 double]\n          cfg: [1x1 struct]\n\n\nThe error now is:\nIndex exceeds matrix dimensions.\n\nError in ft_selectdata_new>cellmatselect (line 1323)\n      x = x(:,:,selindx,:,:,:);\n\nError in ft_selectdata_new>makeselection (line 670)\n        data.(datfields{i}) = cellmatselect(data.(datfields{i}), seldim, selindx);\n\nError in ft_selectdata_new (line 385)\n        varargin{i} = makeselection(varargin{i}, find(strcmp(dimtok,'time')),                      seltime{i},\n        avgovertime, datfields, cfg.select);\n\nError in ft_selectdata (line 51)\n  [varargout{1:nargout}] = ft_selectdata_new(varargin{:});\n\nError in ft_math (line 99)\n[varargin{:}] = ft_selectdata(tmpcfg, varargin{:});"
+      - +@isprivate: "0"
+        commentid: "13262"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-04-08 14:59:31 +0200
+        thetext: |-
+          An easy workaround is below, but just wondering if this is something that should be fixed.
+
+          cfg=[];
+          cfg.operation='subtract';
+          cfg.parameter='avg';
+          data1_data2=ft_math(cfg,ft_timelockanalysis([],data1),ft_timelockanalysis([],data2));
+      - +@isprivate: "0"
+        commentid: "13265"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-08 22:35:05 +0200
+        thetext: "I made a test script (see below) that confirms the problem. If the dimord is chan_time instead of rpt_chan_time, it works fine. The output in that case does not contain any trial-related fields.\n\nmbp> svn commit test/test_bug2528.m \nAdding         test/test_bug2528.m\nTransmitting file data .\nCommitted revision 9383.\n\nI have a plan for an improved ft_selectdata. It should perform selections (along data dimensions) regardless of the selection of data fields. The trick would be that it would start by first making all fields explicitly described by a dimord. So rather than data1.dimord, there would be\n\n\ndata1.avgdimord = chan_time\ndata1.vardimord = chan_time\ndata1.dofdimord = chan_time\ndata1.trialdimord = rpt_chan_time\ndata1.trialinfodimord = rpt_unknown\n\nso even trialinfo (and cumtapcnt, cov, crsspctrm and the likes) would have a dimord. Each of the selections would them be performed explicitly in whatever data field with that dimension. The selection of the parameter on which the subsequent computation is performed then becomes a different issue.\n\nIn the output of ft_selectdata the temporary dimords would be scrubbed, i.e. the main dimord would again be called dimord.\n\nThis implementation of ft_selectdata is high on my priority and relates to bug 2185, on which I am also working."

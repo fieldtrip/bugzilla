@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "34"
+    creation_ts: 2010-02-04 12:10:00 +0100
+    short_desc: add elliptic filter type to preproc_xxfilter
+    delta_ts: 2011-01-12 13:09:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: s.klanke
+      +@name: Stefan Klanke
+    cc: s.klanke
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "58"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-02-04 12:10:22 +0100
+        thetext: |-
+          The following suggestion was made by Arno. We should implement it in the appropriate place.
+
+
+          ==============
+
+          designing efficient filters at very low frequency can be challenging. Below is a solution using pure Matlab code and elliptic filters for high pass filtering at 0.1 Hz (transition bandwidth is from 0.05 to 0.1 Hz).
+          EEG.srate is the sampling rate, EEG.nbchan, the number of data channel and EEG.data contains the continuous data (number of channels x number of data points). The code below requires the signal processing toolbox.
+          You may also notice that I detrend the data first. This is to remove any DC offset and very slow drifts that tend to generate more artifacts at data boundaries.
+          The function filtfilt applies the filter in both direction (forward then backward) to avoid phase distortions.
+
+          Hope this helps,
+
+          Arno
+
+          [N, Wn] = ellipord(.1/(EEG.srate/2), .05/(EEG.srate/2), 0.5, 3)
+          [b a] = ellip(N, 0.5, 3, Wn, 'high');
+
+          for index = 1:EEG.nbchan
+             EEG.data(index,:) = detrend(EEG.data(index,:));
+             EEG.data(index,:) = filtfilt( b, a, EEG.data(index,:));
+          end;
+      - +@isprivate: "0"
+        commentid: "359"
+        comment_count: "1"
+        who:
+          +content: s.klanke
+          +@name: Stefan Klanke
+        bug_when: 2010-10-07 11:34:55 +0200
+        thetext: Wouldn't it be better to allow the user to specify the filter coefficients directly (that is, the B and A you get from [B,A]=butter(cutoff,order) etc.)? This way we avoid the dependency on the signal processing toolbox, but still allow users with that toolbox to make use of their filters. It's also more general and allows allpass filters, FIR filters (A=1) and so on...
+      - +@isprivate: "0"
+        commentid: "507"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-01 16:07:18 +0100
+        thetext: |-
+          dealing with the edges should be solved in general: only lpfilter should keep the dc and trend, all others should remove it anyway. I suggest in all ft_preproc_filter functions (except lp) to detrend the data prior to filtering.
+
+          I don't see an urgent need for the ellip filter. None will be using it anyway, so that part does not have to be fixed.
+      - +@isprivate: "0"
+        commentid: "625"
+        comment_count: "3"
+        who:
+          +content: s.klanke
+          +@name: Stefan Klanke
+        bug_when: 2010-12-10 10:13:49 +0100
+        thetext: |-
+          I added a test script in branches/testing/test_filtering.m
+
+          This shows that we don't need to do anything for filtfilt (as I had guessed), since Matlab does all the corrections for us. For simple one-pass filtering, I would suggest subtracting x(:,n) before filtering and adding back DC-gain*x(:,n), where n=1 for forward filtering and n=end for backward filtering. The DC gain of the filter can easily be calculated as polyval(B)/polyval(A). See the script.

@@ -1,0 +1,146 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1722"
+    creation_ts: 2012-09-19 17:16:00 +0200
+    short_desc: why is cfg.warp only used if cfg.method=template, in ft_electroderealign?
+    delta_ts: 2015-02-12 18:20:47 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7426"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-19 17:16:24 +0200
+        thetext: |-
+          currently starting line 477
+
+          switch cfg.method
+            case 'template'
+              norm.chanpos   = warp_apply(norm.m, orig.chanpos, cfg.warp);
+            case {'fiducial' 'interactive'}
+              norm.chanpos   = warp_apply(norm.m, orig.chanpos);
+            case 'manual'
+              % the positions are already assigned in correspondence with the mesh
+              norm = orig;
+            otherwise
+              error('unknown method');
+          end
+
+          But why not do this?  Is there a reason why cfg.warp shouldn't be used with cfg.method='fidicial' or 'interactive'?
+
+          switch cfg.method
+            case 'template'
+              norm.chanpos   = warp_apply(norm.m, orig.chanpos, cfg.warp);
+            case {'fiducial' 'interactive'}
+              switch cfg.warp
+                case 'rigidbody'
+                  norm.chanpos   = warp_apply(norm.m, orig.chanpos);
+                otherwise
+                    norm.chanpos   = warp_apply(norm.m, orig.chanpos, cfg.warp);
+              end
+            case 'manual'
+              % the positions are already assigned in correspondence with the mesh
+              norm = orig;
+            otherwise
+              error('unknown method');
+          end
+      - +@isprivate: "0"
+        commentid: "7429"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-19 17:37:14 +0200
+        thetext: I think that method=fiducial implies that warp=rigidbody (i.e. 6 params), and that method=interactive implies that warp=traditional (i.e. 9 params).
+      - +@isprivate: "0"
+        commentid: "7430"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-19 17:37:56 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          If that were the case, it would be good to set it as default, or if otherwise specified by the user to give an error.
+      - +@isprivate: "0"
+        commentid: "7431"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-09-19 18:09:23 +0200
+        thetext: |-
+          I agree good to warn user if they specified a cfg.warp other than what is being used.
+
+          However, the reason I ran into this was that I wanted to use method=interactive, but also want to use warp=globalscale as there seems to be an inward shift of Polhemus values (where I got the electrode information from) (but warp=traditional would also work for me, but I don't think that's happening).   Thus, should I force warp=traditional if method=interactive?  or only if user specifies it, otherwise use default warp=rigidbody?
+      - +@isprivate: "0"
+        commentid: "8221"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 18:01:03 +0100
+        thetext: "I suggest that for all instances of\n\ny2 = warp_apply(x, y1, z)\n\nthat input parameter z is explicitly specified. There are  now these three cases\n\nmac001> grep -n warp_apply ft_electroderealign.m \n389:    norm.chanpos   = warp_apply(norm.m, elec.chanpos, 'homogeneous');\n479:    norm.chanpos   = warp_apply(norm.m, orig.chanpos, cfg.warp);\n481:    norm.chanpos   = warp_apply(norm.m, orig.chanpos);\n\nI suggest to change the first and third into\n   if ~strcmp(cfg.warp, 'homogenous') % or something else for the 3rd\n     error(... give explanation ...);\n  else\n   % just do it\n    norm.chanpos   = warp_apply(norm.m, elec.chanpos, cfg.warp);\n  end"
+      - +@isprivate: "0"
+        commentid: "15145"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-04 19:03:50 +0100
+        thetext: |-
+          I've rediscovered this bug and so will now actually fix it (hey, better late than never).
+
+          zumerj@psychl-132432-1:~/home/fieldtrip_svn$ svn commit ft_electroderealign.m
+          Sending        ft_electroderealign.m
+          Transmitting file data .
+          Committed revision 10163.
+      - +@isprivate: "0"
+        commentid: "15149"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-05 12:30:55 +0100
+        thetext: "oops, I created a bug with this change.\nturns out that \n    norm.chanpos   = ft_warp_apply(norm.m, orig.chanpos);\n\nand\n\n    norm.chanpos   = ft_warp_apply(norm.m, orig.chanpos, 'traditional');\n\ngive very different results, for the same norm.m of \n[1 0 0 0\n 0 1 0 0\n 0 0 1 0\n 0 0 0 1]\n\nI reverted the change to the way without the third argument, but this should be figured out why the result is unexpected.\n\nzumerj@psychl-132432-1:~/home/fieldtrip_svn$ svn commit ft_electroderealign.m\nSending        ft_electroderealign.m\nTransmitting file data .\nCommitted revision 10165."
+      - +@isprivate: "0"
+        commentid: "15356"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 18:20:47 +0100
+        thetext: "(In reply to Johanna from comment #6)\n\nindeed, quite different:\n\n>> chanpos = randn(10,3);\n\n\nchanpos =\n\n    0.5377   -1.3499    0.6715\n    1.8339    3.0349   -1.2075\n   -2.2588    0.7254    0.7172\n    0.8622   -0.0631    1.6302\n    0.3188    0.7147    0.4889\n   -1.3077   -0.2050    1.0347\n   -0.4336   -0.1241    0.7269\n    0.3426    1.4897   -0.3034\n    3.5784    1.4090    0.2939\n    2.7694    1.4172   -0.7873\n\n>> ft_warp_apply(eye(4), chanpos)\n\nans =\n\n    0.5377   -1.3499    0.6715\n    1.8339    3.0349   -1.2075\n   -2.2588    0.7254    0.7172\n    0.8622   -0.0631    1.6302\n    0.3188    0.7147    0.4889\n   -1.3077   -0.2050    1.0347\n   -0.4336   -0.1241    0.7269\n    0.3426    1.4897   -0.3034\n    3.5784    1.4090    0.2939\n    2.7694    1.4172   -0.7873\n\n>> ft_warp_apply(eye(4), chanpos, 'traditional')\n\nans =\n\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n     1     0     0\n\nBut that is because you assume them to have the same first input argument, which is a homogenous transform. And that is not correct...\n\nHave a look at fieldtrip/private/traditional.m, which explains\n\n% TRADITIONAL creates the homogenous spatial transformation matrix\n% for a 9 parameter traditional \"Talairach-model\" transformation\n%\n% Use as\n%   [H] = traditional(f)\n% The transformation vector f should contain the \n%   x-shift\n%   y-shift\n%   z-shift\n% followed by the\n%   pitch (rotation around x-axis)\n%   roll  (rotation around y-axis)\n%   yaw   (rotation around z-axis)\n% followed by the \n%   x-rescaling factor\n%   y-rescaling factor\n%   z-rescaling factor\n\nSo f=eye(4) is interpreted as [ 1 0 0 0 0 1 0 0 0 <and the rest is irrelevant> ]\nwhich means xshift=1, yaw=1 and scale=0. The scale is done first (squashing all electrodes into a black hole), followed by the yaw (still a black hole) and finally the translate (a cluster of electrodes appears at [1 0 0]).\n \nThere are other functions in fieldtrip/private that come into play here. There is also affine, rotate, etc. They are handled at line 178 in ft_warp apply, where\n  H = feval(method, M);\nconverts the input vector(!) M into a homogenous matrix."

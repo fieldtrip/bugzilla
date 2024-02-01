@@ -1,0 +1,82 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2270"
+    creation_ts: 2013-08-29 22:17:00 +0200
+    short_desc: channel selection does not work in forward and inverse routines
+    delta_ts: 2015-01-12 09:23:53 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: MOVED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    dependson: "1746"
+    everconfirmed: "1"
+    reporter:
+      +content: molaeyar
+      +@name: Behnam
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - molaeyar
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11238"
+        comment_count: "0"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-29 22:17:45 +0200
+        thetext: |-
+          Hi,
+
+          All the functions engaging in forward and inverse problems consider that all electrodes participate in the analysis. There is an option cfg.channel which is supposed to select a subset of electrodes from cfg.elec , but this option does not work at all.
+
+          In another word, I cannot make a big leadfield model including about 300 channels and then re-use a subset of this leadfield model in my forward and inverse problems.
+
+          Best,
+          Behnam
+      - +@isprivate: "0"
+        commentid: "11239"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-30 08:35:16 +0200
+        thetext: "Hi Behnam \n\nchannel selection works in general, but you indeed cannot make selections out of a precomputed leadfield. I.e. if you have sourceanalysis compute the leadfields, cfg.channel is used, but if you specify cfg.grid.leadfield it is not. \n\nThe implicit assumption in the code is that ft_prepare_leadfield and ft_sourceanalysis are executed as a pair. For experimental MEG data this makes sense, but I can indeed see that it makes less sense for EEG. The challenge with EEG however is that it is not simply involves removing channels, but also re-referencing. The covariance or CSD matrix are computed in timelock/freqanalysis and from that point on the reference cannot be changed.\n\nI will try to think of a solution.\n\nRobert"
+      - +@isprivate: "0"
+        commentid: "11240"
+        comment_count: "2"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-30 11:02:54 +0200
+        thetext: "(In reply to comment #1)\n\nThanks Robert for explications.\nSo, I do have a few suggestions and propositions:\n\n1) Let's assume that a volume has been prepared for 300 electrodes by ft_prepare_vol_sens(), then we want to use a subset of these electrods (for example 50) for sourceanalysis.\nThe current version of the ft_sourceanalysis() cannot work with the volume that has already been prepared for 300 electrodes (we should pass the original whole volume). The following piece of code can be added to ft_prepare_vol_sens() (line 421) in order to support this.\n\n        elseif size(vol.mat,1)~=size(vol.mat,2) &&  size(vol.mat,1)==Nchans\n            fprintf('volume should be matched with new selected sensors (Behnam)\\n');\n            vol.mat = vol.mat(selsens,:);\n            avg = mean(vol.mat, 1);\n\n\n2) If we want to use a precomputed leadfield matrix for a subset of eeg channels, then all inverse routines (lcmv,mne, rv, ...) should load firstly the leadfield matrix for 300 channels and then a subset of this matrix should be used for the inverse problem. For example line 200-210 in beamformer_lcmv() should change accordingly.\n\n\n3) I would suggest to add \na=upper(a);\nb=upper(b);\nin match_str(). It is so often that channel names in our data is not identical to channel names of a template if the comparision is performed in case sensitive format.\n\n\nBest,\nBehnam Molaee"
+      - +@isprivate: "0"
+        commentid: "14844"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-11-13 11:35:25 +0100
+        thetext: 'I suggest to follow up on this one (if needed) in #1746'

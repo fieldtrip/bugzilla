@@ -1,0 +1,149 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "249"
+    creation_ts: 2010-11-29 10:06:00 +0100
+    short_desc: problem in local sphere handling
+    delta_ts: 2011-01-26 15:38:37 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    cc: litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "490"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-29 10:06:59 +0100
+        thetext: |-
+          There is a problem in the local sphere handling, which manifests itself as holes in the beamformer volume (i.e. indicating an inside/outside problem).
+
+          -----
+
+          On 26 Nov 2010, at 13:21, Vladimir Litvak wrote:
+
+          The vol is modified by the call to prepare_headmodel (line 145 of
+          ft_prepare_leadfield). If you do
+
+          load prep_ls_input
+          ft_plot_mesh(cfg.headshape, 'vertexcolor', 'k');
+          vol = ft_prepare_localspheres(cfg)
+          sens = cfg.grad;
+
+          [vol, sens] = ft_prepare_vol_sens(vol, sens, 'channel',
+          ft_channelselection('MEG', sens.label), 'order', 10);
+
+          [bnd.pnt, bnd.tri] = headsurface(vol, sens, 'inwardshift', 0,
+          'surface', 'skin');
+
+          figure;ft_plot_mesh(bnd)
+
+          Then you can reproduce the problem.
+      - +@isprivate: "0"
+        commentid: "491"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-29 10:07:46 +0100
+        thetext: "the problem can be reproduced by \n\n----\n\nload prep_ls_input\n\n% ft_plot_mesh(cfg.headshape, 'vertexcolor', 'k');\n\nvol = ft_prepare_localspheres(cfg);\nsens = cfg.grad;\n\n[vol_all, sens_all] = ft_prepare_vol_sens(vol, sens, 'channel', ft_channelselection('all', sens.label), 'order', 10);\n[vol_meg, sens_meg] = ft_prepare_vol_sens(vol, sens, 'channel', ft_channelselection('MEG', sens.label), 'order', 10);\n\n\n[bnd.pnt, bnd.tri] = headsurface(vol_all, sens_all, 'inwardshift', 0, 'surface', 'skin');\nfigure;ft_plot_mesh(bnd)\n\n[bnd.pnt, bnd.tri] = headsurface(vol_meg, sens_meg, 'inwardshift', 0, 'surface', 'skin');\nfigure;ft_plot_mesh(bnd)\n\n% the output sens is the same, except that all has the additional ref\n% channels at the end\n\n% the difference is in the fitted spheres, which differ for the last (ref) coils\nfigure\nplot(vol_meg.r-vol_all.r, 'r.')"
+      - +@isprivate: "0"
+        commentid: "492"
+        comment_count: "2"
+        attachid: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-29 10:08:45 +0100
+        thetext: |-
+          Created attachment 12
+          imagesc(sens.tra)
+      - +@isprivate: "0"
+        commentid: "493"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-29 10:09:29 +0100
+        thetext: "I have spotted the bug by comparing the situation with all versus meg as channelselection. \n\nIf you consider the original (G3BR) sens.tra, you would have something like in attached screenshot.\n\nIf you select MEG channels, the bottom 40 rows are removed (but not the last 40 columns). The consequence is that the sphere selection for those coils is based on the max contribution to one of the MEG channels, whereas it should be on the respective REF channel (the REF spheres are global spheres, not local). \n\nSo that is the difference, which then causes a difference in the estimated head surface, which is then used for the inside/outside detection. But the consequence is also that the MEG leadfield is suboptimal (because of the suboptimal sphere) for the REF coils and hence that the G3BR correction is suboptimal.\n\nThe solution is that channel and coil selection have to be postponed until after the sphere-shuffling."
+      - +@isprivate: "0"
+        commentid: "494"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-29 10:12:06 +0100
+        thetext: I fixed it in revision 2218, can you please confirm that it works for you?
+      - +@isprivate: "0"
+        commentid: "495"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2010-11-29 12:10:26 +0100
+        thetext: Seems to work. No holes any more.
+      - +@isprivate: "0"
+        commentid: "1174"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:37:17 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.
+      - +@isprivate: "0"
+        commentid: "1223"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:38:37 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "12"
+      date: 2010-11-29 10:08:00 +0100
+      delta_ts: 2010-11-29 10:08:45 +0100
+      desc: imagesc(sens.tra)
+      filename: Picture 7.png
+      type: image/png
+      size: "23181"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

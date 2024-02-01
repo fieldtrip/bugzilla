@@ -1,0 +1,218 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2263"
+    creation_ts: 2013-08-23 14:19:00 +0200
+    short_desc: lcmv and rv methods
+    delta_ts: 2018-01-26 09:49:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: molaeyar
+      +@name: Behnam
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11207"
+        comment_count: "0"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-23 14:19:14 +0200
+        thetext: |-
+          Hi
+
+          lcmv and rv methods (in source localization concept) do not generate a time-related functional map, but there is subfield socaled 'time' in the resulting output source matrix.
+          This, generates a problem in st_sourceplot() because this function looks for time-related information.
+
+          Best,
+          Behnam Molaee
+      - +@isprivate: "0"
+        commentid: "11210"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-23 14:46:43 +0200
+        thetext: they should be generating a time specific result, besides the non-time specific result. Could you attach your source structure to this bug (if not too large?)
+      - +@isprivate: "0"
+        commentid: "11211"
+        comment_count: "2"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-23 14:52:29 +0200
+        thetext: |-
+          (In reply to comment #1)
+          Thanks, sure!!
+
+
+          Here is the code (just change the paths to data files)
+
+
+
+          load('E:\InstalledMatlabTools\FieldTrip\fieldtrip-20130818\template\headmodel\standard_bem.mat') % loads 'vol'
+          load('E:\InstalledMatlabTools\FieldTrip\fieldtrip-20130818\template\headmodel\standard_mri.mat'); %loads 'mri'
+
+          CMMM = 'cm'; ; scale=1;
+
+          vol = ft_convert_units(vol, CMMM); % Convert the vol to cm, or mm
+
+          close all
+
+          % construct the dipole grid in the template brain coordinates
+          % the source units are in cm
+          % the negative inwardshift means an outward shift of the brain surface for inside/outside detection
+          cfg = [];
+          cfg.grid.xgrid  = scale*[-20:1:20];
+          cfg.grid.ygrid  = scale*[-20:1:20];
+          cfg.grid.zgrid  = scale*[-20:1:20];
+          cfg.grid.unit   = CMMM;
+          cfg.grid.tight  = 'yes';
+          cfg.inwardshift = -scale*0;
+          cfg.vol        = vol;
+          template_grid  = ft_prepare_sourcemodel(cfg);
+
+          %%% make a figure with the template head model and dipole grid
+          figure
+          hold on
+          ft_plot_vol(vol, 'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; camlight;
+          ft_plot_mesh(template_grid.pos(template_grid.inside,:));
+
+          elecs = ft_read_sens('E:\InstalledMatlabTools\FieldTrip\fieldtrip-20130818\template\electrode\standard_1020.elc');
+          elecs = ft_convert_units(elecs, CMMM);
+
+          [vol, elecs] = ft_prepare_vol_sens(vol, elecs)
+
+          ft_plot_mesh(elecs.elecpos,'vertexcolor',[1 .3 .3]);
+
+
+
+          data = [];
+          cfg.grid = template_grid;
+          cfg.vol = vol;
+          cfg.elec = elecs;
+          cfg.unit = CMMM;
+          [grid] = ft_prepare_leadfield(cfg, data);
+
+          grid = ft_convert_units(grid, CMMM);  %% does not really work
+
+
+
+          %%% Dipole simulation
+          % note that beamformer scanning will be done with a 1cm grid, so you should
+          % not put the dipole on a position that will not be covered by a grid
+          % location later
+          cfg = [];
+          cfg.vol = vol;
+          cfg.elec = elecs;
+          cfg.dip.pos = scale*[
+              3 -3 6        % dipole 1
+              ];
+          cfg.dip.mom = [ 1 0 0 ]';
+
+          cfg.dip.frequency = [10]*1;
+          cfg.dip.phase=pi/4*[1];
+          cfg.dip.amplitude=[10];
+          cfg.relnoise = .1;
+          cfg.ntrials = 20;
+          data = ft_dipolesimulation(cfg);
+
+
+          % compute the data covariance matrix, which will capture the activity of
+          % the simulated dipole
+          cfg = [];
+          cfg.covariance = 'yes';
+          cfg.covariancewindow = [data.time{1}(1) data.time{1}(end)];
+          timelock = ft_timelockanalysis(cfg, data);
+
+
+
+          %%% source analysis
+          cfg = [];
+          METHOD = 'lcmv'; % 'lcmv' 'rv' 'mne'
+          cfg.method = METHOD;
+          cfg.grid = grid;
+
+
+          cfg.vol = vol;
+          cfg.elec = elecs;
+          cfg.snr = 10;
+          source  = ft_sourceanalysis(cfg, timelock);
+
+
+          cfg = [];
+          if strcmp(METHOD,'lcmv')
+              % I should uncomment the following line to pass the error
+              %source=rmfield(source,'time');
+              cfg.funparameter = 'avg.pow';
+          elseif strcmp(METHOD,'rv')
+              % I should uncomment the following line to pass the error
+              %source=rmfield(source,'time');
+              cfg.funparameter = 'avg.rv';
+          else
+              cfg.funparameter = 'avg.pow';
+          end
+
+          cfg.method = 'ortho';
+          ft_sourceplot(cfg, source);
+      - +@isprivate: "0"
+        commentid: "11213"
+        comment_count: "3"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-23 18:04:50 +0200
+        thetext: "(In reply to comment #1)\n\nI went through the beamformer functions.\n\nIndeed, \n\n1) 'lcmv' and 'rv' methods generate a single 'pow' (power) value for each electrod, whereas, 'mne' generates time specific 'pow' values for each electrod.\n\n2) In ft_sourceplot() (line 475) if there input data has is a field which name is 'time', the data is considered as time spesific data. 'lcmv' and 'rv' do not really generate time specific data in 'avg.pow' so the program crashes!!!\n\n\nSolution1: 'avg.pow' in 'lcmv' or 'rv' should change to time specific (I have not checked other beamformer methods)\nSolution2: ft_sourceplot() should be more inteligent with data manipulation\n\nBest,\nBehnam Molaee"
+      - +@isprivate: "0"
+        commentid: "11214"
+        comment_count: "4"
+        who:
+          +content: molaeyar
+          +@name: Behnam
+        bug_when: 2013-08-23 18:22:29 +0200
+        thetext: |-
+          Another solution (to me the best solution):
+
+          You can generate 'avg.pow' (time specific variable) and 'avg.meanPow' (average of the power) for all 'mne', 'lcmv' and 'rv' methods.
+
+          In such a case, one can easily use the results obtained by 'mne' method and interpolate them with MRI data using ft_sourceinterpolate(). As you know, ft_sourceinterpolate() does not support time specific data format and the current version of 'mne' only produces time specific results. If you add 'avg.meanPow' in 'mne' this problem will be solved as well.
+
+          Aside, I suggest you to modify ft_sourceinterpolate() so that it can accept a time lag at which the functional data should be interpolated with anatomical MRI data. In this case, users can pass their time specific results and tell ft_sourceinterpolate() at which time they are iinterested to interpolate results.
+
+          Thanks
+          Behnam MOLAEE
+      - +@isprivate: "0"
+        commentid: "19108"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-28 12:18:32 +0100
+        thetext: .

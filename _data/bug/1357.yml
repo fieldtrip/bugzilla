@@ -1,0 +1,132 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1357"
+    creation_ts: 2012-03-06 09:52:00 +0100
+    short_desc: ft_singleplotER crashes on single channel freq data
+    delta_ts: 2012-08-23 14:02:02 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5451"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-03-06 09:52:43 +0100
+        thetext: "ft_singleplotER crashes when freq data contains only one channel.\nCan you check if the bugfix works for all the cases?\n\nfreq = [];\nfreq.dimord = 'chan_freq_time';\nfreq.label = {'E1' 'E2'};\nfreq.time = 0:.1:2;\nfreq.freq = 1:20;\nfreq.powspctrm = randn(numel(freq.label), numel(freq.freq), numel(freq.time));\n\nfigure\ncfg = [];\ncfg.channel = freq.label;\ncfg.zlim = [8 12]; % (btw not documented)\nft_singleplotER(cfg, freq); % works\n\nfreq = ft_selectdata(freq, 'channel', 1)\nfigure\ncfg = [];\ncfg.channel = freq.label;\ncfg.zlim = [8 12];\nft_singleplotER(cfg, freq);\n\n% crashes at \nError in ft_singleplotER (line 467)\n    dat = dat(sellab, xidmin(i):xidmax(i));\n\n% BUGFIX\nline 405: squeeze is overenthusiastic\n    varargin{i}.(cfg.parameter) = squeeze(varargin{i}.(cfg.parameter));\n\nI think permute is better\n    varargin{i}.(cfg.parameter) = permute(varargin{i}.(cfg.parameter), [1 3 2]); \n\nI could commit it, but I'm afrad I'm missing some particular usage.\nThanks!\n\nA similar fix could be used at line 410 (but I cannot run this code because yparam is never \"time\", line 214 and 218 are testing the same condition)."
+      - +@isprivate: "0"
+        commentid: "5452"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-06 10:29:43 +0100
+        thetext: |-
+          Hey Giovanni,
+
+          the permute fix is a good idea, I implemented the same in ft_multiplotTFR some weeks ago, see bug 1168. I fixed it like this, in order to be more flexible if dimord is not standard:
+
+          % get dimord dimensions
+          dims = textscan(data.dimord,'%s', 'Delimiter', '_');
+          dims = dims{1};
+          ydim = find(strcmp(yparam, dims));
+          xdim = find(strcmp(xparam, dims));
+          zdim = setdiff(1:ndims(dat), [ydim xdim]);
+          % and permute
+          dat = permute(dat, [zdim(:)' ydim xdim]);
+
+          Maybe this should be implemented in the multiplotER and singleplotTFR as well - didn't think about it back then. I can fix that (but not before Thursday)
+      - +@isprivate: "0"
+        commentid: "5453"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-06 10:30:31 +0100
+        thetext: what about using shiftdim?
+      - +@isprivate: "0"
+        commentid: "5517"
+        comment_count: "3"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-03-12 16:05:48 +0100
+        thetext: |-
+          (In reply to comment #1)
+          Hi Jörn,
+
+          In my snafu today, I committed my local changes to the main repo. One of the changes was "permute" at line 405 of ft_singleplotER.
+          http://code.google.com/p/fieldtrip/source/browse/trunk/ft_singleplotER.m
+
+          I think 'permute' is only a temporary solution, I prefer your approach which is more flexible. This comment is only if you track changes to ft_singleplotER.m and you wonder why I committed the change.
+
+          Cheers,
+          G
+      - +@isprivate: "0"
+        commentid: "5518"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-12 17:09:47 +0100
+        thetext: Hey Gio, thanks for letting me know. I was a bit busy the last days cause of the BioMag deadline, but I'll make sure that the fix you committed is really a 1-2 day temporary fix ;)
+      - +@isprivate: "0"
+        commentid: "5526"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-13 12:03:38 +0100
+        thetext: |-
+          I hope that all data structures have a dimord-field, but I guess ft_checkdata takes care of this, doesn't it?
+
+           svn ci -m "bugfix-#1357- singleplot and multiplot do not squeeze anymore + testscript"
+          Sending        ft_multiplotER.m
+          Sending        ft_singleplotER.m
+          Sending        ft_singleplotTFR.m
+          Sending        test/sourceanalysisDICS.m
+          Sending        test/test_bug1168.m
+          Sending        test/test_bug1351.m
+          Adding         test/test_bug1357.m
+          Transmitting file data .......
+          Committed revision 5446.
+      - +@isprivate: "0"
+        commentid: "7178"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:02 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

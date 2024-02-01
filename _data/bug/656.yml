@@ -1,0 +1,207 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "656"
+    creation_ts: 2011-05-11 15:25:00 +0200
+    short_desc: 'ft_timelockanalysis: output should have a dimord consistent with its fields'
+    delta_ts: 2017-09-15 10:03:58 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3346
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - j.schoffelen
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2085"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-05-11 15:25:38 +0200
+        thetext: "Based on discussion at the FT meeting today and with JM after... \n\nSuggestion for ft_timelockanalysis:\ncfg.keeptrials: either 'yes' or 'no'\ncfg.output: either 'cov' or 'trials'\n\ntimelock output will then contain only one of these:\n(a) trials (dimord 'rpt_chan_time')\n(b) avg (dimord 'chan_time')\n(c) covariance unaveraged (dimord 'rpt_chan_chan') \n(d) covariance averaged (dimord 'chan_chan')\n\n(a) and (b) would still have .time field.\n(c) and (d) may have a 'toilim' field instead (and no .time field) which may specify start/end points of covariance time window\n\nDoes this require creation of a new type of data, that is either of dimord 'chan_chan' or 'rpt_chan_chan'?  This general data type could consist of anything: timelock cov, freq csd, or any other connectivity metric supported/created in ft_connectivityanalysis?  Or would ft_datatype_timelock just allow these four different types as valid structure?"
+      - +@isprivate: "0"
+        commentid: "2465"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-06-29 12:11:30 +0200
+        thetext: I'm working on a new implementation of ft_timelockanalysis, which is fixing the confusion of 'latency' with 'covariancewindow' meaning different things, especially in the context of the vartrllength in bug 624, as well as addressing the main suggestion of this bug.  I will ask for the team to look it over before committing of course.
+      - +@isprivate: "0"
+        commentid: "2478"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-06-29 16:45:44 +0200
+        thetext: "I've finished a new version, added as attachment to this bug.\n\nOne question came up:  in the case of cfg.output='cov', and cfg.vartrllength=2 and cfg.keeptrials='no', then should the mean covariance take into account a weighting based on the possibility of unequal trial lengths?  \n\nFor example, instead of the current:\n\ncovsig = squeeze(nansum(covsig, 1)) / sum(numcovsigsamples);\n\nuse instead:\n\ncovsig = squeeze(nansum(covsig.*repmat((numcovsigsmaples/max(numcovsigsamples))',[1 size(covsig,2) size(covsig,3)]), 1)) / sum(numcovsigsamples);\n\n(and similarly for if cfg.removemean='yes'). \n\nIs this valid to do this weighting?\n\nThe bigger-picture question is if this version is ok, then it affects all other functions which take in a timelock structure and whether they want a 'cov' or 'avg' or 'trial' field."
+      - +@isprivate: "0"
+        commentid: "2479"
+        comment_count: "3"
+        attachid: "83"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-06-29 16:46:24 +0200
+        thetext: |-
+          Created attachment 83
+          ft_timelockanalysis_new
+      - +@isprivate: "0"
+        commentid: "2517"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-06 15:23:53 +0200
+        thetext: "From discussion today in FT meeting and with JM, todo:\n1) error if cfg.latency isfield (checkconfig)\n2) use instead cfg.avglatency and cfg.covlatency\n3) if neither of (2) is specified, use maxperlength\n4) to be consistent with freqanalysis, cfg.output can be any of 'avg', 'cov' or 'avgandcov'.\n5) new option for sliding timewindow covariance compuatation: call recursively if output='cov', and if cfg.toi and cfg.timwin specified.  However, toi and timwin not allowed if output is 'avg' or 'avgandcov'.  If used, then output structure has a .time field equal to .toi.  \n6) make sure vartrllength=0 crashes only after check if required latency is present for all trials (maybe already there)\n7) make sure that, for cov computation, if a trial does not have all time points within covlatency, that it is not used, rather than using partial trials.  Could be done, but then keep track of number of time points used\n8) new output field of .usetrial\n9) if trialinfo isfield, then save trialinfo(usetrial)"
+      - +@isprivate: "0"
+        commentid: "2524"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-06 15:57:26 +0200
+        thetext: |-
+          (In reply to comment #4)
+          > 8) new output field of .usetrial
+
+          I don't understand why you'd want this. We also don't have it for all other functions that have cfg.trials as selection. For interpreting the average, you don't have to know which trials went into its computation. And if you want to know what was done to get the results that were represented in the output structure, you can look in timelock.cfg and previous....
+
+          This seems the same as the discussion we had this afternoon on whether we should store the covlatency window in the output (which we also don't do).
+
+
+          > 9) if trialinfo isfield, then save trialinfo(usetrial)
+
+          but only if keeptrials=yes.
+      - +@isprivate: "0"
+        commentid: "2739"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-20 16:04:11 +0200
+        thetext: |-
+          (In reply to comment #4)
+          > 1) error if cfg.latency isfield (checkconfig)
+
+          In further discussion (for sake of consistency across all functions to have a .latency input) the names will now be cfg.latency and cfg.covlatency
+
+          > 3) if neither of (2) is specified, use maxperlength
+
+          maxperlength will be for .latency but minperlength for .covlatency [Since point (7) says to ignore trials for cov-computation that don't have all time points in the window.  This is consistent with current implementation where a trial is thrown out for covariance computation if does not have all points inside specified time window.]
+
+          > 6) make sure vartrllength=0 crashes only after check if required latency is
+          > present for all trials (maybe already there)
+
+          deprecate vartrllength.  for 'avg', behaviour will be like vartrllength=2, for 'cov', it will be like vartrllength=1.
+
+
+          > 8) new output field of .usetrial
+
+          agree with Robert's comment: timelock.cfg.trials is sufficient
+
+          > 9) if trialinfo isfield, then save trialinfo(usetrial)
+
+          agree with Robert's comment: only if keeptrials='yes'
+      - +@isprivate: "0"
+        commentid: "2745"
+        comment_count: "7"
+        attachid: "105"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-21 15:22:57 +0200
+        thetext: |-
+          Created attachment 105
+          ft_timelockanalysis_new
+      - +@isprivate: "0"
+        commentid: "2746"
+        comment_count: "8"
+        attachid: "106"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-21 15:23:41 +0200
+        thetext: |-
+          Created attachment 106
+          test_ft_timelockanalysis.m
+      - +@isprivate: "0"
+        commentid: "2747"
+        comment_count: "9"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-07-21 15:25:55 +0200
+        thetext: Attached is the new version and test_* script.   What should be the next step? Have the development team test it out for awhile first?  commit it to SVN as *_new.m for now?
+    attachment:
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "83"
+        date: 2011-06-29 16:46:00 +0200
+        delta_ts: 2011-07-21 15:22:57 +0200
+        desc: ft_timelockanalysis_new
+        filename: ft_timelockanalysis_new.m
+        type: text/x-objcsrc
+        size: "15174"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "105"
+        date: 2011-07-21 15:22:00 +0200
+        delta_ts: 2011-07-21 15:22:57 +0200
+        desc: ft_timelockanalysis_new
+        filename: ft_timelockanalysis_new.m
+        type: text/plain
+        size: "20642"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "106"
+        date: 2011-07-21 15:23:00 +0200
+        delta_ts: 2011-07-21 15:23:41 +0200
+        desc: test_ft_timelockanalysis.m
+        filename: test_ft_timelockanalysis.m
+        type: text/plain
+        size: "4067"
+        attacher:
+          +content: johanna.zumer
+          +@name: Johanna
+        data: REMOVED

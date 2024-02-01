@@ -1,0 +1,134 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2711"
+    creation_ts: 2014-09-29 12:09:00 +0200
+    short_desc: ft_math checks wether a field is present, then crashes anyways if it is not
+    delta_ts: 2015-02-11 10:40:46 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: m.leenders
+      +@name: Maarten
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14524"
+        comment_count: "0"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2014-09-29 12:09:03 +0200
+        thetext: |-
+          It is about this loop in ft_math (causing errors in line 361).
+
+          keepfield = {'grad', 'elec'};
+          for j=1:numel(keepfield)
+            if isfield(varargin{i}, keepfield{j})
+              keep = true;
+              tmp = varargin{i}.(keepfield{j});
+            else
+              keep = false;
+            end
+            for i=1:numel(varargin)
+              if ~isequal(varargin{i}.(keepfield{j}), tmp)
+                keep = false;
+                break
+              end
+            end
+            if keep
+              data.(keepfield{j}) = tmp;
+            end
+          end
+
+          For me, it crashes because I have no fields called 'elec'. After checking whether there is a field called varargin{i}.elec (returning 0), it goes on to the statement "if ~isequal(varargin{i}.(keepfield{j}), tmp)" which crashes because of a reference to non-existent field 'elec'.
+
+          I think breaking from the loop at the isfield bit would work, right?
+
+          Best,
+
+          Maarten
+      - +@isprivate: "0"
+        commentid: "14525"
+        comment_count: "1"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2014-09-29 12:18:53 +0200
+        thetext: |-
+          edit:
+          Coming to think of it, that probably wouldn't work, but you get the idea.
+      - +@isprivate: "0"
+        commentid: "14526"
+        comment_count: "2"
+        who:
+          +content: m.leenders
+          +@name: Maarten
+        bug_when: 2014-09-29 13:26:35 +0200
+        thetext: |-
+          keepfield = {'grad', 'elec'};
+          for j=1:numel(keepfield)
+            if isfield(varargin{i}, keepfield{j})
+              keep = true;
+              tmp = varargin{i}.(keepfield{j});
+            else
+              keep = false;
+            end
+
+            if keep
+
+              for i=1:numel(varargin)
+                if ~isequal(varargin{i}.(keepfield{j}), tmp)
+                  keep = false;
+                  break
+                end
+              end
+
+            end
+
+            if keep
+              data.(keepfield{j}) = tmp;
+            end
+          end
+
+          something like this.
+      - +@isprivate: "0"
+        commentid: "14527"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-29 13:31:39 +0200
+        thetext: "thanks for reporting.\n\nthe bug is due to the first\nisfield(varargin{i}, keepfield{j})\n\nwhich should be\nisfield(varargin{1}, keepfield{j})\n\nOn the second keepfield it would otherwise start with the incorrect \"i\", but should start with \"1\". \n\nFurthermore it did not check the absence of the field correctly\n\nI fixed it.\n\nmac011> svn commit ft_math.m\nSending        ft_math.m\nTransmitting file data .\nCommitted revision 9866."
+      - +@isprivate: "0"
+        commentid: "15250"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:46 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

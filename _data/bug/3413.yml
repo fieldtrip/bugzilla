@@ -1,0 +1,66 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3413"
+    creation_ts: 2018-02-17 23:15:00 +0100
+    short_desc: MUSIC computation doesn't account for inside vs. outside elements of leadfield
+    delta_ts: 2018-03-02 15:03:51 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: joshua
+      +@name: Josh Diamond
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19272"
+        comment_count: "0"
+        who:
+          +content: joshua
+          +@name: Josh Diamond
+        bug_when: 2018-02-17 23:15:18 +0100
+        thetext: "MUSIC works well when I pass a leadfield for which all elements are inside the headmodel volume.\n\nHowever, I tried passing a leadfield for which only some elements are inside the headmodel. This was built with ft_prepare_leadfield, and it already contained a field leadfield.inside, a logical detailing which leadfield elements are inside the headmodel. \n\nThe problem is that music.m does not limit the leadfield to only inside elements. It limits the dipole positions to only inside elements, but does not do the same for the leadfield. So the result is that, in music.m line 111, lf is equal to [], and so I get: \nError using  * \nInner matrix dimensions must agree.\n\nSome example code is: \n\nload vol; % From tutorials \n\npos = vol.bnd.pos; \nminMax = [min(pos)' max(pos)'];\n\n% Create linear spaces. \nx = minMax(1,1):6:minMax(1,2);\ny = minMax(2,1):6:minMax(2,2);\nz = minMax(3,1):6:minMax(3,2);\n\n% Create grid \n[x,y,z] = meshgrid(x,y,z);\nx = x(:);\ny = y(:);\nz = z(:);\n\nlattice = [x y z];\n\ncfg = [];\ncfg.elec = elec;  % From tutorial \ncfg.grid.pos = lattice;\ncfg.grid.unit = 'mm';\ncfg.headmodel = vol;\nleadfield = ft_prepare_leadfield(cfg);\n\nload tlck; % From tutorials \n\ncfg        = [];\ncfg.method = 'music';\ncfg.grid   = leadfield;\ncfg.headmodel     = vol;\ncfg.music.numcomponent = 1;\nsource  = ft_sourceanalysis(cfg,tlck);\n\n\nI was able to achieve a fix with the following solutions. In music.m:\nline 75: add origleadfield = dip.leadfield;\nLine 79: add dip.leadfield = dip.leadfield(originside);\nLine 127: add dipout.leadfield = origleadfield;\n\nThank you and let me know if you have any questions.\nJosh"
+      - +@isprivate: "0"
+        commentid: "19274"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-02-27 16:28:14 +0100
+        thetext: |-
+          Thanks for reporting this Josh,
+          Usually I'd refer you to github to implement the fix in your own copy of fieldtrip, and to issue a PR (pull request). Yet, I have changed the code based on your suggestion myself (adding a check for the presence of the leadfield, which is not necessarily always there I think).
+
+          Thanks again, if you pull a fresh copy of the repository, I think it should work.
+      - +@isprivate: "0"
+        commentid: "19283"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-02 15:03:51 +0100
+        thetext: .

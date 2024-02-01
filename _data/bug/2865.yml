@@ -1,0 +1,177 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2865"
+    creation_ts: 2015-03-09 01:55:00 +0100
+    short_desc: ft_read_cifti has problems with .dlabel files that have more than 1 NamedMap
+    delta_ts: 2018-11-12 11:00:40 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2096
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: maxxx848
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - f.dipompeo
+      - giorgos.michalareas
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15505"
+        comment_count: "0"
+        who:
+          +content: maxxx848
+          +@name: ""
+        bug_when: 2015-03-09 01:55:21 +0100
+        thetext: |-
+          ft_read_cifti can not open any .dlabel files. Error message being
+
+          Dot name reference on non-scalar structure.
+
+          Error in ft_read_cifti (line 930)
+              key              = NamedMap.LabelTable.Key;
+      - +@isprivate: "0"
+        commentid: "15506"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-09 08:51:47 +0100
+        thetext: |-
+          Hi Cherry,
+          Could you upload a dlabel file that is giving you trouble? You can add it as an attachment to this bug, or send it to me through e-mail.
+      - +@isprivate: "0"
+        commentid: "15507"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-09 08:58:16 +0100
+        thetext: 'Note to self: the function seems to work well on the example dlabel files I have lying around. The error message suggests that a dlabel file with several label tables (represented as a struct-array, i.e. as a non-scalar structure) case problems. My dlabel files have only one LabelTable, so I need to wait to get an example with more than one label table in order to reproduce and fix it.'
+      - +@isprivate: "0"
+        commentid: "15516"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-09 21:29:56 +0100
+        thetext: |-
+          Adding Robert to CC, in order to get his blessing :) :
+
+          In a nutshell there's a problem with reading in dense label files with more than one map per file (which for example is the case with the RSN_networks file). In essence, this is caused by me fooling around when trying to implement support for dense label files, which didn't work for files with only one map. Back then I did not investigate the code thoroughly enough to notice the conditional statement in line 737 in ft_read_cifti, where the correct handling of labeltables is only achieved when there's more than one map name. This caused me to add some code around line 924 to deal with the labeltable . It seems that these changes in retrospect are not needed provided we properly take care of it on line 737. My proposal would be to change line 737
+
+          from
+
+          isfield(Cifti, 'mapname') && length(Cifti.mapname)>1
+
+          into
+
+          isfield(Cifti, 'mapname') && (length(Cifti.mapname)>1 || isfield(Cifti, 'labeltable'))
+
+          I just want to check whether you agree with this proposed change, or whether you see any potential ramifications for other cifti type files?
+      - +@isprivate: "0"
+        commentid: "15521"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-12 09:29:04 +0100
+        thetext: |-
+          Going ahead with this, because it seems safe to revert back to the pre-JM-patched code to make the dlabel handling more generic. In doing so I encountered 2 issues:
+
+          -FT assigns fieldnames based on the namedmap names. This potentially yields very ugly and long names, which are automatically truncated by MATLAB once they exceed 63 characters, e.g. x17_networks_consensusblabla___holesfilled___usedinthispaperwiththisfirstauthor_etc
+          It may also lead to non-informative filenames such as x1 (when the map name in the cifti file has been indicated with #1, and fixname fixes this to x1)
+
+          -with multiple maps there is seems to be a bug, because the data matrix is reshaped in the wrong way, resulting in a patch-work. (the dimension 'map' seems to be the fastest running dimension, rather than the dimension 'pos', and despite (as far as I can see) the information in the header, which suggests to reshape the voxdata into nposxnmap (on line 374 in ft_read_cifti). If by design multiple maps always end up in the file the way they do (I use as an example the RSN-networks 32k maps from the workbench tutorial) it could be solved generically, true?
+      - +@isprivate: "0"
+        commentid: "15522"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-03-12 09:37:45 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          I should look at the code in combination with a data file to get the full picture. I will drop by your office...
+      - +@isprivate: "0"
+        commentid: "15523"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-03-12 10:08:45 +0100
+        thetext: "Today I hold office in Malden :-). \n\nI put an uncommitted version of ft_read_cifti on /home/common/temporary/roboos/\n\nand it can be tested by loading the RSN label file (32k) from /project/3015031.01/HCP_WB_Tutorial_1.0 \nusing a Q1-Q6_R440 something something as a surf file, you could compare, with ft_plot_mesh, one of the parcellations with the same named parcellation after changing line 374 in ft_read_cifti into reshape(voxdata, hdr.dim([7 6]))"
+      - +@isprivate: "0"
+        commentid: "15589"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-04-05 08:09:31 +0200
+        thetext: |-
+          [jansch@mentat002 fileio]$ svn commit -m "bugfix - deal with multiple map dense label files" ft_read_cifti.m
+          Sending        ft_read_cifti.m
+          Transmitting file data .
+          Committed revision 10322.
+
+
+
+          This commit should take care of the original reported error message.
+
+          It does not take care of the multiple maps being transposed in the 32k cifti files, causing a patch work when visualizing this. Note, the resampled dense label files seem fine. Strange.
+      - +@isprivate: "0"
+        commentid: "15590"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-04-05 08:44:58 +0200
+        thetext: "the 32k file has in its nifti hdr : hdr.dim = [6 1 1 1 1 64984 4 1]\n\nand \n\nthe 4k file has in its nifti hdr : hdr.dim = [6 1 1 1 1 8004 4 1]\n\nNote that the 4k file has been generated from the 32k file with wb_command..."
+      - +@isprivate: "0"
+        commentid: "15591"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-06 14:06:54 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #8)\n\nthat is unusual. The first digit is the number of dimensions. The first 4 are old-fashioned volumetric Nx, Ny, Nz, Nt. Then follow three that can be used for cifti. I think that more than 8 numbers in a row are not guaranteed to be supported under the nifti standard.\n\nSee \"fileio/ft_read_cifti.m\" line 373 \n\nIt would make sense if it were\nhdr.dim = [8 1 1 1 1 64984 4 1]\nhdr.dim = [8 1 1 1 1 8004 4 1]\nsince when starting with 6 the [4 1] at the end becomes irrelevant."
+      - +@isprivate: "0"
+        commentid: "15592"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-04-06 19:02:58 +0200
+        thetext: 'I was wrong in my previous comment: for one of the files the number of vertices is swapped with the number of maps, yielding an incorrect reshape for the 32k version, but a correct reshape for the 4k version.'
+      - +@isprivate: "0"
+        commentid: "19588"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-12 11:00:24 +0100
+        thetext: no priority here it seems. Closing for now.

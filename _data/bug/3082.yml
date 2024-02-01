@@ -1,0 +1,159 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3082"
+    creation_ts: 2016-02-29 19:28:00 +0100
+    short_desc: ft_statfun_indepsamplesregrT does not correct df's for multiple independent variables
+    delta_ts: 2019-08-10 12:41:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - e.hartstra
+      - e.maris
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17021"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-02-29 19:28:40 +0100
+        thetext: |-
+          In case one adds multiple regressors to the design matrix, e.g.
+
+          cfg.design(1,:) = [1 2 3]
+          cfg.design(2,:) = [2 2 2]
+          cfg.ivar = [1 2]
+
+          all regressors are used in the model, provided their row index is specified in cfg.ivar. This is desired behavior, I'd say. However, the df's are not corrected accordingly. Namely, the df is defined as:
+
+          [nsmpl,nrepl] = size(dat);
+          df = nrepl - nblocks - 1;
+          if df<1
+            error('Insufficient error degrees of freedom for this analysis.')
+          end;
+
+          where nrepl is given by the data, and nblocks follows from cfg.cvar, if specified. In other words, nothing is done with the dimensions of cfg.design of cfg.ivar.
+
+          I presume that this is how the design matrix should be specified, i.e. adding other main and control variables to it?
+
+          ft_statistics_montecarlo states:
+          %   cfg.ivar             = number or list with indices, independent variable(s)
+          %   cfg.uvar             = number or list with indices, unit variable(s)
+          %   cfg.wvar             = number or list with indices, within-cell variable(s)
+          %   cfg.cvar             = number or list with indices, control variable(s)
+
+          giving the impressions multiple independent variables can be entered into the design matrix. So, the question is 'to correct or not correct'?
+      - +@isprivate: "0"
+        commentid: "18020"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-29 09:26:22 +0100
+        thetext: Arjen, do you already know the answer?
+      - +@isprivate: "0"
+        commentid: "18024"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-11-29 18:05:24 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          Nope, and sorry had forgotten about this one.
+
+          @Eric, do you know whether the df's should be adjusted according to the number of regressors?
+      - +@isprivate: "0"
+        commentid: "18026"
+        comment_count: "3"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2016-11-30 10:26:37 +0100
+        thetext: |-
+          Dear colleagues,
+
+          This is an annoying question, not because it cannot be answered, but because it takes a long time to explain(-;)
+
+          In essence:
+
+          1. permutation inference in a regression context is only straightforward when there is only a single predictor.
+          2. in the parametric framework, of course one must adjust the degrees of freedom according to the number of predictors.
+
+          I'm a bit concerned that, by advertising statfun_indepsamplesRegrT as a general purpose function for all types of regressions designs, users will start thinking that cluster-based permutation inference is also valid for these designs (with the FT implementation of cluster-based permutation inference). Moreover, the FT cluster-based permutation inference remains valid even with erroneous df's for the regression T-stats that are used for thresholding.
+
+          There are valid permutation-based methods for regression problems with multiple regressors, but these are not documented on the FT wiki. They could be implemented though using the current FT code, but this would require some additional outside-FT coding by the user.
+
+          best,
+          Eric
+      - +@isprivate: "0"
+        commentid: "18028"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2016-11-30 18:40:46 +0100
+        thetext: "(In reply to Eric Maris from comment #3)\n\nHey Eric,\n\nThanks for this elaboration. \n\nTwo general observations are that 1) there seems to be an increasing demand for more complex modeling of the data (at least, my impression of what people ask at conferences and on the email discussion list), and 2) the cluster-based permutation equals fair testing in most people's mind (cf. that one article about dissatisfactory FWE correction).\n\nGiven these observations, would it be an idea to give a warning, possibly with a link to documentation explaining why this is an unfair approach, when people try to do this? Or even better, a full tutorial on adequate cluster-based permutation testing in the context of GLM? I presume the latter, given the expanding audience for this technique, would also make a good publication.\n\nJust my .02,\nArjen"
+      - +@isprivate: "0"
+        commentid: "18302"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 19:04:34 +0100
+        thetext: "\"Moreover, the FT cluster-based permutation inference remains valid even with erroneous df's for the regression T-stats that are used for thresholding.\"\n \nI trust you on your blue eyes, Eric (and knowing that whatever \"black box\" applies to the data distribution also applies to the randomization distribution).\n\nGiven that this possible inaccuracy does not influence the statistical outcome, and apparently is not easy to fix, I'm closing this thread. I do think questions regarding multiple regressor will reappear in near future, and require answers/advice beyond what we have previously documented at http://www.fieldtriptoolbox.org/faq/how_can_i_test_for_correlations_between_neuronal_data_and_quantitative_stimulus_and_behavioural_variables"
+      - +@isprivate: "0"
+        commentid: "18303"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-01-25 19:04:55 +0100
+        thetext: CLOSED
+      - +@isprivate: "0"
+        commentid: "20259"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:00 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20457"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:10 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

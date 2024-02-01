@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2076"
+    creation_ts: 2013-03-22 18:10:00 +0100
+    short_desc: For some YOKOGAWA .con file, ft_read_data() could not read all samples
+    delta_ts: 2019-08-10 12:03:35 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: yokogawa
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: paul.cmchang
+      +@name: Paul Chang
+    assigned_to:
+      +content: Tilmann.Sander-Thoemmes
+      +@name: Tilmann Sander-Thommes
+    cc:
+      - Masayuki.Mochiduki
+      - paul.cmchang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9949"
+        comment_count: "0"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2013-03-22 18:10:33 +0100
+        thetext: "dear all,\nWe found an YOKOGAWA .con file that causes ft_read_data() to throw such exception and need you professionals to help. IMHO, it may require the vender YOKOGAWA to join in.\n\nThe test file that produces this bug can be downloaded from\n\n  http://xuyierjing.nccu.edu.tw/xuyi/tmp/sub14run29.con\n\nIt is sized of 180 MB. We use the daily update version of fieldtrip running on Linux (CentOS).\n\nHere are the steps to re-produce the problem:\n--------------------------------------------------------------------\n>> hdr = ft_read_header('sub14run29.con');\nWarning: adding\n/usr/local/fieldtrip/daily/external/yokogawa_meg_reader\ntoolbox to your Matlab path \n>> hdr\n\nhdr = \n\n           orig: [1x1 struct]\n             Fs: 1000\n         nChans: 256\n       nSamples: 400000      <=== Note the nSamples in the header\n    nSamplesPre: 0\n        nTrials: 1\n          label: {256x1 cell}\n           grad: [1x1 struct]\n       chantype: {256x1 cell}\n       chanunit: {256x1 cell}\n\n>> dat = ft_read_data('sub14run29.con');\nError using read_yokogawa_data_new (line 96)\ncould not read all samples         <=================== the bug\n\nError in ft_read_data (line 1029)\n      dat = read_yokogawa_data_new(filename, hdr,\n      begsample, endsample, chanindx);\n--------------------------------------------------------------------\nThen I started the Matlab debugging process:\n1. set a breakpoint on Line #96 of read_yokogawa_data_new.m\n2. when the problem occurs, the number of read samples is only 368402, instead of 400000 as described in the header\n\nThere are other .con files for this subject, but only this one makes the problem. To ensure that this file is intact and not damaged, I use the Windows PC tool MEG160 (MegLaboratory V2.004A) provided by YOKOGAWA to read this file. At least, I can browse the samples and no problems are reported by MEG160.\n\nI suspect that the file sub14run29.con has some specific data patterns that causes read_yokogawa_data_new.m to stop. If it's true, please help us to inform the developers of the Yokogawa MEG Reader library.\n\nMany Thanks!"
+      - +@isprivate: "0"
+        commentid: "10070"
+        comment_count: "1"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2013-04-12 12:43:03 +0200
+        thetext: "Dear Paul,\n\nI downloaded the file and got the same error\non a SUSE linux machine.\n\nBut calculating the expected file size and\nthe size of the actual file gives a mismatch:\nYou have 256 channels (that is correct ?) and\nyou say the file has 400000 points. The \nYokogawa file format stores 16 bits for each\nsample and therefore the expected file size\nis larger than 256*400000*2 =  204800000 Bytes (The\n2 is for the 16 bit). The file I downloaded \nhas only 186 MB.\n\nI cannot open the file with my MEG160 software as\nit is an earlier version. Maybe the following has\nhappened: During the measurement the channels are\nstored on separate machines, the transfer procedure\nin the Yokogawa software puts the channels into\na single file together. If a few channels did not\nget transferred you get 400000 points, but not\nall channels explaining the deviation in the\nfile size. This is probably a very rare error \nand might be reported to Yokogawa, but your\ndata will still be unusable. \n\nThe file you attached was the only one with this\nproblem ?\n\nBest, Till"
+      - +@isprivate: "0"
+        commentid: "10071"
+        comment_count: "2"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2013-04-12 18:17:51 +0200
+        thetext: "(In reply to comment #1)\nTill, thanks for your efforts and prompt reply. \n\nFor the new MEG160 utility that can read the new format of .con files, please download from\n\nhttp://xuyierjing.nccu.edu.tw/xuyi/tmp/Meg160new.zip\n\nIn the beginning, I also suspect whether the bug sample file remains intact during transferring. I have no knowledge about the format of a .con file, so this utility is the only way that I can take to check its integrity. In your comments, it seems that the size of the sample file is incorrect. Please use the new utility to check it again. \n\nOur team member has reported the same problem during another experiment. I will let you know when another sample is ready to download."
+      - +@isprivate: "0"
+        commentid: "10076"
+        comment_count: "3"
+        attachid: "451"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2013-04-15 09:45:46 +0200
+        thetext: |-
+          Created attachment 451
+          screen shot of Yokogawa file
+      - +@isprivate: "0"
+        commentid: "10077"
+        comment_count: "4"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2013-04-15 09:46:41 +0200
+        thetext: "Dear Paul,\n\nI am in a hurry and therefore quite brief: The file\ndoes not contain 400 s of data, see attached screen\nshot. Something is wrong with the recording mode\nor the data transfer. \n\nI am away until Thursday,\nbest Till"
+      - +@isprivate: "0"
+        commentid: "10186"
+        comment_count: "5"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2013-04-19 17:22:04 +0200
+        thetext: |-
+          (In reply to comment #4)
+          The file size of the latest reported sample, which may relate to this problem, is much less than the typical sample size in our experiment. I believe that this file is truncated and damaged.
+
+          However, when I use MEG160 to read this file, it can still be opened and no problem is reported by MEG160. It seems that MEG160 only checks the header portion, so MEG160 is not a sufficient tool to check the integroty of a .con file.
+
+          At this moment, I think that our problem is not related to Yokogawa MEG Reader library, so this bug report can be closed.
+
+          Till, many thanks for your time to explore our problem. Your information about calculating the minimum size of a valid .con file is valuable to us. Since we still have not found the root cause, your experience and further suggestions will always be appreciated.
+      - +@isprivate: "0"
+        commentid: "10191"
+        comment_count: "6"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2013-04-22 12:59:54 +0200
+        thetext: "Dear Paul,\n\nI suggest you tell Yokogawa about the problem. It is really\nthe first time, that I heard about that. If you want to\nuse the corrupted files with the matlab toolbox then open the\nfile in MEG160. Then use the \"Extract\" command in the \"Edit\" \nmenue to extract the existing data. After this command save\nthe data in a new file. The saved file has datapoints and header\nmatching. Since one does not know which part of the data\nis missing (could be anywhere), check any derived results for\nconsistency.\n\nFurther check if you have enough space on your recording\nPCs to hold the data during the measurement. Leftover files might \noccur after multiple system crashes. But I do not know any\ndetails.\n\nI close the bug.\n\nBest, Till"
+      - +@isprivate: "0"
+        commentid: "10192"
+        comment_count: "7"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2013-04-22 13:02:05 +0200
+        thetext: "The remaining problem is unrelated to FieldTrip and \nthe supporting toolbox Yokogawa MEG reader. Hardware\nmanufacturer should be informed."
+      - +@isprivate: "0"
+        commentid: "19917"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:35 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "451"
+      date: 2013-04-15 09:45:00 +0200
+      delta_ts: 2013-04-15 09:45:46 +0200
+      desc: screen shot of Yokogawa file
+      filename: sub14run29_screen.PNG
+      type: image/png
+      size: "71440"
+      attacher:
+        +content: Tilmann.Sander-Thoemmes
+        +@name: Tilmann Sander-Thommes
+      data: REMOVED

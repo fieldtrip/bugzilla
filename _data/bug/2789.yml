@@ -1,0 +1,157 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2789"
+    creation_ts: 2014-12-19 17:21:00 +0100
+    short_desc: ft_checkdata fails in ft_sourceanalysis for TFR with nfreq=1 and ntime=2
+    delta_ts: 2018-11-12 10:55:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2762
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.herring
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14979"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-19 17:21:09 +0100
+        thetext: |-
+          on line 1249 it fails, because fn{ii} = 'chancmb', so it tries to convert chancmb as if it were data.
+
+          I have stored the data and will upload it later to reproduce and fix.
+
+
+          -----------------------------------------------------------------------
+          An error was detected while executing ft_sourceanalysis
+          Saving debug information to /private/tmp/ft_sourceanalysis_20141219T171926.mat
+          -----------------------------------------------------------------------
+
+
+
+          PS did you know that storing the data+cfg that causes an error is as easy as specifying cfg.debug='saveonerror'?
+      - +@isprivate: "0"
+        commentid: "14980"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-22 10:39:53 +0100
+        thetext: I copied the test data to /home/common/matlab/fieldtrip/data/test/bug2789.mat
+      - +@isprivate: "0"
+        commentid: "14981"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-22 10:48:00 +0100
+        thetext: ">> data\n\ndata = \n\n        label: {102x1 cell}\n       dimord: 'chan_freq_time'\n         freq: 32.2896\n         time: [-0.1000 0.1600]\n    powspctrm: [102x1x2 double]\n     labelcmb: {5151x2 cell}\n    crsspctrm: [5151x1x2 double]\n         elec: [1x1 struct]\n         grad: [1x1 struct]\n          cfg: [1x1 struct]\n\n>> ft_sourceanalysis(cfg, data);\nthe input is freq data with 102 channels, 1 frequencybins and 2 timebins\nThe following error occurred converting from cell to double:\nError using double\nConversion to double from cell is not possible.\n\nError in ft_checkdata>fixcsd (line 1249)\n              tmpdat(indx) = reshape(data.(fn{ii})(j,cmbindx(indx),m,k),[numel(indx) 1]);\n\nError in ft_checkdata (line 791)\n    data = fixcsd(data, cmbrepresentation, channelcmb);\n\nError in ft_checkdata>fixcsd (line 1353)\n  data = ft_checkdata(data, 'cmbrepresentation', 'full');\n\nError in ft_checkdata (line 791)\n    data = fixcsd(data, cmbrepresentation, channelcmb);\n\nError in ft_sourceanalysis (line 249)\n  data = ft_checkdata(data, 'cmbrepresentation', 'full');"
+      - +@isprivate: "0"
+        commentid: "14982"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-22 12:47:49 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          mac011> svn commit test/test_bug2789.m
+          Adding         test/test_bug2789.m
+          Transmitting file data .
+          Committed revision 10061.
+      - +@isprivate: "0"
+        commentid: "15833"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-06-30 17:45:44 +0200
+        thetext: "I've just noticed the same error for nfreq == 2, and ntime == 1. \n\nIt seems that 'labelcmb' is deleted after these lines of code anyway so I moved the lines that delete this field a bit forward to prevent this error from happening.\n\nLet's see if the testscript starts working now."
+      - +@isprivate: "0"
+        commentid: "15834"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-06-30 17:54:06 +0200
+        thetext: |-
+          Sending        utilities/ft_checkdata.m
+          Transmitting file data .
+          Committed revision 10496.
+
+
+          This seems to fix the bug of ft_checkdata seeing labelcmb as a data field but now another bug pops up for this test script. For some reason if there is only one frequency, data.freq = NaN. This also seems to be an issue with ft_checkdata
+      - +@isprivate: "0"
+        commentid: "15836"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-06-30 20:44:22 +0200
+        thetext: "I found the culprit: \n\nft_selectdata uses nans to indicate no sub-selection needs to be made (i.e. output=input). However, one line of code which is intended to update the freq field after a selection replaces data.freq with the selected frequency (nan in case of no sub-selection). This happens when you specify the exact frequencies you wish to select, which automatically happens when you only have one frequency:\n\nlines 1048-1053:\nfor k = 1:ndata\n  if isequal(freqindx{k}, 1:length(varargin{k}.freq))\n    % the cfg was updated, but no selection is needed for the data\n    freqindx{k} = nan;\n  end\nend\n\nI changed the following line to check for nans. This should fix the problem\n\nif fieldhasfreq && ~isnan(selfreq{i}), varargin{i}.freq = selfreq{i}; end;\n\njimher@svn.fcdonders.nl's password: \nSending        utilities/ft_selectdata.m\nTransmitting file data .\nCommitted revision 10498."
+      - +@isprivate: "0"
+        commentid: "15837"
+        comment_count: "7"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-06-30 21:17:05 +0200
+        thetext: |-
+          Disregard the last comment. I added the buggy lines causing the last problem as an ad-hoc fix to the first problem (in my personal copy). I then forgot I added those lines.
+
+          I've removed them and ft_selectdata works fine after only solving the first issue ;)
+      - +@isprivate: "0"
+        commentid: "16858"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 11:55:04 +0100
+        thetext: is this still an issue?
+      - +@isprivate: "0"
+        commentid: "19302"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-10 21:52:21 +0100
+        thetext: Due to lack of activity from the assignee, taking over and closing, assuming fixed
+      - +@isprivate: "0"
+        commentid: "19582"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-11-12 10:55:31 +0100
+        thetext: closing time.

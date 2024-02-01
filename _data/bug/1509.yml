@@ -1,0 +1,117 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1509"
+    creation_ts: 2012-06-07 14:56:00 +0200
+    short_desc: Wrong scaling for Brainvision data (from Christophe Phillips)
+    delta_ts: 2012-08-23 10:41:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc:
+      - c.phillips
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6307"
+        comment_count: "0"
+        attachid: "272"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-06-07 14:56:47 +0200
+        thetext: |-
+          Created attachment 272
+          Problematic header
+
+          Hello Robert and Vladimir,
+
+          I've got a little problem with the importation (with SPM8) of some BrainVision (BrainProducts) data.
+          Here is the issue, see example header file (simple text) attached:
+          - data are acquired and stored as floats (float32)
+          - when you import them, the values are simply read in, chunk by chunk, by read_brainvision_eeg.m, and passed to the upper functionft_read_data.m, then spm_eeg_convert.m
+          - and finally added to the new binary file (file_array) in spm_eeg_convert.m
+          PROBLEM: when I display them the range is about +/- 2000ÁV for perfectly normal EEG!!!
+
+          Then I noticed this
+          - in the header file, for each channel there is a field called "resolution in Unit" with a value of 0.0488281
+          - if I manually scale my data by this .488 factor, the values are in a reasonable range +/-75ÁV
+
+          Interestingly, in read_brainvision_eeg.m, when reading data in integer format (int16 or int32), there are 2 extra lines accounting for a scaling issue which precisely uses this resolution information:
+           % compute real microvolts using the calibration factor (resolution)
+           res = sparse(diag(hdr.resolution));
+           dat = res * dat;
+          In my case this scaling should also be applied to the float data???
+
+          I checked a few BrainVision header and, depending on the amplifier and setup, data are stored as floats or integer and the resolution can be quite different. The scaling can also be different for different channel types (EEG vs. ECG). And sometimes, with floats, there is no value for resolution and then I would assume there is no scaling needed.
+
+          Have you noticed this? And how can this be fixed? :-)
+
+          Cheers,
+          Chris
+      - +@isprivate: "0"
+        commentid: "6834"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-07-18 17:06:16 +0200
+        thetext: "Dear Vladmir and Chris,\n\nThank you for reporting this issue. My understanding of yout bugreport is that imported BrainVision data is scaled correctly for integer-based binary formats, while it does not seem to be scaled for floating-point based formats.\n\nI took a look at the files 'read_brainvision_eeg.m' [1], and 'read_brainvision_vhdr.m', but to me it seems that scaling is handled equally  for floats and ints. Further, I can't precisely locate the code fragment you mentiond, which suggests that it is from an older version. \n\nDoes this bug persist in the current version of FieldTrip? If so, could you perhaps provide me with a minimal example that reproduces this problem (including .eeg file), or point me to the lines in [1] where ints are scaled, but floats are not?\n\n[1] http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/private/read_brainvision_eeg.m\n\nBest,\n\nBoris"
+      - +@isprivate: "0"
+        commentid: "6838"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-07-19 15:09:25 +0200
+        thetext: Yes, looks OK now after updating FT.
+      - +@isprivate: "0"
+        commentid: "6839"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-07-19 15:26:21 +0200
+        thetext: Great. Then I close this bug as RESOLVED:FIXED.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "272"
+      date: 2012-06-07 14:56:00 +0200
+      delta_ts: 2012-06-07 14:56:47 +0200
+      desc: Problematic header
+      filename: p00472_EEGxxx_20110727T003000.vhdr
+      type: application/octet-stream
+      size: "4469"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

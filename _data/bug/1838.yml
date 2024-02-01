@@ -1,0 +1,113 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1838"
+    creation_ts: 2012-11-19 13:09:00 +0100
+    short_desc: Wrong path in the -I and -L flags in the buffer compile.m
+    delta_ts: 2012-11-19 15:26:25 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: g.dimitriadis
+      +@name: George Dimitriadis
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8314"
+        comment_count: "0"
+        who:
+          +content: g.dimitriadis
+          +@name: George Dimitriadis
+        bug_when: 2012-11-19 13:09:27 +0100
+        thetext: |-
+          if strcmp(computer,'PCWIN64')
+          		extra_cflags = '-I../pthreads-win64/include';	
+          		amd64 = true;
+          	else
+          		extra_cflags = '-I../pthreads-win32/include';
+          		amd64 = false;
+          	end
+          .
+          .
+          .
+          		case 'BCB'
+          			ldflags = '-L../pthreads-win32/lib -lpthreadVC2.bcb';
+          		case 'BCC55'
+          			ldflags = '-L../pthreads-win32/lib -lpthreadVC2_bcc55';
+          		case 'MINGW'
+          			% For MinGW/Gnumex, it seems to be easier to just directly refer to the archives, since
+          			% the MEX tools expect libraries to end with .lib, whereas MinGW uses the .a suffix.
+          			if amd64
+          				ldflags = '../pthreads-win64/lib/libpthread.a';
+          				ws2lib = 'C:/mingw64/x86_64-w64-mingw32/lib/libws2_32.a';
+          			else
+          				ldflags = '../pthreads-win32/lib/libpthreadGC2.a';
+          				ws2lib = 'C:/mingw/lib/libws2_32.a';
+          			end
+          .
+          .
+          .
+          		case 'VC'
+          			if amd64
+          				ldflags = '-L../pthreads-win64/lib -lpthreadVC2 ws2_32.lib';			
+          			else
+          				ldflags = '-L../pthreads-win32/lib -lpthreadVC2 ws2_32.lib ';
+          			end
+
+
+          With the new directory structure the libs for the pthreads should be found in
+          '../../external/pthreads-win...' otherwise the buffer mex won't compile.
+
+
+          Also for the buffer mex to work in win x64 the pthreadGC2-w64.dll must also exist in the same dir as the buffer mex. I pressume for windows x86 the equivalent dll should also recide in the same dir (but haven't checked this).
+      - +@isprivate: "0"
+        commentid: "8315"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-19 15:25:24 +0100
+        thetext: "thanks for reporting. I have updated the paths, could you please check?\n\nmac001> svn commit \nSending        matlab/compile.m\nTransmitting file data .\nCommitted revision 6951."
+      - +@isprivate: "0"
+        commentid: "8316"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-19 15:26:25 +0100
+        thetext: |-
+          regarding the location of the dll files: at this moment it is like this
+
+
+          mac001> pwd
+          /Volumes/Data/roboos/matlab/fieldtrip/fileio/private
+
+          mac001> ll *.dll
+          -rwxr-xr-x  1 roboos  staff  42496 Jan  9  2012 pthreadGC2-w64.dll
+          -rwxr-xr-x  1 roboos  staff  65627 Jan  9  2012 pthreadGC2.dll
+          -rwxr-xr-x  1 roboos  staff  86070 Jan  9  2012 pthreadVC2.dll
+
+          which means that the dlls are in the same dir as where the mex file is expected to be (after copying it over the older release version).

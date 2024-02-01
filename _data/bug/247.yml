@@ -1,0 +1,141 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "247"
+    creation_ts: 2010-11-28 22:07:00 +0100
+    short_desc: ft_clusterplot no longer works
+    delta_ts: 2011-01-26 15:38:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: fieldtrip-bugs
+      +@name: Joint development user
+    cc: roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "488"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-11-28 22:07:38 +0100
+        thetext: |-
+          I've just found that ft_clusterplot no longer works. I've tested this with fieldtrip 20101115 and 20101128 on MATLAB R2010b on a Mac Pro running OS X Server 10.6.4.
+
+          I tried it with my own data and with the eventrelatedstatistics tutorial (the last section where cfg.avgovertime = 'no'): http://fieldtrip.fcdonders.nl/tutorial/eventrelatedstatistics#non-parametric_statistics_using_a_cluster-based_approach
+
+          When I run the ft_clusterplot section from the tutorial, this is the error that I get (I get the same error with my data, and a colleague of mine gets this error with his data):
+
+          ---------------------------------------------------
+          cfg = [];
+          cfg.highlightsymbolseries = ['*','*','.','.','.'];
+          cfg.layout = 'CTF151.lay';
+          cfg.contournum = 0;
+          cfg.markersymbol = '.';
+          cfg.alpha = 0.05;
+          cfg.zlim = [-5 5];
+          ft_clusterplot(cfg,stat);
+          reading layout from file CTF151.lay
+          There are 1 clusters smaller than alpha (0.05)
+          Positive cluster: 1, pvalue: 0.023 (*), t = 0.33 to 0.52667
+          ??? Error using ==> ft_checkdata at 265
+          This function requires timelock, freq or comp data as input.
+
+          Error in ==> ft_topoplotER at 169
+          data = ft_checkdata(data, 'datatype', {'timelock', 'freq', 'comp'});
+
+          Error in ==> ft_clusterplot at 323
+                    ft_topoplotER(cfgtopo, stat);
+          ---------------------------------------------------
+
+          It seems that it's trying to pass stat data into ft_topoplotER, which doesn't work. I don't know when this got changed, but it definitely used to work. Hope this gets fixed soon because ft_clusterplot is useful.
+
+          Thanks,
+          Matt
+      - +@isprivate: "0"
+        commentid: "503"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-11-30 16:32:56 +0100
+        thetext: "Hi Matt, \n\nThanks for reporting the bug! I checked it with my own data, which is the output from freqstatistics or timelockstatistics, but I fail to reproduce the error. TopoplotER can accept stat structures, the low-level functions check for a freq, a time etc. field to determine the data-type, and if you use cfg.zparam = 'stat' it should be able to plot it (works fine for me). Could you check whether your stat-structure contains either the freq or timelock field?"
+      - +@isprivate: "0"
+        commentid: "504"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-11-30 16:49:10 +0100
+        thetext: |-
+          Ah, I see now that ft_datatype wrongly detects a timelock-stat structure as not being so (this works for freq-output), and this results in the error. I'll discuss whether the extend check for timelock data is really necessary, I'll keep you up to date.
+
+          Best,
+          Roemer
+      - +@isprivate: "0"
+        commentid: "505"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2010-12-01 10:15:56 +0100
+        thetext: |-
+          Hi Matt,
+
+          it should work again now. The changes will be on the ftp-server this evening. If you want you could fix it in your working copy by changing in /public/ft_datatype.m (line 36
+
+          istimelock = isfield(data, 'label') && isfield(data, 'time') && ~isfield(data, 'freq'); && ((isfield(data, 'avg') && isnumeric(data.avg)) || (isfield(data, 'trial') && isnumeric(data.trial) || (isfield(data, 'cov') && isnumeric(data.cov))));
+
+          Into:
+
+          istimelock = isfield(data, 'label') && isfield(data, 'time') && ~isfield(data, 'freq');
+
+          Best,
+
+          Roemer
+      - +@isprivate: "0"
+        commentid: "1155"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:37:12 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.
+      - +@isprivate: "0"
+        commentid: "1204"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-26 15:38:32 +0100
+        thetext: |-
+          I closed all bugs that were resolved prior and including 2011-01-25.
+
+          All resolved bugs should have been discussed by now, therefore we don't want to see them again in the next meeting. Instead, in the next meeting we want to see the recent improvements and fixes.

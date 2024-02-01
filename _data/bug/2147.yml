@@ -1,0 +1,745 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2147"
+    creation_ts: 2013-04-29 14:00:00 +0200
+    short_desc: debate the meaning of 'once' in warning_once
+    delta_ts: 2014-03-12 12:20:46 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - eelke.spaak
+      - joscha.schmiedt
+      - martinvinck
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10332"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-29 14:00:55 +0200
+        thetext: "I would strongly suggest to enhance/change warning_once such that it takes into account the high-level ft_ function it is stemming from. My motivation is that I am really annoyed by the new 'output frequencies are different' warning for every single trial, spamming my command window. \nIn my private copy, I replaced it by warning_once. However, now the warning only pops up every once in a while, which makes this warning look totally arbitrary. Most consistent would be if the warning would be thrown once per call to ft_freqanalysis - this would reduce annoyance but still indicate that this warning is of high importance.\n\nNote that the warning_once call is in ft_specest_mtmfft, and I would argue for the function checking the highest available ft_* function (so here, ft_freqanalysis). To handle this, something like an ft_preamble script might be necessary to reset warning_once."
+      - +@isprivate: "0"
+        commentid: "10370"
+        comment_count: "1"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2013-05-02 14:11:17 +0200
+        thetext: I agree. Also, having to print the warning for each trial can tremendously slow down computation, for example when only analyzing two frequencies for 20,000 trials.
+      - +@isprivate: "0"
+        commentid: "10465"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-15 14:01:42 +0200
+        thetext: |-
+          suggestion: reimplement warning_once using the stack trace, i.e. in a for loop it is once, at multiple l;ocations it warns multiple times. In one of the preambles "clear warning_once" can be done to reset it.
+
+
+          important is top make a good test script/function with subfunctions.
+      - +@isprivate: "0"
+        commentid: "10507"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-22 10:53:48 +0200
+        thetext: "if ft_functionA calls warning_once in a for-loop it is clear that the warning should occur once. At the end of ft_functionA, ft_preamble should take care of resetting warning_once. However, we need to make sure that this reset it only partial. Here an example why:\n\nLet's say we have two warnings w1 and w2, and two functions, ft_functionA and ft_functionB. ft_functionA is looping over something and throwing warning w1 in this loop, and then calling ft_functionB for each iteration. ft_functionB is throwing warning w2 for each call. \nUsing the stacktrace I can unambigously determine what function wants to throw what warning, however, at the end of ft_functionB, ft_preamble will be called, which resets/clears warning_once. Thus, in every loop-iteration, ft_functionB clears warning_once, thereby causing ft_functionA to throw warning w1 again. \n\nThis is something we do not want, hence we need a way to tell warning_once to clear a single warning or all warnings in a particular set of subsequent function calls. Thus, we need something like warning_once('-clear').\n\nIn our particular example, ft_functionB would call ft_preamble, which then calls warning_once('-clear'). warning_once('-clear') then checks the current stack trace, would find ft_functionA->ft_functionB and removes all warnings that were thrown in ft_functionB and preceeded by ft_functionA. It would keep warnings thrown in functionA.\n\nDoes all this make sense or am I overlooking something crucial?"
+      - +@isprivate: "0"
+        commentid: "10508"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-22 11:11:26 +0200
+        thetext: "(In reply to comment #3)\n\nsounds like a plan to me, albeit rather complex. \n\nDoes it ever happen that a high-level ft_functionA calls high-level ft_functionB within a for loop? I cannot think of one. The preambles/clears only happen at the high level, not at lower levels. If high-level functions are not in for loops, the problem of clearing too often is not as severe."
+      - +@isprivate: "0"
+        commentid: "10512"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-22 15:44:14 +0200
+        thetext: |-
+          http://code.google.com/p/fieldtrip/source/browse/trunk/ft_clusterplot.m does, and in principle the modular architecture allows for that. So, I think it would be cleaner to make it prone to these kind of errors.
+
+          The way I was thinking about is that previous warnings are now stored in the previous variable. In the example case I gave we would have:
+
+          previous.ft_functionA.w1 = ...
+
+          When ft_functionB calls warning_once this gets extended:
+          previous.ft_functionA.w1 = ...;
+          previous.ft_functionA.ft_functionB.w2 = ...;
+
+          Upon clearing in ft_functionB, thus a call to warning_once('-clear'), we would check the stack trace and see that we are in ft_functionA.ft_functionB and then remove the whole field previous.functionA.functionB, but keep the rest of previous.ft_functionA untouched. When ft_functionA ends, it would clear previous.ft_functionA. The advantage of having these subfields is that also lower-level functions that have thrown warnings in ft_functionA will be thrown away without having to think about some string-matching loop. E.g. previous.ft_functionA.low_level_function will be removed as well.
+
+          The code is a bit less-readable because of the subfield stuff, because I have to use lots of eval statements like eval(['previous.' fname ' = []']) to make previous.ft_functionA.ft_functionB = [] possible, but since this is a low-level function I favoured this over making it more readable but redundant.
+
+          Didn't commit yet, still testing whether this works fine without problems.
+      - +@isprivate: "0"
+        commentid: "10517"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-23 10:04:19 +0200
+        thetext: should this warning_once clearing go into one of the existing preamble scripts or should I create a new one?
+      - +@isprivate: "0"
+        commentid: "10518"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-23 10:41:15 +0200
+        thetext: "(In reply to comment #6)\n\nI suggest to replace\nft_preamble help\nwith\nft_preamble init\nand include the help and warning-once-clear into a single script. \n\nThe idea of the preamble was to reduce code clutter in the main functions, so we should try to merge where possible. \n\nmac001> grep -l 'ft_preamble help' ft_*.m\nshows almost all functions. \n\nmac001> grep -L 'ft_preamble help' ft_*.m\nshows only a few (see below) that subsequently would not get it:\n\nft_channelcombination.m\nft_channelselection.m\n-> should be moved to utilities anyway\n\nft_defaults.m\n-> no problem\n\nft_dependencycheck.m\nft_documentationindex.m\nft_documentationreference.m\n-> go together for maintenance\n\nft_statistics_analytic.m\nft_statistics_crossvalidate.m\nft_statistics_montecarlo.m\nft_statistics_stats.m\n-> no problem\n\nft_compile_mex.m\nft_wizard.m\n-> are a bit unusual but can live without the warning-once-clear\n\nSo only the ones with the help preamble need it."
+      - +@isprivate: "0"
+        commentid: "10520"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-23 13:11:13 +0200
+        thetext: "narghs, okay, so the next problem is that due to multiple copies of warning_once, Matlab creates a new persistent variable per copy. The only solution I can think of is to rename the variable (because previous is too common) to ft_previous_warnings and make it global - if you disagree, let me know\n \nwhoops, and while testing this I realized that deleting ft_preamble_help wasn't a smart move, my torque-jobs just crashed :/ well, seems like I should get this here done asap ^^"
+      - +@isprivate: "0"
+        commentid: "10524"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-23 16:14:28 +0200
+        thetext: |-
+          great new favourite linux command:
+          sed -i 's/ft_preamble\shelp/ft_preamble init/g' ft_*.m
+          911 $ sed -i 's/ft_preamble\shelp/ft_preamble init/g' contrib/spike/ft_*.m
+
+
+          svn ci utilities/private/warning_once.m ft*.m contrib/spike/ft_*.m utilities/private/ft_preamble_init.m utilities/private/ft_preamble_help.m -m "enhancement - reworked warning_once by using the strack trace rather than content of warnining. ft_preamble_help is not ft_preamble_init, which also takes care of clearing warning_once"
+          Sending        contrib/spike/ft_spike_isi.m
+          Sending        contrib/spike/ft_spike_jpsth.m
+          Sending        contrib/spike/ft_spike_maketrials.m
+          Sending        contrib/spike/ft_spike_plot_isi.m
+          Sending        contrib/spike/ft_spike_plot_isireturn.m
+          Sending        contrib/spike/ft_spike_plot_jpsth.m
+          Sending        contrib/spike/ft_spike_plot_psth.m
+          Sending        contrib/spike/ft_spike_plot_raster.m
+          Sending        contrib/spike/ft_spike_psth.m
+          Sending        contrib/spike/ft_spike_rate.m
+          Sending        contrib/spike/ft_spike_rate_orituning.m
+          Sending        contrib/spike/ft_spike_select.m
+          Sending        contrib/spike/ft_spike_waveform.m
+          Sending        contrib/spike/ft_spike_xcorr.m
+          Sending        contrib/spike/ft_spikedensity.m
+          Sending        contrib/spike/ft_spikedetection.m
+          Sending        contrib/spike/ft_spikedownsample.m
+          Sending        contrib/spike/ft_spikefixdmafile.m
+          Sending        contrib/spike/ft_spikesimulation.m
+          Sending        contrib/spike/ft_spikesorting.m
+          Sending        contrib/spike/ft_spikesplitting.m
+          Sending        contrib/spike/ft_spiketriggeredaverage.m
+          Sending        contrib/spike/ft_spiketriggeredinterpolation.m
+          Sending        contrib/spike/ft_spiketriggeredspectrum_convol.m
+          Sending        contrib/spike/ft_spiketriggeredspectrum_fft.m
+          Sending        contrib/spike/ft_spiketriggeredspectrum_stat.m
+          Sending        ft_analysispipeline.m
+          Sending        ft_analysisprotocol.m
+          Sending        ft_annotate.m
+          Sending        ft_appenddata.m
+          Sending        ft_appendfreq.m
+          Sending        ft_appendsource.m
+          Sending        ft_appendspike.m
+          Sending        ft_appendtimelock.m
+          Sending        ft_artifact_clip.m
+          Sending        ft_artifact_ecg.m
+          Sending        ft_artifact_eog.m
+          Sending        ft_artifact_jump.m
+          Sending        ft_artifact_muscle.m
+          Sending        ft_artifact_threshold.m
+          Sending        ft_artifact_zvalue.m
+          Sending        ft_channelnormalise.m
+          Sending        ft_channelrepair.m
+          Sending        ft_clusterplot.m
+          Sending        ft_combineplanar.m
+          Sending        ft_componentanalysis.m
+          Sending        ft_conjunctionanalysis.m
+          Sending        ft_connectivityanalysis.m
+          Sending        ft_connectivityplot.m
+          Sending        ft_connectivitysimulation.m
+          Sending        ft_databrowser.m
+          Sending        ft_definetrial.m
+          Sending        ft_denoise_pca.m
+          Sending        ft_denoise_synthetic.m
+          Sending        ft_dipolefitting.m
+          Sending        ft_dipolesimulation.m
+          Sending        ft_electroderealign.m
+          Sending        ft_examplefunction.m
+          Sending        ft_freqanalysis.m
+          Sending        ft_freqanalysis_mvar.m
+          Sending        ft_freqbaseline.m
+          Sending        ft_freqcomparison.m
+          Sending        ft_freqdescriptives.m
+          Sending        ft_freqgrandaverage.m
+          Sending        ft_freqinterpolate.m
+          Sending        ft_freqsimulation.m
+          Sending        ft_freqstatistics.m
+          Sending        ft_headmovement.m
+          Sending        ft_interactiverealign.m
+          Sending        ft_lateralizedpotential.m
+          Sending        ft_layoutplot.m
+          Sending        ft_math.m
+          Sending        ft_megplanar.m
+          Sending        ft_megrealign.m
+          Sending        ft_movieplotER.m
+          Sending        ft_movieplotTFR.m
+          Sending        ft_multiplotCC.m
+          Sending        ft_multiplotER.m
+          Sending        ft_multiplotTFR.m
+          Sending        ft_mvaranalysis.m
+          Sending        ft_neighbourplot.m
+          Sending        ft_networkanalysis.m
+          Sending        ft_prepare_atlas.m
+          Sending        ft_prepare_bemmodel.m
+          Sending        ft_prepare_concentricspheres.m
+          Sending        ft_prepare_headmodel.m
+          Sending        ft_prepare_layout.m
+          Sending        ft_prepare_leadfield.m
+          Sending        ft_prepare_localspheres.m
+          Sending        ft_prepare_mesh.m
+          Sending        ft_prepare_neighbours.m
+          Sending        ft_prepare_singleshell.m
+          Sending        ft_prepare_sourcemodel.m
+          Sending        ft_preprocessing.m
+          Sending        ft_qualitycheck.m
+          Sending        ft_recodeevent.m
+          Sending        ft_redefinetrial.m
+          Sending        ft_regressconfound.m
+          Sending        ft_rejectartifact.m
+          Sending        ft_rejectcomponent.m
+          Sending        ft_rejectvisual.m
+          Sending        ft_removetmsartifact.m
+          Sending        ft_resampledata.m
+          Sending        ft_scalpcurrentdensity.m
+          Sending        ft_sensorrealign.m
+          Sending        ft_singleplotER.m
+          Sending        ft_singleplotTFR.m
+          Sending        ft_sliceinterp.m
+          Sending        ft_sourceanalysis.m
+          Sending        ft_sourcedescriptives.m
+          Sending        ft_sourcegrandaverage.m
+          Sending        ft_sourceinterpolate.m
+          Sending        ft_sourcemovie.m
+          Sending        ft_sourceparcellate.m
+          Sending        ft_sourceplot.m
+          Sending        ft_sourcestatistics.m
+          Sending        ft_sourcewrite.m
+          Sending        ft_stratify.m
+          Sending        ft_timelockanalysis.m
+          Sending        ft_timelockbaseline.m
+          Sending        ft_timelockgrandaverage.m
+          Sending        ft_timelockstatistics.m
+          Sending        ft_topoplotCC.m
+          Sending        ft_topoplotER.m
+          Sending        ft_topoplotIC.m
+          Sending        ft_topoplotTFR.m
+          Sending        ft_volumedownsample.m
+          Sending        ft_volumelookup.m
+          Sending        ft_volumenormalise.m
+          Sending        ft_volumerealign.m
+          Sending        ft_volumereslice.m
+          Sending        ft_volumesegment.m
+          Sending        ft_volumewrite.m
+          Deleting       utilities/private/ft_preamble_help.m
+          Adding         utilities/private/ft_preamble_init.m
+          Sending        utilities/private/warning_once.m
+          Transmitting file data .......................................................................................................................................
+          Committed revision 8144.
+
+
+          Let's hope it all works, but all my tests ran fine... since I am in Utrecht tomorrow and I know that there are things I some times do not foresee: if anything breaks, maybe revert files back to revision 8143
+      - +@isprivate: "0"
+        commentid: "10545"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 21:52:31 +0200
+        thetext: "many of the test scripts appear to have broken, although it is non-trivial to reproduce on the command line according to Johanna and Diego.\n\nAccording to the test reports, the problem is in warning_once\n\nWhen I do\ncd fieldtrip_private\nwarning_once('something')\nI get an error.\n\n\nroboos@mentat001> svn commit private/warning_once.m \nSending        private/warning_once.m\nTransmitting file data .\nCommitted revision 8156."
+      - +@isprivate: "0"
+        commentid: "10546"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 21:52:59 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          autosync in action...
+
+
+          roboos@mentat001> svn update
+          U    engine/private/warning_once.m
+          U    plotting/private/warning_once.m
+          U    connectivity/private/warning_once.m
+          U    specest/private/warning_once.m
+          U    qsub/private/warning_once.m
+          U    utilities/private/warning_once.m
+          U    fileio/private/warning_once.m
+          U    test/private/warning_once.m
+          U    statfun/private/warning_once.m
+          U    forward/private/warning_once.m
+          Updated to revision 8157.
+      - +@isprivate: "0"
+        commentid: "10550"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-27 12:06:36 +0200
+        thetext: "(In reply to comment #10)\nHi Robert,\n\nof course you get an error, because the function is not written to be called outside other functions (ie from the command line): without a stacktrace, the subfields cannot be generated. However, within functions and via ft_preamble init, it all works fine on my machine and on those of others as tested by Johanna and Diego (and also, all Donders people would have complained on Friday if something would have been severly broken). \n\nAlthough reverting helps temporarily to get the test scripts running again(although a warning_once('-clear') is triggered now every once in a while), it is rather strange that the function does not work for our test suite while it does outside. I will have to look deeper into why the function breaks for our test scripts. Do you know what Matlab version the test scripts are running? I can only imagine that 'evalc' is not fully backwards compatible."
+      - +@isprivate: "0"
+        commentid: "10551"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-27 13:09:54 +0200
+        thetext: "(In reply to comment #12)\n\nthe following is being created as m-file, with all \"$VARIABLE\"s being replaced by something useful.\n\n\n%-------------------------------------------------------------------------------\n% This is an automatically generated m-file to run a specific test. It would\n% seem obvious to directly run a command in matlab with 'matlab -r \"eval(...)',\n% but non-trivial commands don't seem to survive the transition to MATLAB\n% (another bug?).\n\ntry\n  restoredefaultpath;\n  addpath $XUNIT; % for running and discovering unit tests.\n  addpath $FIELDTRIP; \n  ft_defaults; which ft_defaults\n  global ft_default; ft_default = [];\n\n  cd $TESTDIR;\n  runtests $TEST;\ncatch err\n  err\nend\n\n% path % display path for debugging purposes --- can be enabled.\nexit;\n%-------------------------------------------------------------------------------\n\nWith \n/opt/cluster/matlab2012a -nodesktop -nosplash -nodisplay -r <SCRIPTFILE>\nthis script is then executed on torque."
+      - +@isprivate: "0"
+        commentid: "10552"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-27 14:39:53 +0200
+        thetext: |-
+          strange, runs fine for me (with the svn version from Thursday evening)
+
+          I did the following after logging into mentat002 using putty:
+          ssh $(martini)
+          /opt/cluster/matlab2012a -nodesktop -nosplash -nodisplay
+
+          in matlab:
+          >> restoredefaultpath
+          Warning: Duplicate directory name: /opt/matlab2012a/toolbox/shared/hdlshared.
+          > In restoredefaultpath at 47
+          >> addpath(fullfile('~', 'FieldTrip', 'trunk'))
+          >> ft_defaults
+          >> which ft_defaults
+          /home/electromag/jorhor/FieldTrip/trunk/ft_defaults.m
+          >> global ft_default;
+          >> ft_default = [];
+          >> cd(fullfile('~', 'FieldTrip', 'trunk'))
+          >> cd test
+          >> test_bug1014
+          the input is timelock data with 1 channels and 2 timebins
+          the input is timelock data with 1 channels and 2 timebins
+          the call to "ft_appendtimelock" took 1 seconds and required the additional allocation of an estimated 9 MB
+
+          c =
+
+                    time: [1 2]
+                   label: {'chan'}
+                  dimord: 'rpt_chan_time'
+                   trial: [6x1x2 double]
+              sampleinfo: [6x2 double]
+                     cfg: [1x1 struct]
+
+          the input is timelock data with 1 channels and 2 timebins
+          the input is timelock data with 1 channels and 2 timebins
+          the call to "ft_appendtimelock" took 0 seconds and required the additional allocation of an estimated 0 MB
+
+          c =
+
+                time: [1 2]
+               label: {'chan'}
+              dimord: 'rpt_chan_time'
+               trial: [2x1x2 double]
+                 cfg: [1x1 struct]
+
+          >> test_warning_once
+          the input is raw data with 17 channels and 10 trials
+          processing trials
+          Warning: output frequencies are different from input frequencies, multiples of
+          the same bin were requested but not given
+          > In specest/private/warning_once at 140
+            In ft_specest_mtmconvol at 125
+            In ft_freqanalysis at 479
+            In test_warning_once at 37
+          Warning: output time-bins are different from input time-bins
+          > In specest/private/warning_once at 140
+            In ft_specest_mtmconvol at 152
+            In ft_freqanalysis at 479
+            In test_warning_once at 37
+          trial 10, frequency 2 (2.00 Hz), 1 tapers
+          the call to "ft_freqanalysis" took 1 seconds and required the additional allocation of an estimated 8 MB
+          the input is raw data with 17 channels and 10 trials
+          processing trials
+          Warning: output frequencies are different from input frequencies, multiples of
+          the same bin were requested but not given
+          > In specest/private/warning_once at 140
+            In ft_specest_mtmconvol at 125
+            In ft_freqanalysis at 479
+            In test_warning_once at 39
+          Warning: output time-bins are different from input time-bins
+          > In specest/private/warning_once at 140
+            In ft_specest_mtmconvol at 152
+            In ft_freqanalysis at 479
+            In test_warning_once at 39
+          trial 10, frequency 2 (2.00 Hz), 1 tapers
+          the call to "ft_freqanalysis" took 0 seconds and required the additional allocation of an estimated 0 MB
+
+
+          note that with the old warning_once, the two warnings from ft_freqanalysis would have been printed only once, so FT is indeed using the new version that crashed in the regression tests.
+
+          any idea what else I can check?
+      - +@isprivate: "0"
+        commentid: "10553"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-27 19:55:23 +0200
+        thetext: |-
+          (In reply to comment #14)
+
+          can you run it with the runtests command from xunit?
+      - +@isprivate: "0"
+        commentid: "10554"
+        comment_count: "16"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-28 09:09:35 +0200
+        thetext: "I am getting this warning, which seems to me a mistake:\n\nWarning: -clear \n> In utilities/private/warning_once at 116\n  In utilities/private/ft_preamble_init at 26\n  In ft_preamble at 54\n  In ft_freqgrandaverage at 59"
+      - +@isprivate: "0"
+        commentid: "10555"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-28 09:35:51 +0200
+        thetext: |-
+          (In reply to comment #16)
+
+          I suppose that I only reverted the warning_once, not the function in which it is called/cleared.
+      - +@isprivate: "0"
+        commentid: "10568"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-29 16:33:48 +0200
+        thetext: |-
+          I reworked warning_once, but I won't commit before the evaluation is over (and because I probably won't be at the Donders the next two days to fix bugs). I will commit on Monday earliest.
+
+          What has changed is that instead of individual global variables, warning_once now uses the global ft_default variable and creates a subfield ft_default.warning. Further, instead of evalc or eval to set/retrieve subfields the functions uses the utility-functions setsubfield, getsubfield and rmsubfield. I will check some more test scripts before committing and then hope that xunit does not complaint :)
+      - +@isprivate: "0"
+        commentid: "10569"
+        comment_count: "19"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-29 16:46:00 +0200
+        thetext: |-
+          An idea I had: could it be that the xunit functions have some symbol in their function name which is an invalid character for structure field names? That might explain the stuff failing during automated testing (i.e. the stack trace contains invalid symbols in that case), and not at other times.
+
+          Not sure this is the solution, just a thought.
+      - +@isprivate: "0"
+        commentid: "10570"
+        comment_count: "20"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-29 16:51:08 +0200
+        thetext: "hm, very good point. if that would be the case, the function will fail also in the new version. \nactually, I thought about extending the 'decomma' function to remove all special characters, but then I thought 'who the hell is using <./:\"{}\\]@#^%$^_)#$^% in a function name anyway?'\na thing to keep in mind if it fails..."
+      - +@isprivate: "0"
+        commentid: "10598"
+        comment_count: "21"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-04 16:04:15 +0200
+        thetext: 'The warning: -clear remarks were starting to annoy me, so I have commented out (and committed in r8184) the call in ft_preamble_init.'
+      - +@isprivate: "0"
+        commentid: "10599"
+        comment_count: "22"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-04 16:17:22 +0200
+        thetext: "see, I am not the only one who gets annoyed by mass warnings :)\n\nin the meanwhile, I created a test_xunit_stacktrace function. Surprisingly, the stacktrace seems to be field-able for matlab, with the old and the new way used by warning_once. \nI also copied the new warning_once function into that test function, and it did not crash thus far:\nhttp://fieldtrip.fcdonders.nl/development/dashboard/r8183/test_xunit_stacktest\nI got an experiment now, but I'll commit tomorrow"
+      - +@isprivate: "0"
+        commentid: "10605"
+        comment_count: "23"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-05 10:12:20 +0200
+        thetext: |-
+          I am confused, all *subfield functions like issubfield, rmsubfield, etc, should they be private functions? They are in FieldTrip/utilities/ and otherwise in a bunch of ../private/ directories
+          Right now I am even considering making them subfunctions of warning_once...
+      - +@isprivate: "0"
+        commentid: "10698"
+        comment_count: "24"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 09:35:35 +0200
+        thetext: |-
+          (In reply to comment #23)
+          Hi Robert,
+          I need some advice on my last comment wrt the privacy of the *subfield functions
+      - +@isprivate: "0"
+        commentid: "10699"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 09:54:48 +0200
+        thetext: |-
+          (In reply to comment #24)
+
+          no problem to replicate/autosync the subfield functions.
+
+          mac001> svn commit `find . -name \*subfie\*.m`
+          Adding         connectivity/private/getsubfield.m
+          Adding         connectivity/private/issubfield.m
+          Adding         connectivity/private/rmsubfield.m
+          Adding         connectivity/private/setsubfield.m
+          Adding         engine/private/getsubfield.m
+          Adding         engine/private/issubfield.m
+          Adding         engine/private/rmsubfield.m
+          Adding         engine/private/setsubfield.m
+          Adding         fileio/private/rmsubfield.m
+          Adding         forward/private/rmsubfield.m
+          Adding         forward/private/setsubfield.m
+          Adding         plotting/private/rmsubfield.m
+          Adding         plotting/private/setsubfield.m
+          Adding         qsub/private/getsubfield.m
+          Adding         qsub/private/issubfield.m
+          Adding         qsub/private/rmsubfield.m
+          Adding         qsub/private/setsubfield.m
+          Adding         specest/private/getsubfield.m
+          Adding         specest/private/issubfield.m
+          Adding         specest/private/rmsubfield.m
+          Adding         specest/private/setsubfield.m
+          Adding         statfun/private/getsubfield.m
+          Adding         statfun/private/issubfield.m
+          Adding         statfun/private/rmsubfield.m
+          Adding         statfun/private/setsubfield.m
+          Transmitting file data .........................
+          Committed revision 8227.
+      - +@isprivate: "0"
+        commentid: "10700"
+        comment_count: "26"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 09:55:20 +0200
+        thetext: |-
+          (In reply to comment #25)
+
+          note that autosync=true for all of them
+      - +@isprivate: "0"
+        commentid: "10704"
+        comment_count: "27"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 10:33:54 +0200
+        thetext: "let's hope it won't break (though I see no reason why). But if it does, I'll be there to fix it asap \nhttp://code.google.com/p/fieldtrip/source/detail?r=8229\nhttp://code.google.com/p/fieldtrip/source/detail?r=8231\nhttp://code.google.com/p/fieldtrip/source/detail?r=8232 (commit message should say subfield rather than suvifled)\n\n(In reply to comment #25)\n\ngreat thanks! \nThe question was also of more general nature. Does it make sense to have a function in private\\ subdirectories if it is also present in utilities\\? Shouldn't a function be private or public but not both?"
+      - +@isprivate: "0"
+        commentid: "10705"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 11:07:45 +0200
+        thetext: |-
+          (In reply to comment #27)
+
+          > commit message should say subfield rather than suvifled
+
+          whuts wrong widh suvifled?
+      - +@isprivate: "0"
+        commentid: "10706"
+        comment_count: "29"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 11:09:44 +0200
+        thetext: |-
+          (In reply to comment #27)
+
+          > Does it make sense to have a
+          > function in private\ subdirectories if it is also present in utilities\?
+          > Shouldn't a function be private or public but not both?
+
+          See http://fieldtrip.fcdonders.nl/code_guidelines#calling_functions_that_are_located_elsewhere and http://fieldtrip.fcdonders.nl/development/modules. We might want to go over this in the meeting on Wednesday.
+      - +@isprivate: "0"
+        commentid: "10707"
+        comment_count: "30"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 15:04:12 +0200
+        thetext: "I saw that ft_spike_XXX started to fail because 'field cfg.warning is not allowed' as checked by ft_checkconfig. I assume that is related to warning_once, because I use global ft_default.warning as a field. Due to trackconfig, this ends up as a field of the cfg. \nIs it alright if ft_preamble_trackconfig temporarily removes the warning field from ft_default, then tracks the cfg, and then copies it back to ft_default?"
+      - +@isprivate: "0"
+        commentid: "10708"
+        comment_count: "31"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 15:12:10 +0200
+        thetext: whoops, that won't work because ft_checkconfig will call mergeconfig(cfg, ft_default) before checking for allowed fields... hmm... any idea how to most elegantly solve this?
+      - +@isprivate: "0"
+        commentid: "10709"
+        comment_count: "32"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 15:15:58 +0200
+        thetext: |-
+          added Martin Vinck, so that he knows what has changed.
+
+          @Martin: I changed warning_once to throw warnings not every XX seconds, but per stacktrace appearance. I made this, however, by adding a field to ft_default called warning. This causes the spike functions to crash, because they track the user-config. The latest two comments are about this, you can ignore the rest of this bug discussion. I thought I add you because I broke your functions, and now you know why :)
+      - +@isprivate: "0"
+        commentid: "10710"
+        comment_count: "33"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-06-11 15:20:01 +0200
+        thetext: |-
+          (In reply to comment #32)
+
+          Jorn, which spike functions does it exactly break?
+
+          And it breaks because of the cfg.allowed thing?
+
+          So one just has to add cfg.warning in those allowed fields?
+      - +@isprivate: "0"
+        commentid: "10711"
+        comment_count: "34"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-06-11 15:21:16 +0200
+        thetext: |-
+          (In reply to comment #33)
+          sorry, not the cfg.allowed, but the checkconfig on allowed fields
+
+          (I have added this because I believe it is good practice to check whether there are inputs that are not allowed, to avoid user typos which can cause unexpected function behavior)
+      - +@isprivate: "0"
+        commentid: "10712"
+        comment_count: "35"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-11 15:31:01 +0200
+        thetext: |-
+          Hi Martin,
+          thanks for the fast response. Yes, it is because of the limited allowed-fields, and it would work if 'warning' is added. I am not sure whether that is an elegant solution though, because 'warning' is not a configuration-field per se, it is more a container of already thrown warnings that can be checked to not throw that warning again. So I was thinking of a way that 'warning' does not end up in the cfg.
+          Adding warning as an allowed field is a solution, but I'll keep on thinking if there is a better one. It might be wise to add 'warning' as an allowed field temporarily though, so that tomorrows FT version will contain usable ft_spike_XXX functions
+      - +@isprivate: "0"
+        commentid: "10713"
+        comment_count: "36"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-06-11 15:32:51 +0200
+        thetext: |-
+          (In reply to comment #35)
+
+          hi Jorn
+
+          ok, when is tomorrow's FT version released (so how much time do I have?)
+      - +@isprivate: "0"
+        commentid: "10714"
+        comment_count: "37"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 15:43:51 +0200
+        thetext: |-
+          (In reply to comment #36)
+
+          We release the ftp version in the evening, at 22.00 If I recall correctly. If you want, I can disable the release for a day.
+      - +@isprivate: "0"
+        commentid: "10715"
+        comment_count: "38"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-06-11 15:44:31 +0200
+        thetext: |-
+          (In reply to comment #37)
+
+          that should work.
+      - +@isprivate: "0"
+        commentid: "10724"
+        comment_count: "39"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-12 15:52:59 +0200
+        thetext: |-
+          as discussed in todays meeting, warnings warned for once are now deleted from ft_default.warning once a high-level function ends. This assures that data.cfg.warning does not contain warnings that have been thrown in other ft_XXX functions rather than the one that has directly been called to create/modify the data structure (i.e. data.cfg.warning does not contain information from data.cfg.warning.previous):
+          http://code.google.com/p/fieldtrip/source/detail?r=8241
+          http://code.google.com/p/fieldtrip/source/detail?r=8243
+
+          it still has be discussed whether trackconfig should merge the used-cfg with ft_default settings. for that, I created bug 2196.
+
+          Martin, I saw your commit, thanks! We will keep it like that for the time being, and discuss if the warning field (and other global settings) should end up in the config or not in bug 2196.
+      - +@isprivate: "0"
+        commentid: "10729"
+        comment_count: "40"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-12 17:17:26 +0200
+        thetext: |-
+          most importantly:
+          http://code.google.com/p/fieldtrip/source/detail?r=8254
+      - +@isprivate: "0"
+        commentid: "10774"
+        comment_count: "41"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 13:27:29 +0200
+        thetext: |-
+          (In reply to comment #40)
+
+          FYI: I have just re-enabled the ftp release script.

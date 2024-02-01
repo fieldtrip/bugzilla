@@ -1,0 +1,203 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2884"
+    creation_ts: 2015-04-29 14:31:00 +0200
+    short_desc: Bug in ft_definetrial
+    delta_ts: 2015-07-15 13:31:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: k.prinsloo.1
+      +@name: kevin Prinsloo
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - dlozanosoldevilla
+      - j.herring
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15615"
+        comment_count: "0"
+        who:
+          +content: k.prinsloo.1
+          +@name: kevin Prinsloo
+        bug_when: 2015-04-29 14:31:07 +0200
+        thetext: |-
+          Hi there,
+
+          While doing some standard pre-processing I have come across a bug in ft_definetrial. The error is not in the script as it is the same one I have been using for a while. The data is not an issue as I have already pre-processed this data before with no problems.
+
+          I would attached one subjects' data from 1 block but it is too large.
+          The same problem comes up with any c,rfDC datafile
+          This is using the latest version of Fieldtrip
+
+          Below is the script
+
+          % triggers
+          trig = 10:2:48;
+
+                 cfg = [];
+                 cfg.headerfile = 'c,rfDC';
+                 cfg.datafile = cfg.headerfile;
+                 cfg.channel = {'all'};
+                 cfg.continuous = 'yes';
+                 cfg.trialfun = 'ft_trialfun_general';
+                 cfg.trialdef.eventtype = 'TRIGGER';
+                 cfg.trialdef.eventvalue = trig;
+                 cfg.trialdef.prestim = 1; %seconds
+                 cfg.trialdef.poststim = 2; %seconds
+                 cfg.headerformat = '4d';
+                 cfg.detrend = 'yes';
+                 cfg = ft_definetrial(cfg);
+
+          My apologies if this is not the correct way to submit a bug, this is the first time I am doing this.
+
+          Many Thanks
+          Kevin
+                 data{idir} = ft_preprocessing(cfg);
+      - +@isprivate: "0"
+        commentid: "15616"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-04-29 14:36:41 +0200
+        thetext: Hi Kevin, could you please describe what the error message is that you get or what you think is wrong?
+      - +@isprivate: "0"
+        commentid: "15617"
+        comment_count: "2"
+        who:
+          +content: k.prinsloo.1
+          +@name: kevin Prinsloo
+        bug_when: 2015-04-29 14:44:15 +0200
+        thetext: |-
+          The error message is:
+
+          Error using ft_definetrial (line 184)
+          no trials were defined, see FT_DEFINETRIAL for help.
+
+          This is the same error when my colleagues get when trying to pre-process their data. We have gone back to some participants data that we know is good and should have any issue.
+
+          The error persists even wehn changing the script slightly for looking at different data sets with different trigger values, or different trials events.
+
+          Thanks
+          Kevin
+      - +@isprivate: "0"
+        commentid: "15620"
+        comment_count: "3"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2015-04-29 14:49:51 +0200
+        thetext: |-
+          (In reply to kevin Prinsloo from comment #2)
+           Hi Kevin and  Jim,
+
+          I got the same issue today. The error is due to ft_trialfun_general introduced in r10345
+
+          https://code.google.com/p/fieldtrip/source/diff?spec=svn10345&r=10345&format=side&path=/trunk/trialfun/ft_trialfun_general.m&old_path=/trunk/trialfun/ft_trialfun_general.m&old=9586
+
+          No clue what's the eventtype=gui option but probably it's a new feature Robert is working on
+
+          Diego
+      - +@isprivate: "0"
+        commentid: "15621"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-29 18:14:38 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #3)
+
+          bummer, that is indeed something I have been messing with. The option was there for ages already (it is used in SPM), but I made some "improvements" to it.
+
+          @Kevin and Diego: would it be possible to send me the header and event (i.e. output of ft_read_header and ft_read_event) of the dtaaset, together with the cfg that you pass into ft_definetrial? That should allow me to debug...
+      - +@isprivate: "0"
+        commentid: "15622"
+        comment_count: "5"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2015-04-30 00:31:28 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          Hi Robert,
+
+          Thank you for your prompt reply. I cannot attach cfg, hdr and event becuase it was too big. But using tutorial data and inserting a debug break point in ft_trialfun_general line 95 you'll get the info you need
+
+          dataset = '/home/common/matlab/fieldtrip/data/Subject01.ds';
+
+          cfg = [];
+          cfg.dataset                 = dataset;
+          cfg.trialdef.eventtype      = 'backpanel trigger';
+          cfg.trialdef.prestim        = 1;
+          cfg.trialdef.poststim       = 2;
+          cfg.trialdef.eventvalue     = 3;
+          cfg = ft_definetrial(cfg);
+      - +@isprivate: "0"
+        commentid: "15623"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-30 08:52:56 +0200
+        thetext: "(In reply to Diego Lozano Soldevilla from comment #5)\n\nthanks, that was indeed sufficient to reproduce\n\nIt was due to a stupid mistake, as I added more complex checks for event type I forgot to test for a simple strcmp. \n\nI now also see that some of the test scripts started failing, e.g. http://www.fieldtriptoolbox.org/development/dashboard/r10355/test_tutorial_eventrelatedaveraging\n\nI fixed it. \n\nmac011> svn commit trialfun/ ft_definetrial.m \nSending        ft_definetrial.m\nSending        trialfun/ft_trialfun_general.m\nTransmitting file data ..\nCommitted revision 10356.\n\n@Kevin: This evenings ftp version will have the fix. If you cannot wait, add the following lines to the \"ismatch\" helper function at the bottom of ft_trialfun_general.\n\n\nelseif ischar(x) && ischar(y)\n  s = strcmp(x, y);"
+      - +@isprivate: "0"
+        commentid: "15624"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2015-04-30 09:21:45 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+          Thank you very much for your quick fix Robert!
+      - +@isprivate: "0"
+        commentid: "15625"
+        comment_count: "8"
+        who:
+          +content: k.prinsloo.1
+          +@name: kevin Prinsloo
+        bug_when: 2015-04-30 09:42:23 +0200
+        thetext: |-
+          Hi Robert,
+
+          Thank you for your prompt reply and the quick solution to the problem!
+
+
+          @ Diego thank you for helping out with this issue.
+      - +@isprivate: "0"
+        commentid: "15898"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:09 +0200
+        thetext: closed several bugs at once that were recently fixed

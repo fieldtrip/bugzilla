@@ -1,0 +1,123 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "447"
+    creation_ts: 2011-01-27 11:00:00 +0100
+    short_desc: output preprocessing .trial if input is .avg
+    delta_ts: 2011-06-21 15:52:43 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1286"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2011-01-27 11:00:38 +0100
+        thetext: I was just wondering if extra consistency is gained if, when preprocessing gets .avg data as input, it also outputs .avg. Especially since (timelocked) datastructures might contain both .avg and .trial.
+      - +@isprivate: "0"
+        commentid: "1288"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-27 11:55:19 +0100
+        thetext: |-
+          once upon a time, this was the case. However, with ft_checkdata at the beginning, the function itself does not have to care about the input any more, only about what it wants as input (which is in this case raw data).
+
+          There is indeed a good (usability) reason for converting the output again to the same datatype as the input.
+
+          We could go about as
+
+          % at the begin of the function
+          convert = ft_datatype(input);
+          input = ft_checkdata(input, 'datatype', 'raw');
+          ...
+
+          % at the end of the function
+          switch convert
+          case 'timelock'
+          % convert the output to the same type as the input
+          output = ft_checkdata(input, 'datatype', 'timelock');
+          otherwise
+          % keep the output as it is
+          end
+
+          - this should be done prior to (optionally) saving the data to disk
+          - this should be implemented in all functions that in principle can work on raw data and on timelock data (e.g. megrealign, componentanalysis, channelrepair, ...)
+      - +@isprivate: "0"
+        commentid: "1601"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-03-10 11:40:30 +0100
+        thetext: fixed, please validate whether it works as expected/desired
+      - +@isprivate: "0"
+        commentid: "1717"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-31 14:12:24 +0200
+        thetext: |-
+          (In reply to comment #2)
+          > fixed, please validate whether it works as expected/desired
+
+          It should also be fixed in all other functions that are often used on timelock data, such as megrealign and others.
+      - +@isprivate: "0"
+        commentid: "1890"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-04-27 12:53:34 +0200
+        thetext: "List of files that call \ndata = ft_checkdata(data, 'datatype', 'raw'\n\nM:\\FieldTrip\\trunk\\utilities\\ft_fetch_data.m\nM:\\FieldTrip\\trunk\\utilities\\ft_fetch_event.m\nM:\\FieldTrip\\trunk\\utilities\\ft_fetch_header.m\nM:\\FieldTrip\\trunk\\fileio\\private\\ft_fetch_data.m\nM:\\FieldTrip\\trunk\\fileio\\private\\ft_fetch_header.m\nM:\\FieldTrip\\trunk\\ft_resampledata.m\nM:\\FieldTrip\\trunk\\ft_connectivityanalysis.m\nM:\\FieldTrip\\trunk\\ft_preprocessing.m\nM:\\FieldTrip\\trunk\\ft_scalpcurrentdensity.m\nM:\\FieldTrip\\trunk\\ft_combineplanar.m\nM:\\FieldTrip\\trunk\\ft_denoise_synthetic.m\nM:\\FieldTrip\\trunk\\ft_rejectvisual.m\nM:\\FieldTrip\\trunk\\ft_megrealign.m\nM:\\FieldTrip\\trunk\\ft_redefinetrial.m\nM:\\FieldTrip\\trunk\\ft_mvaranalysis.m\nM:\\FieldTrip\\trunk\\ft_componentanalysis.m\nM:\\FieldTrip\\trunk\\ft_channelrepair.m\nM:\\FieldTrip\\trunk\\ft_channelnormalise.m\n\nCheck in meeting which need to be changed"
+      - +@isprivate: "0"
+        commentid: "2261"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-06-01 10:35:01 +0200
+        thetext: |-
+          Changed and committed all files, except these:
+
+          - ft_fetch_*, because by definition they should return raw data
+
+          - ft_componentanalysis, because it should return component filetype
+
+          - ft_connectivityanalysis, because it returns statistics rather than data output
+
+          - ft_mvaranalysis, because it seems that mvardata is something completely different than 'timelock' or 'raw' data

@@ -1,0 +1,289 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2190"
+    creation_ts: 2013-06-06 14:26:00 +0200
+    short_desc: autosync does not work properly anymore?
+    delta_ts: 2019-08-10 12:03:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10657"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-06 14:26:43 +0200
+        thetext: |-
+          I committed a change to forward/ft_apply_montage.m (see bug 1886), expecting it to be autosynced to the other copies:
+
+          bash-4.1$ find . -name ft_apply_montage.m
+          ./plotting/private/ft_apply_montage.m
+          ./fileio/private/ft_apply_montage.m
+          ./forward/ft_apply_montage.m
+
+          which all have autosync=true:
+
+          bash-4.1$ find . -name ft_apply_montage.m -exec svn propget autosync {} \;
+          true
+          true
+          true
+
+          However, when after a minute I do svn update, nothing is changed in these other files.
+      - +@isprivate: "0"
+        commentid: "10775"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 13:43:28 +0200
+        thetext: Eelke and I looked at it, it seems to be related to the twitter post-commit hook failing. At the moment we have disabled it. Older commits might have gone wrong, though.
+      - +@isprivate: "0"
+        commentid: "10776"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:01:24 +0200
+        thetext: |-
+          I have crafted the following script to find existing files that are out of sync
+
+
+          #!/bin/sh
+
+          FILE1=`tempfile`
+          FILE2=`tempfile`
+
+          touch $FILE1
+          touch $FILE2
+
+          echo $FILE1
+          echo $FILE2
+
+          svn propget autosync `find . -name \*.m` | cut -d ' ' -f 1 > $FILE1
+          for LINE in `cat $FILE1` ; do
+          basename $LINE >> $FILE2
+          done
+
+          for FUNCTION in `cat $FILE2 | sort | uniq` ; do
+          unset FIRSTOCCURENCE
+          for OCCURENCE in `grep $FUNCTION $FILE1` ; do
+
+          if [ -z "$FIRSTOCCURENCE" ] ; then
+          FIRSTOCCURENCE=$OCCURENCE
+          fi
+
+          echo ===================================
+          diff $OCCURENCE $FIRSTOCCURENCE
+
+          done
+          done
+      - +@isprivate: "0"
+        commentid: "10777"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:05:23 +0200
+        thetext: "(In reply to comment #2)\n\nMore useful is \ndiff -q $FIRSTOCCURENCE $OCCURENCE\n\nWith that I get\n\nFiles fileio/private/ft_apply_montage.m and forward/ft_apply_montage.m differ\nFiles fileio/private/ft_datatype.m and fileio/private/ft_datatype_mvar.m differ\nFiles fileio/private/ft_datatype_vol.m and plotting/private/ft_datatype_volume.m differ\nFiles fileio/private/ft_voltype.m and forward/ft_voltype.m differ\nFiles connectivity/private/getsubfield.m and fileio/private/getsubfield.m differ\nFiles connectivity/private/getsubfield.m and forward/private/getsubfield.m differ\nFiles connectivity/private/getsubfield.m and inverse/private/getsubfield.m differ\nFiles connectivity/private/getsubfield.m and plotting/private/getsubfield.m differ\nFiles connectivity/private/issubfield.m and fileio/private/issubfield.m differ\nFiles connectivity/private/issubfield.m and forward/private/issubfield.m differ\nFiles connectivity/private/issubfield.m and inverse/private/issubfield.m differ\nFiles connectivity/private/issubfield.m and plotting/private/issubfield.m differ\nFiles connectivity/private/rmsubfield.m and test/private/rmsubfield.m differ\nFiles plotting/private/scale.m and private/globalrescale.m differ\nFiles connectivity/private/setsubfield.m and fileio/private/setsubfield.m differ\nFiles connectivity/private/setsubfield.m and test/private/setsubfield.m differ\nFiles connectivity/private/warning_once.m and private/warning_once.m differ"
+      - +@isprivate: "0"
+        commentid: "10778"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:07:48 +0200
+        thetext: "(In reply to comment #3)\n\noops, false positives! The dot in the \".m\" is interpreted as regular expression, i.e. any character. Hence \n\nfileio/private/ft_datatype.m \nfileio/private/ft_datatype_mvar.m \n\nfileio/private/ft_datatype_vol.m \nplotting/private/ft_datatype_volume.m\n\nBeware"
+      - +@isprivate: "0"
+        commentid: "10779"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-14 14:18:35 +0200
+        thetext: 'Twitter has migrated to a new version of their API (again...), as I found out by checking the response: "The Twitter REST API v1 is no longer active. Please migrate to API v1.1. https://dev.twitter.com/docs/api/1.1/overview." I''ll make the changes required.'
+      - +@isprivate: "0"
+        commentid: "10780"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-14 14:22:59 +0200
+        thetext: |-
+          (In reply to comment #5)
+          The twitter PHP script should work fine again. Robert, can you comment the "exit 0" line in post-commit-twitter?
+      - +@isprivate: "0"
+        commentid: "10781"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-14 14:27:00 +0200
+        thetext: |-
+          (In reply to comment #6)
+          Although, now that I think of it, I did not find any indication that the twitter script was generating an error. So possibly the autosync failing is independent of the change in the twitter API? But that would not be in line with autosync succeeding again the moment we disabled the twitter hook.
+      - +@isprivate: "0"
+        commentid: "10782"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:29:34 +0200
+        thetext: |-
+          mac001> svn commit engine/private/getsubfield.m connectivity/private/* fileio/private/ft_apply_montage.m -m "bugfix - some files were not properly autosynched, I made a small change to the latest of each set to trigger the autosync upon this commit. See http://bugzilla.fcdonders.nl/show_bug.cgi?id=2190"
+          Sending        connectivity/private/issubfield.m
+          Sending        connectivity/private/rmsubfield.m
+          Sending        connectivity/private/setsubfield.m
+          Sending        connectivity/private/warning_once.m
+          Sending        engine/private/getsubfield.m
+          Sending        fileio/private/ft_apply_montage.m
+          Transmitting file data ......
+          Committed revision 8267.
+
+          mac001> svn update
+          At revision 8267.  <===== this is not good!
+
+          let's try it manually
+
+          1040 $ ./post-commit-autosync /home/svnroot/fieldtrip 8267
+          svn: Can't write to file '/home/svnroot/fieldtrip/hooks/autosync/trunk/test/.svn/tmp/text-base/test_bug1984_2187.mat.svn-base': No space left on device
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/test/private/rmsubfield.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/test/private/setsubfield.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/utilities/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/test/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/engine/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/fileio/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/plotting/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/forward/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/statfun/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/specest/private/warning_once.m': Operation not permitted
+          cp: preserving times for `/home/svnroot/fieldtrip/hooks/autosync/trunk/qsub/private/warning_once.m': Operation not permitted
+          Sending        autosync/trunk/connectivity/private/getsubfield.m
+          Sending        autosync/trunk/engine/private/issubfield.m
+          Sending        autosync/trunk/engine/private/rmsubfield.m
+          Sending        autosync/trunk/engine/private/setsubfield.m
+          Sending        autosync/trunk/engine/private/warning_once.m
+          Sending        autosync/trunk/fileio/private/getsubfield.m
+          Sending        autosync/trunk/fileio/private/issubfield.m
+          Sending        autosync/trunk/fileio/private/rmsubfield.m
+          Sending        autosync/trunk/fileio/private/setsubfield.m
+          Sending        autosync/trunk/fileio/private/warning_once.m
+          Sending        autosync/trunk/forward/ft_apply_montage.m
+          svn: Commit failed (details follow):
+          svn: File '/trunk/forward/ft_apply_montage.m' is out of date
+
+
+          oh my, disk full!
+      - +@isprivate: "0"
+        commentid: "10783"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:33:34 +0200
+        thetext: |-
+          I cleaned up some file (sorry lilmag and joedie), then triggered it again with
+
+          roboos@dccn-l017:/home/svnroot/fieldtrip/hooks
+          1052 $ ./post-commit-autosync /home/svnroot/fieldtrip 8267
+
+          and now it seems to update and commit just fine.
+
+          On my apple desktop I get
+
+          mac001> svn update
+          U    engine/private/rmsubfield.m
+          U    engine/private/setsubfield.m
+          U    engine/private/issubfield.m
+          U    engine/private/warning_once.m
+          U    inverse/private/getsubfield.m
+          U    inverse/private/issubfield.m
+          U    plotting/private/getsubfield.m
+          U    plotting/private/setsubfield.m
+          U    plotting/private/warning_once.m
+          U    plotting/private/ft_apply_montage.m
+          U    plotting/private/rmsubfield.m
+          U    plotting/private/issubfield.m
+          U    connectivity/private/getsubfield.m
+          U    specest/private/issubfield.m
+          U    specest/private/rmsubfield.m
+          U    specest/private/getsubfield.m
+          U    specest/private/setsubfield.m
+          U    specest/private/warning_once.m
+          U    qsub/private/rmsubfield.m
+          U    qsub/private/getsubfield.m
+          U    qsub/private/setsubfield.m
+          U    qsub/private/issubfield.m
+          U    qsub/private/warning_once.m
+          U    utilities/getsubfield.m
+          U    utilities/setsubfield.m
+          U    utilities/private/warning_once.m
+          U    utilities/rmsubfield.m
+          U    utilities/issubfield.m
+          U    fileio/private/warning_once.m
+          U    fileio/private/issubfield.m
+          U    fileio/private/getsubfield.m
+          U    fileio/private/setsubfield.m
+          U    fileio/private/rmsubfield.m
+          U    private/warning_once.m
+          U    test/private/rmsubfield.m
+          U    test/private/setsubfield.m
+          U    test/private/warning_once.m
+          U    statfun/private/issubfield.m
+          U    statfun/private/rmsubfield.m
+          U    statfun/private/getsubfield.m
+          U    statfun/private/setsubfield.m
+          U    statfun/private/warning_once.m
+          U    forward/ft_apply_montage.m
+          U    forward/private/getsubfield.m
+          U    forward/private/setsubfield.m
+          U    forward/private/warning_once.m
+          U    forward/private/rmsubfield.m
+          U    forward/private/issubfield.m
+          Updated to revision 8268.
+
+          which also makes sense
+      - +@isprivate: "0"
+        commentid: "10784"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-14 14:36:22 +0200
+        thetext: I re-enabled post-commit-twitter.
+      - +@isprivate: "0"
+        commentid: "19905"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:24 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

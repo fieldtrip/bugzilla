@@ -1,0 +1,118 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3259"
+    creation_ts: 2017-02-27 17:34:00 +0100
+    short_desc: ft_headmovement passes empty array to kmeans and crashes
+    delta_ts: 2017-03-06 13:16:07 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sxm1085
+      +@name: Sebastian
+    assigned_to:
+      +content: sxm1085
+      +@name: Sebastian
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18432"
+        comment_count: "0"
+        who:
+          +content: sxm1085
+          +@name: Sebastian
+        bug_when: 2017-02-27 17:34:28 +0100
+        thetext: |-
+          Calling ft_headmovement crashes.
+
+          % code
+          cfg = [];
+          cfg.dataset = filenames{1};
+          cfg.trl = trl_used;
+          [grad_adj] = ft_headmovement(cfg);
+
+          >> output
+          processing channel { 'HLC0011' 'HLC0012' 'HLC0013' 'HLC0021' 'HLC0022' 'HLC0023' 'HLC0031' 'HLC0032' 'HLC0033' }
+          reading and preprocessing
+          reading and preprocessing trial 687 from 687
+
+          the call to "ft_preprocessing" took 58 seconds and required the additional allocation of an estimated 14 MB
+
+          >> error
+          Error using kmeans (line 262)
+          X must have more rows than the number of clusters.
+
+          Error in ft_headmovement (line 125)
+          [bin, cluster] = kmeans(dat', cfg.numclusters);
+
+          --------------------------------------------------------------------------
+          Probably caused by the check for number of unique positions in line 101:
+          wtmpdat(1,m) = sum(sum(tmpdat-utmpdat(:,m)*ones(1,size(tmpdat,2))==0,1)==9);
+
+          together with discarding all positions that are not present at least 100 times in the data line 108:
+
+          dat(:, wdat<100) = [];
+
+          leading to an empty dat passed to kmeans in line 125
+
+          [bin, cluster] = kmeans(dat', cfg.numclusters);
+      - +@isprivate: "0"
+        commentid: "18437"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-01 09:47:38 +0100
+        thetext: what's your suggested fix to address this?
+      - +@isprivate: "0"
+        commentid: "18440"
+        comment_count: "2"
+        who:
+          +content: sxm1085
+          +@name: Sebastian
+        bug_when: 2017-03-01 17:42:18 +0100
+        thetext: "a simple fix would be to replace line 95-109 with:\ndat = [];\nfor k = 1:length(data.trial)  \n  dat     = [dat data.trial{k}];\nend"
+      - +@isprivate: "0"
+        commentid: "18445"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-02 09:39:50 +0100
+        thetext: |-
+          Feel free to contribute this fix in a pull request, as instructed in:
+
+          http://www.fieldtriptoolbox.org/development/git
+
+          Once this is in place, we will review it and if appropriate merge the fix into the main branch of the code.
+
+          Thanks.
+      - +@isprivate: "0"
+        commentid: "18457"
+        comment_count: "4"
+        who:
+          +content: sxm1085
+          +@name: Sebastian
+        bug_when: 2017-03-06 13:16:07 +0100
+        thetext: "ok this should work now. \nbest,\nSebastian"

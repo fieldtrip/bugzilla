@@ -1,0 +1,179 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2804"
+    creation_ts: 2015-01-08 09:09:00 +0100
+    short_desc: 'ft_specest_wavelet: evaluate and incorporate Michael''s suggested correction of wavelets'
+    delta_ts: 2015-02-25 07:47:16 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - j.schoffelen
+      - michael.wibral
+      - r.bastiaannet
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15017"
+        comment_count: "0"
+        attachid: "691"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-08 09:09:07 +0100
+        thetext: |-
+          Created attachment 691
+          suggested fix
+
+          Below is a copy and paste from an e-mail exchange between Michael and the Nijmegen crew:
+
+          +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+          please find attached a SUGGESTION for a fix of the missing wavelet
+          correction. Please note that this is definitely not the last word (it's
+          a HACK in fact).
+          I found it relatively difficult to bring textbooks and code together,
+          partially because early in the code, time-scaling (producing the carrier
+          frequencies of interest) and the width parameter go together in the
+          variables "st" and "sf".
+
+          After some lengthy calculations I find that the correction is simply
+          dependent on the initial "cfg.width"  which I find correct/plausible.
+          Inspecting the resulting wavelets for non-zero mean, I find that the
+          corrected ones have a mean closer to zero than the original ones esp.
+          for 3 cycles.
+
+          Please check the code and let me know whether you come to similar
+          conclusions...
+
+          Best wishes for the holiday season,
+          Michael
+
+
+
+
+
+          On 12/09/2014 12:27 PM, Robert Oostenveld wrote:
+          Hi Michael
+
+          If I recall correctly, the wavelet code originated from Markus Siegel, but the current version was largely (re)written by Roemer van der Meij (CC) when Roemer modularized the specest code.
+
+          Perhaps Roemer is already able to answer your question about “X”, otherwise I’ll have to look into it in more detail.
+
+          cheers
+          Robert
+
+
+
+
+          On 27 Nov 2014, at 14:13, Michael Wibral <wibral@bic.uni-frankfurt.de> wrote:
+
+          Hi Jan Mathijs,
+          hi Robert,
+
+          I am trying to improve the ft_specest_wavelet function in FT by making
+          it work for very small widths ("3 cycles" colloquially speaking). I am
+          aware that the frequencies that are picked up slightly shift wrt to
+          their nominal values, as well as that there is a correction necessary to
+          make the wavelets 'admissable', i.e. to allow an inverse transform to be
+          defined. In the end this correction just makes the wavelet mean-free.
+          (Unfortunately just subtracting the mean after wavelet creation won't do
+          as the wavelet then doesn't taper out to zero anymore.)
+
+          In some notation (see attached book chapter) the wavelet with correction
+          is written in rescaled and shifted time t -> (t-b)/a  as:
+
+          Psi((t-b)/a) =sqrt(2) exp(-(t-b)^2 / alpha^2*a^2) [exp(i*pi*(t-b)/a)  -
+          exp(-pi^2 alpha^2 /4)  ]
+
+          The last exponential that is subtracted from the inner complex
+          exponential under the taper is the correction I'm talking about.
+
+          To cut a long story short, I had some difficulties matching the
+          Fieldtrip variables (st,sf,...) with the stuff above.
+
+          So far, I rewrote the code like this (would clean it up before submitting):
+
+
+          % creating the wavelet by creating a sine and a cosine with the right
+          % phases at each sample time (ind) and multiplying by the taper
+
+          carrier = complex(cos(ind),sin(ind));
+          correction = complex (ones(ind,1).*exp(-pi^2* X^2/2), zeros(ind,1)); %
+          what should "X" be here (st?)
+          carrier_corrected = carrier - correction;
+          wavelet_nonzero = tap.* carrier;
+
+          % padding (taking the wavelet apart again for this purpose)
+          wavelet = complex(vertcat(prezer,real(wavelet_nonzero),pstzer),
+          vertcat(prezer,imag(wavelet_nonzero),pstzer));
+          wltspctrm{ifreqoi} = complex(zeros(1,endnsample));
+          wltspctrm{ifreqoi} = fft(wavelet,[],1)';
+
+
+          But I am unsure about what the "X" in the second line of code should be.
+          In the original formula it is indepedent of scaling, but then the
+          integration runs from -inf to inf, whereas here we're dealing with a
+          discrete transform. So I wonder whether X should be "st" actually.
+
+          Maybe you could put me in direct contact with the person who wrote the
+          code? From the line $Id: ft_specest_wavelet.m 8368 2013-08-01 13:59:19Z
+          vlalit $ it looked like Vladimir had something to do with it, but he
+          didn't...
+
+          All the best,
+          Michael
+
+
+
+          <sadowsky.pdf>
+      - +@isprivate: "0"
+        commentid: "15018"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-08 09:10:12 +0100
+        thetext: I moved the discussion to bugzilla to keep track of its resolution.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "691"
+      date: 2015-01-08 09:09:00 +0100
+      delta_ts: 2015-01-08 09:09:07 +0100
+      desc: suggested fix
+      filename: ft_specest_wavelet_fix.m
+      type: text/x-matlab
+      size: "12210"
+      attacher:
+        +content: j.schoffelen
+        +@name: Jan-Mathijs Schoffelen
+      data: REMOVED

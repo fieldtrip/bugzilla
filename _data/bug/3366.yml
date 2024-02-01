@@ -1,0 +1,76 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3366"
+    creation_ts: 2017-10-23 06:42:00 +0200
+    short_desc: implement REST re-referencing for EEG data
+    delta_ts: 2017-10-24 05:06:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: youlong1230
+      +@name: Li Dong
+    cc:
+      - dyao
+      - r.oostenveld
+      - youlong1230
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18985"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-10-23 06:42:06 +0200
+        thetext: as discussed in Chengdu
+      - +@isprivate: "0"
+        commentid: "18986"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-10-23 06:50:24 +0200
+        thetext: |-
+          This bugzilla page is for discussion of the new feature. The actual code (and possibly the more detailled discussion of that code) is managed on our github page at http://www.fieldtriptoolbox.org/development/git
+
+          Can you please confirm that you can access http://github.com/fieldtrip/fieldtrip? If so, I propose you read through the tutorial at http://www.fieldtriptoolbox.org/development/git
+      - +@isprivate: "0"
+        commentid: "18987"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-10-23 07:02:18 +0200
+        thetext: "re-referencing is now implemented in ft_preprocessing for the high-level interface that is explained at http://www.fieldtriptoolbox.org/tutorial/preprocessing_erp. The high-level interface helps with data management (channel selection etc).\n\nThe low-level code works as follows\nft_preprocessing.m calls private/preproc.m, which in turn calls preproc/ft_preproc_rereference.m \nIn the last function we now have methods 'avg' and 'median'. Furthermore, the function gets a list of channels that is to be considered for the reference. \n\nPlease have a look at ft_preproc_rereference. We may extend that function with the method 'rest'. \n\nSince this function is often called many times (for each trial or data segment), I suspect that the computational overhead might be too large. The alternative that I therefore see is that we implement the REST reference as a \"montage\". This is a structure that, together with the data, is handled by ft_preprocessing as cfg.montage.\n\nIn this case, the low-level code works as follows\nft_preprocessing.m calls private/preproc.m, which in turn calls forward/ft_apply_montage.m \n\nTo understand the montage, please check ft_apply_montage. It is basically a matrix multiplication (newdat = montage.tra * olddat) with the bookkeeping of the channels (rows and columns)."
+      - +@isprivate: "0"
+        commentid: "18989"
+        comment_count: "3"
+        who:
+          +content: youlong1230
+          +@name: Li Dong
+        bug_when: 2017-10-24 05:06:51 +0200
+        thetext: "I have a look at ft_preproc_rereference. We may extend that function with the method 'rest' first. One input of the method 'rest' is leadfield matrix. Therefore, I suggest to calculate leadfield matrix using FieldTrip first (especially using real head modal); i.e., to add an input of leadfield matrix G, instead of calculating leadfield matrix in modified ft_preproc_rereference.m. \n\nMaybe we can add an input of leadfield in function ft_preprocessing.m (such as cfg.G, channels X sources), if user want to re-refer to REST.\n\nI will work on this function first, and test it next step."

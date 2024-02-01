@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "457"
+    creation_ts: 2011-01-29 02:03:00 +0100
+    short_desc: coherence tutorial problems because of label and labelcmb fields
+    delta_ts: 2011-01-31 20:08:53 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1316"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-01-29 02:03:25 +0100
+        thetext: |-
+          Running Matlab 2010b on a MacBook Pro running OS X 10.6.6 and fieldtrip-20110119
+
+          I hope this submission is helpful. I'm trying to learn about running coherence analyses and I'm attempting to follow along with the coherence tutorial http://fieldtrip.fcdonders.nl/tutorial/coherence but the ft_multiplotER call doesn't work under the section Displaying the Coherence, exercise 1. I have come up with a potential hack-y solution and thought I should submit it so the tutorial might work for other people (note that my "solution" should be checked for correctness).
+
+          ft_multiplotER wants a data.label field to pass into ft_channelselection on line 171, but this doesn't exist because the data (defined as both data and varargin) is from ft_connectivityanalysis, and thus it has a labelcmb field (and it can't have both label and labelcmb). I think I've figured out a hack for getting it to work, but I don't know if it's correct because my plot does not look the same as the plot in the tutorial (which is more than 5 years old).
+
+          using the structures from exercise 1 of the tutorial, if I define cfg.channel = freq.label (not letting it get set to 'all' by default) and replace the channel selection part of ft_multiplotER with the following code, it runs without crashing.
+
+          % perform channel selection
+          if isfield(data,'label')
+            cfg.channel = ft_channelselection(cfg.channel, data.label);
+          end
+          for iargin = 1:length(varargin)
+            if ~isfield(varargin{iargin},'label') && isfield(varargin{iargin},'labelcmb')
+              rmlabelflg = 1;
+              labelcmb = varargin{iargin}.labelcmb;
+              varargin{iargin} = rmfield(varargin{iargin},'labelcmb');
+              varargin{iargin}.label = cfg.channel;
+              cfg.channel = ft_channelselection(cfg.channel,varargin{iargin}.label);
+            else
+              rmlabelflg = 0;
+            end
+            varargin{iargin} = ft_selectdata(varargin{iargin}, 'channel', cfg.channel);
+            if rmlabelflg
+              varargin{iargin} = rmfield(varargin{iargin},'label');
+              varargin{iargin}.labelcmb = labelcmb;
+            end
+          end
+      - +@isprivate: "0"
+        commentid: "1317"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-01-29 08:38:41 +0100
+        thetext: "Hi Matt,\n\nThanks a lot for filing this. Sorry for the potentially double work I caused you (and thanks for already submitting a bug fix along with the bug report; that is really helpful. Typically people don't get any further than: \"help, it does not work!\").\n\nAs to ft_multiplotER, I just committed a massively cleaned up version of this file last Wednesday. The change was aimed at making the code more readable and more robust again (after some changes were introduced over the previous months). Could you lay your hands on a recent version, try again, and report whether the bug persists?\n\nThanks, \n\nJM\n\nPS: by the way, did you know you can also get to the latest version of the code through googlecode? See, http://fieldtrip.fcdonders.nl/development/svn?s[]=google&s[]=code for more info."
+      - +@isprivate: "0"
+        commentid: "1330"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-01-31 19:52:53 +0100
+        thetext: |-
+          Looks like the updates that you made to ft_multiplotER make the tutorial work fine. I'll close this ticket and I'll test with up-to-date code next time. :)
+
+          I tried to check out fieldtrip from google code (svn co http://code.google.com/p/fieldtrip/source/browse/trunk fieldtrip), but I got an error (405 Method Not Allowed). Not sure if it is due to the network problems we're having on campus today or if I'm doing something wrong.
+      - +@isprivate: "0"
+        commentid: "1331"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-01-31 20:08:53 +0100
+        thetext: |-
+          Hi Matt,
+
+          Thanks for testing.
+
+          Best wishes,
+
+          Jan-Mathijs

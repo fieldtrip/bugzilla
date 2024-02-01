@@ -1,0 +1,162 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "982"
+    creation_ts: 2011-09-22 14:14:00 +0200
+    short_desc: headsurface and head_surf seem to have largely overlapping functionality
+    delta_ts: 2012-02-03 22:01:16 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - b.reuderink
+      - johanna.zumer
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3295"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 14:14:56 +0200
+        thetext: look if they can be merged together
+      - +@isprivate: "0"
+        commentid: "3426"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-10-05 09:39:48 +0200
+        thetext: |-
+          plan:
+
+          -investigate where they are used
+          -investigate the functionality of both functions
+          -merge into 1 function if possible
+      - +@isprivate: "0"
+        commentid: "4180"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-11-23 09:47:40 +0100
+        thetext: "I examined the two functions; headsurface seems to be the more general one. Furthermore, it seems that head_surf is actually never really used.\n\nWhere is headsurface used?\n\nbash-3.2$ grep headsurface **/*.m\ncompat/ft_headmodelplot.m:%   cfg.plotheadsurface  = 'yes' or 'no', is constructed from head model\ncompat/ft_headmodelplot.m:if ~isfield(cfg, 'plotheadsurface'),  cfg.plotheadsurface = 'yes';   end\ncompat/ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes')  && ~isempty(vol)\ncompat/ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);\ncompat/ft_headmodelplot.m:  end % plotheadsurface\ncompat/ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes') && ~isempty(vol)\ncompat/ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);\ncompat/ft_headmodelplot.m:  end % plotheadsurface\nprivate/headsurface.m:function [pnt, tri] = headsurface(vol, sens, varargin);\nprivate/headsurface.m:%   [pnt, tri] = headsurface(vol, sens, ...)\nprivate/headsurface.m:% $Id: headsurface.m 4510 2011-10-18 18:53:15Z roboos $\n\nWhere is head_surf used?\n\nbash-3.2$ grep head_surf **/*.m\nprivate/head_surf.m:function [pnt,tri]=head_surf(vol,grad,flag);\nprivate/head_surf.m:%   [pnt, tri] = head_surf(vol, grad, flag) \nprivate/head_surf.m:% $Id: head_surf.m 4510 2011-10-18 18:53:15Z roboos $\nprivate/prepare_brain_surface.m:    [pnt, tri] = head_surf(vol, grad, 0);\n\nHmm, so basically only in prepare_brain_surface. Where is that one used, then?\n\nbash-3.2$ grep prepare_brain_surface **/*.m\nprivate/prepare_brain_surface.m:function [pnt] = prepare_brain_surface(cfg, grad, vol);\nprivate/prepare_brain_surface.m:% $Id: prepare_brain_surface.m 952 2010-04-21 18:29:51Z roboos $\n\nNowhere...\n\nProposed action: delete prepare_brain_surface.m and head_surf.m. Before I destroy anything, I thought it wise to consult :)"
+      - +@isprivate: "0"
+        commentid: "4181"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-11-23 10:02:29 +0100
+        thetext: 'I haven''t used either (but might soon!) but just wondering: where is headsurface used?  The ft_headmodelplot is in ''compat'' which I thought meant ''deprecated''. Even if not, it''s still only a plotting tool, not a higher function calling it.  Is there not any (higher) function that calls headsurface in order to generate the actual head surface?'
+      - +@isprivate: "0"
+        commentid: "4182"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-11-23 10:04:09 +0100
+        thetext: Good point Johanna, indeed it's only used in compat/ft_headmodelplot. I guess we should discuss this today at the meeting.
+      - +@isprivate: "0"
+        commentid: "4221"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-23 12:55:47 +0100
+        thetext: "Heya,\n\nI found the same uselessness of head_surf and prepare_brain_surface in bug 1132\nSince the big bosses do not respond, maybe we should just delete and see whether someone notices? \n\nThat's how my mother is doing it with unnecessary stuff from my dad, which he wants to keep for no reason. She just throws it away without asking, and he never noticed so far"
+      - +@isprivate: "0"
+        commentid: "4242"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-11-23 16:18:52 +0100
+        thetext: |-
+          bash-3.2$ svn commit
+          Deleting       private/head_surf.m
+          Deleting       private/prepare_brain_surface.m
+
+          Committed revision 4808.
+      - +@isprivate: "0"
+        commentid: "4243"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-11-23 16:20:40 +0100
+        thetext: |-
+          Oh yes, for future reference; I made a grep syntax error in my comment above. It turns out headsurface *is* used in functions other than ft_headmodelplot:
+
+          bash-3.2$ grep headsurface *.m **/*.m
+          ft_headmodelplot.m:%   cfg.plotheadsurface  = 'yes' or 'no', is constructed from head model
+          ft_headmodelplot.m:if ~isfield(cfg, 'plotheadsurface'),  cfg.plotheadsurface = 'yes';   end
+          ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes')  && ~isempty(vol)
+          ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);
+          ft_headmodelplot.m:  end % plotheadsurface
+          ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes') && ~isempty(vol)
+          ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);
+          ft_headmodelplot.m:  end % plotheadsurface
+          ft_megplanar.m:    pos = headsurface(vol, axial.grad, 'surface', 'cortex', 'inwardshift', cfg.inwardshift, 'npnt', cfg.spheremesh);
+          ft_megplanar.m:    pos = headsurface([], [], 'headshape', headshape, 'inwardshift', cfg.inwardshift, 'npnt', cfg.spheremesh);
+          ft_megrealign.m:% sometimes some of the dipole positions are nan, due to problems with the headsurface triangulation
+          ft_prepare_sourcemodel.m:  grid.pos     = headsurface([], [], 'headshape', headshape, 'inwardshift', cfg.inwardshift, 'npnt', cfg.spheremesh);
+          ft_prepare_sourcemodel.m:  grid.pos     = headsurface(vol, sens, 'inwardshift', cfg.inwardshift, 'npnt', cfg.spheremesh);
+          ft_prepare_sourcemodel.m:        [pnt, tri] = headsurface(vol, sens, 'headshape', cfg.headshape, 'inwardshift', cfg.inwardshift, 'surface', 'skin');
+          ft_prepare_sourcemodel.m:        [pnt, tri] = headsurface(vol, sens, 'inwardshift', cfg.inwardshift, 'surface', 'skin');
+          ft_prepare_sourcemodel.m:      [pnt, tri] = headsurface(vol, sens, 'inwardshift', cfg.inwardshift, 'surface', 'brain');
+          compat/ft_headmodelplot.m:%   cfg.plotheadsurface  = 'yes' or 'no', is constructed from head model
+          compat/ft_headmodelplot.m:if ~isfield(cfg, 'plotheadsurface'),  cfg.plotheadsurface = 'yes';   end
+          compat/ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes')  && ~isempty(vol)
+          compat/ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);
+          compat/ft_headmodelplot.m:  end % plotheadsurface
+          compat/ft_headmodelplot.m:  if strcmp(cfg.plotheadsurface, 'yes') && ~isempty(vol)
+          compat/ft_headmodelplot.m:    [pnt, tri] = headsurface(vol, sens);
+          compat/ft_headmodelplot.m:  end % plotheadsurface
+          private/headsurface.m:function [pnt, tri] = headsurface(vol, sens, varargin);
+          private/headsurface.m:%   [pnt, tri] = headsurface(vol, sens, ...)
+          private/headsurface.m:% $Id: headsurface.m 4510 2011-10-18 18:53:15Z roboos $
+      - +@isprivate: "0"
+        commentid: "4323"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-29 10:28:47 +0100
+        thetext: "(In reply to comment #5)\n\nHey wife, where did my favorite T-shirt go? \n...\nYes, the one that is a bit worn down.\n... \nNo, even with the holes in it I can still wear it.\n...\nWhat, you threw it away?!?!"
+      - +@isprivate: "0"
+        commentid: "5150"
+        comment_count: "9"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 22:01:16 +0100
+        thetext: Since the shirts are gone now anyways, I think I can close this issue ;-).

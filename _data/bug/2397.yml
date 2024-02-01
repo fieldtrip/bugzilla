@@ -1,0 +1,214 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2397"
+    creation_ts: 2013-11-29 09:57:00 +0100
+    short_desc: merge ft_iso2surf into ft_prepare_mesh
+    delta_ts: 2015-07-15 13:31:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2338"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - ddewong
+      - j.schoffelen
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12110"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 09:57:32 +0100
+        thetext: "from the help:\n\n% FT_ISO2SURF is an alternative to ft_prepare_mesh for generating surfaces \n% from tissue-labeled MRIs. Requires the ISO2MESH matlab toolbox.\n\nit should not be an alternative, but one of the supported methods of ft_prepare_mesh. The internal handling in ft_prepare_mesh is a bit messy, because it does not explicitly use cfg.method. That should be fixed first. Subsequently cfg.method=iso2mesh should be added."
+      - +@isprivate: "0"
+        commentid: "12215"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 12:11:47 +0100
+        thetext: "I have revised ft_prepare_mesh, it now consistently uses cfg.method\n\nmac001> svn commit \nSending        ft_prepare_mesh.m\nSending        private/prepare_mesh_headshape.m\nSending        private/prepare_mesh_segmentation.m\nTransmitting file data ...\nCommitted revision 8957.\n\n there is a placeholder for cfg.method=iso2mesh in the prepare_mesh_segmentation helper function. I will move the actual meshing code there. The checking code should go at the end as it also applies to the other meshing methods."
+      - +@isprivate: "0"
+        commentid: "12222"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 12:59:45 +0100
+        thetext: "mac001> svn commit test/test_bug2397.m private/prepare_mesh_segmentation.m\nSending        private/prepare_mesh_segmentation.m\nAdding         test/test_bug2397.m\nTransmitting file data ..\nCommitted revision 8958.\n\nthe mesh is being made with iso2mesh, but the result is rather ugly. Probably I am not using it as I shoudl. \n\n@Daniel could you have a look at the test script?\n\nNote that the mesh cleanup (decouplesurf, surfreorient) is not yet in place."
+      - +@isprivate: "0"
+        commentid: "12228"
+        comment_count: "3"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-04 15:42:43 +0100
+        thetext: "The CSF isn't meshing properly with the iso2mesh method because there's an open hole in the segmentation, so it's not getting filled (and probably the project mesh version has a spike shooting out). That's why I had a section of code in iso2surf that added the inner layers, and used the extra mesh processing code to repair the overlaps.\n\nAlso, with iso2mesh, I usually use 2000, 3000, 3000, 4000 vertices for scalp, skull, csf, and brain. The skull still won't get meshed completely in this case as it is actually quite convoluted (the project mesh method doesn't really get the geometry correct either) - we need ~5000 vertices.\n\nThe goal of using iso2mesh was to have a more regular tessellation that better represents the segmented MR. This would avoid the large, stretched triangles around the eye sockets, neck, skull base, etc. but at the price of a higher vertex count. (I used to do FEM modelling for the solar car team at in Toronto and irregular, stretched tetrahedrons were not good for the results as it meant that the airflow was not being modeled evenly in all directions - which is why I prefer regular triangles for BEM)\n\nTo achieve a better balance between vertex count and geometry definition, one option we could implement is to decimate the mesh after using v2s (e.g. meshresample or matlab's own functions).  So, perhaps we could start with a high default vertex count - say 10000 nodes, then decimate it to whatever the user specified. So, something like:\n\nopt = [];\nopt.radbound = 3;\nopt.maxnode = 10000;\nopt.maxsurf = 1;\n      \n[pnt, tri] = v2s(seg, 1, opt, 'cgalsurf');\ntri = tri(:,1:3);\n[pnt, tri] = meshresample(pnt, tri, min(cfg.numvertices(i)/size(pnt,1),1));\n\nThis gives a much nicer result (gets rid of that high mesh density hot spot on the scalp mesh) and keeps the node count down :-)"
+      - +@isprivate: "0"
+        commentid: "12231"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 15:58:26 +0100
+        thetext: "(In reply to comment #3)\n\nlets try to separate between obtaining the ideal mesh for a specific case and obtaining the ideal implementation of the code. \n\nThe configuration I use in the test script is just one to do a quick check on whether the code works as expected. From your comments I take it that these crappy meshes are the expected outcome for this specific case.\n\nAs I understand it, the conversion from the segmentation into the mesh is now fine, but it is desirable to have better tools to fine-tune the meshes afterwards. That is part of the larger ambition. Please read this project page http://fieldtrip.fcdonders.nl/development/fwdarch. \n\nYou can skip the whole section pertaining to http://fieldtrip.fcdonders.nl/development/fwdarch#overview_on_the_methods\nbut please do read the text up to that point. Please also read from  http://fieldtrip.fcdonders.nl/development/fwdarch#triangulation_methods onwards.\n\nThe figure hopefully clarifies the overall idea, which is to split the challenge into pieces. The pieces are defined as\n\nana = anatomical MRI, i.e. grey-scale values\nseg = 3D grid with probabilistic, boolean or indexed values\nmesh = triangulation (or hex/tet for FEM)\nvol =  volume conduction model, this takes a geometrical description and conductivities as input\nlf = leadfield, this takes the volume conduction model, the sensors and the dipole positions as input\n\nIt seems to me that FT_ISO2SURF is doing some \"seg2mesh\" and some \"mesh2mesh\" operations. The seg2mesh is now done, but the mesh2mesh can be further improved."
+      - +@isprivate: "0"
+        commentid: "12237"
+        comment_count: "5"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-04 17:13:32 +0100
+        thetext: |-
+          Do we want to do anything about being able to handle the hole in the CSF? The hole is caused by the CSF being a very thin layer and floodfill can't handle any gaps.
+
+          Currently, there doesn't seem to be a way to combine tissues together (i.e. CSF and brain). Even if we had the segmentation structure set up as
+          seg.brain = mri.anatomy==19;
+          seg.csf = mri.anatomy==18 | mri.anatomy == 19;
+          FieldTrip will automatically try to separate the tissues and we still end up with a hole in the csf.
+
+          Does the project mesh method actually require that we enforce the separation of tissues? I noticed volumefillholes performed regardless.
+      - +@isprivate: "0"
+        commentid: "12239"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 17:15:54 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          why not csf = csf | imdillate(brain), i.e. ensure that there is one voxel outside the brain that is csf, or more voxels if the csf segmentation says so.
+      - +@isprivate: "0"
+        commentid: "12241"
+        comment_count: "7"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-04 17:42:20 +0100
+        thetext: That'll work. Should we automate that process - i.e. detect order of surfaces, then ensure we have >= 1 voxel spacing? Both iso2mesh and project mesh methods would give erroneous results if the >=1 voxel spacing condition doesn't hold.
+      - +@isprivate: "0"
+        commentid: "12242"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-04 18:21:29 +0100
+        thetext: "(In reply to comment #7)\n\nthe gist of http://fieldtrip.fcdonders.nl/development/fwdarch is to allow researchers to tweak their \"data\" in between the steps that fieldtrip performs for them. \n\nThe tweaking requires \n1) tools\n2) documentation\n\n1 is present here (as a one-liner), 2 is missing. Changing the tools by hiding it in a fieldtrip function as automatic step is not my preferred solution, as 2 is still missing and the decision as to whether the tweaking is needed is not as easily made by the user any more.\n\nI would prefer to have documentation that explains the \"seg2seg\" morphology operations and \nthe \"mesh2mesh\" operations that the user can exploit to improve the model. For the mesh2mesh I realize that we still need to implement some functionalities into functions.\n\nI see little need for making a set of tools for the processing of the segmentation, as MATLAB image toolbox provides most. For the manipulation of the meshes I do think that we have specific wishes that are based on the topological requirements that we put on the meshes, although we should also point to spm and iso2mesh functionality.\n\nMy idea is to implement the mesh manipilation functions in \"low\" level functions, i.e. in fieldtrip/mesh/* and make functions that do not take a cfg as 1st argument, but a mesh as first argument (and optional key value pairs). Just like fieldtrip/plotting\n\nthat is a little bit like we started of with at \nhttp://code.google.com/p/fieldtrip/source/browse/#svn%2Fbranches%2Fsurface\n\nbut now I would rather do it like:\n\nft_mesh_isoutwardoriented(mesh) returns 0 or 1\nft_mesh_isclosed(mesh) do a topology check\nft_mesh_inside(mesh, pos) checks whether pos is inside the mesh \nft_mesh_intersect(mesh1, mesh2), this could be implemented as x = ft_mesh_inside(mesh1, mesh2.pnt) and then return any(x~=x(1)) \nft_mesh_project(mesh1, mesh2)\nft_mesh_refine(mesh, numvertices)\nft_mesh_smooth(mesh, factor)\nft_mesh_area(mesh) returns the surface area (this gets interesting with parcelated cortices)\n\netc.\n\nNote that this does not require any new code, just reorganization of existing code that is in use in fieldtrip (and now scattered all over the place in various helper functions)."
+      - +@isprivate: "0"
+        commentid: "12243"
+        comment_count: "9"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2013-12-04 19:34:23 +0100
+        thetext: |-
+          Sounds like we have yet another tutorial in the works!
+
+          I guess the extra mesh checking and repair at the end of ft_iso2surf would somehow go into those mesh2mesh functions.  It might be worth checking out the iso2mesh2013 toolbox if you haven't already as they have a number of useful features (e.g. mesh repair to remove self intersecting triangles, which is sometimes a problem for the mesh that is immediately generated by v2s).
+
+          Also, the metrics in http://en.wikipedia.org/wiki/Types_of_mesh#Mesh_quality might be useful. (CFD meshing software usually plots these as histograms)
+      - +@isprivate: "0"
+        commentid: "12255"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 11:15:56 +0100
+        thetext: |-
+          I have started documentation detailed manipulations of geometrical data as a FAQ at http://fieldtrip.fcdonders.nl/faq/how_can_i_fine-tune_my_bem_volume_conduction_model
+
+          Of course there is much to be improved, but it is a starting point.
+      - +@isprivate: "0"
+        commentid: "12256"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 11:47:04 +0100
+        thetext: |-
+          I included the mesh cleanup from ft_iso2mesh to ft_prepare_mesh/prepare_mesh_segmentation.
+
+          mac001> svn commit
+          Sending        private/prepare_mesh_segmentation.m
+          Transmitting file data .
+          Committed revision 8970.
+
+
+          I included the cfg.method option in the help
+
+          mac001> svn commit
+          Sending        ft_prepare_mesh.m
+          Transmitting file data .
+          Committed revision 8971.
+
+          I believe this actually completes this bug and that ft_iso2mesh is properly integrated in ft_prepare_mesh. That does not solve all possible issues with generating meshes from real data, but those might need to be addressed elsewhere.
+
+          @Daniel: please review the code and reopen this bug if you see something that still needs to be done.
+      - +@isprivate: "0"
+        commentid: "12257"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 11:50:21 +0100
+        thetext: "I almost forgot:\n\nmac001> svn del ft_iso2surf.m \nD         ft_iso2surf.m\n\nmac001> svn commit\nDeleting       forward/ft_iso2surf.m\nCommitted revision 8972.\n\nPlease take it from http://code.google.com/p/fieldtrip/source/browse/trunk/forward/ft_iso2surf.m?r=8971 if you still need the function."
+      - +@isprivate: "0"
+        commentid: "12916"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:26 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+      - +@isprivate: "0"
+        commentid: "15700"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:48:51 +0200
+        thetext: |-
+          regression function fails: this is due to an issue in prepare_mesh_segmentation, where an automatic detection of the numeric segmentation data is attempted, based on prod(mri.dim)==numel(mri.fn{i}). Now, it happens that nowadays the inside field is boolean, and it is present in the example data. As a consequence, the correct field (i.e. mri.tissue) is not identified as the proper field to be selected.
+          Suggested fix: do not only test for the number of elements in the matrix, but also test for the presence of a XXXlabel field.
+      - +@isprivate: "0"
+        commentid: "15701"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-07 13:50:29 +0200
+        thetext: |-
+          [jansch@mentat002 fieldtrip]$ svn commit -m "bugfix - fixed issue causing test_bug2397 to fail" private/prepare_mesh_segmentation.m test/test_bug2397.m
+          Sending        private/prepare_mesh_segmentation.m
+          Sending        test/test_bug2397.m
+          Transmitting file data ..
+          Committed revision 10385.

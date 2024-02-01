@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2417"
+    creation_ts: 2013-12-10 12:25:00 +0100
+    short_desc: Numerical Precision difference in MATLAB interactive session and qsub
+    delta_ts: 2013-12-10 13:12:20 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: Other
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: t.vanmourik
+      +@name: Tim van Mourik
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12295"
+        comment_count: "0"
+        attachid: "572"
+        who:
+          +content: t.vanmourik
+          +@name: Tim van Mourik
+        bug_when: 2013-12-10 12:25:43 +0100
+        thetext: "Created attachment 572\nThe script in which the problem is highlighted\n\nI encountered this problem using the matlab function butter.m, but it is probably not restricted to this function alone.\n\nThe input of the upper cut-off frequency should be smaller than 1 (not equal). Now there seems to be a slight change in numerical precision when a job is executed by means of qsubfeval: where feval (or cellfun) run normally, qsubfeval (or qsubcellfun) crash in the same computation. Qsub gives the error that the input is equal to or larger than 1.\n\nAttached a script that highlights the problem, including the output it gives when I run it. \n\nI stopped the script in debug mode at line 415 \"[status, result] = system(cmdline);\" of qsubfeval. At this point executing \"qsubexec(jobid);\" (line 421) works fine, though executing line 415 gives the above error message.\n\nBest wishes,\n\nTim van Mourik"
+      - +@isprivate: "0"
+        commentid: "12296"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 12:32:37 +0100
+        thetext: "I can reproduce the error on mentat with matlab2013a\n\n>> [a, b] = cellfun(@butter, {filterOrder}, {Wn}, 'UniformOutput', false);\n>> a\na = \n    [1x9 double]\n>> b\nb = \n    [1x8 double]\n\n>> [c, d] = qsubcellfun(@butter, {filterOrder}, {Wn}, 'timreq', 0, 'memreq', 0);\nsubmitting job roboos_dccn_c014_p31626_b1_j001... qstat job id 4335882.dccn-l014.dccn.nl\njob roboos_dccn_c014_p31626_b1_j001 returned, it required NaN seconds and NaN GB\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n% an error was detected inside MATLAB, the diary output of the remote execution follows \n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\nError using ==> butter at 41\nThe cutoff frequencies must be within the interval of (0,1).\nError in butter (line 41)\nif ~isempty(errStr), error(generatemsgid('SigErr'),errStr); end\nError in fexec (line 154)\n    [argout{:}] = feval(fname, argin{:});\nError in qsubexec (line 89)\n  [argout, optout] = fexec(argin, optin);"
+      - +@isprivate: "0"
+        commentid: "12297"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 13:06:30 +0100
+        thetext: "(In reply to comment #1)\n\nthat is interesting, I went out for lunch, came back, started a new matlab on the cluster and now get\n\n\nTR = 1.680;\nfilterLow = 0.008;\nfilterHigh = 1 / ( 2 * TR); %Nyquist, i.e. no low-pass\nsamplingRate = 1 / TR;\nfilterOrder = 4;\n\nWn = [filterLow, filterHigh] * 2 / samplingRate; \n\n[a, b] = cellfun(@butter, {filterOrder}, {Wn}, 'UniformOutput', false);\nError using butter (line 57)\nThe cutoff frequencies must be within the interval of (0,1).\n\nSo already at the first instance it fails. This suggests that it has to do with the particular computer on which it is executed. So on dccn-c014 it fails...."
+      - +@isprivate: "0"
+        commentid: "12298"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 13:12:20 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          the cluster is too busy right now to try different types of machines.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "572"
+      date: 2013-12-10 12:25:00 +0100
+      delta_ts: 2013-12-10 12:25:43 +0100
+      desc: The script in which the problem is highlighted
+      filename: PrecissionProblem.m
+      type: application/mathematica
+      size: "2877"
+      attacher:
+        +content: t.vanmourik
+        +@name: Tim van Mourik
+      data: REMOVED

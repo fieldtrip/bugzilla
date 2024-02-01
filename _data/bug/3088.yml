@@ -1,0 +1,111 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3088"
+    creation_ts: 2016-03-04 16:59:00 +0100
+    short_desc: ft_volumerealign shuts down Matlab when f key is pressed
+    delta_ts: 2019-08-10 12:32:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: juangpc
+      +@name: Juan
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17085"
+        comment_count: "0"
+        who:
+          +content: juangpc
+          +@name: Juan
+        bug_when: 2016-03-04 16:59:06 +0100
+        thetext: "During normal use of the function with 'intereactive' method, after a few clicks within the mri itself, if 'f' key is pressed, Matlab terminates abruptly. \n\nI've reproduced this behaviour with different mri. For instance, it happens with the standard mri given in the /template/headmodel folder.\n\n\nload standard_mri.mat\n\ncfg=[];\ncfg.method='interactive';\ncfg.coordsys='ctf';\nmri2=ft_volumerealign(cfg,mri),\n\n% 'q', 'l', 'r' or 'n' keypresses work ok, but whenever 'f' key is pressed, matlab is just terminated.\n\nh2h\n\nJuan"
+      - +@isprivate: "0"
+        commentid: "17086"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-05 15:41:16 +0100
+        thetext: this sounds like a bug in MATLAB (i.e. MATLAB crashing), not a bug in FieldTrip. Which MATLAB version are you using on which operating system?
+      - +@isprivate: "0"
+        commentid: "17090"
+        comment_count: "2"
+        who:
+          +content: juangpc
+          +@name: Juan
+        bug_when: 2016-03-07 10:39:37 +0100
+        thetext: "Hi, \n\nI don't know if its Matlab is terminated because of a bug in FT or in one of Matlab's components. The fact is that it only crashes during normal execution of a fieldtrip function (i.e. ft_volumerealign).\n\nWindows 8.1 x64\nmatlab R2014a (x64)\n\nHope this helps."
+      - +@isprivate: "0"
+        commentid: "17094"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 11:26:26 +0100
+        thetext: "(In reply to Juan from comment #2)\n\nI don’t have a windows computer myself to reproduce. On my Mac (OSX 10.9.5 and R2015b) your code example runs just fine and I can toggle fiducionals with 'f' without a crash. At the donders we use windows 7, which also don't seem to have problems with crashing (otherwise my colleagues would have complained with me). \n\nDo you have another MATLAB version on that computer? If so, does it also crash with that version?\n\nCould you add (with the MATLAB debugger) breakpoints at various locations in the code? Just ad a whole bunch and then run the code once more, making large steps. This should allow you to identify where (which line) the code is problematic.\n\nProbably the relevant parts to check are the sub functions dealing with the GUI callbacks that you find at the end, like cb_redraw and cb_keyboard."
+      - +@isprivate: "0"
+        commentid: "17095"
+        comment_count: "4"
+        who:
+          +content: juangpc
+          +@name: Juan
+        bug_when: 2016-03-07 12:12:16 +0100
+        thetext: "Hi, \n\nSure I can (side note: I've been learning FT for a couple of months now and I feel very grateful for all this work).\n\nOk. Various things: \n\n- This problem occurs on the latest FT version (as of last friday) as well as in a FT downloaded on mid February. (sorry I don't have other versions available).\n\n- I will download a copy of Matlab 2015b and install it and update this thread with results.\n\n- On the debugging(windows 8.1x64-matlab r2014a): \n\nInside ft_volumerealign there is a callback function called cb_redraw defined in line:1376 (yes, as you pointed out). Everything seems to work fine until this fcn.\n\nAlmost at the end (line#:1589) if opt.viewresult is false there is a for statement which runs once for each opt.fidlabel (4 times on my tests). **on 4th iteration in my case ** and percisely while executing line# 1602 it is where the exception is thrown and a \"Matlab System Error\" pops up and Matlab is closed. Here's the code (noted exactly the actual line).\n\nif ~opt.viewresult\n  for i=1:length(opt.fidlabel)\n    pos = opt.fiducial.(opt.fidlabel{i});\n    %   if any(isnan(pos))\n    %     continue\n    %   end\n    \n    posi = pos(1);\n    posj = pos(2);\n    posk = pos(3);\n    \n    subplot(h1);\n    hold on\n    opt.handlesmarker(i,1) = plot3(posi, 1, posk, 'marker', 'o', 'color', markercolor{i}); % -> ERROR POPS HERE! (WHEN i=4) \n    hold off\n    \n    subplot(h2);\n    hold on\n    opt.handlesmarker(i,2) = plot3(opt.dim(1), posj, posk, 'marker', 'o', 'color', markercolor{i});\n    hold off\n    \n    subplot(h3);\n    hold on\n    opt.handlesmarker(i,3) = plot3(posi, posj, opt.dim(3), 'marker', 'o', 'color', markercolor{i});\n    hold off\n  end % for each fiducial\nend"
+      - +@isprivate: "0"
+        commentid: "17096"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 13:25:07 +0100
+        thetext: "(In reply to Juan from comment #4)\n\ntechnically speaking there is nothing wrong with the MATLAB code around those lines. So it is really a core MATLAB error, which probably relates to how MATLAB builds up the figure. \n\nYou could also try to change the MATLAB figure renderer, as it might be an OpenGL or Direct3D issue. Please try out playing with\n\nset(gcf, 'renderer', ...)\n\nsomewhere in the code, with painters and zbuffer."
+      - +@isprivate: "0"
+        commentid: "17097"
+        comment_count: "6"
+        who:
+          +content: juangpc
+          +@name: Juan
+        bug_when: 2016-03-07 14:56:47 +0100
+        thetext: "Hi, \n\nYou're right. With 'painters' renderer there is no crash (though the image is weird).\n\nHow should this be managed? Maybe some kind of warning? \n\n'Warning: Under some setups in windows 'f' key-press produces unstable behavior.'\n\nCould be better to leave it alone, as it is some kind of matlab related issue. Though it can be annoying to lose unsaved script modifications."
+      - +@isprivate: "0"
+        commentid: "17098"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 18:37:10 +0100
+        thetext: |-
+          (In reply to Juan from comment #6)
+
+          I don't think that FieldTrip should be giving warnings about specific MATLAB errors for specific versions on specific OSes.
+      - +@isprivate: "0"
+        commentid: "20125"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:32:22 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

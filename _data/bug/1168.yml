@@ -1,0 +1,235 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1168"
+    creation_ts: 2011-11-18 10:30:00 +0100
+    short_desc: ft_multiplotTFR dimensions not flexible
+    delta_ts: 2014-01-29 13:28:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Other
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: l.roijendijk
+      +@name: Linsey Roijendijk
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4126"
+        comment_count: "0"
+        who:
+          +content: l.roijendijk
+          +@name: Linsey Roijendijk
+        bug_when: 2011-11-18 10:30:44 +0100
+        thetext: "I was trying to make an 'imagesc' multiplot of 2-dimensional data by using ft_multiplotTFR:\n\n(stat = result of frequency statistics, method: montecarlo, statistic roc)\ncfg = [];\ncfg.parameter = 'stat';      \nstat.dimord = 'chan_empty_freq';\nstat.empty = 0;\nstat.stat = reshape(stat.stat,[size(stat.stat,1) 1 size(stat.stat,2)]);        \n ft_multiplotTFR(cfg,stat);\n\nHowever I noticed several problems:\n\n1) I couldn't create a dimord with a name (in this example 'empty') not listed in the Fieldtrip code already.\n\nError in ==> ft_multiplotTFR at 139\ndata = ft_checkdata(data, 'datatype', 'freq');\n \n152       error(sprintf('unexpected dimord \"%s\"', data.dimord));\n\n2) When I renamed 'empty' to 'time', the function couldn't handle that the 2nd dimension was time and the 3rd frequency. It implicitly assumed that the second dimension was freq and the third time, although it was different in the dimord.\n\nError:\n??? Index exceeds matrix dimensions.\n\nError in ==> ft_multiplotTFR at 406\n  dat = dat(sellab, ymin:ymax, xmin:xmax);\n\n\n3)Then as a work-around I tried to plot it as 'chan_freq_time' (in which I put the time-data/dimord in freq and empty in the 'freq' dimord). Then I got the error:\n \n??? Error using ==> get\nThere is no 'zdata' property in the 'image' class.\n\nError in ==> objbounds at 64\n        zd = get(h(i), 'zdata');\n\nError in ==> axis>LocSetTight at 266\nlimits = objbounds(findall(ax));\n\nError in ==> axis at 102\n                LocSetTight(ax(j));\n\nError in ==> ft_multiplotTFR at 624\naxis tight\n \n64          zd = get(h(i), 'zdata');\n\nWhat can I do next?"
+      - +@isprivate: "0"
+        commentid: "4143"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-18 15:50:20 +0100
+        thetext: "I created a test script and added it to svn. Note that it requires visual inspection to see some of the problems. \n\nAdding         test/test_bug1168.m\nTransmitting file data .\nCommitted revision 4773."
+      - +@isprivate: "0"
+        commentid: "4649"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 13:51:37 +0100
+        thetext: |-
+          Apparently, I get a different error when I run the script test/test_bug1168.m:
+
+
+          ---
+          the call to "ft_prepare_layout" took 0 seconds and an estimated 0 MB
+          ??? Index exceeds matrix dimensions.
+
+          Error in ==> ft_multiplotTFR at 406
+            dat = dat(sellab, ymin:ymax, xmin:xmax);
+
+          Error in ==> test_bug1168 at 42
+          ft_multiplotTFR(cfg, freq) % this fails, visual inspection is needed to observe
+          the problem
+          ---
+
+
+          Can anyone clarify, or find someone to assign this issue to? I can't understand the issue based on Linsey's description and Roberts script.
+      - +@isprivate: "0"
+        commentid: "5213"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-08 13:57:06 +0100
+        thetext: |-
+          why not use ft_multiplotER?
+
+          is the eventual problem the fact that singleton dimensions cannot be dealt with?
+      - +@isprivate: "0"
+        commentid: "5215"
+        comment_count: "4"
+        who:
+          +content: l.roijendijk
+          +@name: Linsey Roijendijk
+        bug_when: 2012-02-08 14:03:39 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          The problem is that the dimensions in the .dimord are not taken into account. The functions seems to assume that the second dimension is time and the third frequency (and you cannot plot it the other way around).
+
+          (In reply to comment #3)
+
+          It is indeed possible to use a multiplotER, but by eye it is much easier to interpret the results when it is plotted as an image.
+      - +@isprivate: "0"
+        commentid: "5328"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-22 10:18:24 +0100
+        thetext: "1) It would be possible to make the function more generic by allowing cfg.yparam, cfg.xparam and cfg.paramenter to be set manually in the cfg. Right now, defaults are:\n\nif ~any(ismember(dimtok, 'time'))\n  error('input data needs a time dimension');\nelse\n  xparam = 'time';\n  yparam = 'freq';\n  cfg.parameter = ft_getopt(cfg, 'parameter', 'powspctrm');  \nend\n\n\nEverything else in the code already adheres to a generic programming style (e.g. data.(xparam) is accessed rather than data.time)\n\n2) MATLAB cannot deal probably with a singleton dimension which is 'somewhere' in a matrix. Most operations on a Nx1xM matrix will squeeze the matrix to NxM. A workaround/hack is to just double the singleton dimension to Nx2xM (this is what I would do if I were you, Linsey). \nIn theory, this could also be done by default in ft_multiplotTFR. The user would not notice that this is being done internally and yet give the desired result.\n\n3) ft_multiplotTFR can now deal with dimords of any order (if there is no singleton dimension):\n\n% get dimord dimensions\ndims = textscan(data.dimord,'%s', 'Delimiter', '_');\ndims = dims{1};\nydim = find(strcmp(yparam, dims));\nxdim = find(strcmp(xparam, dims));\nzdim = setdiff(1:ndims(dat), [ydim xdim]);\n% and permute\ndat = permute(dat, [zdim(:)' ydim xdim]);\n\nSending        ft_multiplotTFR.m\nTransmitting file data .\nCommitted revision 5302.\n\n\n\nI need input on 1) and 2)"
+      - +@isprivate: "0"
+        commentid: "5329"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-22 10:46:19 +0100
+        thetext: |-
+          @1: Veto. The flexible functionality has been removed in the past. I would not put this back in again.
+
+          @2: I don't understand. Can you remind me of the exact issue regarding the singleton?
+      - +@isprivate: "0"
+        commentid: "5330"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-22 11:34:27 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          @1: ok, I can live with this (less work for me, hooray)
+
+          @2:
+          there was a bug in the testscript... so forget the singleton/squeeze stuff (this was caused by the wrong testscript)
+
+          anyway, the problem still remains that if, e.g., the time-axis consists of a single sample, then ft_multiplotTFR does not plot anything. As a workaround/hack, I suggested to make it artificially two samples long, so that a colored stripe can be plotted.
+      - +@isprivate: "0"
+        commentid: "5334"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-22 14:10:30 +0100
+        thetext: |-
+          Hey Linsey,
+
+          we just discussed this in the FT meeting. So, we won't change the function. However, for you to make it work, you can just repmat the time-dimension, so that a box can be drawn from min to max which has a finite dimension.
+
+          Otherwise, you could still use ft_topoplotTFR and play around with interpolation, e.g. with cfg.interpolation set to 'nearest' and cfg.style set to 'straight' or so
+      - +@isprivate: "0"
+        commentid: "7185"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:03 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "7938"
+        comment_count: "10"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 13:18:03 +0200
+        thetext: "Reopened because test_bug1168 fails. \nFails on line 6, initTestSuite added by Boris recently does not exist on my path."
+      - +@isprivate: "0"
+        commentid: "7941"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-19 14:37:38 +0200
+        thetext: assigned to boris cause his function is missing
+      - +@isprivate: "0"
+        commentid: "7949"
+        comment_count: "12"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-19 17:13:47 +0200
+        thetext: "Please download and install MATLAB's xUnit: http://www.mathworks.com/matlabcentral/fileexchange/22846-matlab-xunit-test-framework . \n\nI know that it is not very convenient to have to install another toolkit (maybe we should add it to external?), but it allows us to isolate test cases — which is needed to have meaningful test results."
+      - +@isprivate: "0"
+        commentid: "7954"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-20 08:33:34 +0200
+        thetext: |-
+          I don't think we should add xUnit to fieldtrip/external; we don't want 20 people downloading it every day in the zip file.
+
+          But we can add it to ft_hastoolbox, and then put it on home/common. Around line 356 in that function it checks whether the particular toolbox can be found on home/common, so thereby it could be auto-added.
+      - +@isprivate: "0"
+        commentid: "7956"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-20 11:12:13 +0200
+        thetext: "I copied it to home/common\n\nroboos@mentat001> ll /home/common/matlab/xunit/\ntotal 128\n-rw-r--r-- 1 roboos mrphys  2620 Oct 20 11:01 assertElementsAlmostEqual.m\n-rw-r--r-- 1 roboos mrphys  1426 Oct 20 11:01 assertEqual.m\n...\n\nand added it to ft_hastoolbox\n\nmac001> svn commit ft_hastoolbox.m \nSending        ft_hastoolbox.m\nTransmitting file data .\nCommitted revision 6776."
+      - +@isprivate: "0"
+        commentid: "8114"
+        comment_count: "15"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-11-02 13:29:58 +0100
+        thetext: I am no longer working on FieldTrip. Hence, I donate all my bugs to the joint development user.
+      - +@isprivate: "0"
+        commentid: "8754"
+        comment_count: "16"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-18 13:55:32 +0100
+        thetext: |-
+          Marking this bug as resolved, the test script runs successfully and the decision was explicitly made to not reintroduce cfg.xparam/yparam/zparam.
+
+          If I am missing something here, please feel free to reopen.
+      - +@isprivate: "0"
+        commentid: "12658"
+        comment_count: "17"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:35 +0100
+        thetext: changing lots of bugs from resolved to closed.

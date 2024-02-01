@@ -1,0 +1,127 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1800"
+    creation_ts: 2012-10-30 14:42:00 +0100
+    short_desc: ft_topoplotER does not map correctly channels in data to channels in topoplot
+    delta_ts: 2014-03-12 12:21:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: giorgos.michalareas
+      +@name: Giorgos Michalareas
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8061"
+        comment_count: "0"
+        attachid: "358"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2012-10-30 14:42:12 +0100
+        thetext: "Created attachment 358\nmat file containing variable 'tmpavg1' which is the timelocked data.\n\nI have tried to plot the topology of erf data, resulted from ft_timelockanalysis, with ft_topoplotER of the latest FT(fieldtrip-20121029.zip).\n\nThe data spans from roughly -4 to 4 sec.\nWhen the entire time of the data is used for the plot then the ft_topoplotER does not seem to perform any matching between the data channels and the layout channels and it seems to assume that the are already matched. This results in a wrong topology plot. \n\nIf a subset of the time is selected thorough cfg.xlim then the plot seems ok.\nHowever if cfg.xlim is equal or higher than the time interval in the data then the same probem occures.\n\nPlease find attached a mat file 'bugtopoavg.mat' containing variable 'tmpavg1' which is the timelocked data.\n\nBelow I have put some code to reproduce the problem in different scenarios:\n\n%==================================================================\n% Add fieltrip-20121029 to the path\nft_defaults;\n\nload bugtopoavg tmpavg1;   % Load the timelocked data\ntmpavg2=ft_selectdata(tmpavg1,'avgovertime','yes');  % average timelocked data across all time points\n\n% Error  case - Plot the topoplot for timelocked data\ncfg=[];\nft_topoplotER(cfg,tmpavg1);\n\n% Error  case - Plot the topoplot for timelocked data averaged all time points\ncfg=[];\nft_topoplotER(cfg,tmpavg2);\n\n% Error  case - Plot the topoplot for timelocked data by setting xlim equal to the time range of the data;\ncfg=[];\ncfg.xlim=[tmpavg1.time(1) tmpavg1.time(end)];\nft_topoplotER(cfg,tmpavg1);\n\n% Correct  case - Plot the topoplot for timelocked data by setting xlim to a SUBINTERVAL of the time range of the data;\ncfg=[];\ncfg.xlim=[tmpavg1.time(2) tmpavg1.time(end-1)];\nft_topoplotER(cfg,tmpavg1);\n%=================================================================="
+      - +@isprivate: "0"
+        commentid: "8069"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-31 13:49:47 +0100
+        thetext: |-
+          marked as duplicate
+
+          *** This bug has been marked as a duplicate of bug 1607 ***
+      - +@isprivate: "0"
+        commentid: "8071"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-10-31 13:52:10 +0100
+        thetext: It's not a duplicate. Jorn is going to look at it.
+      - +@isprivate: "0"
+        commentid: "8076"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-31 16:22:44 +0100
+        thetext: |-
+          hey dude... ehm, strange bug. I checked the layout and channelposition, but that's alright, I checked channelselection, that's alright either. then as a sanity check I also checked whether just one of your samples is crazy and blowing things up, but that's not it also. Plotting from 2:end is fine and plotting from 1:end-1 is also fine. Gonna think about what might be going wrong, atm I'm pretty much stepping in the dark here
+
+          svn ci test_bug1800* -m "added testscript and data"
+          Adding         test_bug1800.m
+          Adding  (bin)  test_bug1800.mat
+          Transmitting file data ..
+          Committed revision 6841.
+      - +@isprivate: "0"
+        commentid: "8129"
+        comment_count: "4"
+        attachid: "359"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-05 14:49:47 +0100
+        thetext: "Created attachment 359\nfirst and second half of giorgos data  - they cancel out\n\nHey Giorgos,\n\nI present: \"demystifying your data\"\nLet me start off with my guess: Nothing is wrong with FieldTrip. Your data is just noise ;)\nLet me explain: I attached a figure in which I use a low-level matlab function that is indeed used by FieldTrip to plot your data. I essence it's a topographic map of your data, just without the fancy head shape, nose and ears. I plotted the first half of your datasamples and the last half of your data. It's pretty easy to spot that they are the more-or-less exact reverse from one another. Thus, if leaving out only one sample from either half, you end up with basically plotting the inverse of this one sample. If you plot all your data, all your samples exactly cancel out and you are left with some measurement noise. \n\nHere's the steps I did to get there:\n1) put a break point in ft_topoplotTFR at line 694.\n\n2) Define the first and second half of your experiment:\n    dat    = data.(cfg.parameter);\n    dat_half_1 = nanmean(dat(:, 1:993), 2); % you got 1987 samples\n    dat_half_2 = nanmean(dat(:, 994:1987), 2);\n\n3) plot contours:\n  hlim = [min(chanX) max(chanX)];\n  vlim = [min(chanY) max(chanY)];\n\n  xi         = linspace(hlim(1), hlim(2), 67);       \n  yi         = linspace(vlim(1), vlim(2), 67);      \n  figure;\n  subplot(211)\n  [Xi,Yi,Zi] = griddata(chanX', chanY, dat_half_1, xi', yi, 'nearest');\n  contourf(Xi,Yi,Zi);\n  subplot(212)\n  [Xi,Yi,Zi] = griddata(chanX', chanY, dat_half_2, xi', yi, 'nearest');\n  contourf(Xi,Yi,Zi);\n\nSo, after analyzing your data for you, co-author on paper? :P\n\ntbh: pretty unlikely that data cancels out exactly, so I guess you are doing some crazy step in your analysis pipeline? The funny thing is, it does not matter at all *where* I split the data into two parts. Even if I do:\n    dat_half_1 = nanmean(dat(:, 1), 2);\n    dat_half_2 = nanmean(dat(:, 2:1987), 2);\nthey are the reverse of each other. \n\nSince I did not use any FieldTrip here in this code (apart from determining the layout, but that's fine), it cannot be a FieldTrip error."
+      - +@isprivate: "0"
+        commentid: "8130"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-05 14:50:36 +0100
+        thetext: if you think I'm wrong, let me know! but thanks for the riddle, was much fun
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "358"
+        date: 2012-10-30 14:42:00 +0100
+        delta_ts: 2012-10-30 14:42:12 +0100
+        desc: mat file containing variable 'tmpavg1' which is the timelocked data.
+        filename: bugtopoavg.mat
+        type: application/x-wine-extension-mat
+        size: "9449493"
+        attacher:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "359"
+        date: 2012-11-05 14:49:00 +0100
+        delta_ts: 2012-11-05 14:49:47 +0100
+        desc: first and second half of giorgos data  - they cancel out
+        filename: giorgos_bug.png
+        type: image/png
+        size: "41432"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED

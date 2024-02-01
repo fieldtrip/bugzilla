@@ -1,0 +1,88 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2081"
+    creation_ts: 2013-03-26 17:49:00 +0100
+    short_desc: ft_combineplanar with combinemethod='svd' should be improved for raw/timelock
+    delta_ts: 2014-01-29 13:28:45 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9966"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-26 17:49:17 +0100
+        thetext: "I have been playing around with using svd to combine planar gradients. I found that ft_combineplanar with combinemethod='svd' does not give very satisfying results, at least on timelock or raw data (have not tried the freq case). Attached are plots of three timelock topographies + timecourses: axial gradient, planar gradient combined with a custom piece of code, and planar gradient with combinemethod=svd. The latter looks very similar to combinemethod=sum, actually.\n\nThis is the code I wrote:\n\n------\n\n% get the horizontally and vertically oriented channels\nhorz = ft_channelselection({'*_dH'}, tl_plan.label);\nvert = ft_channelselection({'*_dV'}, tl_plan.label);\n\nif numel(horz) ~= numel(vert)\n  error('unequal number of horizontal and vertical channels');\nend\n\n% ensure that they are sorted identically\nindsH = strfind(horz, '_dH');\nindsV = strfind(vert, '_dV');\nfor k = 1:numel(horz)\n  if ~strcmp(horz{k}(1:indsH{k}-1), vert{k}(1:indsV{k}-1))\n    error('not all channel labels match up for horizontal and vertical');\n  end\nend\n\n% get channel indices\nhorzChans = match_str(tl_plan.label, horz);\nvertChans = match_str(tl_plan.label, vert);\n\n% pre-initialize planar data\ndatplan = zeros(numel(horzChans), numel(tl_plan.time));\n\n% loop over channels and pick strongest orientation\nfor k = 1:numel(horzChans)\n  % create 2xN matrix of orientation X time\n  dat = [tl_plan.avg(horzChans(k),:); tl_plan.avg(vertChans(k),:)];\n  \n  u = svd(dat);\n  datplan(k,:) = u(:,1)' * dat;\nend\n\n------\n\nSome questions (mainly @JM, since I think he implemented the svd combinemethod?).\n\n1. Is my method any good?\n2. Why does it look so different from the current implementation?\n3. Why would the power be so strongly reduced (order of 10^-25 compared to 10^-14 for axial or other combine method)?\n\nand: should I go ahead and add this method to ft_combineplanar, replacing the existing piece of code that's now there (lines 215-238)?"
+      - +@isprivate: "0"
+        commentid: "9967"
+        comment_count: "1"
+        attachid: "444"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-26 17:51:21 +0100
+        thetext: |-
+          Created attachment 444
+          the mentioned plot
+      - +@isprivate: "0"
+        commentid: "9968"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-03-27 13:24:50 +0100
+        thetext: 'conclusion at ft meeting: the svd results could be flipped. Given this, the solution is non-trivial, therefore keep this snippet in custom code and do not commit.'
+      - +@isprivate: "0"
+        commentid: "12694"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:45 +0100
+        thetext: changing lots of bugs from resolved to closed.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "444"
+      date: 2013-03-26 17:51:00 +0100
+      delta_ts: 2013-03-26 17:51:21 +0100
+      desc: the mentioned plot
+      filename: planarstuff.png
+      type: image/png
+      size: "98306"
+      attacher:
+        +content: eelke.spaak
+        +@name: Eelke Spaak
+      data: REMOVED

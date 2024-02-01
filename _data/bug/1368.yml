@@ -1,0 +1,80 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1368"
+    creation_ts: 2012-03-13 10:12:00 +0100
+    short_desc: leadfield normalization fails for openmeeg forward solution
+    delta_ts: 2012-06-12 13:00:18 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: c.micheli
+      +@name: Cristiano Micheli
+    cc:
+      - c.micheli
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5523"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-13 10:12:40 +0100
+        thetext: In case of openmeeg the high-level ft_prepare_leadfield will try to compute all leadfields with one call to the low-level ft_compute_leadfield function. The problem is that ft_compute_leadfield then does not know how to separate the leadfields of the individual dipole positions and will scale the concatenated leadfield matrix by a single number.
+      - +@isprivate: "0"
+        commentid: "5524"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-13 10:15:25 +0100
+        thetext: "I have added the following to ft_prepare_leadfield to prevent people from getting incorrect leadfields at the moment.\n\n+  if ~strcmp(cfg.normalize, 'no')\n+    % See http://bugzilla.fcdonders.nl/show_bug.cgi?id=1368\n+    % \n+    % The problem is that ft_compute_leadfield does not know how to\n+    % separate the leadfields of the individual dipole positions and will\n+    % scale the concatenated leadfield matrix by a single number.\n+    error('leadfield normalization is currently not supported in combination with the openmeeg forward solution');\n+  end\n\n\nmanzana> svn commit ft_prepare_leadfield.m\nSending        ft_prepare_leadfield.m\nTransmitting file data .\nCommitted revision 5445."
+      - +@isprivate: "0"
+        commentid: "5611"
+        comment_count: "2"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-03-21 14:50:45 +0100
+        thetext: |-
+          (In reply to comment #1)
+          Now the ft_compute_leadfield is able to manage the normalization of both single dipole leadfields and batch ones.
+          A test script has been added to check for this functionality both qualitatively (the routine does not crash) and quantitatively, i.e. the Frobenius norm is 1.
+          ( see FT/test/test_bug1368.m)
+
+          The check is run both on vectorial lf normalization and column-wise normalization (resp. cfg.normalize='yes' and cfg.normalize = 'column')
+      - +@isprivate: "0"
+        commentid: "5613"
+        comment_count: "3"
+        who:
+          +content: c.micheli
+          +@name: Cristiano Micheli
+        bug_when: 2012-03-21 15:02:13 +0100
+        thetext: |-
+          (In reply to comment #2)
+          resolved

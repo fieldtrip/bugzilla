@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1937"
+    creation_ts: 2013-01-17 23:31:00 +0100
+    short_desc: implement job dependencies in qsubfeval
+    delta_ts: 2014-03-26 16:51:42 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.backus
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9060"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-17 23:31:06 +0100
+        thetext: |-
+          this should look like
+
+          jobid1 = qsubfeval(@function1, {arg1});
+          jobid2 = qsubfeval(@function2, {arg2}, 'waitfor', jobid1);
+
+          Both jobs would be immediately scheduled, but would use
+
+          qsub -depend=afterok:<pbsjobid>
+
+          to have job2 wait until job1 is done. That allows for more efficient scheduling of larger pipelines consisting of multiple rows (subjects) and columns (analysis steps).
+      - +@isprivate: "0"
+        commentid: "9061"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-17 23:47:48 +0100
+        thetext: "I studied the code. It needs some modifications to qsublist, which should allow for\n  pbsid = qsublist('pbsid', jobid)\nto translate from matlab jobid to pbsid. \n\nThen it needs some change to qsubfeval to add -depend=afterok:<pbsjobid> to the qsub command line.\n\nSee http://www.clusterresources.com/torquedocs/commands/qsub.shtml#W"
+      - +@isprivate: "0"
+        commentid: "12862"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-18 18:32:48 +0100
+        thetext: |-
+          thanks to Alexander we now have this implemented.
+
+          He suggested some code changes, which I incorporated. There is also a (FT specific) test script.
+
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubfeval.m
+          Sending        qsub/qsublist.m
+          Adding         test/inspect_bug1937.m
+          Transmitting file data ...
+          Committed revision 9211.
+
+          Some differences to what Alexander suggested:
+          - I did not change qsubget, it is possible to use output=cell to get the options
+          - I did not fix the pre/postambles, but rather call ft_freqanalysis_mvar instead of fr_freqanalysis.
+      - +@isprivate: "0"
+        commentid: "12910"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:24 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+      - +@isprivate: "0"
+        commentid: "13173"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-26 16:51:42 +0100
+        thetext: "On 19 Mar 2014, at 11:56, Alexander Backus wrote:\n\nIk heb qsubfeval.m aangepast zodat er nu een cell array van jobs kan worden opgegeven bij waitfor.\n\nOp deze manier wordt de betreffende job op Hold gehouden totdat alle jobs in de cell array Completed zijn. \n\nDit is bijvoorbeeld erg handig voor een secondlevel script zoals ft_freqgrandaverage, waarbij gewacht moet worden totdat alle individuele subjects klaar zijn.\n\nZie inspect_bug1937b.m voor een implementatie hiervan (gebaseerd op ons eerdere script).\n\n----\n\n189-109> svn commit qsub/ test/\nSending        qsub/qsubfeval.m\nSending        test/inspect_bug1937.m\nTransmitting file data ..\nCommitted revision 9313."

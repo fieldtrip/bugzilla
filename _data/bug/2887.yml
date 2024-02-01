@@ -1,0 +1,216 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2887"
+    creation_ts: 2015-05-01 09:46:00 +0200
+    short_desc: return all channels from an EDF file with multiple sampling rates
+    delta_ts: 2015-08-27 15:22:39 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2954
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: jdien07
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15631"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 09:46:46 +0200
+        thetext: |-
+          Joe wrote
+
+             I need to revise the EDF code but am not quite sure how to proceed.  I?ve got some EDF files with different physiological measures with different sampling rates.  The current code uses a rule-of-thumb in this situation to keep only the sampling rate with the greatest number of channels, which doesn?t work for me.  I can see a couple ways forward.  One is to implement code to allow for channel selection in ft_read_header not just ft_read_data.  This would allow one to override the rule-of-thumb to choose whichever channels are of interest.  Another approach would be to use interp1 to resample the channels so that they all have the same sampling rate (the highest).
+      - +@isprivate: "0"
+        commentid: "15632"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 09:47:09 +0200
+        thetext: "I wrote\n\nHi Joe,\n\nCoincidentally I happen just now to be working on some improvements of the code related to an edf+ file. It relates to this http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2736. Not directly sampling rate related, but I see that a general cleanup of some EDF related stuff is needed. I have made some local changes, and just committed them.\n\nmac011> svn commit fileio/\nSending        fileio/ft_read_event.m\nSending        fileio/private/read_edf.m\nTransmitting file data ..\nCommitted revision 10347.\nand\nCommitted revision 10348.\n\nThe same person that reporting the issue with the EDF+ annotations also ran into the multiple samping rates limitation. Let me share some random thoughts on this (no solution yet):\n\nResampling on the fly is prone to edge artifacts if you were to read small segments and if you were to glue them back together.\n\nAdding chanindx to ft_read_header would be a cleaner option, but would not be available to high-level functions like ft_preprocessing and ft_databrowser. There is the complication that ft_read_data and ft_read_event both call ft_read_header. And events (i.e. annotations in the edf+ files) are defined in time but translated by ft_read_event in samples, which requires that they only apply to a single sampling rate.\n\nWe could also add an option to ft_read_header (and data and event) for specifying the sampling rate rather than the channels. This idea stems from the consideration that you would not know a priori which channels have which sampling rate.\n\nThere is now in read_edf.m line 230\n\n  elseif all(EDF.SampleRate(1:end-1)==EDF.SampleRate(1))\n    % only the last channel has a deviant sampling frequency\n    % this is the case for EGI recorded datasets that have been converted\n    % to EDF+, in which case the annotation channel is the last\n\nThat code dates back to https://code.google.com/p/fieldtrip/source/detail?r=2076, but I don?t have a file any more that goes with it. Do you happen to have such an EDF+ file with annotations?  I think that at this moment the code fails if the annotation channel has a sampling rate that is different from the rest. \n\nUpsampling the annotation channel (when resampling on the fly) would break the event handling, since that requires parsing it as character string in TAL segments (http://www.edfplus.info/specs/edfplus.html#tal).\n\nIn general I feel more in favour of making a http://www.fieldtriptoolbox.org/getting_started/edf like the ones that are now on http://www.fieldtriptoolbox.org/reading_data. There it could be explained what the problem is and how to deal with it (once there is an agreed upon solution...)\n\n\nI just got a dataset from http://www.physionet.org/physiobank/database/sleep-edfx, which has \n\n\n>> hdr = ft_read_header('SC4001E0-PSG.edf?)\n\n>> hdr.orig.SampleRate\nans =\n   100\n   100\n   100\n     1\n     1\n     1\n     1\n\n>> hdr.orig.SPR\nans =\n        3000\n        3000\n        3000\n          30\n          30\n          30\n          30\n \nQuite extreme differences here. Upsamling on the fly (invisible for the user) can lead to unexpected results. I would rather use something more explicit like\n\ndathi = ft_preprocessing\ndatlo = ft_preprocessing\ndatup = ft_resampledata datlo to dathi\ndatall = ft_appenddata dathi datup\n\nAfter the resampling and appending it would of course be fine to write the (continuous) data back to disk with consistent sampling rate."
+      - +@isprivate: "0"
+        commentid: "15633"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 09:47:44 +0200
+        thetext: |-
+          Joe wrote
+
+          What you say about possible resampling problems makes sense to me.
+
+          How about having options for selecting based on both channels and sample rates?  Sometimes one knows the desired channels but not the sampling rates.
+
+          I do have an EDF+ file with annotations.  I?ve posted it at:  https://jh.box.com/s/xxx
+
+          I agree about making a documentation page for edf.  It could be modified from the bdf one.  Also the changes would presumably be made to the bdf file I/O as well.
+
+          For my own use, I?ve already made a first pass at implementing the channel selection option (using fieldtrip-20141123 as a start regretably).
+
+          I?m attaching these files for the purpose of showing what I have in mind.
+
+          I didn?t try to revise the EDF event code as I didn?t need it.
+
+          While working on this, it occured to me that it might be better to separate the EDF header and EDF data reading code.
+
+          Right now both are handled by the same read_edf function and it checks the number of input arguments to determine which is desired.
+
+          If we start adding options like chanindx then that heuristic doesn?t work as well.
+      - +@isprivate: "0"
+        commentid: "15634"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 09:53:58 +0200
+        thetext: "Better work in a more structured manner, i.e. here on bugzilla. I copied the data and made a test script. \n\nmac011> svn commit test_bug2887.m \nAdding         test_bug2887.m\nTransmitting file data .\nCommitted revision 10364.\n\n\nIt now returns this warning (as expected)\n\nWarning: channels with different sampling rate not supported, using a subselection of 3 channels at 32.000000 Hz \n> In fileio/private/read_edf at 273\n  In ft_read_header at 659"
+      - +@isprivate: "0"
+        commentid: "15635"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 09:58:32 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          reading events is very slow...
+
+          First because read_edf goes over the network (but that does not explain it fully, network is not that slow).
+
+          Then because tokenize is slow (not too slow). The output is not what I would expect, i.e. not in TAL format.
+      - +@isprivate: "0"
+        commentid: "15636"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 10:02:08 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+
+          reading is slow because
+
+          K>> hdr.orig
+          ...
+                     NRec: 10131
+                      Dur: 1
+
+          There is a huge number of 1-sample blocks, not what was expected in the code (common is to have 1 second blocks). The code loops over all blocks.
+      - +@isprivate: "0"
+        commentid: "15639"
+        comment_count: "6"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-05-01 14:52:53 +0200
+        thetext: Just so you know what the test file is, it's from an Actiwave Cardio EKG sensor with EKG and actigraph channels.  No idea why the annotation channel might be funky.
+      - +@isprivate: "0"
+        commentid: "15737"
+        comment_count: "7"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-05-28 04:32:58 +0200
+        thetext: Just to keep things moving forwards, would you be good with my committing something along the lines we've discussed, with options to select by channel or by sampling rate and to split the function into separate readHeader and readData files?
+      - +@isprivate: "0"
+        commentid: "15738"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-28 11:06:23 +0200
+        thetext: "(In reply to Joseph Dien from comment #7)\n\nHi Joe,\n\nit is still not 100% clear to me how the API and user interface would look like. There is the low level interface in ft_read_xxx and the high level FT interface in ft_preprocessing, ft_databrowser, ft_definetrial, etc.\n\nI think you mainly care about the low-level interface, i.e. the ft_read_xxx functions. Already there is the need for a consistent representation of the data at th different sampling rates. Something like this needs to work\n\nhdr = ft_read_header(filename, 'changroup', xxx);\ndat = ft_read_data  (filename, 'changroup', xxx, 'chanindx', yyy);\nevt = ft_read_event (filename, 'changroup', xxx);\n\nwhere hdr and evt must be consistent with dat. Also, yyy needs to be consistent with hdr.label and hdr.nChan. I don't care too much at the moment how xxx is specified, whether it is the sampling frequency or some other specification to identify the group of channels that is considered in the three functions. \n\nFor the higher level FT code, an interesting thought experiment is this\n\ncfg = [];\ncfg.dataset = filename\ncfg.changroup = 1;\ndata1 = ft_preprocessing(cfg)\ncfg.changroup = 2;\ndata2 = ft_preprocessing(cfg)\n\npossibly with a trialfun and ft_definetrial, and then\n\ncfg = [];\ncfg.time = data1.time;\ndata2resampled = ft_resampledata(cfg, data2)\n\ndatacombined = ft_appenddata([], data1, data2resampled);"
+      - +@isprivate: "0"
+        commentid: "15739"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-28 11:07:49 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #8)
+
+          if your commit is going to result in something like
+
+          hdr = ft_read_header(filename, 'changroup', xxx);
+          dat = ft_read_data  (filename, 'changroup', xxx, 'chanindx', yyy);
+          evt = ft_read_event (filename, 'changroup', xxx);
+
+          then it is fine to commit (as it won't break anything), and I will be able to look at it in more detail to see how to translate it to higher level FT functions.
+      - +@isprivate: "0"
+        commentid: "15750"
+        comment_count: "10"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-05-30 07:16:59 +0200
+        thetext: Okay done!  I went with a minimalistic strategy.  I basically added a case where nargin equals three, which indicates reading a header with a chanindx parameter.
+      - +@isprivate: "0"
+        commentid: "15751"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-31 13:11:11 +0200
+        thetext: |-
+          (In reply to Joseph Dien from comment #10)
+
+          I made some cleanups and added chanindx to the input parameters of ft_read_header. I also added it to the documentation of the three functions. I have not tested any of this yet. Can you please see whether all three functions work as expected?
+
+          thanks,
+          Robert
+      - +@isprivate: "0"
+        commentid: "15758"
+        comment_count: "12"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2015-06-03 21:36:45 +0200
+        thetext: There was some code I neglected to include in the read_data.m function so I just committed a revision.  Otherwise seems to be working as intended.
+      - +@isprivate: "0"
+        commentid: "15816"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-06-25 10:55:43 +0200
+        thetext: "I made a helper function and a faq for this\n\nhttp://www.fieldtriptoolbox.org/faq/how_can_i_read_all_channels_from_an_edf_file_that_contains_multiple_sampling_rates\n\nmac011> svn commit edf2fieldtrip.m \nAdding         edf2fieldtrip.m\nTransmitting file data .\nCommitted revision 10485."
+      - +@isprivate: "0"
+        commentid: "15890"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:06 +0200
+        thetext: closed several bugs at once that were recently fixed

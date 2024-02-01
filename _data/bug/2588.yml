@@ -1,0 +1,191 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2588"
+    creation_ts: 2014-05-22 12:03:00 +0200
+    short_desc: ft_databrowser identifies wrong channel in butterfly mode
+    delta_ts: 2014-07-15 17:25:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2591
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: carosanga
+      +@name: Carolina Sanchez
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13746"
+        comment_count: "0"
+        who:
+          +content: carosanga
+          +@name: Carolina Sanchez
+        bug_when: 2014-05-22 12:03:53 +0200
+        thetext: when browsing neuromag306 data with ft_databrowser in butterfly mode, identifying a channel using the "identify" button fails. instead of the correct channel, a different one is selected. the choice seems to be constant (not random) when the point that is clicked in the UI is kept constant.
+      - +@isprivate: "0"
+        commentid: "13749"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 14:45:57 +0200
+        thetext: |-
+          Hi Caroline,
+
+          Are you plotting all 306 channels, or only 204 (or 102) of a similar channel type?
+
+          Could you try the code below?
+
+          ---------------------
+
+          data = [];
+          for i=1:10
+            data.label{i} = num2str(i);
+          end
+
+          data.trial{1} = zeros(10,300);
+          data.time{1}  = (1:300)/300;
+          for i=1:10
+            sel = ((10*(i-1)+1):(10*i)) + i*10;
+            data.trial{1}(i,sel) = 1;
+          end
+
+          cfg = [];
+          ft_databrowser(cfg, data);
+
+          ---------------------
+
+          for me it works fine, but I realise that if I click in between two "blocks", channel 10 gets selected. I consider that to be correct. However, if the amount of data that is plotted (number of data points along the time axis) is larger than the number of pixels on your screen, I can imagine this causing unexpected interactions.
+
+          Can you try to reproduce the problem with a large screen compared to the number of data points, i.e. basically zoom in such that there are for certain fewer time points than pixels?
+      - +@isprivate: "0"
+        commentid: "13750"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 14:47:16 +0200
+        thetext: |-
+          mac011> svn commit
+          Adding         inspect_bug2588.m
+          Transmitting file data .
+          Committed revision 9579.
+      - +@isprivate: "0"
+        commentid: "13752"
+        comment_count: "3"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-05-22 15:54:51 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          hey robert,
+          thanks a lot for the quick response. we just tried it out here and it behaves exactly as you said.
+
+          maybe the problem is that the system is not "tolerant" enough? because practically what you are saying is, that if i miss, the last channel gets selected. or am i wrong here?
+
+          would it be possible to have the system detect a miss and just do nothing?
+
+          would it be possible to increase/adjust the tolerance?
+
+          best,
+          thomas
+      - +@isprivate: "0"
+        commentid: "13753"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-22 16:13:57 +0200
+        thetext: "if channels have the same distance to the clicked-point (along the vertical direction), it seems that the last one that was plotted gets selected. In my case, clicking at latency where all channels are 0, the last one is as good as anyone else. \n\nYou could argue that in the ambiguous case, no channel should be selected. That is a change that could be made to the code.\n\nBut I suspect that the problem is more related to the mismatch between the data representation (samples) and how it is displayed on the screen (pixels). E.g. consider \n\n>> plot(randn(10000,1))\n\nit looks perfectly fine at a glance. But I know that it gets displayed like this\n\n>> get(gcf, 'Position')\nans =\n        1260         642         560         420\n\n\ni.e. the figure has 560 pixels horizontally which, after subtracting the margins of the figure, means that there are about horizontal 450 pixels along which 10000 data points are being distributed. At each pixel I only have one vertical line (randomly going up or down), so the figure technically consists of 450 vertical lines representing 10000 data points. That means that 9550 data points actually cannot be visually represented in the window.\n\nIt is similar to the visual artefacts you get with\na = zeros(2,300); a(1,:) = 1; plot(a(:)); axis tight\na = zeros(2,230); a(1,:) = 1; plot(a(:)); axis tight\n(you might have to play with the numbers to see the striping patterns). Here you get an aliasing effect: the data has higher frequency that the screen is able to sample.\n\nSo I wonder whether it is something where tolerance would actually help.\n\nCould you reproduce the undesired behaviour in your data with a debug/keyboard stop at line 1363 in ft_databrowser, immediately after input? Then you can check (stepping through the code one line at a time) what val2nearestchan is making of it and whether that is consistent given the data at hand."
+      - +@isprivate: "0"
+        commentid: "13759"
+        comment_count: "5"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-05-23 09:46:29 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+          ok, i did some digging. it seems that you would have to click "inside" of the curve to get the channel. this is because the val2nearestchan.m only does a vertical search, taking the channel with the closest value, but does not do a horizontal search. so, you have some tolerance for the y-axis but non for the x-axis.
+
+          i do not know if this is intended. however, knowing this, we can instruct people accordingly. i would like to suggest to include a sentence about this behavior in the documentation.
+      - +@isprivate: "0"
+        commentid: "13760"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-23 11:09:44 +0200
+        thetext: |-
+          it would make sense that the search would also be along the horizontal direction. But the reason (I suspect) for Ingrid (who wrote this section) not doing this is that the units are not comparable (Tesla versus seconds). So horizontal and vertical difference are not trivial to combine. It is easier if you think about it in pixels, but that is presently not how the code works due to the nice abstraction that matlab has regarding the plots.
+
+          Please suggest something that you would like to see added to the help.
+      - +@isprivate: "0"
+        commentid: "13761"
+        comment_count: "7"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-05-23 11:36:40 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+          robert, i agree 100%. adapting the code to also allow horizontal tolerance would be great but given the current status and the fact that the workaround is very trivial, i agree that it is not top priority.
+          i did a pull request on github for that purpose. it is only a suggestion so feel free to alter it in any way you like....
+      - +@isprivate: "0"
+        commentid: "13764"
+        comment_count: "8"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-05-23 12:31:27 +0200
+        thetext: 'ok, it seems that this problem is twofold as it is also a problem when both magnetometers and gradiometers are plotted because, in summary, the plotted data is scaled while the identification runs on the unscaled data. i opend a new bug for this: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2591'
+      - +@isprivate: "0"
+        commentid: "13766"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-23 13:22:14 +0200
+        thetext: "(In reply to Thomas Hartmann from comment #7)\n\nmac011> svn commit ft_databrowser.m \nSending        ft_databrowser.m\nTransmitting file data .\nCommitted revision 9588.\n\nAdded a parapraph concerning the possibly unintuitive behavior of ft_databrowser when identifying a channel. See https://github.com/fieldtrip/fieldtrip/pull/41 and here."
+      - +@isprivate: "0"
+        commentid: "13767"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-23 13:24:26 +0200
+        thetext: I guess this resolves it.
+      - +@isprivate: "0"
+        commentid: "14125"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:07 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

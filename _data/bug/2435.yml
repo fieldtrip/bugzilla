@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2435"
+    creation_ts: 2014-01-13 17:43:00 +0100
+    short_desc: 'error: different sampling rates in continuous data not supported'
+    delta_ts: 2014-02-24 10:56:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: i.andolina
+      +@name: Ian Andolina
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12479"
+        comment_count: "0"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-13 17:43:02 +0100
+        thetext: |-
+          This is pretty minor, but does stop me loading any plexon data. The plexon omniplex can store LFPs and wideband data in the same file, so one ends up with channels with 1khz and 40khz frequencies. Currently
+
+          ft_read_header(p.file,'headerformat','plexon_plx')
+
+          causes an error and stops me reading the header, shouldn't this be a warning rather than an error?
+
+          ~line 1659
+
+          if any(fsample~=fsample(1))
+              warning('different sampling rates in continuous data not supported, please select channels carefully');
+          end
+      - +@isprivate: "0"
+        commentid: "12480"
+        comment_count: "1"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-13 17:47:16 +0100
+        thetext: or I suspect for consistency of the header, allow a user to pass an additional argument selecting a preferred sampling rate to return, i.e. only the information of the 40khz or 1khz data?
+      - +@isprivate: "0"
+        commentid: "12490"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-14 11:12:13 +0100
+        thetext: "both ft_preprocessing and ft_read_data return data organized in matrices, one channel per row, one sample per column. Channels with different sampling rates don't fit in such a matrix. Hence it is a general limitation of fieldtrip (also for other data formats, such as edf). \n\nI don't know whether work-arounds have been documented, but don't think so. Work-arounds would have to be system specific and file format specific (e.g. plexon plx, ddt, nex all have to be treated differently).\n\nThe solution would be to not use ft_read_header/data/event, but the low-level reading functions. If you want to pursue this (and probably you will have to), please share your experience with others by making a faq on the wiki.\n\nPS: the plx file format has an extremely inefficient internal data representation, making them very slow to read, especially whgen they are large. Much more convenient is to convert it to nex files, and then split the data of different channels (with different fsample) over different files. So in this case the work-around might be outside matlab/fieldtrip.\n\nI'll close this report, as it is not a \"bug\" but a known \"feature\" (i.e. known limitation by design) that cannot be fixed."
+      - +@isprivate: "0"
+        commentid: "12493"
+        comment_count: "3"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-14 17:03:19 +0100
+        thetext: |-
+          Thanks for this useful info. I suppose my theoretical workaround was to allow:
+
+          ft_read_header(p.file,'headerformat','plexon_plx','preferred_rate',1000)
+
+          and the same for the other functions to select the LFP data from plexon files without the hard error, but I understand how hard this will be to standardise across your supported data formats! My actual workaround will be to try and replace these functions with my own routines. Are ft_read_header, ft_preprocessing and ft_read_data the only functions which should cause problems?
+
+          I'm happy to add info to a wiki once I know what my route through should be!
+
+          Thanks again, Ian
+
+          p.s. yes plx is non-optimal, however the current plexon SDK reads in continuous / spikes / header data pretty quickly; 'plexon_plx_v2' is ~1600X faster than 'plexon_plx'; it takes about ~0.2s to read a header vs. >300s for the old block based 'plexon_plx' routines and only ~1s to read in all continuous LFP data from a tetrode recording (I didn't even try 'plexon_plx' for that yet...)
+      - +@isprivate: "0"
+        commentid: "12585"
+        comment_count: "4"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-24 13:40:40 +0100
+        thetext: "Robert, as far as I can see plexon files even if they *only* contain channels sampled at 1Khz are read with a hdr.Fs as 40KHz, this means any plexon file which only contains non-wideband data which a user wants to analyse cannot use fieldtrip. I suspect most plexon users use fieldtrip to analyse LFPs, which makes the current fieldtrip plexon file support useless; they are forced to resave their data using nex or another format\n\nOne part of this problem is due to a simple bug in where the \n\nif any(fsample~=fsample(1))\n\nis, as it is testing fsample for all channels, including empty channels. If this if statement is further down in patched ft_read_header code then the error isn't triggered. As you have yet to merge the plexon_plx_v2 format code there is nothing I can currently fork and create a proper pull request on, but I do have a branch of the new plexon code on github with this change made allowing LFP-only PLX files to be read:\n\nhttps://github.com/iandol/fieldtrip/compare/plexonv2?expand=1#diff-5d1f098de11e1de47c7bbef657a1be32R1721"
+      - +@isprivate: "0"
+        commentid: "12900"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:21 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

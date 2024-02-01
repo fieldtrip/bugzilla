@@ -1,0 +1,347 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2148"
+    creation_ts: 2013-04-29 15:12:00 +0200
+    short_desc: fixdimord changes dimord chancmb to chan though labelcmb is there
+    delta_ts: 2014-03-12 12:20:43 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2197"
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10333"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-29 15:12:46 +0200
+        thetext: "my data:\ndata = \n\n               labelcmb: {104x2 cell}\n                 dimord: 'chancmb_freq'\n    wpli_debiasedspctrm: [104x60 double]\n                   freq: [1x60 double]\n                    cfg: [1x1 struct]\n\nI thought I had to fix the dimord already after ft_connectivityanalysis, cause it was 'chan_freq' although 'labelcmb' was present, but ft_checkdata (ie fixdimord) always wants to revert to 'chan'. The only way to make e.g. ft_connectivitplot work atm is to use:\nft_checkdata(data, 'cmbrepresentation', 'full');\nThis will make dimord chan_chan_freq and convert labelcmb to label. \n\nI couldn't find good documentation on chancmb on the wiki, so I am not 100% sure about this (whereas I am definitely sure that currently it's nonsense and output of ft_connectivityanalysis is incompatible with ft_connectivityplot)\n\nbtw: same holds e.g. for granger as well, so it's not specific to wpli"
+      - +@isprivate: "0"
+        commentid: "10334"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-04-29 15:17:31 +0200
+        thetext: as far as I know ft_connectivityplot only works if the bivariate data has a dimord of chan_chan_freq
+      - +@isprivate: "0"
+        commentid: "10335"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-29 15:52:40 +0200
+        thetext: |-
+          then the error message in ft_connectivityplot should be fixed:
+          Error using ft_connectivityplot (line 99)
+          the data should have a dimord of chan_chan_freq or chancmb_freq
+      - +@isprivate: "0"
+        commentid: "10336"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-04-29 16:34:24 +0200
+        thetext: Ow, first we should probably check whether my claim was true (as in only support for chan_chan_xxx)
+      - +@isprivate: "0"
+        commentid: "10337"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-04-29 16:58:36 +0200
+        thetext: good plan :)
+      - +@isprivate: "0"
+        commentid: "10369"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-02 11:02:40 +0200
+        thetext: |-
+          in ft_connectivityplot:
+          if strcmp(data.dimord, 'chan_chan_freq')
+            % that's ok
+          elseif strcmp(data.dimord, 'chancmb_freq')
+            % convert into 'chan_chan_freq'
+            data = ft_checkdata(data, 'cmbrepresentation', 'full');
+          else
+            error('the data should have a dimord of %s or %s', 'chan_chan_freq', 'chancmb_freq');
+          end
+
+          However, the problem maintains that chancmb_freq gets changed to chan_freq, thus the chancmb_freq to chan_chan_freq conversion is never executed
+      - +@isprivate: "0"
+        commentid: "10429"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-05-09 08:15:21 +0200
+        thetext: can you upload the data please?
+      - +@isprivate: "0"
+        commentid: "10438"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-13 11:07:13 +0200
+        thetext: "cfg             = [];\ncfg.ntrials     = 500;\ncfg.triallength = 1;\ncfg.fsample     = 200;\ncfg.nsignal     = 3;\ncfg.method      = 'ar';\ncfg.params(:,:,1) = [ 0.8 0   0; \n                      0   0.9 0.5;\n                      0.4 0   0.5];\ncfg.params(:,:,2) = [-0.5    0  0; \n                        0 -0.8  0; \n                        0    0 -0.2];\ncfg.noisecov      = [0.3 0 0;\n                       0 1 0;\n                       0 0 0.2];\n\ndata            = ft_connectivitysimulation(cfg);\n\n% freqanalysis\ncfgf           = [];\ncfgf.method    = 'mtmfft';\ncfgf.output    = 'fourier';\ncfgf.tapsmofrq = 2;\nfreq           = ft_freqanalysis(cfgf, data);\n\n% connectivityanalysis\ncfgc           = [];\ncfgc.channelcmb    = {freq.label{1} freq.label{2}; freq.label{1} freq.label{3}};\ncfgc.method    = 'coh';\nc1             = ft_connectivityanalysis(cfgc, freq);"
+      - +@isprivate: "0"
+        commentid: "10439"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-05-13 11:08:06 +0200
+        thetext: "K>> c1\n\nc1 = \n\n     labelcmb: {2x2 cell}\n       dimord: 'chan_freq'\n    cohspctrm: [2x101 double]\n         freq: [1x101 double]\n          dof: 1500\n          cfg: [1x1 struct]\n\nK>> ft_connectivityplot([], c1)\n??? Error using ==> ft_connectivityplot at 99\nthe data should have a dimord of chan_chan_freq or chancmb_freq"
+      - +@isprivate: "0"
+        commentid: "10612"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-05 10:53:01 +0200
+        thetext: "please tell me if I am wrong with any of this:\n\nfix 1:\nft_checkdata(data, 'cmbrepresentation', 'sparse') currently returns data.dimord = 'chan_XXX', but it should be 'chancmb_XXX'. \n\nnew problem 1:\ndimord 'chancmb' is not supported by ft_selectdata_old which is called subsequently by ft_connectivityanalysis: \ndata = ft_selectdata(data, 'avgoverrpt', 'yes');"
+      - +@isprivate: "0"
+        commentid: "10730"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-12 17:20:01 +0200
+        thetext: |-
+          fixed
+          http://code.google.com/p/fieldtrip/source/detail?r=8250
+          http://code.google.com/p/fieldtrip/source/detail?r=8252
+          but see bug 2197
+      - +@isprivate: "0"
+        commentid: "10758"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-13 21:05:16 +0200
+        thetext: In ft_sourceanalysis an explicit check is done on the dimord of the input frequency domain data. 'chancmb_freq' is not one of them, causing a crash...
+      - +@isprivate: "0"
+        commentid: "10759"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-13 21:11:36 +0200
+        thetext: prepare_freq_matrices also does not work anymore
+      - +@isprivate: "0"
+        commentid: "10760"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-13 21:32:44 +0200
+        thetext: |-
+          updated ft_sourceanalysis and private/prepare_freq_matrices to support chancmb_XXX in dimord.
+          revision 8261
+
+
+          Please check whether other functions are affected.
+      - +@isprivate: "0"
+        commentid: "10765"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-14 08:38:41 +0200
+        thetext: what structure did you put into ft_sourceanalysis? When I compute a freq-structure with cfg.output = 'powandcsd' I get a freq.label and a freq.labelcmb field, if I use cfg.output='fourier' I only get a .label field. Both worked fine for me. So I wonder what magic you are doing with FieldTrip that I don't know, yet :)
+      - +@isprivate: "0"
+        commentid: "10767"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-14 09:11:15 +0200
+        thetext: |-
+          it's not about how the numeric data are represented, it's about the dimord. There was an explicit check w.r.t it, e.g.
+
+          if strcmp(freq.dimord, 'chan_freq')
+          elseif strcmp( etcetc
+
+          'chancmb_freq' was not one of them.
+      - +@isprivate: "0"
+        commentid: "10768"
+        comment_count: "16"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-14 09:20:35 +0200
+        thetext: I never get a chamcmb dimord, that's what I meant
+      - +@isprivate: "0"
+        commentid: "10769"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-14 11:01:29 +0200
+        thetext: |-
+          I do:
+
+          tmp = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
+          tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparse');
+          tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparsewithpow');
+          ft_sourceanalysis(cfg, tmp);
+      - +@isprivate: "0"
+        commentid: "10770"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-14 11:07:21 +0200
+        thetext: |-
+          huh, strange magic you are doing
+          I'll extend the test script of this bug with these things and will test a bunch of functions that take freq as input
+      - +@isprivate: "0"
+        commentid: "10816"
+        comment_count: "19"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-25 09:04:57 +0200
+        thetext: "I found:\nWarning: unsupported dimord \"chancmb_freq_time\" for interactive plotting \n> In trunk/private/topoplot_common at 835\n\nand therefore propose to transform to chan_chan inside topoplot_common. Tomorrow, I'll look into more of these kind of things"
+      - +@isprivate: "0"
+        commentid: "10877"
+        comment_count: "20"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-03 10:30:29 +0200
+        thetext: is there a reason why chan_chan is not supported in ft_sourceanalysis but chancmb_ is?
+      - +@isprivate: "0"
+        commentid: "10884"
+        comment_count: "21"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-13 21:12:06 +0200
+        thetext: it's all about history. chan_chan would actually be the more natural way to format the input. It all boils down to update prepare_freq_matrices with my own local copy (which performs exactly the same, but which is based on a sequence of ft_selectdata calls). Now I speak of it, I am not sure whether the chan_chan is explicitly supported, but the expected behavior would be to just do some bookkeeping on the data and leave it at that.
+      - +@isprivate: "0"
+        commentid: "10898"
+        comment_count: "22"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-16 09:17:51 +0200
+        thetext: |-
+          (In reply to comment #21)
+          "but the expected behavior would be to just do some
+          bookkeeping on the data and leave it at that."
+          I don't get that, what bookkeeping? Leave it at what?
+      - +@isprivate: "0"
+        commentid: "10900"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-16 09:23:41 +0200
+        thetext: sorry for being a bit cryptic. the output of the function prepare_freq_matrices is a square cross-spectral density matrix (plus some additional stuff if one wants to do 'classical' dics), which has a dimord of chan_chan. If the input contains a chan_chan_freq_time matrix, the only thing that needs to be done is the selection of the frequency and time of interest (if there's anything to choose) and the selection of channels that are not present in the list of required channels (e.g. remove EOG channels if present)
+      - +@isprivate: "0"
+        commentid: "10903"
+        comment_count: "24"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-16 10:00:57 +0200
+        thetext: ah okidoki. and what about your own local copy of prepare_freq_matrices, would it make sense to share it or should I pimp the function accordingly?
+      - +@isprivate: "0"
+        commentid: "10904"
+        comment_count: "25"
+        attachid: "495"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-16 10:39:28 +0200
+        thetext: |-
+          Created attachment 495
+          JM's version of prepare_freq_matrices
+      - +@isprivate: "0"
+        commentid: "10905"
+        comment_count: "26"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-07-16 10:40:10 +0200
+        thetext: looks pretty old, and I am not sure whether it works fully ok. sounds like a testscript is necessary ;-).
+      - +@isprivate: "0"
+        commentid: "10906"
+        comment_count: "27"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-16 12:43:10 +0200
+        thetext: "hm, by looking at it I get the impression that that is a really old version, isn't it? Does it work? \nBut I am super confused by the current version as well... it needs both crsspctrm and powspctrm for constructing Cf, why is crsspctrm alone not sufficient?\nCan I replace this:\n  % put the power on the diagonal\n  Cf(find(eye(Nchans))) = freq.powspctrm(powspctrmindx, fbin);\n\nBy the respective lines from your version? Maybe it might be best if we can have a look together tomorrow (or any other day)?"
+      - +@isprivate: "0"
+        commentid: "10907"
+        comment_count: "28"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-16 13:48:04 +0200
+        thetext: |-
+          hm, after some thorough thinking I decided to keep the current version if the freq-structure has crsspctrm and powscptrm and take your version if the freq-structure just has crsspctrm but no powspctrm. Additionally, there is a third case for fourierspctrm. this is definitely the safest option for now, but I'm super confused why this distinction needs to be made in the first place...
+
+          svn ci private/prepare_freq_matrices.m utilities/ft_checkdata.m ft_sourceanalysis.m test/test_bug2148.m -m "bugfix #2148 - extended support for chancmb/laelcmb"
+          Sending        ft_sourceanalysis.m
+          Sending        private/prepare_freq_matrices.m
+          Sending        test/test_bug2148.m
+          Sending        utilities/ft_checkdata.m
+          Transmitting file data ....
+          Committed revision 8319.
+      - +@isprivate: "0"
+        commentid: "10938"
+        comment_count: "29"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-07-24 12:04:57 +0200
+        thetext: as discussed on monday, we keep it at that for the time being
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "495"
+      date: 2013-07-16 10:39:00 +0200
+      delta_ts: 2013-07-16 10:39:28 +0200
+      desc: JM's version of prepare_freq_matrices
+      filename: prepare_freq_matricesJM.m
+      type: application/octet-stream
+      size: "6103"
+      attacher:
+        +content: j.schoffelen
+        +@name: Jan-Mathijs Schoffelen
+      data: REMOVED

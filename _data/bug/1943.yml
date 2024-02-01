@@ -1,0 +1,275 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1943"
+    creation_ts: 2013-01-23 10:39:00 +0100
+    short_desc: identify channel function in ft_databrowser does not yield correct channel
+    delta_ts: 2014-03-12 12:21:42 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1431
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1481
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=498
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - dlozanosoldevilla
+      - jorn
+      - martinvinck
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9087"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-23 10:39:35 +0100
+        thetext: On the mentat nodes (or through torque), when I use the identify-function of the databrowser and click on a channel trace, most of the time the wrong channel is highlighted. This can be reproduced by databrowsing any CTF275 dataset (at least any of mine).
+      - +@isprivate: "0"
+        commentid: "9101"
+        comment_count: "1"
+        attachid: "411"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-01-23 13:51:52 +0100
+        thetext: |-
+          Created attachment 411
+          test data (and empty cfg) to reproduce bug
+      - +@isprivate: "0"
+        commentid: "9137"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-23 16:28:36 +0100
+        thetext: |-
+          an easy demonstration
+
+          >> nearest([1:10] * 1e-9, 10*1e-9)
+          ans =
+               1
+
+          this should have returned 10.
+      - +@isprivate: "0"
+        commentid: "9138"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-23 16:29:23 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          oh, I should have mentioned that Diego traced this down to the nearest function being applied to fT (i.e. 10^-12) magnitude values.
+      - +@isprivate: "0"
+        commentid: "9144"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-23 16:51:29 +0100
+        thetext: |-
+          there was a fixed rounding off at 10^6 decimals, I changed that into a relative rounding off. For time and frequency axesfor which it was designed it should still work as before
+
+          raspberry> svn commit nearest.m
+          Sending        nearest.m
+          Transmitting file data .
+          Committed revision 7397.
+      - +@isprivate: "0"
+        commentid: "9145"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-23 16:52:36 +0100
+        thetext: |-
+          These now both work fine
+
+          >> nearest([1:10] * 1e-9, 8*1e-9)
+          ans =
+               8
+
+          >> nearest([1:10] * 1, 8)
+          ans =
+               8
+      - +@isprivate: "0"
+        commentid: "10479"
+        comment_count: "6"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-17 11:47:40 +0200
+        thetext: |-
+          There's large errors involved with the nearest function caused by the precision operation in line 136
+
+          Take for example
+
+          x = 0:492:(492*(25*10^7))
+          y = 8424306*492
+
+          indx = nearest(x,y)
+
+          % indx = 8424183
+
+          indx2 = find(x<=y, 1, 'last);
+
+          % indx2 = 8424307
+      - +@isprivate: "0"
+        commentid: "10480"
+        comment_count: "7"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-17 11:52:56 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          besides the fact that the function doesn't do at all what it's supposed to do, it can also be implemented way faster on sorted arrays using find(x<=y, 1, 'last') and find(x>=y, 1, 'first') and comparing these.
+      - +@isprivate: "0"
+        commentid: "10482"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-17 12:59:52 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          it is doing correctly what it was designed to do according to the test_nearest.m script.  Could you add this case to that test script?
+      - +@isprivate: "0"
+        commentid: "10483"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-17 13:25:19 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          the x<=y might be a neat trick to avoid the error accumulation that was observed by Craig in bug 498.
+      - +@isprivate: "0"
+        commentid: "10484"
+        comment_count: "10"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-17 13:27:15 +0200
+        thetext: |-
+          (In reply to comment #8)
+          done
+      - +@isprivate: "0"
+        commentid: "10485"
+        comment_count: "11"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-17 13:29:19 +0200
+        thetext: "(In reply to comment #9)\n\nin that case, you first have to sort the array.\n\nthe you do find(array<=val, 1, 'last')\n\nand \n\nfind(array>=val,1, 'first')\n\nand compare these two to find the nearest one.\n\nfor computational speed you can first do \nif ~issorted(array)\n   [array, origindx] = sort(array);\nend\n\nthen later transform back via origindx.\n\nbut sort will still be much faster than doing the min(abs( of the difference"
+      - +@isprivate: "0"
+        commentid: "10486"
+        comment_count: "12"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-17 13:29:53 +0200
+        thetext: |-
+          (In reply to comment #11)
+          usually the arrays are sorted, in any case
+      - +@isprivate: "0"
+        commentid: "10493"
+        comment_count: "13"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-05-18 10:38:48 +0200
+        thetext: |-
+          (In reply to comment #12)
+
+          As far as I can see (there might be some older Matlab versions that don't support this), using this strategy with sort and find, the function could also support other datatypes than real, e.g. uint64. Sort works on these, and find also.
+      - +@isprivate: "0"
+        commentid: "10494"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-18 12:18:15 +0200
+        thetext: |-
+          (In reply to comment #13)
+
+          data types are another good reason to use < and > rather than minus.
+
+          Given http://fieldtrip.fcdonders.nl/code_guidelines#ensure_that_it_runs_on_older_matlab_versions
+          it does not have to run on very old versions. I checked matlab2008a and 2006a and this works:
+
+          >> x = 1:10
+          x =
+               1     2     3     4     5     6     7     8     9    10
+          >> find(x<3, 1, 'first')
+          ans =
+               1
+          >> find(x<3, 1, 'last')
+          ans =
+               2
+
+          we don't have to consider older versions.
+      - +@isprivate: "0"
+        commentid: "11432"
+        comment_count: "15"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-09-25 10:23:11 +0200
+        thetext: "Diego, I hope you don't mind that I took this one, but it's in light with test_nearest failing that I started working on yesterday:\n\nI implemented Martin's suggestion for nearest:\n\n  wassorted = true;\n  if ~issorted(array)\n    wassorted = false;\n    [array, xidx] = sort(array);\n  end\n  \n  indx2 = find(array<=val, 1, 'last');\n  indx3 = find(array>=val, 1, 'first');\n  if abs(array(indx2)-val) <= abs(array(indx3)-val)\n    indx = indx2;\n  else\n    indx = indx3;\n  end\n  if ~wassorted\n    indx = xidx(indx);\n  end\n\nI chose to give precedence to the lower value (hence <= in the if statement) because otherwise test_bug2220 crashes (the old nearest implementation behaved that way, see bug 498), but this is really an arbitrary choice. I ran some other test scripts, which all passed.\n\nsvn ci utilities/nearest.m -m \"bugfix #1943 - nearest now works using find rather than on absolute differences weighted by some precision matrix\"\nSending        utilities/nearest.m\nTransmitting file data .\nCommitted revision 8534."
+      - +@isprivate: "0"
+        commentid: "11434"
+        comment_count: "16"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2013-09-25 10:27:28 +0200
+        thetext: |-
+          (In reply to comment #15)
+          All yours ;)
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "411"
+      date: 2013-01-23 13:51:00 +0100
+      delta_ts: 2013-01-23 13:51:52 +0100
+      desc: test data (and empty cfg) to reproduce bug
+      filename: bug1943.mat
+      type: application/octet-stream
+      size: "9574262"
+      attacher:
+        +content: eelke.spaak
+        +@name: Eelke Spaak
+      data: REMOVED

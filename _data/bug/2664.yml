@@ -1,0 +1,70 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2664"
+    creation_ts: 2014-07-31 08:59:00 +0200
+    short_desc: error with comp input into ft_sourceanalysis
+    delta_ts: 2019-08-10 12:29:11 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2518"
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc: roeysc
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14207"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-07-31 08:59:15 +0200
+        thetext: "Post on mailing list:\n\nOn 30 July 2014 22:24, Roey Schurr <roeysc@gmail.com> wrote:\n> Dear fieldtrippers,\n>\n> I'm writing you regarding an error  I encountered upon computing an inverse\n> solution in mne method:\n>\n> Reference to non-existent field 'topo'.\n>\n> Error in ft_datatype_comp (line 92)\n>       if size(comp.topo,1)==size(comp.topo,2)\n>\n> Error in ft_checkdata (line 342)\n>       data = ft_datatype_comp(data);\n>\n> Error in ft_sourceanalysis (line 161)\n> data = ft_checkdata(data, 'datatype', {'comp', 'timelock', 'freq'},\n> 'feedback',\n> 'yes');\n>\n> The problem stems from a change (made in 2014-05-27) in \"ft_sourceanalysis\",\n> and can be bypassed by changing the order of data types in line 161 of\n> \"ft_sourceanalysis\":\n>\n> instead of\n>     data = ft_checkdata(data, 'datatype', {'comp', 'timelock', 'freq'},\n> 'feedback', 'yes');\n> write\n>     data = ft_checkdata(data, 'datatype', {'timelock', 'freq', 'comp'},\n> 'feedback', 'yes');\n>\n> Now, I am sure there was a good reason for making this change, so I am\n> guessing the fault is mine in the way I try computing the inverse solution\n> (which did work until this change of ft_sourceanalysis). The relevant piece\n> of code is:\n>\n> cfg = struct;\n> cfg.method = 'mne';\n> cfg.elec = elec;\n> cfg.grid = gridVar;\n> cfg.vol = vol;\n> cfg.rawtrial = 'yes';\n> cfg.hdmfile = headModelPath;\n> cfg.mne.lambda = '5%';\n> cfg.keepfilter = 'yes';\n> cfg.rawtrial = 'no';\n> cfg.singletrial = 'no';\n> cfg.keeptrials = 'yes';\n> source = ft_sourceanalysis(cfg, data)\n>\n> I am also not sure why the data is thought to be a \"comp\" data. A possible\n> cause for the problem is that the raw EEG records I work with are in TRC\n> format which has to be transformed into a fieldtrip compatible format. So\n> the \"data\" struct in the code has the following fields:\n>\n> data = \n>    label: {1x19 cell}\n>    fsample: 256\n>    trial: {1x12 cell}\n>    time: {1x12 cell}\n>    interpolatedElectrodes: {1x12 cell}\n>\n> Any ideas regarding the suggested bypass or the deeper cause of the error\n> will be greatly appreciated.\n>\n> Thank you for your time,\n> Best,\n>\n> roey\n>\n> _______________________________________________\n> fieldtrip mailing list\n> fieldtrip@donders.ru.nl\n> http://mailman.science.ru.nl/mailman/listinfo/fieldtrip"
+      - +@isprivate: "0"
+        commentid: "14208"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-07-31 09:18:43 +0200
+        thetext: |-
+          Hmm this is a tough one. For now I have implemented a temporary fix by indeed reversing the order in the ft_checkdata call, moving comp to the back. However, the underlying issue is with ft_checkdata and the juggling between different data types. Discussion for that problem should happen at bug 2518 (and likely at the FT meeting when Robert is back).
+
+          bash-4.1$ svn commit ft_sourceanalysis.m test/test_bug2664.m
+          Sending        ft_sourceanalysis.m
+          Adding         test/test_bug2664.m
+          Transmitting file data ..
+          Committed revision 9759.
+      - +@isprivate: "0"
+        commentid: "20017"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:11 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

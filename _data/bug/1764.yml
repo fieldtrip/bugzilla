@@ -1,0 +1,81 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1764"
+    creation_ts: 2012-10-03 23:55:00 +0200
+    short_desc: speed up volumethreshold (used in ft_datatype_segmentation)
+    delta_ts: 2012-10-29 13:44:58 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7780"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 23:55:33 +0200
+        thetext: |-
+          while looking at test_tutorial_beamformer20120321.m I noticed that the construction of the singleshell head model is very slow, whereas it is a rather simple one.
+
+          I believe the following is sufficient to reveal the problem
+
+          profile on  load('/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer/segmentedmri.mat')
+          cfg = [];
+          vol = ft_prepare_singleshell(cfg, segmentedmri);
+          profile report
+
+          most time is spent in volumethreshold at a simple count of the number of voxels. However, in this case I expect there to be only one compartment, which means that all the complicated stuff in volumeythreshold is not needed.
+      - +@isprivate: "0"
+        commentid: "7781"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-04 00:08:46 +0200
+        thetext: |-
+          (In reply to comment #0)
+          it seems to be because it is trying to make a singleshell MEG model out of the sct, grey and white rathen than from the brain.
+      - +@isprivate: "0"
+        commentid: "7789"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-04 09:53:34 +0200
+        thetext: "I added a test that is inspired by test test_tutorial_beamformer20120321 which uses a call to ft_prepare_singleshell without specifying any cfg options. The idea is of course to get a singleshell headmodel based on the brain. This should not take long. If it does, it might be because ft_prepare_mesh is meshing the complex gray, white and csf segmentations rather than the simple brain.\n\nroboos@mentat001> svn commit\nAdding         test/test_bug1764.m\nTransmitting file data .\nCommitted revision 6668.\n\n\nI also made a change to ft_prepare_mesh so that it has reasonable defaults (brain/3000) in case the input is gray/white/csf. I expect this to be useful for localspheres and singlesphere MEG models as well.\n\nroboos@mentat001> svn commit\nSending        ft_prepare_mesh.m\nTransmitting file data .\nCommitted revision 6667\n\n\nFinally I removed the deprecated sourceunits from ft_prepare_singleshell.\n\nroboos@mentat001> svn commit ft_prepare_singleshell.m \nSending        ft_prepare_singleshell.m\nTransmitting file data .\nCommitted revision 6670."
+      - +@isprivate: "0"
+        commentid: "8020"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:44:58 +0100
+        thetext: changed the status of several bugs that were RESOLVED some time ago to CLOSED

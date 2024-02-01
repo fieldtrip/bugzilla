@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1784"
+    creation_ts: 2012-10-16 23:32:00 +0200
+    short_desc: How to stop the buffer inside the matlab?
+    delta_ts: 2019-08-10 11:56:13 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sla.samiee
+      +@name: Soheila
+    assigned_to: fieldtriptoolbox
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7923"
+        comment_count: "0"
+        who:
+          +content: sla.samiee
+          +@name: Soheila
+        bug_when: 2012-10-16 23:32:23 +0200
+        thetext: "I can not stop the buffer inside the matlab, even after using \nbuffer('tcpserver', 'exit');\nit doesn't stop and I should use task manager to terminate the matlab and make it stop! \n\nI heard about \"demo_buffer.exe\" to run the buffer in windows, but it doesn't have a Win64 version. \n\n(I think the problem is similar to bug 934, but I didn't find a good solution for that one in comments! )"
+      - +@isprivate: "0"
+        commentid: "7924"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-17 14:59:29 +0200
+        thetext: "Dear Soheila, \n\nThat is indeed very annoying. Probably you can run the demo_buffer.exe in the win32, since most 64-bit versions of Windows can run 32-bit application just fine. I'll add a README file to explain this.\n\nDoes that provide an adequate workaround?\n\nBoris"
+      - +@isprivate: "0"
+        commentid: "7925"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-17 15:12:03 +0200
+        thetext: |-
+          Added a README in SVN r6766. Maybe we should reconsider the naming of the platforms after the mex-file convention...
+
+          *** This bug has been marked as a duplicate of bug 934 ***
+      - +@isprivate: "0"
+        commentid: "7932"
+        comment_count: "3"
+        who:
+          +content: sla.samiee
+          +@name: Soheila
+        bug_when: 2012-10-19 00:00:49 +0200
+        thetext: "Dear Boris\n\nI used demo_buffer.exe, but it doesn't work! Matlab can not read from that buffer. Is the problem with buffer or I should use a different function from what have been used for reading or writing from/to the buffer that is initialized in matlab? \n\nFor example, hdr = buffer('get_hdr', [], ft_host, ft_port) doesn't work for reading header from this buffer.\n\n\nSoheila"
+      - +@isprivate: "0"
+        commentid: "7933"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-19 09:22:54 +0200
+        thetext: That is unexpected. Could you explain what  does happen instead? Does demo_buffer.exe display an error when you try to read the header?
+      - +@isprivate: "0"
+        commentid: "7945"
+        comment_count: "5"
+        who:
+          +content: sla.samiee
+          +@name: Soheila
+        bug_when: 2012-10-19 16:49:51 +0200
+        thetext: |-
+          NO, no message or error is displayed in demo_buffer.exe window, but matlab doesn't respond to command. I should use CTRL-C to stop the process in matlab!
+
+          (The OS is 64-bit Windows 7)
+      - +@isprivate: "0"
+        commentid: "7958"
+        comment_count: "6"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-22 12:03:46 +0200
+        thetext: "I notice that you use 'buffer' to interact with the FieldTrip buffer. This mex-file is currently a private function of FieldTrip; users are supposed to use ft_read_header etc. On a Windows 64-bit machine I did the following:\n\n1) Start win32 demo_buffer.exe.\n\n2) in MATLAB:\n>> ft_read_header('buffer://localhost:1972')\n??? Error using ==> buffer\nERROR: the buffer returned an error (517)\n[snip]\n \n3) start sine2ft.exe to create signals, and press 'connect'\n\n4) In MATLAB:\n>> ft_read_header('buffer://localhost:1972')\n[snip]\nans = \n\n             Fs: 2000\n         nChans: 16\n       nSamples: 60416\n[snip]\n\nThis shows that reading the header (2) gives an error (but it does not hang!). This happens because no data has been written to the buffer yet. When we create some data in (3), this succeeds in (4). \n\nCould you try to replicate these steps? And if you get different results, could you update to the latest version of FieldTrip, and see if the problem persists?"
+      - +@isprivate: "0"
+        commentid: "7966"
+        comment_count: "7"
+        who:
+          +content: sla.samiee
+          +@name: Soheila
+        bug_when: 2012-10-23 23:42:40 +0200
+        thetext: "I did what you asked me step by step and and the result is: it works good with fake sine2ft.exe, but when I want to use the real MEG data which come from ACQ workstation (I don't have matlab on Acquisition workstation and I send it to Stim PC using acq2ftx), even ft_read_header('buffer://<hostname>:1972') doesn't work. I tried last version and then updated the fieldtrip but in both cases this error occurs:\n\nError using buffer\nERROR: failed to create socket (1)\nError in ft_read_header (line 920)\n      orig = buffer('get_hdr', [], host, port); \n\nI think even with using the ft_read_header we need to have access to buffer using this command: buffer('get_hdr', [], host, port);\n\n\nDo you have any idea to fix the problem?"
+      - +@isprivate: "0"
+        commentid: "7991"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-25 14:56:44 +0200
+        thetext: |-
+          Hi Soheila,
+
+          So, it does work with the sine2ft program, which shows that on the MATLAB-client side things are working fine. The error message states that it can't connect to this server. My hunch is that
+          1) either the FT buffer server is running on a different port or address, or
+          2) it is not running at all.
+
+          You can try to pinpointing the problem by connecting deliberately to a non-existing server. Do you get the same message? If you do, you should attempt to find the correct address & port for your serving program. Perhaps you local technical staff can help you with this.
+
+          I close this bug, since this is more user support than bug related. If you have more questions, please ask on the FieldTrip list.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "7997"
+        comment_count: "9"
+        who:
+          +content: sla.samiee
+          +@name: Soheila
+        bug_when: 2012-10-25 16:04:43 +0200
+        thetext: |-
+          No, the problem is not the server, because when I initiate the buffer inside the matlab, it works perfect!
+          I've started using the realtime part of Fieldtrip for developing MEG neurofeedback in our lab since February. I'm familiar with addresses,TCP/IP connection, delay estimation and lots of other concepts related to this application of fieldtrip. In this point, I think the problem is with demo_buffer and at least in my Win7 machine, it doesn't work. For current applications, I can continue using internal buffer and the only problem is shutting down of matlab, but I'd appreciate if you could generate a 64bit Win7 compatible version of demo_buffer for future applications.
+
+
+          Best Regards,
+          Soheila
+      - +@isprivate: "0"
+        commentid: "8119"
+        comment_count: "10"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-11-02 13:29:59 +0100
+        thetext: I am no longer working on FieldTrip. Hence, I donate all my bugs to the joint development user.
+      - +@isprivate: "0"
+        commentid: "19809"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

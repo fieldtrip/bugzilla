@@ -1,0 +1,218 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1825"
+    creation_ts: 2012-11-08 03:42:00 +0100
+    short_desc: read_plexon_nex and plexon_nex in ft_read_data
+    delta_ts: 2016-09-13 12:26:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: ASSIGNED
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2093
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: martinvinck
+      +@name: Martin Vinck
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - ali.b.sharif
+      - braingirl
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8187"
+        comment_count: "0"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 03:42:05 +0100
+        thetext: |-
+          line 912 dat(i,:) = nex.dat; can give an error when chanbegsmp<1.
+          as the preallocation dat = zeros(length(chanindx), endsample-begsample+1);
+          conflicts with the size of nex.dat given the existing code.
+
+          I am reading in Pascal's old NIH data and according to read_plexon_nex sometimes the first ts of the LFP data lies about 100 ms after the onset of the recording according to read_plexon_nex. This is when the error arises.
+      - +@isprivate: "0"
+        commentid: "8191"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-08 09:36:41 +0100
+        thetext: What would be your solution?
+      - +@isprivate: "0"
+        commentid: "8192"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 09:40:56 +0100
+        thetext: I guess, nex.dat = [nan(1,offset) nex.dat]; could be simply changed where the length of the NaNs is set correctly. But let's hear Robert on this issue as he programmed this set of readout functions, I think.
+      - +@isprivate: "0"
+        commentid: "8193"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-08 09:49:39 +0100
+        thetext: but why is chanbegsmp<1 to begin with?
+      - +@isprivate: "0"
+        commentid: "8194"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 09:53:37 +0100
+        thetext: |-
+          I am not quite sure, JM, what the meaning and function of this offset here is.
+          offset     = round(double(nex.ts-hdr.FirstTimeStamp)./hdr.TimeStampPerSample);
+      - +@isprivate: "0"
+        commentid: "8196"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 10:44:26 +0100
+        thetext: "Hmm, have to dig deeply into my hippocampus....\n\nI think that similar to the neuralynx system that the acquisition and the writing to disk are two separate aspects of the software. Consequently the file can already contain events prior to teh data starting. And also files can contain multiple channels that start at (slightly) different times. So is missing data is indicated with - and present data with +, then\n\ndat1 = \n- - - - - + + + + + + + + + + + \ndat2 = \n- - - + + + + + + + + + + + + + \n\nin representing these two channels in a single matrix, we can start at sample 1 (corresponding to the first timestamp that can be recognized in the file), at sample 3 (the first where a data sample is present) or sample 5 (where all channels have their first sample).\n\nIf we start at sample 1 or 3, the missing samples can be represented as nans.\n\nBut note that the challenge is that ft_read_header and especially ft_read_event have to be consistent! The cfg.trl that people have on disk would be invalidated if the sample counts change.\n\nPlease note the other (old, but still open) bug 322 that relates to this."
+      - +@isprivate: "0"
+        commentid: "8197"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 10:45:20 +0100
+        thetext: |-
+          (In reply to comment #0)
+
+          > line 912 dat(i,:) = nex.dat; can give an error when chanbegsmp<1.
+          > as the preallocation dat = zeros(length(chanindx), endsample-begsample+1);
+          > conflicts with the size of nex.dat given the existing code.
+
+          Could you give the precise code (i.e. call to ft_read_data with all arguments) that gives this error?
+      - +@isprivate: "0"
+        commentid: "8215"
+        comment_count: "7"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 15:09:29 +0100
+        thetext: The handiest would be to write a proper bug file, but the data is pretty big (100 MB or so). Do you have access to the /DATA_pasfri/DATA_pasfri/V4forlong directory on the donders cluster or frankfurt cluster somehow?
+      - +@isprivate: "0"
+        commentid: "8216"
+        comment_count: "8"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 15:11:42 +0100
+        thetext: Hi Robert, are you using that the cfg.trl must be made specifically for every channel given its nex.ts ? Because hdr.FirstTimeStamp is not the correct first timestamp for a given channel?
+      - +@isprivate: "0"
+        commentid: "8217"
+        comment_count: "9"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-11-08 16:19:53 +0100
+        thetext: |-
+          Where it goes wrong is for example if begsample = 4, endsample = 100 and offset = 5.
+          In this case, we read 95 samples and pad with 5 nans. But the initiated dat would have endsample-begsample+1 = 97 datapoints, which gives a size discrepancy with the initiated vector.
+
+          So we need something like:
+
+          d = (endsample-begsample+1) - (chanendsmp)
+
+          nex.dat = [nan(1,d) nex.dat];
+      - +@isprivate: "0"
+        commentid: "8218"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 16:40:02 +0100
+        thetext: "(In reply to comment #7)\n\nthat directory does not exist (any more) on the donders cluster storage. I don't have easy access to the ESI cluster. Please use one of the methods listed at http://fieldtrip.fcdonders.nl/bugzilla towards the bottom of the page and send me the URL for the download by email.\n\n(In reply to comment #8)\n\nhdr.FirstTimeStamp is (or should be) the timestamp corresponding to what ft_read_xxx considers the first sample (i.e. sample number 1).\n\nAny additional samples that are inconsistently present over channels are ignored. The sample specification in cfg.trl is derived from ft_read_event and passed on to ft_read_data. So whatever is hidden in those ft_read_xxx functions remains hidden to the user on purpose.\n\nI should note that this code is really old and I do not recall the details. This was well before starting to use SVN and bugzilla. So getting some test cases implemented in a test script would actually be very valuable. \n\n (In reply to comment #9)\n\ncan you please write this in MATLAB style in fieldtrip/test/test_bug1825 with the assumption that the dataset is in /home/common/matlab/fieldtrip/data/test/bug1825/xxx.nex (where I'll put it when I receive it)? I'll then have a look at it."
+      - +@isprivate: "0"
+        commentid: "15013"
+        comment_count: "11"
+        who:
+          +content: ali.b.sharif
+          +@name: Ali Bahramisharif
+        bug_when: 2015-01-07 13:55:39 +0100
+        thetext: |-
+          Hi Guys,
+
+          I was on reporting a new bug, but I found it is very related to this one.
+
+          I had some problems with reading some nex data and I noticed the 'header' becomes negative because of integer limits and sign flip at the boundary. I solved it by changing one if-statement (below). I was wondering if I have not changed anything important. Do you have any clue?
+
+          In ~line 986 of ft_read_data, there is the following if:
+
+           if chanbegsmp<1
+
+          which should be changed to :
+           if (chanbegsmp<1 && chanendsmp>1) || (chanbegsmp>chanendsmp)
+
+          Agree?
+      - +@isprivate: "0"
+        commentid: "17109"
+        comment_count: "12"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2016-03-08 21:58:20 +0100
+        thetext: "I have another NEX file import error that I think may be related to these.  It's not exactly the same, but I'm hoping my proposed fix might also solve yours...or if it accidentally makes yours worse, I'd like to know that too!\n\nThe NEX file I'm trying to import has 2 fragments, formed by merging 2 PLX files of a discontinuous recording (automatic stop and restart to limit file sizes).  \n\nHere are the exact messages I get:\n\n     processing channel { 'AD01' 'AD02' 'AD03' 'AD04' 'AD05' 'AD06' 'AD07' 'AD08' 'AD09' 'AD10' 'AD11' 'AD12' 'AD13' 'AD14' 'AD15' 'AD16' }\n     reading and preprocessing\n     Index exceeds matrix dimensions.\n\n     Error in ft_read_data (line 1111)\n               dat(i,:) = cnt(begsample:endsample);\n\n     Error in ft_preprocessing (line 576)\n           dat = ft_read_data(cfg.datafile, 'header', hdr, 'begsample', begsample, 'endsample', endsample, 'chanindx',\n           rawindx, 'checkboundary', strcmp(cfg.continuous, 'no'), 'dataformat', cfg.dataformat);\n\n     Error in FT_preprocFear_chunks_TEM (line 176)\n             data = ft_preprocessing(cfg);\n\nI traced this error back to line 1099:\n\n          offset     = round(double(nex.ts-hdr.FirstTimeStamp)./hdr.TimeStampPerSample); % of each fragment, in AD samples\n\nI don't understand why this doesn't just use the offsets provided in nex.indx ([0,4800007] in my file, as compared to offset = [0,4800006] calculated this way).  There seems to have been a fraction of a ms of data lost in the stop/restart, which is causing this rounding error."
+      - +@isprivate: "0"
+        commentid: "17788"
+        comment_count: "13"
+        attachid: "810"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-09-13 12:26:40 +0200
+        thetext: |-
+          Created attachment 810
+          nex documentation
+
+          (In reply to Teresa Madsen from comment #12)
+
+
+          On the outside of ft_read_data all fieldtrip code requires samples to be indexed in a continuous manner starting from sample 1 onwards. This applies to regularly segmented data (as in Subject01.ds) where there are unknown holes between otherwise-constant-length segments, but also to situations where segments are of different lengths. If needed, segment boundaries are to be represented in the output of ft_read_event.
+
+          Some file formats (notably neuralynx and neuromag fiff) internally represent samples as "incoming from the system" and allow for acquisition to disk to be separate from that. E.g. those allow internally that the first sample is indexed with a number >1 (depending how long ago the amplifier was started).
+
+          I suspect that something related to this goes wrong. I don't remember having dealt with multi-segment nex files myself. Let me attach the documentation that I have on nex.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "810"
+      date: 2016-09-13 12:26:00 +0200
+      delta_ts: 2016-09-13 12:26:40 +0200
+      desc: nex documentation
+      filename: HowToReadAndWriteNexFiles.txt
+      type: text/plain
+      size: "24186"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

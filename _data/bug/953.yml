@@ -1,0 +1,235 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "953"
+    creation_ts: 2011-09-12 12:21:00 +0200
+    short_desc: the channel type and the physical units should be the output of ft_read_header
+    delta_ts: 2019-01-22 10:34:35 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1856
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=963
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1916"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3134"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-12 12:21:52 +0200
+        thetext: |-
+          On Mon, Sep 12, 2011 at 8:03 AM, Robert Oostenveld
+
+          After a discussion with Vladimir regarding SPM12, we have decided that it would be good to extend the ft_read_header API such that it also returns the channel type and the channel units. There is already a function ft_chantype, but it is more consistent to determine the type and units at the read-in stage and not afterwards.
+
+          The first consequence would be the extension with
+           hdr.chantype = cell(Nchan,1)
+           hdr.unit     = cell(Nchan,1)
+          where the type would be consistent with the current return values of ft_chantyle and where the unit would be 'V', 'uV', 'T', 'fT', 'cm', 'unknown', etc.
+
+          This change is already enough for SPM12. But of course it makes sense (and it has been on the wish-list for a long time) that we also add them to the output of ft_preprocessing. Subsequently, ft_appenddata, ft_timelockanalysis, ft_freqanalysis, etc. would pass the (converted) units on. The already existing helper function ft_convert_units (currently only for geometric units) would be extended and we should consider how to add (or use) the units in the leadfield computation. In short, this initial change to ft_read_header could (or will) result in a whole sequence of code improvements elsewhere.
+      - +@isprivate: "0"
+        commentid: "3135"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-12 12:22:08 +0200
+        thetext: |-
+          On 12 Sep 2011, at 11:40, Vladimir Litvak wrote:
+
+          One thing we haven't discussed is that it would also be useful to
+          provide units as input to ft_read_data to ensure that the data is read
+          in the desired units (where applicable).
+      - +@isprivate: "0"
+        commentid: "3600"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-18 21:04:33 +0200
+        thetext: "(In reply to comment #1)\n> On 12 Sep 2011, at 11:40, Vladimir Litvak wrote:\n> \n> One thing we haven't discussed is that it would also be useful to\n> provide units as input to ft_read_data to ensure that the data is read\n> in the desired units (where applicable).\n\nThe same applies to ft_compute_leadfield."
+      - +@isprivate: "0"
+        commentid: "4368"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-30 17:07:52 +0100
+        thetext: |-
+          I have added a first implementation to ft_read_header. It should be extended, where preferably the type assignments stay close to the actual reading code. To make life easier, I also added a ft_chanunit helper function that hopefully can be implemented for the known sensor types.
+
+          Now that I think of it, ft_chanunit should probably be in fileio/private and not in fileio itself.
+      - +@isprivate: "0"
+        commentid: "4369"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-30 17:08:22 +0100
+        thetext: |-
+          (In reply to comment #3)
+          note that I committed it in revision 4894
+      - +@isprivate: "0"
+        commentid: "4594"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-22 09:59:08 +0100
+        thetext: |-
+          I have updated the documentation on channel types and units.
+
+          manzana> svn commit ft_chantype.m ft_chanunit.m ft_read_header.m private/ft_senstype.m
+          Sending        ft_chantype.m
+          Sending        ft_chanunit.m
+          Sending        ft_read_header.m
+          Sending        private/ft_senstype.m
+          Transmitting file data ....
+          Committed revision 5072.
+      - +@isprivate: "0"
+        commentid: "8075"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-10-31 16:13:48 +0100
+        thetext: |-
+          (In reply to comment #5)
+          Hi Robert,
+
+          I finally got to working on SPM12 and I should now update the conversion code. I see that you only implemented ft_chanunit for Neuromag. I'd like it to work for all MEG systems. For EEG based on my previous survey the only example where the data is not in uV is the CTF system (where it is in V). So what I'd like to change in SPM is to convert all MEG data to fT and CTF EEG data to uV. The rest I think can stay as is for now. Do you want me to try to extend ft_chanunit or are you planning to do it yourself? Also what about Neuromag planar sensors. What would be the right units to convert them if we want to keep mm for the geometry?
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "8125"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-04 16:54:09 +0100
+        thetext: "mac001> svn commit       \nSending        fileio/ft_chantype.m\nSending        fileio/ft_chanunit.m\nSending        test/test_bug963.m\nTransmitting file data ...\nCommitted revision 6868.\n\nUpdated some functions w.r.t. the channel units.\n\nIn case a neuromag grad.tra contains only +1 -1 then it is not weighted with distance and units are T. Otherwise it is assumed to be weighted with the channel distance according to the specified units."
+      - +@isprivate: "0"
+        commentid: "8436"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 23:12:13 +0100
+        thetext: '*** Bug 1851 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "8437"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-27 23:17:22 +0100
+        thetext: |-
+          It is desired that the channel data can be scaled on the fly. For this I have added the option chanunit to ft_read_data.m which allows conversion of units on the fly. This can be used like
+
+          hdr = ft_read_header(...);
+          chanunit = hdr.chanunit;
+          chanunit(strcmp('T', chanunit)) = {'fT'}
+          dat = ft_read_data(..., 'chanunit', chanunit);
+
+          mbp> svn commit
+          Sending        fileio/ft_chanunit.m
+          Sending        fileio/ft_read_data.m
+          Transmitting file data ..
+          Committed revision 7007.
+
+          Note that I realized that the approach as discussed with Vladimir in London (update the hdr.chanunits) won't work. I can explain if needed... I believe the current API to be at least as nice.
+      - +@isprivate: "0"
+        commentid: "8438"
+        comment_count: "10"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-11-27 23:30:04 +0100
+        thetext: |-
+          (In reply to comment #9)
+
+          So the header will not be consistent with the data. That's what we wanted to avoid isn't it?
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "8441"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-28 09:29:23 +0100
+        thetext: "(In reply to comment #10)\n\nFor some formats ft_read_data re-reads the header regardless of whether it gets the header as input argument. For some formats it does not re-read the header because the header parsing is too expensive. Consequently, inside ft_read_data there would not always be the two copies of the header: the one with the file units and the one with the desired units, which would be required to compare the units and compute the scaling factor per channel.\n\nAnother aspect that I did not like is passing options that determine how the function internally behaves in the hdr structure. That is inconsistent with all other option passing. E.g. the header is now also not used to select channels, you specify chanindx and do not reduce the hdr.label cell-array. If the header were used for options, then you could also say that the expected behavior is\n\nchanindx = 1:10;\nhdr.label = hdr.label(chanindx)\ndat = ft_read_data(..., 'header', hdr)\n\nwhich I would consider very ugly. Also for endsample you could then expect hdr.nSamples to be used. That does not make sense. So therefore I decided against using the hdr for option-passing and rather keep that as a stationary representation of the stuff that is in the file.\n\nFor these two reasons I defined the interface so that the user specifies for each channel what the unit should be (* see below). So you can do\n\nhdr = ft_read_header(...);\n\nchanindx = 1:10\nchanunit = hdr.chanunit(chanindx); % make a selection of channel units\nlabel       = hdr.label(chanindx); % make a selection of channel labels\nchanunit(strcmp('T', chanunit)) = {'fT'} % update the units from T to fT\n\ndat = ft_read_data(..., 'chanunit', chanunit,'chanindx', chanindx);\n\nand then if you want you can update the header with\n\nhdr.chanunit(chanindx) = chanunit;\n\nbut in general I would expect the subsequent code to ignore the header and only continue with the specified chanunit and label cell arrays.\n\n----\n\n(*) what I initially thought of was to allow the specification like \ndat = ft_read_data(..., 'chanunit', {'fT, 'uV'})\nbut in that case you do *not* know which channels are unit-updated (e.g. a neuromag magnetometer would, but planar gradiometer would not). Hence the explicit requirement of the user having to specify the units of each channel. This also results in an error if you request for an impossible unit update.\n\n\nHope this explains it."
+      - +@isprivate: "0"
+        commentid: "8816"
+        comment_count: "12"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-28 17:31:19 +0100
+        thetext: |-
+          (In reply to comment #11)
+          I tried to integrate unit scaling in spm_eeg_convert. The current implementation is very slow. Line 1098 in ft_read_data takes 18 seconds to run on my Neuromag data example and it runs at every iteration of the data reading loop.
+      - +@isprivate: "0"
+        commentid: "8817"
+        comment_count: "13"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-12-28 19:07:45 +0100
+        thetext: "(In reply to comment #12)\nOne possible way to speed it up is to find unique pairs of old and new units, compute scaling factors just for those and then replicate back to get full vector of factors. In my example that would reduce the number of times scalingfactor needs to be run from 404 to 4. Here is the piece of code that does that:\n\nunitpairs = [hdr.chanunit(chanindx(:)), chanunit(:)];\n[dum, sel1, sel2] = unique(unitpairs(:, 1));\nuniquepairs = unitpairs(sel1, :);\n  \nuscaling = cellfun(@scalingfactor, uniquepairs(:, 1), uniquepairs(:, 2));\nscaling  = uscaling(sel2);\n\n\nThis code assumes that for each original unit there is one unique output unit. I couldn't make it work in general case because 'unique' with 'rows' flag doesn't work for cell arrays any more. Not sure if you have any solution for that already."
+      - +@isprivate: "0"
+        commentid: "8823"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 10:44:02 +0100
+        thetext: |-
+          (In reply to comment #13)
+
+          I have moved the scalingfactor speedup to a separate bug, see bug 1916.
+      - +@isprivate: "0"
+        commentid: "19632"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-01-22 10:34:28 +0100
+        thetext: |-
+          hdr = ft_read_header('E2-raw-1.fif')
+          returns (already for quite some time)
+          hdr.chantype
+          hdr.chanunit
+
+          so the original bug request is satisfied.

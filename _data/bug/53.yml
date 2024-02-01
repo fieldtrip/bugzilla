@@ -1,0 +1,139 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "53"
+    creation_ts: 2010-03-17 09:10:00 +0100
+    short_desc: redesign the filetype detection
+    delta_ts: 2011-01-05 12:01:00 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "92"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-03-17 09:10:05 +0100
+        thetext: |-
+          currently filetype runs as a long if-elseif-elseif sequence. In case of a desired fileformat, it still executes the tests for all other fileformats. In case of conflicting file properties (e.g. extensions), it also is only able to detect the first one in the list. An alternative implementation could be something like this:
+
+
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          % THIS IS AN ALTERNATIVE IMPLEMENTATION OF THE FILETYPE FUNCTION
+          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+          function [type] = filetype(filename, desired, varargin)
+
+          if nargin<2
+            % consider all possible file formats, note that the order of testing is
+            % important because not all files can be easily distinguished. First test
+            % for the formats with most known characteristics (e.g. header) and only
+            % afterwards test for formats that cab only be characterised by their
+            % extension.
+            desired = {
+              'neuralynx_bin'
+              'plexon_nex'
+              };
+            booleanoutput = false;
+          elseif iscell(desired)
+            % only test for the indicated file formats
+            booleanoutput = false;
+          elseif ischar(desired)
+            % this should be a cell-array
+            desired = {desired};
+            booleanoutput = true;
+          else
+            error('input argument #2 is incorrect');
+          end
+
+          % loop over all file formats to be checked
+          current = 0;
+          found   = false;
+          while ~found && current<numel(desired)
+            current = current + 1;
+            funname = ['filetype_' desired{current}];
+            found   = feval(funname, filename);
+          end
+
+          if booleanoutput
+            % return a boolean value
+            type = found;
+          else
+            % return a descriptive string
+            type = desired{current};
+          end
+
+
+          function retval = filetype_neuralynx_ncs(filename)
+          retval = filetype_check_extension(filename, '.ncs') && filetype_check_header(filename, '####');
+
+          function retval = filetype_neuralynx_bin(filename)
+          retval = filetype_check_extension(filename, '.bin') && filetype_check_header(filename, {'uint8', 'uint16', 'uint32', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64'});
+
+          function retval = filetype_plexon_nex(filename)
+          retval = filetype_check_extension(filename, '.nex')  && filetype_check_header(filename, 'NEX1');
+
+          function retval = filetype_fcdc_matbin(filename)
+          % this is a self-defined FCDC data format, consisting of two files:
+          % a matlab V6 *.mat file contains the header and optionally the events, a binary *.bin file contains the data (multiplexed, ieee-le, double precision)
+          retval = length(filename)>4 && exist([filename(1:(end-4)) '.mat'], 'file') && exist([filename(1:(end-4)) '.bin'], 'file');
+      - +@isprivate: "0"
+        commentid: "107"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-03-30 15:09:53 +0200
+        thetext: the list of default desired fileformats has to be autodetected by looking over which/mfilename and create the desired list on the fly.
+      - +@isprivate: "0"
+        commentid: "563"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-06 22:11:23 +0100
+        thetext: although the idea is nice and would be a good solution for making it more modular and allow people to drop in new file formats, it is of such low priority that it will not be fixed anytime soon. The suggested solution can remain in bugzilla for future reference.
+      - +@isprivate: "0"
+        commentid: "785"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 11:56:56 +0100
+        thetext: selected a long list of resolved bugs from roboos and changed the status into "RESOLVED"
+      - +@isprivate: "0"
+        commentid: "864"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 12:01:00 +0100
+        thetext: selected all old bugs from roboos with status RESOLVED and changed it into CLOSED

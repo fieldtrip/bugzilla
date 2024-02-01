@@ -1,0 +1,187 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2555"
+    creation_ts: 2014-05-01 12:44:00 +0200
+    short_desc: Strange shape of Granger spectrum
+    delta_ts: 2019-08-10 12:29:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13450"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 12:44:41 +0200
+        thetext: |-
+          Hi guys,
+
+          Alek Pogosyan from Peter Brown's lab is learning Fieldtrip and he found that when he simulates data by shifting band-filtered noise the nonparametric Granger spectrum has quite a weird shape with two peaks whereas all the other methods give a reasonable answer with a single peak. That doesn't depend on the amount of data.
+
+          Also when changing from DPSS to hanning things get completely weird (not sure if it's in his demo but I saw it yesterday).
+
+          Is it a bug? I haven't seen this before. Example code and data are attached. You can add Alek to CC. His e-mail is alek.pogosyan@ndcn.ox.ac.uk . Alek is very experienced in data analysis so it'd be good if he could get involved in FT.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "13451"
+        comment_count: "1"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 12:48:47 +0200
+        thetext: The data were too large to attach. You can download from ftp://ftp.fil.ion.ucl.ac.uk/in/Test_Granger_Alek.zip
+      - +@isprivate: "0"
+        commentid: "13452"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-01 13:00:19 +0200
+        thetext: |-
+          Hi Vladimir,
+          I experienced similar weirdness, and in generally would be careful in interpreting both parametric and nonparametric Granger in the presence of noise. Crucial for my data (nonparametric Granger) was to include padding when computing the fourier coefficients, as that seemed to smoothen the frequency spectrum. Have you tried that?
+
+          I ran some simulations using Granger and results were fine with padding, whereas peak frequencies shifted, one original peak frequency became two at other frequencies or the Granger estimation went all crazy without padding. Currently, I pad to 3 times the original data length. Btw, I use a Hanning taper. I guess the result being much weirder with a Hanning taper compare to DPSS also stems from the fact that with a Hann taper, the frequency smoothing is much smaller (i.e. 1xRaleigh) than with DPSS, leading to a somewhat unsmooth frequency spectrum. btw, would be nice if you attached a figure so that we know what you mean with 'weird shape'.
+
+          Hope that helps, if not, let's wait until JM re-appears ;)
+      - +@isprivate: "0"
+        commentid: "13453"
+        comment_count: "3"
+        attachid: "620"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 13:07:10 +0200
+        thetext: |-
+          Created attachment 620
+          Picture
+
+          Here is a picture. You can get if it you run the code. I couldn't run the comparison with other methods as I don't have the bsmart toolbox installed. I'll let Alek know about the padding suggestion.
+      - +@isprivate: "0"
+        commentid: "13454"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-01 13:21:48 +0200
+        thetext: |-
+          yes, that looks like what I meant. These ripples disappear if the frequency spectrum is smoother, which is apparently a prerequisite for the wilson factorization, see also bug 2379 and bug 2342
+          it's also very important to include the complete frequency spectrum, i.e. from the DC bin up until Ny. This also has something to do with the peculiarities of the wilson factorization
+      - +@isprivate: "0"
+        commentid: "13455"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 13:27:15 +0200
+        thetext: I tried adding zero bin and padding and it has no effect at all. Could you look at the example yourself to see if you can fix it based on your experience?
+      - +@isprivate: "0"
+        commentid: "13456"
+        comment_count: "6"
+        attachid: "621"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-01 13:59:38 +0200
+        thetext: |-
+          Created attachment 621
+          hanning and boxcar taper with padding
+
+          I tried different tapers and padding, but nothing looks optimal.
+      - +@isprivate: "0"
+        commentid: "13457"
+        comment_count: "7"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-01 14:51:57 +0200
+        thetext: If I set the frequency spacing to 0.25 then I get something more reasonable for hanning but not for boxcar. For DPSS there is a very clear U-like shape with two peaks. This doesn't seem to be noise it's something in the taper that makes it like that.
+      - +@isprivate: "0"
+        commentid: "13458"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-05-01 15:37:37 +0200
+        thetext: let's see if JM has an idea whether there is a way to resolve this. All I can say that this is probably caused by the sudden transition in the fourierspectrum around 20Hz, and that the factorization (i.e. computation of the transfer function) cannot deal with such sharp transition. If there is another way to compute the spectral transfer function, we could try that...
+      - +@isprivate: "0"
+        commentid: "13473"
+        comment_count: "9"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-05-02 13:09:24 +0200
+        thetext: |-
+          (In reply to Jörn M. Horschig from comment #8)
+          OK I think I know what the problem is. He used a pure sine with noise as his signal rather than filtered noise. That would indeed be expected to result in weird behaviour. Thanks for your help.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "20013"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:08 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "620"
+        date: 2014-05-01 13:07:00 +0200
+        delta_ts: 2014-05-01 13:07:10 +0200
+        desc: Picture
+        filename: weird.png
+        type: image/png
+        size: "11229"
+        attacher:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "621"
+        date: 2014-05-01 13:59:00 +0200
+        delta_ts: 2014-05-01 13:59:38 +0200
+        desc: hanning and boxcar taper with padding
+        filename: Screenshot 2014-05-01 13.53.02.png
+        type: image/png
+        size: "45990"
+        attacher:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        data: REMOVED

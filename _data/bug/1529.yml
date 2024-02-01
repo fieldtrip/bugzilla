@@ -1,0 +1,83 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1529"
+    creation_ts: 2012-06-13 17:17:00 +0200
+    short_desc: unexpected behavior of ft_plot_ortho
+    delta_ts: 2012-08-23 10:48:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: maess
+      +@name: Burkhard Maess
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6399"
+        comment_count: "0"
+        who:
+          +content: maess
+          +@name: Burkhard Maess
+        bug_when: 2012-06-13 17:17:42 +0200
+        thetext: "On 13 Jun 2012, at 14:35, Burkhard Maess wrote:\n\nI am still working on the import of freesurfer/MNE based MRI/headmodel/source spaces.\nI have checked this against the latest version (subversion update just a few minutes ago).\n\nNow, I have problems to understand ft_plot_ortho. As a warmup I loaded the spm template (part of ft-world): /external/spm8/templates/T1.nii\n\nThe simplest call of ft_plot_ortho needed (at least in my case) variable arguments, which is against the idea (I think).\nI modified ft_plot_ortho accordingly (my version is attached).\n\nHowever, when giving the option ('transform') together with the transform stored in the T1.nii file the display changes in an unexpected way (sort of a zoom). \n\nDo you have any ideas why?"
+      - +@isprivate: "0"
+        commentid: "6400"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-06-13 17:25:23 +0200
+        thetext: "some code pasted below:\n\n%% Load the SPMtemplate \nmritem = ft_read_mri([ getenv('FIELDTRIP_MAINDIR') '/external/spm8/templates/T1.nii']);\n% mrichecked = ft_determine_coordsys(mritem) ;\nmritem.coordsys = 'spm'; % define the coordinate system (why is this not part of ft_read_mri \n%% Display the Anatomy via plot_ortho (defaults)\nfigure('name','MRI TEM');\nft_plot_ortho(mritem.anatomy);\n\n%% Display the Anatomy via plot_ortho (at a certain location )\nlocation_voxel = [46 64 37];\nlocation_str   = sprintf('x: %.0f y: %.0f z:%.0f',location_voxel(1:3));\nfigure('name',['MRI TEM VOX' location_str ]);\nft_plot_ortho(mritem.anatomy,'location',location_voxel(1:3));\n\n%% Display the Anatomy via plot_ortho (at the same certain location, using external transform )\nlocation_mri = [0 0 0];\nlocation_voxel = mritem.transform\\[location_mri 1]';\nlocation_str   = sprintf('x: %.0f y: %.0f z:%.0f',location_voxel(1:3));\nfigure('name',['MRI TEM MRI EXTERN ' location_str]);\nft_plot_ortho(mritem.anatomy,'location',location_voxel(1:3));\n\n%% Display the Anatomy via plot_ortho (at the same certain location, using internal transform )\nlocation_mri = [0 0 0];\nlocation_str   = sprintf('x: %.0f y: %.0f z:%.0f',location_mri(1:3));\nfigure('name',['MRI TEM MRI INTERN ' location_str]);\nft_plot_ortho(mritem.anatomy,'location',location_mri(1:3),'transform',mritem.transform);\n\n%% Display the Anatomy via plot_ortho (at the same certain location, using inverse internal transform )\nlocation_mri = [0 0 0];\nlocation_str   = sprintf('x: %.0f y: %.0f z:%.0f',location_mri(1:3));\nfigure('name',['MRI TEM MRI INTERN ' location_str]);\nft_plot_ortho(mritem.anatomy,'location',location_mri(1:3),'transform',inv(mritem.transform));"
+      - +@isprivate: "0"
+        commentid: "6401"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-06-13 17:26:44 +0200
+        thetext: |-
+          Hi Burkhard,
+
+          We will look into this soon. At the moment Robert and I are pretty beschäftigt with the preparation of two fieldtrip courses (we are leaving tomorrow for Hamburg, and travel to Frankfurt on Sunday). As soon as we have some air again we'll follow up on this
+      - +@isprivate: "0"
+        commentid: "6402"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-13 17:29:14 +0200
+        thetext: "(In reply to comment #2)\n\n\nI have already made a start: I added a test script according to your email, see http://code.google.com/p/fieldtrip/source/detail?r=6062\n\nIt reproduces the first problem\n\n??? Index exceeds matrix dimensions.\nError in ==> ft_plot_ortho at 60\nif isempty(varargin{1}) || isnumeric(varargin{1})\n\nI have fixed this one as suggested, optional arguments should indeed be optional, not required.\n\nmanzana> svn commit ft_plot_ortho.m \nSending        ft_plot_ortho.m\nTransmitting file data .\nCommitted revision 6064.\n\nI have not yet looked at the rest. I'll leave it assigned to the whole team. Perhaps someone else can take over..."
+      - +@isprivate: "0"
+        commentid: "6787"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-12 11:06:54 +0200
+        thetext: The issue was caused by some hard coded setting of the xlim/ylim/zlim of the current axes. This would only work when plotting in voxel space. I removed this feature as of revision 6264

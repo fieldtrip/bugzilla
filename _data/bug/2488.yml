@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2488"
+    creation_ts: 2014-03-03 15:14:00 +0100
+    short_desc: issubfield not available from ft_defaults
+    delta_ts: 2014-03-12 12:19:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: g.flandin
+      +@name: Guillaume
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12991"
+        comment_count: "0"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-03-03 15:14:52 +0100
+        thetext: |-
+          When initialising FieldTrip, the 'utilities' folder is not yet in MATLAB path so  'issubfield' cannot be found when returning a warning.
+
+          >> addpath /home/foo/spm
+          >> addpath /home/foo/another_spm
+          >> addpath /home/foo/fieldtrip
+          >> ft_defaults
+          Undefined function 'issubfield' for input arguments of type 'double'.
+
+          Error in warning_once>fieldnameFromStack (line 195)
+          if ~issubfield(ft_previous_warnings, fixname(stack(end).name))
+
+          Error in warning_once (line 123)
+            [tmpfname ft_default.warning.identifier line] =
+            fieldnameFromStack(ft_default.warning.identifier);
+
+          Error in ft_defaults>checkMultipleToolbox (line 219)
+            [ws, warned] = warning_once(sprintf('Multiple versions of %s on your path will
+            confuse FieldTrip', toolbox));
+
+          Error in ft_defaults (line 84)
+            checkMultipleToolbox('spm',                 'spm.m');
+      - +@isprivate: "0"
+        commentid: "12992"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-03-04 09:57:25 +0100
+        thetext: |-
+          Hi Guillaume,
+
+          thanks for reporting this, I fixed this by putting the *subfield functions into the private folder where warning_once is located:
+
+          545 $ svn ci private/*subfield.m -m "bugfix #2488 - added subfield functions to private"
+          Adding         private/getsubfield.m
+          Adding         private/issubfield.m
+          Adding         private/rmsubfield.m
+          Adding         private/setsubfield.m
+
+          Committed revision 9253.
+          jorhor@mentat001:~/FieldTrip/trunk
+          546 $ svn propset autosync private/*subfield.m
+          property 'autosync' set on 'private/issubfield.m'
+          property 'autosync' set on 'private/rmsubfield.m'
+          property 'autosync' set on 'private/setsubfield.m'
+          jorhor@mentat001:~/FieldTrip/trunk
+          547 $ svn ci private/*subfield.m -m "bugfix #2488 - autosync on"                Sending        private/issubfield.m
+          Sending        private/rmsubfield.m
+          Sending        private/setsubfield.m
+
+          Committed revision 9254.

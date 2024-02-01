@@ -1,0 +1,83 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2431"
+    creation_ts: 2014-01-08 15:44:00 +0100
+    short_desc: mpi_customized_acticap64 layout can be improved
+    delta_ts: 2019-08-10 12:29:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12435"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-08 15:44:11 +0100
+        thetext: "cfg = [];\ncfg.layout = 'mpi_customized_acticap64';\ncfg.feedback = 'yes';\nlay = ft_prepare_layout(cfg);\ndisp(lay)\n\nlay = \n\n        pos: [66x2 double]\n      label: {66x1 cell}\n      width: [66x1 double]\n     height: [66x1 double]\n       mask: {[72x2 double]}\n    outline: {[123x2 double]}\n\nthere is a mask-field and an outline-field. The mask-field is plotted beneath the outline (no clue why) by ft_plot_lay. In any case, in the ideal world the outline and the mask should perfectly overlap. I would propose to stick to the 'standard' way of separating the outline once into the circle and then add three other outlines for the ears and the nose, so that we got something like:\n\n    outline: {[101x2 double]  [3x2 double]  [10x2 double]  [10x2 double]}\n       mask: {[101x2 double]}\n\nwith outline{1} == mask{1}\n\n\n[above example is taken from the easycap layouts]"
+      - +@isprivate: "0"
+        commentid: "12449"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 17:22:27 +0100
+        thetext: |-
+          ft_plot_lay is meant to plot both the outline and the mask, as they are very different for ECoG data (where the outline is the sulcal pattern).
+
+          But the "circle part" of the outline should indeed be the same as the mask.
+      - +@isprivate: "0"
+        commentid: "12452"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-01-09 09:43:06 +0100
+        thetext: okay, but should there then be an option for ft_plot_lay to disable plotting the mask? g. ft_multiplotER uses ft_plot_lay and then also plots the mask as a dotted line, which I would consider to be not desired when plotting data
+      - +@isprivate: "0"
+        commentid: "12759"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2014-01-29 17:14:14 +0100
+        thetext: "Still not perfect, but still a big improvement, is by inserting coordinates in the mask field, from the outline field, that are closest to that mask field. This allows realigning the two, without having the ugly mismatches, i.e.:\n\nlay2=lay;\nfor c = 1:72\n  G = repmat(lay.mask{1}(c,:),123,1);\n  G2 = lay.outline{1};\n  D  = sqrt(sum( (G - G2).^ 2 ,2));\n  [Dval,idx] = min(D);\n  \n  lay2.mask{1}(c,:) = lay.outline{1}(idx,:);\nend\n\nThe new lay (here called lay2) has a mask that is below the outline (but with some negligible mismatches). I have updated the lay, closing the bug."
+      - +@isprivate: "0"
+        commentid: "20049"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:40 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

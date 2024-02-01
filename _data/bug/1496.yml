@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1496"
+    creation_ts: 2012-05-30 12:22:00 +0200
+    short_desc: fixsampleinfo bug with timelock data without trials
+    delta_ts: 2012-08-23 10:33:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: martinvinck
+      +@name: Martin Vinck
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6208"
+        comment_count: "0"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-05-30 12:22:02 +0200
+        thetext: |-
+          fixedsampleinfo currently rejects timelock structures that do not have a trial field (where cfg.keeptrials was 'no') as they are then treated incorrectly as a raw structure.
+
+          --
+          ??? Cell contents reference from a non-cell array object.
+          Error in ==> fixsampleinfo at 95
+                  offset(i) = time2offset(data.time{i}, data.fsample);
+
+          perhaps I'm missing something
+      - +@isprivate: "0"
+        commentid: "6222"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-31 16:46:14 +0200
+        thetext: "this must be in \n\n\"utilities/ft_checkdata.m\" line 591 where\n\nif isequal(hassampleinfo, 'yes') || isequal(hassampleinfo, 'ifmakessense')\n  data = fixsampleinfo(data);\nend\n\nbecause the only other call to fixsampleinfo is in ft_datatype_raw, which will only be called on raw data (and hence have a trial cell-array).\n\nsampleinfo is only valid for raw data.\n\n\"utilities/ft_checkdata.m\" line 175 has\n\nif     israw\n  data = ft_datatype_raw(data, 'hassampleinfo', hassampleinfo);\nelseif ...\n\nThat means that the call on line 591 is not needed, because the sampleinfo will be (conditionally on the data being raw) be fixed on line 175.\n\nI removed the lines around 175.\n\nNote to self: I still have to commit, the changed file is on mbp/fieldtrip-clean ."
+      - +@isprivate: "0"
+        commentid: "6223"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-31 16:47:04 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          The statement "I removed the lines around 175" should have read "I removed the lines around 591"
+      - +@isprivate: "0"
+        commentid: "6224"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-31 16:55:29 +0200
+        thetext: "there is one potential case where the change won't work. Imagine \n\nft_checkdata(timelock, 'datatype', 'raw', 'hassampleinfo', 'yes')\n\nwhere timelock is the output from ft_timelockanalysis with keeptrials=yes and without sampleinfo.\n\nThis also applies for other input types that can be converted to raw. The conversion will be done from line 228 onward, whereas the sampleinfo is added on line 175 only in case if the data is raw at that moment.\n\nactually, now that I think of it the whole section \n% the ft_datatype_XXX functions ensures the consistency of the XXX datatype\n% and provides a detailled description of the dataformat and its history\n\nis done before all conversions, which means that the converted input data xxx data after xxx2yyy is not passed through ft_datatype_yyy\n\nThe initial pass through ft_datatype_xxx is ok, but after the conversion it should also be passed through ft_datatype_yyy.\n\nI suggest to change the sections\n      if isequal(dtype(iCell), {'source'}) && isvolume\n        data = volume2source(data);\n        ....\n into\n      if isequal(dtype(iCell), {'source'}) && isvolume\n        data = volume2source(data);\n        data = ft_checkdata_source(data);\n        ....\nand idem for all other conversions"
+      - +@isprivate: "0"
+        commentid: "6228"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-01 09:19:14 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          I have implemented it as suggested in comment 3. All calls to ft_datatype_raw include the optional hassampleinfo flag.
+
+          mbp> svn commit utilities/ft_checkdata.m
+          Sending        utilities/ft_checkdata.m
+          Transmitting file data .
+          Committed revision 5836.
+      - +@isprivate: "0"
+        commentid: "7107"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-08-23 10:33:50 +0200
+        thetext: closed multiple bugs that have been resolved for some time

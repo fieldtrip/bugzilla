@@ -1,0 +1,117 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "480"
+    creation_ts: 2011-02-09 02:24:00 +0100
+    short_desc: label, labelcmb, channel, channelcmb confusion/problems?
+    delta_ts: 2011-03-31 08:38:27 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: DUPLICATE
+    dup_id: "538"
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1386"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-02-09 02:24:03 +0100
+        thetext: |-
+          I'm using fieldtrip-20110204 on a Mac Pro, OS X 10.6.6.
+
+          This may be better suited for the email list, but it seems like it could be bugs and not just my coherence analysis ineptitude. I will happily re-post there if that's the appropriate forum. (note: I've been searching the archives for a week or so now about coherence/plv analyses and haven't figured out how people accomplish what I'm trying to do)
+
+          I'm doing a within-subjects experiment where I want to compare the coherence (or phase-locking values) between conditions that every subject ran in. I have 32 subjects and potentially more than 3 conditions depending on how I break things down, but I'm keeping things simple for this demonstration, so I'm using 3 subjects and 2 conditions for the following steps, and only 4 out of the 129 EEG electrodes.
+
+          1. calculate power and csd
+          I ran data_freq = ft_freqanalysis(cfg_freq,data) on each condition for each subject with these settings:
+          % pre- and post-stimulus times, in seconds
+          exper.prepost = [-0.8 3.0];
+          exper.sampleRate = 250;
+          cfg_freq = [];
+          cfg_freq.keeptrials = 'no'; % subjects are my UO, don't need the trials
+          cfg_freq.output = 'powandcsd';
+          cfg_freq.channel = {'e3','e60','e11','e62'};
+          cfg_freq.channelcmb = {'e3','e60';'e3','e62'};
+          % multi-taper method
+          cfg_freq.method = 'mtmconvol';
+          cfg_freq.taper = 'hanning';
+          freqstep = exper.sampleRate/(sum(abs(exper.prepost))*exper.sampleRate)*2; % to space freqs evenly
+          cfg_freq.foi = 3:freqstep:9;
+          cfg_freq.t_ftimwin = 5./cfg_freq.foi;
+          cfg_freq.tapsmofrq = 0.4*cfg_freq.foi;
+          cfg_freq.toi = -0.5:0.04:1.5;
+
+          It comes out as expected, with label and labelcmb fields, dimord = 'chan_freq_time', and powspctrm (4x12x51) and crsspctrm (2x12x51) fields.
+
+          (Note: I tried 'fourier' but when I ran ft_connectivityanalysis it created dimord = 'chan_chan_freq_time', which it didn't seem like any functions knew how to deal with.)
+
+          2. calculate coherence (or plv or whatever)
+          I ran data_conn = ft_connectivityanalysis(cfg,data_freq) on each condition for each subject with method = 'coh', and for each I got a data struct with labelcmb (2x2) and cohspctrm (2x12x51) fields. This makes sense based on my input.
+
+          3. statistics
+          In order to run ft_freqstatistics on these data, I need to get them in a grand average struct, with keepindividual = 'yes'; however, I can't put data_conn into ft_freqgrandaverage (or ft_freqdescriptives, but I don't think that's the right function to use) because data_conn doesn't have a label field, only labelcmb, and labelcmb is a 2x2 cell that contains the channel comparisons.
+
+          Am I doing something wrong with the label and labelcmb fields, or is there actually a bug and the label field should actually exist? Or maybe I should be using fourierspctrm instead? I tried a lot of testing with fourierspctrm and that didn't seem to solve any problems.
+
+          Sorry for the long report and thanks for any help.
+          Matt
+      - +@isprivate: "0"
+        commentid: "1509"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-02-25 10:28:39 +0100
+        thetext: "Hi Matt, \nThanks for posting this and as usual thanks for your detailed report. We really appreciate it.\n\n\n@ your note: (Note: I tried 'fourier' but when I ran ft_connectivityanalysis it created\ndimord = 'chan_chan_freq_time', which it didn't seem like any functions knew\nhow to deal with.)\n\nYes, well I understand that indeed the XXXstatistics functions may have a problem dealing with this, but I am working on the plotting routines. \n\n\n@ your point 3:\n3. statistics\nIn order to run ft_freqstatistics on these data, I need to get them in a grand\naverage struct, with keepindividual = 'yes'; however, I can't put data_conn\ninto ft_freqgrandaverage (or ft_freqdescriptives, but I don't think that's the\nright function to use) because data_conn doesn't have a label field, only\nlabelcmb, and labelcmb is a 2x2 cell that contains the channel comparisons.\n\nAm I doing something wrong with the label and labelcmb fields, or is there\nactually a bug and the label field should actually exist? Or maybe I should be\nusing fourierspctrm instead? I tried a lot of testing with fourierspctrm and\nthat didn't seem to solve any problems.\n\nI can understand the need for doing statistics the way you intend them to be done. As of yet, ft_grandaverage does not average across data-fields which pertain to bivariate metrics, and indeed probably does not work at all, if no label is present in the input data. However, I don't see a fundamental objection against it. \nAs a side note, did you try to call ft_freqstatistics with multiple input arguments? I would predict that this works (or may crash at a different point in the code ;o) ).\n\ncfg.parameter = 'cohspctrm';\ncfg.xxx = ... etc\nstat = ft_freqstatistics(cfg, subj1, subj2, subj3, ..., subjN)\n\nI think this should theoretically work"
+      - +@isprivate: "0"
+        commentid: "1521"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-02-25 17:55:00 +0100
+        thetext: "Hi JM, Thanks for your reply.\n\nThanks to an email you sent a week or two ago on the mailing list I only recently realized that I could use ft_freqstatistics with multiple-subject input and that I don't have to give it output from ft_grandaverage (I've since revised my scripts to do this). Note that none of the tutorials are set up this way so I think this is why I never realized it—the tutorials only use output from ft_grandaverage as input to timelock/freq stats functions. (I'm sure it is already on your list to revise the tutorials.)\n\nSo I can make sure I'm on the right track for coherence/plv analyses for a within-subjects exp and doing comparisons between conditions, should I be using 'powandcsd' or 'fourier' as output in ft_freqanalysis (and subsequently run ft_connectivityanalysis)? Or is either a valid option? I don't really know the difference, there's not much info on this in the tutorials, and I have been unable to find a clear answer about this on the mailing list archives.\n\nMatt\n\n(In reply to comment #1)\n> Hi Matt, \n> Thanks for posting this and as usual thanks for your detailed report. We really\n> appreciate it.\n> \n> \n> @ your note: (Note: I tried 'fourier' but when I ran ft_connectivityanalysis it\n> created\n> dimord = 'chan_chan_freq_time', which it didn't seem like any functions knew\n> how to deal with.)\n> \n> Yes, well I understand that indeed the XXXstatistics functions may have a\n> problem dealing with this, but I am working on the plotting routines. \n> \n> \n> @ your point 3:\n> 3. statistics\n> In order to run ft_freqstatistics on these data, I need to get them in a grand\n> average struct, with keepindividual = 'yes'; however, I can't put data_conn\n> into ft_freqgrandaverage (or ft_freqdescriptives, but I don't think that's the\n> right function to use) because data_conn doesn't have a label field, only\n> labelcmb, and labelcmb is a 2x2 cell that contains the channel comparisons.\n> \n> Am I doing something wrong with the label and labelcmb fields, or is there\n> actually a bug and the label field should actually exist? Or maybe I should be\n> using fourierspctrm instead? I tried a lot of testing with fourierspctrm and\n> that didn't seem to solve any problems.\n> \n> I can understand the need for doing statistics the way you intend them to be\n> done. As of yet, ft_grandaverage does not average across data-fields which\n> pertain to bivariate metrics, and indeed probably does not work at all, if no\n> label is present in the input data. However, I don't see a fundamental\n> objection against it. \n> As a side note, did you try to call ft_freqstatistics with multiple input\n> arguments? I would predict that this works (or may crash at a different point\n> in the code ;o) ).\n> \n> cfg.parameter = 'cohspctrm';\n> cfg.xxx = ... etc\n> stat = ft_freqstatistics(cfg, subj1, subj2, subj3, ..., subjN)\n> \n> I think this should theoretically work"
+      - +@isprivate: "0"
+        commentid: "1635"
+        comment_count: "3"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-03-17 02:48:19 +0100
+        thetext: |-
+          Hi JM,
+
+          I'm closing this bug report because it's pretty nebulous about what I'm trying to report, and the other bugs I submitted today make a more comprehensive overview of the issues I've run into than this one does. The issues here are somewhat related to Bug 536 and Bug 537, and more so related to Big 535 and Bug 538.
+
+          Matt
+
+          *** This bug has been marked as a duplicate of bug 538 ***

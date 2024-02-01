@@ -1,0 +1,137 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2702"
+    creation_ts: 2014-09-24 14:42:00 +0200
+    short_desc: Too many different types in ft_chantype
+    delta_ts: 2014-09-24 15:48:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14449"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-24 14:42:47 +0200
+        thetext: "I encountered a problem in SPM that comes down to the fact that for BTI-4D data the reference sensors have the type 'megref' (see line 329 of ft_chantype) which is not recognised by SPM and also not by ft_chanunit. Since we already have:\n\nmegmag\nmeggrad \nmegplanar\nrefplanar\nrefgrad\nrefmag\n\nI suggest all MEG channels should be assigned one of those."
+      - +@isprivate: "0"
+        commentid: "14455"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 15:16:57 +0200
+        thetext: "megref is indeed not clear, since it does not specify which type of channel it is (only that it is used as reference). \n\nI would expect besides ft_chantype that bti2grad and ft_senstype would be involved...\n\n\nmac011> grep \\'megref\\' *.m\n<emtpy>\n\nmac011> grep \\'megref\\' */*.m\nfileio/ft_chantype.m:    type(configtype==3) = {'megref'};\nfileio/ft_chantype.m:  type(sel) = {'megref'};\nfileio/ft_chantype.m:  type(sel) = {'megref'};\nfileio/ft_chantype.m:  type(sel) = {'megref'};\nplotting/ft_plot_sens.m:%   'chantype'      = string or cell-array with strings, for example {'meg', 'megref'} (default = 'all')\n\nmac011> grep \\'megref\\' */*/*.m\n<emtpy>\n\nSo bti2grad and ft_senstype and not involved. I'll fix the plotting help immediately\n\nmac011> svn commit plotting/ft_plot_sens.m \nSending        plotting/ft_plot_sens.m\nTransmitting file data .\nCommitted revision 9831.\n\nLooking at bti2grad, I see the comment\n%  selMEG  = chan_no(type==1); % these are the Axxx channels\n%  selEEG  = chan_no(type==2); % these are the Exx channels and might also include ExG\n%  selREF  = chan_no(type==3); % these include MLzA, MCzaA, GyyA\n%  selAUX  = chan_no(type==4); % these are the Xx channels\n%  selTRG  = chan_no(type==5); % these include TRIGGER, RESPONSE\n%  selUA   = chan_no(type==6); % these are the UAx and UACurrent channels\n%  selUnknown = chan_no(type==7);\n%  selUnknown = chan_no(type==8); % these include SA1, SA2, SA3\n\nFrom this it is not clear whether it is reflag or ref grad. It actually might be both."
+      - +@isprivate: "0"
+        commentid: "14456"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 15:17:45 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          stupid autocorrect: "reflag or ref grad" should be "refmag of refgrad"
+      - +@isprivate: "0"
+        commentid: "14458"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-24 15:23:19 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          Just calling it 'ref' would also work for us, provided that you also fix ft_chanunit to say that the units of this 'ref' are T.
+      - +@isprivate: "0"
+        commentid: "14459"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 15:27:14 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #3)
+
+          Can you check that the units for the REF gratiometers is in T and not in T/m?
+      - +@isprivate: "0"
+        commentid: "14460"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-24 15:30:28 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #4)
+
+          I don't have any more info on that than you. In the current ft_chanunit (line 169) it says:
+
+          chanunit(strcmp('refmag',              input.chantype)) = {'T'};
+          chanunit(strcmp('refgrad',             input.chantype)) = {'T'};
+
+          So in either case the units should be 'T'
+
+          You can just add there:
+
+          chanunit(strcmp('ref',             input.chantype)) = {'T'};
+      - +@isprivate: "0"
+        commentid: "14461"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 15:32:26 +0200
+        thetext: could you do it yourself? I have other priorities at the moment.
+      - +@isprivate: "0"
+        commentid: "14462"
+        comment_count: "7"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2014-09-24 15:33:59 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #5)
+
+          No problem if you agree to this way of fixing it.
+      - +@isprivate: "0"
+        commentid: "14463"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-24 15:48:26 +0200
+        thetext: |-
+          (In reply to Vladimir Litvak from comment #7)
+
+          sounds fine to me

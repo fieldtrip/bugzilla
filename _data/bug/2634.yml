@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2634"
+    creation_ts: 2014-07-04 12:45:00 +0200
+    short_desc: 'ft_rejectcomponent: incorrect elec/grad balancing when comp and data in input'
+    delta_ts: 2017-03-14 12:49:15 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3229
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14022"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-04 12:45:54 +0200
+        thetext: It seems only the invcomp balancing is applied, this should be comp followed by invcomp.
+      - +@isprivate: "0"
+        commentid: "14025"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-07-04 12:53:37 +0200
+        thetext: |-
+          Hi JM,
+          To clarify, does this have anything to do with 3rd order gradient balancing (of CTF grad) not being dealt with correctly for ICA?    Or do you mean a different balancing?
+          cheers, Johanna
+      - +@isprivate: "0"
+        commentid: "14043"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-05 20:11:19 +0200
+        thetext: Hi Johanna, I still have to dig into the code, but it's a different issue. As far as I could see (at an initial glance, but not by looking at the actual code) is that only the 'invcomp' balancing is applied when data is a third input argument to ft_rejectcomponent. Yet, also a 'comp' balancing should be applied first.
+      - +@isprivate: "0"
+        commentid: "14044"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-07-05 20:48:20 +0200
+        thetext: |-
+          Things are not so bad in the end. It seems the correct balancing is applied to the grad, yet the confusing thing is that it is still only named 'invcomp'.
+
+          The montage that is applied with data in the input is
+
+          M = eye(Nchan) - mixing(:,comps)*unmixing(comps,:);
+
+          When only a comp is present the following montage is applied
+
+          mixing(:,comps) = 0;
+          M = mixing;
+
+
+          Perhaps it makes sense to rename the type of balancing from 'invcomp' to 'comp-invcomp' for the data-present case. Or perhaps even more consistently apply a two step balancing, i.e. a full unmixing and a 'partial' mixing with the to-be-rejected components zeroed out.
+      - +@isprivate: "0"
+        commentid: "18473"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-08 15:19:50 +0100
+        thetext: In one of the commits in https://github.com/fieldtrip/fieldtrip/pull/361 I made the explicit distinction between 'invcomp' (when back projecting) and 'reject' (when passing raw data through 'comp' and then 'invcomp', which are actually in one go).

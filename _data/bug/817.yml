@@ -1,0 +1,101 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "817"
+    creation_ts: 2011-07-14 13:57:00 +0200
+    short_desc: Error when attemping read_sbin_events on a file without events
+    delta_ts: 2011-09-14 14:33:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: german.gomezherrero
+      +@name: German Gomez-Herrero
+    assigned_to:
+      +content: jdien07
+      +@name: Joseph Dien
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2668"
+        comment_count: "0"
+        who:
+          +content: german.gomezherrero
+          +@name: German Gomez-Herrero
+        bug_when: 2011-07-14 13:57:06 +0200
+        thetext: |-
+          If I attempt to read events from an EGI sbin file that does not contain any events the following strage error is triggered:
+
+          Error in ==> fileio\private\read_sbin_events at 37
+          fid=fopen([filename],'r');
+
+          ??? Output argument "EventCodes" (and maybe others) not assigned during call to
+          "D:\mlib\fieldtrip\fileio\private\read_sbin_events.m>read_sbin_events".
+
+          Error in ==> ft_read_event at 657
+                [EventCodes, segHdr, eventData] = read_sbin_events(filename);
+
+          I say the error is strange because even though it seems to be caused by the absence of events in the file, setting up a breakpoints around the file I did not manage to locate the line that was actually causing the error (e.g. line 37 of read_sbin_events was running fine in debugging mode and MATLAB). However I managed to reproduce the error both in MATLAB R2010a on Windows and MATLAB R2010b on Linux. The error can be easily avoided by adding the following lines on line 115 of read_sbin_events:
+
+          if NEvent == 0,
+              EventCodes  = [];
+              segHdr      = [];
+              eventData   = [];
+              fclose(fid);
+              return;
+          end
+      - +@isprivate: "0"
+        commentid: "2669"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-14 14:09:12 +0200
+        thetext: "could you try adding\n  EventCodes = [];  \n  segHdr = [];\n  eventData = [];\nat the beginning of read_sbin_events, i.e. prior to \"fopen\"?\n\nThese respective variables are only defined in the if/for loops, which means that it might well be that in your case they remain undefined.\n\nIf it works, I suggest that Joe approves of it and makes the final change+commit."
+      - +@isprivate: "0"
+        commentid: "2670"
+        comment_count: "2"
+        who:
+          +content: german.gomezherrero
+          +@name: German Gomez-Herrero
+        bug_when: 2011-07-14 14:36:37 +0200
+        thetext: "(In reply to comment #1)\n> could you try adding\n>   EventCodes = [];  \n>   segHdr = [];\n>   eventData = [];\n> at the beginning of read_sbin_events, i.e. prior to \"fopen\"?\n> \n> These respective variables are only defined in the if/for loops, which means\n> that it might well be that in your case they remain undefined.\n> \n> If it works, I suggest that Joe approves of it and makes the final\n> change+commit.\n\nThanks for the fast reaction! Yes adding those 3 lines at the beginning of the file also solves the problem. However, I would recommend returning from the function as soon as you know that there are no events in the file, i.e. keeping the\n\nif NEvent == 0, return; end\n\naround line 115. The earlier you leave the execution of the file the less chances for MATLAB to trigger an error ;)\n\nBest,\nGermán"
+      - +@isprivate: "0"
+        commentid: "2894"
+        comment_count: "3"
+        who:
+          +content: jdien07
+          +@name: Joseph Dien
+        bug_when: 2011-08-19 05:22:21 +0200
+        thetext: |-
+          Sorry for taking so long to get to this!
+          The reason for the odd error at line 37 is that Matlab has a confusing behavior for dealing with the situation where a function exits with some of the output variables unassigned.  In this case, it claims the error to be at the very first line of code (other than comments), which in this case was line 37.  Anyway, initializing the variables as Robert suggested precludes this problem from happening.
+          Thanks for the report!
+      - +@isprivate: "0"
+        commentid: "3181"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 14:33:28 +0200
+        thetext: "I closed all the bugs that were in the status RESOLVED. \n\nThis includes the ones that we just discussed in the weekly fieldtrip meeting, but also the bugs that we did not discuss."

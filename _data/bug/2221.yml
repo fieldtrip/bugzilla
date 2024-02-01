@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2221"
+    creation_ts: 2013-07-18 13:43:00 +0200
+    short_desc: problem plotting two averages at once with ft_multiplotER
+    delta_ts: 2014-06-18 12:33:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2160
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sarabogels
+      +@name: Sara Bögels
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10910"
+        comment_count: "0"
+        attachid: "496"
+        who:
+          +content: sarabogels
+          +@name: Sara Bögels
+        bug_when: 2013-07-18 13:43:38 +0200
+        thetext: |-
+          Created attachment 496
+          Averages for 2 conditions of subject 10. It is not possible to plot these together with cfg.xlim = [-2.5 4];
+
+          For 2 of my 24 participants, the function ft_multiplotER gives an error-message when I try to plot two conditions at the same time. Plotting them one by one is not a problem. There appears to be a specific point in time (different for the two participants) when this goes wrong. If I avoid that time (by using cfg.xlim) it works fine. My trials have different lengths and I used "cfg.vartrllength = 2;" when calling ft_timelockanalysis (not sure whether this is relevant).
+
+          The error message I get is
+          "Subscripted assignment dimension mismatch
+           Error in ft_multiplotER (line 616)
+              yval(i,:) = datamatrix{i}(m,:);"
+
+          The timeline of both averages is different, but they both go from at least -2.5 to + 4 seconds. Even if I use cfg.xlim - [-2.5 4]; it gives this error message (this does not happen for averages of other subjects, I do not see a difference).
+      - +@isprivate: "0"
+        commentid: "10911"
+        comment_count: "1"
+        who:
+          +content: sarabogels
+          +@name: Sara Bögels
+        bug_when: 2013-07-18 13:51:44 +0200
+        thetext: In the newest version of Fieldtrip the line in ft_multiplotER should be 638.
+      - +@isprivate: "0"
+        commentid: "11548"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-10-10 10:58:48 +0200
+        thetext: |-
+          Assigned to a named person, to push forward the resolution of this bug.
+          Otherwise it just adds to the 'stuwmeer' of unassigned bugs, that nobody feels
+          responsible for.
+
+          @Nietzsche: Feel free to discuss how to tackle a problem like this.
+      - +@isprivate: "0"
+        commentid: "11598"
+        comment_count: "3"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2013-10-17 18:26:18 +0200
+        thetext: "As mentioned in the last comment of Bug2160 by roboos:\n\n\"Note that ft_multiplotER still does not support multiple inputs with different\ntime axes (or freq axes), but at least it gives a useful error. \n\nIf in the future we do want to have this functionality, it should be done using\na single call to ft_selectdata with all input args, as ft_selectdata knows how\nto trim data to consistent selections along any dimension (also time and freq)\".\n\nSo, since Sara's data have different time ranges it leads to ft_multiplotER to crash.  Using cfg.vartrllength = 2 is probably the cause of having different time ranges, however, users should be allowed to do this for there data, so we should just implement flexibility into ft_multiplotER.\n\nAs this bug was filed PRIOR to the changes made in response to bug2160, there is not already a check built into the beginning of ft_multiplotER that insists for equal time axes for all input data structures.\n\nIf we want to build in flexibility then we should:\n(1) take advantage of this code:\n\n% ensure that all inputs are sufficiently consistent\nif hastime && ~checktime(varargin{:}, 'identical', cfg.tolerance);\n  error('this function requires identical time axes for all input structures');\nend\nif hasfreq && ~checkfreq(varargin{:}, 'identical', cfg.tolerance);\n  error('this function requires identical frequency axes for all input structures');\nend\n\n(2a) when inputs are inconsistent, call ft_selectdata and trim the longer dataset(s) to have the time/freq axes be the same as the maxmin of the shortest dataset(s).\n\n(2b) when inputs are inconsistent, lengthen (pad with zeros?) shorter dataset(s) to have the time/freq axes be the same as the maxmin of the longest dataset. \n\nI think it's important to have option B. If the user decides to use trials of variable length, then it is probably important to look at time points of the longer trial(s).  \n\nCan I get some input on this?"
+      - +@isprivate: "0"
+        commentid: "12562"
+        comment_count: "4"
+        who:
+          +content: sarabogels
+          +@name: Sara Bögels
+        bug_when: 2014-01-22 11:17:05 +0100
+        thetext: |-
+          Hi,
+
+          I just found out that a newer version of Fieldtrip now indeed gives the error message that 'this function requires identical time axes for all input structures'. However, an earlier version did work for slightly different (but very similar) time axes (e.g., -.2010 vs -.2008 as staring point). So, it seems this problem has become worse...? Or would it be problematic to plot the two data structures together using the early Fieldtrip version?
+
+          Sara
+      - +@isprivate: "0"
+        commentid: "12563"
+        comment_count: "5"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-01-22 11:24:44 +0100
+        thetext: "(In reply to Sara Bögels from comment #4)\n\nHi Sara,\n\nyes, I wanted to work on this earlier, and I emailed to ask you for a sample dataset but I never heard from you so I've left this bug on hold as no one else has reported this problem. So, I just implemented a new warning message that you need to have plots with the same time scale, and put priority on some other bugs. Sorry about that :(.\n\nFor the -.2010 vs. -.2008, I think this might work for matlab because it might be rounding the values to -.2, so there's some leeway there. I'm not entirely sure but I'll look into it.   \n\nI don't think there's an issue using an earlier version of FieldTrip, but I don't think there should be a difference, at least not withing this plotting function, because the code hasn't been changed.  I'll get back to you later today, as we have an FT meeting where I can ask about this.\n\nIn the mean time, could you please send me your dataset?"
+      - +@isprivate: "0"
+        commentid: "12827"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-12 14:03:51 +0100
+        thetext: |-
+          Discussed in FT-meeting:
+          A more generic solution was discussed, where the requested functionality seems to be coincident with wishing for a 'union' rather than an 'intersect' in ft_selectdata.
+          Suggestion: JM takes over and implements this in ft_selectdata.
+          Once this is in place the plotting functions should support the specification of the 'union' switch (and call ft_selectdata on the multiple input arguments).
+      - +@isprivate: "0"
+        commentid: "12841"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 15:55:59 +0100
+        thetext: apparently the shift between the time axes is larger than the default tolerance.
+      - +@isprivate: "0"
+        commentid: "12976"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-26 13:18:35 +0100
+        thetext: change cfg.selmode into cfg.select in ft_selectdata_new
+      - +@isprivate: "0"
+        commentid: "13709"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-19 09:43:39 +0200
+        thetext: As was discussed in the FT-meeting at some time, we're not going to fix this at the moment. Apologies for the change in behavior, but currently we would expect the users to make sure that the input arguments have matching time axes.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "496"
+      date: 2013-07-18 13:43:00 +0200
+      delta_ts: 2013-07-18 13:43:38 +0200
+      desc: Averages for 2 conditions of subject 10. It is not possible to plot these together with cfg.xlim = [-2.5 4];
+      filename: data_bug_multiplot.mat
+      type: application/octet-stream
+      size: "4252154"
+      attacher:
+        +content: sarabogels
+        +@name: Sara Bögels
+      data: REMOVED

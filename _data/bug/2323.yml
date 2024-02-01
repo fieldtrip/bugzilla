@@ -1,0 +1,46 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2323"
+    creation_ts: 2013-10-15 15:33:00 +0200
+    short_desc: read EDF does not use gain when negative
+    delta_ts: 2013-10-15 16:21:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      +@isprivate: "0"
+      commentid: "11579"
+      comment_count: "0"
+      who:
+        +content: bugzilla
+        +@name: Gio Piantoni
+      bug_when: 2013-10-15 15:33:45 +0200
+      thetext: "Hi,\n\nthe header of the edf format contains information to transform from the integers stored in the file into the actual values. It uses 'physical maximum' and 'physical minimum', and 'digital maximum' and 'digital minimum'. See \nhttps://github.com/fieldtrip/fieldtrip/blob/master/fileio/private/read_edf.m#L155-L156\n\nI have a dataset in which the Physical Maximum is smaller than the Physical Minimum (I cannot share it at the moment, due to permissions, also I don't know which software was used for the export). My interpretation is that when Physical Maximum is smaller than the Physical Minimum, then values should be multipled by -1. In fact, that seems the correct interpretation (although polarity is always ambiguous, the slow waves seem in the correct polarity after multiplication by -1). This seems to be the interpretation of the EDF format: \nhttp://www.edfplus.info/specs/edfplus.html\nat 2.1.3, point 5\n\"'Digital maximum' must be larger than 'Digital minimum'. In case of a negative amplifier gain the corresponding 'Physical maximum' is smaller than the 'Physical minimum'. \"\n\nHowever, I noticed that FieldTrip \"corrects\" these values, and set the calibration to 1, by default. Twice in the code:\nhttps://github.com/fieldtrip/fieldtrip/blob/master/fileio/private/read_edf.m#L144-L148\n\nhttps://github.com/fieldtrip/fieldtrip/blob/master/fileio/private/read_edf.m#L157-L159\n\nI was wondering if this \"correction\" is necessary. From what I understand, this workaround has been in the code since the very beginning: https://github.com/fieldtrip/fieldtrip/blame/master/fileio/private/read_edf.m\n\nI can imagine the rationale (if Physical Maximum is smaller than the Physical Minimum, it's probably not meaningful), but this negative gain is meaningful at least in this dataset.\n\nWhat about removing these corrections in the code? Are there some side-effects that I've overlooked?\n\nThanks"

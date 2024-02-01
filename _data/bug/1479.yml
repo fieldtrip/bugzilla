@@ -1,0 +1,94 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1479"
+    creation_ts: 2012-05-16 15:04:00 +0200
+    short_desc: reading in polhemus locations; yokogawa warning and extra .chanpos field
+    delta_ts: 2019-08-10 12:02:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to: fieldtriptoolbox
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6139"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-05-16 15:04:08 +0200
+        thetext: |-
+          I'm loading Polhemus sensor positions by:
+          elec=ft_read_sens(['f01.pos']);
+
+          It works, and the output 'elec' is:
+              chanpos: [67x3 double]
+              elecpos: [67x3 double]
+                label: {67x1 cell}
+                 unit: 'cm'
+
+          But 2 issues I see:
+
+          1) .elecpos and .chanpos are redundant fields, and I'd say .chanpos should not exist in this case.   It is set in ~/fieldtrip/fileio/private/ft_datatype_sens.m on lines 108-109.   But it causes no errors further on, so perhaps not a problem?  But as .chanpos and .elecpos are sometimes used to distinguish between EEG or MEG datatypes, then perhaps an issue there?  Why have the redundant fields?
+
+          2) Just prior to those lines, on line 107, channelposition is called (~/fieldtrip/fileio/private/channelposition.m) within that function on line 43, if .ori does not exist, it is forced to exist as NaNs.  That may be fine, except then on line 46 of channelposition.m, ft_senstype is called, which then thinks this 'sens' structure 'isgrad' since the sens.ori field exists.  This further leads to the warning that 'could be Yokogawa system'.
+          Suggestion to do either:
+          A) Not add the .ori NaNs in channelposition.m (though perhaps it is needed further on?)
+          Or,
+          B) make ft_senstype more robust to check for non-NaN .ori rather than just presense of .ori, before setting isgrad=1.
+      - +@isprivate: "0"
+        commentid: "6141"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-05-16 15:52:59 +0200
+        thetext: "JM commented to me that if I use ft_read_headshape instead, this is not a problem, which is true.  Then I can set shape.pnt to be elec.elecpos and all is fine. \nHowever, I wonder if my questions are still valid in general, ignoring that it is a .pos Polhemus file that I'm reading in?"
+      - +@isprivate: "0"
+        commentid: "12341"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-12-12 12:57:33 +0100
+        thetext: I don't know whether the points Johanna raised are still an issue. Since reporting this bug I think that some things may have changed in addressing isgrad/iselec, so this may be past its best-before-date. Also, in yesterdays (2013-12-11) FT-meeting it was discussed to adjust the way fieldtrip deals with elec-structures, and to allow for data structures to have both an elec and grad field. Long story short, probably after this is implemented the current bug will become invalid anyway. Since I don't expect anyone to spend time on this issue before that, I suggest to set this one to wontfix.
+      - +@isprivate: "0"
+        commentid: "12392"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-12-19 17:00:02 +0100
+        thetext: sure, sounds fine to me.
+      - +@isprivate: "0"
+        commentid: "19870"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:02:52 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

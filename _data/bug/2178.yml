@@ -1,0 +1,90 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2178"
+    creation_ts: 2013-05-23 18:26:00 +0200
+    short_desc: prepare_mesh_hexahedral should be able to create meshes of different resolution
+    delta_ts: 2013-05-24 11:48:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.vorwerk
+      +@name: Johannes Vorwerk
+    assigned_to:
+      +content: j.vorwerk
+      +@name: Johannes Vorwerk
+    cc:
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10529"
+        comment_count: "0"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-05-23 18:26:06 +0200
+        thetext: |-
+          Right now, prepare_mesh_hexahedral just turns every voxel of the segmentation into one cubic element. I think it is desirable that the user is able to increase or decrease the resolution here. This should be quite easily achievable by changing the resolution of the segmentation previously and then morphing the mesh after creating it.
+
+          Are there routines in fieldtrip that could already be used for this?
+      - +@isprivate: "0"
+        commentid: "10530"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 09:55:37 +0200
+        thetext: |-
+          > Are there routines in fieldtrip that could already be used for this?
+
+          no there are no existing FT routines to manipulate or refine hexahedral meshes
+      - +@isprivate: "0"
+        commentid: "10531"
+        comment_count: "2"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-05-24 10:19:28 +0200
+        thetext: |-
+          (In reply to comment #1)
+          Actually we do not need to manipulate a hexahedral mesh. We need to rescale the segmentation and afterwards we need to warp the vertices using a linear transformation, which is not different from any other point cloud like the vertices of a triangular mesh or electrode locations.
+      - +@isprivate: "0"
+        commentid: "10532"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 11:17:02 +0200
+        thetext: "The way I see it, rescaling the segmentation does not change the number of voxels, only the size. If you state that each voxel is 0.5mm rather than 1mm, the number of voxels in the segmentation and number of elements in the corresponding mesh will not change. The head will shrink with a factor of 2, as will all voxels and hexaheders. Linear coordinate system transformations (downscale, make mesh, upscale) won't make a difference for the final mesh. \n\nOr do you mean that you want to reslice the segmentation, i.e. interpolate the segmentation onto a higher number of voxels by making the in-plane and between-plane resolution higher? That is already possible with ft_reslicevolume on the anatomical MRI prior to segmentation, I am not sure whether it also works on the segmentation but suspect that it does. The ft_reslicevolume step is done by the user prior to calling ft_prepare_mesh, so ft_prepare_mesh or prepare_mesh_hexahedral would not have to be modified to use this strategy. \n\nBut with ft_reslicevolume there is no \"morphing\" (http://en.wikipedia.org/wiki/Morphing), just an interpolation of voxel data onto a higher resolution 3-D grid. So I am not sure I get your idea..."
+      - +@isprivate: "0"
+        commentid: "10533"
+        comment_count: "4"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-05-24 11:48:23 +0200
+        thetext: |-
+          (In reply to comment #3)
+          Ok, then reslicing was what I am looking for, sorry for my imprecise terminology. Interpolating should be fine, just have to get rid of the non-integer values afterwards. I'll give ft_volumereslice a try.

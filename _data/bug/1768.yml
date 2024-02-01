@@ -1,0 +1,207 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1768"
+    creation_ts: 2012-10-04 11:45:00 +0200
+    short_desc: 'win32bit: nan* mex files missing'
+    delta_ts: 2014-03-12 12:21:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - b.reuderink
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7793"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-04 11:45:21 +0200
+        thetext: |-
+          and the corresponding .m cannot be executed cause it's a script, not a function (though an empty one)
+
+          I copied the old nanmean.mexw32 back to svn. gotta see where it needs to be autosynced
+      - +@isprivate: "0"
+        commentid: "7794"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-04 12:34:10 +0200
+        thetext: Presumably this means that you have access to a Win32 computer. Would you be able to recompile nan{sum, mean, numel, var_base} and commit those? That would resolve this issue.
+      - +@isprivate: "0"
+        commentid: "7796"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-04 12:47:22 +0200
+        thetext: |-
+          sure, no problem.
+          do you know the locations where the functions need to be autosynced to?
+      - +@isprivate: "0"
+        commentid: "7799"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-04 14:56:41 +0200
+        thetext: |-
+          Yes. The same locations as for the Windows 64 bit binaries:
+
+          $ find . -name "nanmean.mexw64"
+          ./connectivity/private/nanmean.mexw64
+          ./contrib/spike/private/nanmean.mexw64
+          ./external/dmlt/external/utils/nanmean.mexw64
+          ./fileio/private/nanmean.mexw64
+          ./private/nanmean.mexw64
+          ./src/nanmean.mexw64
+          ./statfun/private/nanmean.mexw64
+          ./utilities/private/nanmean.mexw64
+
+          But if that is a hassle I can do it for you — I started the trouble after all :).
+      - +@isprivate: "0"
+        commentid: "7819"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-05 11:01:22 +0200
+        thetext: |-
+          hehe, it's no hassle, just a matter of a few minutes ;)
+
+
+          svn ci connectivity/private/ contrib/spike/private/ fileio/private/ private/ src/ statfun/private/ utilities/private/ -m "enhancement-#1768- re-added nan*.mexw32"
+
+          Rev. 6698
+
+          svn propset autosync true utilities/private/nan*.mexw32
+          (etc...)
+
+
+          svn ci connectivity/private/ contrib/spike/private/ fileio/private/ private/ src/ statfun/private/ utilities/private/ -m "enhancement-#1768- autosynced nan*.mexw32"
+
+          Rev. 6699
+
+          didn't hit the 6700th revision, damn it
+      - +@isprivate: "0"
+        commentid: "7822"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 11:44:18 +0200
+        thetext: |-
+          It seems that there are still two-versions of the nan* mex files for Win32 in the repo:
+
+          $ find . -name "nanmean.mexw32" | xargs sha1sum | sort
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./contrib/spike/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./fileio/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./src/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./statfun/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./utilities/private/nanmean.mexw32
+          c6614f0f99368d7e6974ed450900b5af3d3c1354  ./connectivity/private/nanmean.mexw32
+          c6614f0f99368d7e6974ed450900b5af3d3c1354  ./external/dmlt/external/utils/nanmean.mexw32
+          c6614f0f99368d7e6974ed450900b5af3d3c1354  ./private/nanmean.mexw32
+
+          Note that the latter three files have different checksums. Probably we should not change the external one?
+      - +@isprivate: "0"
+        commentid: "7826"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-05 12:44:39 +0200
+        thetext: |-
+          right, I didn't touch the external folder (also, I dont have access to it)
+
+          I don't know how it could end up with different checksums... didn't remex or did anything else with the file
+
+          http://code.google.com/p/fieldtrip/source/detail?r=6675
+          http://code.google.com/p/fieldtrip/source/detail?r=6697
+          http://code.google.com/p/fieldtrip/source/detail?r=6698
+          http://code.google.com/p/fieldtrip/source/detail?r=6699
+      - +@isprivate: "0"
+        commentid: "7828"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-10-05 12:55:43 +0200
+        thetext: Okay, that is very odd. Can you confirm at least that you have different checksums as well? I think my local SVN repo is clean, but to be sure...
+      - +@isprivate: "0"
+        commentid: "7829"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-05 13:12:28 +0200
+        thetext: yep, same for me
+      - +@isprivate: "0"
+        commentid: "7976"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-24 10:17:01 +0200
+        thetext: Boris, any idea what to do with this bug? is it solved?
+      - +@isprivate: "0"
+        commentid: "8586"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-06 21:27:45 +0100
+        thetext: "I am going over the code for the SVN revision IDs and the copyrights, and noticed that some nanxxx functions have a matlab implementation (as fallback when the mex is not present) and some don't. \n\nI suggest to make a fallback implementation for all, which is also to serve as reference implementation."
+      - +@isprivate: "0"
+        commentid: "8645"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-12-12 10:13:16 +0100
+        thetext: |-
+          re-added the mex files with the wrong checksum:
+
+          $ find . -name "nanmean.mexw32" | xargs sha1sum | sort
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./connectivity/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./contrib/spike/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./fileio/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./src/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./statfun/private/nanmean.mexw32
+          5b59463614c5bb99018b88af3ab7e2af83da7046  ./utilities/private/nanmean.mexw32
+          c6614f0f99368d7e6974ed450900b5af3d3c1354  ./external/dmlt/external/utils/nanmean.mexw32
+
+
+          only the external nanmean file is off
+
+          I made a new bug for the fallback .m files, see bug 1884

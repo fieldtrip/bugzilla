@@ -1,0 +1,115 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1504"
+    creation_ts: 2012-06-04 15:27:00 +0200
+    short_desc: ft_timelockanalysis error when averaging response-locked data
+    delta_ts: 2012-08-23 10:35:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: t.grent-tjong
+      +@name: Tineke Grent - 't Jong
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6248"
+        comment_count: "0"
+        who:
+          +content: t.grent-tjong
+          +@name: Tineke Grent - 't Jong
+        bug_when: 2012-06-04 15:27:50 +0200
+        thetext: "Find attached an example file that produces the error (specified below) when running the indicated code. The error occurs only in some conditions from some subjects. \n\nload S06_resp_INCGRLcorr\n\ncfg                         = [];\ncfg.vartrllength            = 1; % response-locked data of diff length\nS06_resp_avgINCGRL          = ft_timelockanalysis(cfg, S06_resp_INCGRLcorr);\n\nERROR:\naveraging trial 239 of 252??? Error using ==> plus\nMatrix dimensions must agree.\n\nError in ==> ft_timelockanalysis at 298\n    s  = s  + dat;            % compute the sum"
+      - +@isprivate: "0"
+        commentid: "6250"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-04 17:56:47 +0200
+        thetext: Can you attach the problematic dataset, either as mat file or as link to a file e.g. in your Dropbox/Public directory?
+      - +@isprivate: "0"
+        commentid: "6255"
+        comment_count: "2"
+        who:
+          +content: t.grent-tjong
+          +@name: Tineke Grent - 't Jong
+        bug_when: 2012-06-05 07:48:58 +0200
+        thetext: |-
+          File that produces the error is available here:
+
+          https://www.dropbox.com/sh/ad2m0bjtr5m1jnv/OvUZyV2P3x
+      - +@isprivate: "0"
+        commentid: "6325"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-06-08 15:24:02 +0200
+        thetext: 'Note to self (and others): after some investigation, this is most likely due (*again*) to an issue with rounding and the usage of the deprecated data.fsample field.'
+      - +@isprivate: "0"
+        commentid: "6326"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-08 15:32:24 +0200
+        thetext: 'you may want to check out bug #498, for which Craig recently committed a fix (with my approval). I hope that fix is not now causing the problem. Please check the dates of the commit and the error'
+      - +@isprivate: "0"
+        commentid: "6327"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-06-08 15:50:50 +0200
+        thetext: |-
+          (In reply to comment #4)
+          I checked, and no, this is not related. Fortunately, numerical accuracy does not come into play with this one.
+
+          The issue is with this line 286:
+
+            trlshift = round((begsamplatency(i)-latency(1))*data.fsample);
+
+          It computes the number of zeros that have to be added at the beginning of a trial, if the trial's time axis starts after the total latency window for which the average will be computed. Ideally, the expression passed to round() should always yield an integer number, but, unfortunately, it does not. Thus, round() is used to make it integer. Sometimes, the expression yields values >= 0.5, thus leading to a rounding up. This means that the data used from this trial will be one sample longer than the data from other trials in which the shift was rounded down. Therefore, the sum cannot be computed anymore.
+
+          My solution is to change line 286 to:
+
+            trlshift = floor((begsamplatency(i)-latency(1))*data.fsample);
+
+          so simply always force a round down. It seems to work, and I do think it is valid. Ideally, we would not have a conversion between samples and time points here, but that would require a major overhaul of ft_timelockanalysis.
+
+          Fixed in revision 5997.
+      - +@isprivate: "0"
+        commentid: "7129"
+        comment_count: "6"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-08-23 10:35:09 +0200
+        thetext: closing my bugs

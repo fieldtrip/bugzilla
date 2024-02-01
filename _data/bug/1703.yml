@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1703"
+    creation_ts: 2012-09-07 14:51:00 +0200
+    short_desc: add elan2fieldtrip and fieldtrip2elan to exchange data back and forth
+    delta_ts: 2012-11-09 17:22:17 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: pe.aguera
+      +@name: Pierre-Emmanuel Aguera
+    assigned_to:
+      +content: pe.aguera
+      +@name: Pierre-Emmanuel Aguera
+    cc:
+      - j.schoffelen
+      - pe.aguera
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7322"
+        comment_count: "0"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-09-07 14:51:58 +0200
+        thetext: |-
+          As you mentioned [at Biomag], it would indeed be great to be able to do import/export operations between Fieldtrip and Elan.
+
+          Can you please send me some guidelines and information that could be useful to help me write the code to import ELAN data into fieldtrip and possibly export FieldTrip data into an ELAN format.
+      - +@isprivate: "0"
+        commentid: "7323"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-07 14:54:47 +0200
+        thetext: "Hi Piesse-Emmanuel \n\nplease have a look at this collection of converter functions in FieldTrip and let me know which one suits the best.\n\nmanzana> ls fieldtrip/*2*.m\nbesa2fieldtrip.m        loreta2fieldtrip.m      spm2fieldtrip.m\nfieldtrip2fiff.m        nutmeg2fieldtrip.m\nfieldtrip2spss.m        spass2fieldtrip.m\n\nI suspect that converters like\n  function ft_struct = elan2fieldtrip(filename)\nand\n  function fieldtrip2elan(filename, ft_struct)\nwould make most sense, but I am not sure. \n\nDo you have a URL pointing to ELAN documentation?"
+      - +@isprivate: "0"
+        commentid: "7324"
+        comment_count: "2"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-09-07 16:28:03 +0200
+        thetext: "(In reply to comment #1)\nHi Robert,\n\nI already have 2 Matlab function to convert Elan to Fieldtrip structure : \neeg2fieldtrip : convert continuous data (or concatenated epochs), and read event for another event (text) file. For continuous data file, we can read events from the file (events are not modified after import), and we can also read events from an event file after preprocessing (recoding events, rejection, ...).\n\nep2fieldtrip : convert evoked potential data (averaged data or frequency profile, only one event : stimulus)\n\nBoth may be one function.\n\nI looked at the converters. I think besa2fieldtrip is a good example.\n\nI can make elan2fieldtrip with 2 usages :\n function ft_struct = elan2fieldtrip(data_filename)\n function ft_struct = elan2fieldtrip(data_filename, event_filename)\n\nTo convert back to ELAN, function fieldtrip2elan(filename, ft_struct) seems to be a good candidate.\n\nYou will find ELAN documentation at : http://elan.lyon.inserm.fr/?q=doc_main"
+      - +@isprivate: "0"
+        commentid: "7326"
+        comment_count: "3"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-09-07 16:52:14 +0200
+        thetext: "(In reply to comment #1)\nHi Robert,\n\nI already have 2 Matlab function to convert Elan to Fieldtrip structure : \neeg2fieldtrip : convert continuous data (or concatenated epochs), and read event for another event (text) file. For continuous data file, we can read events from the file (events are not modified after import), and we can also read events from an event file after preprocessing (recoding events, rejection, ...).\n\nep2fieldtrip : convert evoked potential data (averaged data or frequency profile, only one event : stimulus)\n\nBoth may be one function.\n\nI looked at the converters. I think besa2fieldtrip is a good example.\n\nI can make elan2fieldtrip with 2 usages :\n function ft_struct = elan2fieldtrip(data_filename)\n function ft_struct = elan2fieldtrip(data_filename, event_filename)\n\nTo convert back to ELAN, function fieldtrip2elan(filename, ft_struct) seems to be a good candidate.\n\nYou will find ELAN documentation at : http://elan.lyon.inserm.fr/?q=doc_main"
+      - +@isprivate: "0"
+        commentid: "7456"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-09-20 10:08:12 +0200
+        thetext: "Hi Pierre-Emmanuel,\n\nSorry for t he delay in following this up. Your suggestion sounds like a good plan.\n\nIn the ELAN documentation I see \"The first step consists in converting your own continuous EEG or MEG data files to the ELAN internal format. Thereafter, all processing will only concern files in ELAN format (continuous data files [.eeg files], average responses [.p files], trigger position [.pos files], time-frequency data [.tf files], …).\" \nWould all of these file formats then be covered?\n\nOnce you have the two functions, could you also provide a test file like \n\ntest_elan.m\nfilename = {\nsomedata.eeg\notherdata.p\n...}\nfor i=1:length(filename)\n data = elan2fieldtrip(filename{i});   % read from disk\n elan2fieldtrip(['output_' filename{i}], data); % write back\nend\n\nand send that to us together with the data? If I can confirm that the functions work as expected, then I'll add the code to fieldtrip.\n\nthanks\nRobert"
+      - +@isprivate: "0"
+        commentid: "7500"
+        comment_count: "5"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-09-20 16:49:09 +0200
+        thetext: "(In reply to comment #4)\nHi Robert,\nI plan to convert continuous data (.eeg) and average responses (.p). \nBecause continuous data files are not epoched, I need to read events from trigger position file (.pos) to do the epoching.\nI will send you some test files with elan2fieldtrip and fieldtrip2elan functions.\n\nPierre-Emmanuel"
+      - +@isprivate: "0"
+        commentid: "8233"
+        comment_count: "6"
+        attachid: "366"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-11-09 16:53:18 +0100
+        thetext: |-
+          Created attachment 366
+          Matlab files
+      - +@isprivate: "0"
+        commentid: "8234"
+        comment_count: "7"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-11-09 16:54:08 +0100
+        thetext: |-
+          Hi Robert,
+          After a long delay (I'm sorry), I finished the 2 functions elan2fieldtrip.m and fieldtrip2elan.m .
+          These 2 functions can import/export continuous data, evoked potentials or averaged data, and time-frequency data. They call 6 other functions (private) : read_elan_eeg.m, write_elan_eeg.m, read_elan_ep.m, write_elan_ep, read_elan_tf.m and write_elan_tf.m . I attach these 8 matlab files as elan_fieldtrip.tar.gz .
+          I also attach data files with a test file test_elan.m as test_elan_data.tar.gz
+      - +@isprivate: "0"
+        commentid: "8235"
+        comment_count: "8"
+        attachid: "368"
+        who:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        bug_when: 2012-11-09 17:22:17 +0100
+        thetext: |-
+          Created attachment 368
+          Data test files
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "366"
+        date: 2012-11-09 16:53:00 +0100
+        delta_ts: 2012-11-09 16:53:18 +0100
+        desc: Matlab files
+        filename: elan_fieldtrip.tar.gz
+        type: application/x-gzip
+        size: "12253"
+        attacher:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "368"
+        date: 2012-11-09 17:22:00 +0100
+        delta_ts: 2012-11-09 17:22:17 +0100
+        desc: Data test files
+        filename: test_elan_data.tar.gz
+        type: application/x-gzip
+        size: "0"
+        attacher:
+          +content: pe.aguera
+          +@name: Pierre-Emmanuel Aguera
+        data: REMOVED

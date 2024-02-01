@@ -1,0 +1,196 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1808"
+    creation_ts: 2012-11-02 14:04:00 +0100
+    short_desc: wrong counter variable in elseif branch in loop defining the grad-struct, n instead of k
+    delta_ts: 2012-12-31 11:46:22 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: tim.kunze
+      +@name: Tim
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8120"
+        comment_count: "0"
+        who:
+          +content: tim.kunze
+          +@name: Tim
+        bug_when: 2012-11-02 14:04:33 +0100
+        thetext: "dear developers,\n\nI found a little mistake in the elseif-branch of the loop defining the grad structure in the file mne2grad.m which is invoked by ft_read_header.m in case 'neuromag_fif'.\n\nfile: mne2grad line:100  \nproblem: counter variable in elseif-branch counts not the channels (n) but k. This is especially a problem if there are EEG-channels at the beginning of the channel list, since n is increasing but because of the EEG-channel the else-branch is invoked and n and k and not further \"compatible\"\n\nCheers,\nTim"
+      - +@isprivate: "0"
+        commentid: "8121"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-02 16:27:07 +0100
+        thetext: |-
+          Hi Tim,
+
+          Just from reading the code I don't yet understand how the presence of electrodes could cause the line 114 elseif section to be executed and not the line 134 else section.
+
+          do you have a (small) data file that we could use to pinpoint the problem?
+      - +@isprivate: "0"
+        commentid: "8124"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-03 10:43:27 +0100
+        thetext: |-
+          ---
+          Tim wrote
+
+          at the beginning of the channels there were 25 EEG
+          channels followed by 306 MEG channels.
+
+          if the grad structure is built, the loop is 25 times (EEG) in the
+          else-section, i.e. n increases to 26 but k is still 1.
+
+          If now the MEG channels begin, the if-section looks for magnetometer,
+          which is found at n=27 and k  becomes 2. that is good. the next channel
+          MUST be a gradiometer though. that means that at n=28 the loop should
+          end in the elseif-section, but because orig.chs(k) does not look for the
+          28th channel but for k instead, the loop actually looks at channel 2
+          again. I thought, that the k in the elseif-statement must be changed to
+          an n.
+
+          ---
+
+          where is orig.chs(k) being used? Might it be that you are looking at an older version of the file?
+
+          See http://code.google.com/p/fieldtrip/source/browse/trunk/fileio/private/mne2grad.m for the latest.
+      - +@isprivate: "0"
+        commentid: "8131"
+        comment_count: "3"
+        attachid: "360"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 08:59:04 +0100
+        thetext: |-
+          Created attachment 360
+          screenshot
+      - +@isprivate: "0"
+        commentid: "8132"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 08:59:47 +0100
+        thetext: "On 6 Nov 2012, at 0:22, Tim Kunze wrote:\n\nI think I forgot to provide you with some additional information of how\nI encountered the problem: I am using SPM8 with MEG and got an error\nwhich said: \n\nError using ==> mne2grad at 121\nNumber of MEG channels identified does not match number of channels in\ngrad structure!!!!!\n\nI opended the file as shown in the little screenshot, which you find\nattached. Also, please find attached a small sample set ( cropped it\nmyself and hope everything is included). When you open it with SPM EEG,\nas I did, you will encounter the error message BEFORE you answer the\nGUI-question whether to \"save the channel selection or not\".\n\nIf you put a breakpoint at the beginning of the loop in mne2grad.m at\nline ~91, open the data set till the breakpoint does it work and look at\norig.chs(:). You will see, that the list begins with 25 EEG channels. As\nyou go step by step through the loop the first 25 iterations end in the\nend-section, n is increasing but k remains 1 what leads to problems\nduring the treatment of the MEG-channels.\n\nI hope the data file supports my report.\n\nI also identified another problem with the newest version of neuromag\nsystems (triux) at another part of SPM which is also based on fieldtrip.\nBut lets solve this problem first:)"
+      - +@isprivate: "0"
+        commentid: "8133"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:00:13 +0100
+        thetext: "(In reply to comment #4)\n\nI copied the datafile to \n\n/home/common/matlab/fieldtrip/data/test/bug1808/reduced.fif"
+      - +@isprivate: "0"
+        commentid: "8135"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:07:34 +0100
+        thetext: "(In reply to comment #4)\n\n> Error using ==> mne2grad at 121\n> Number of MEG channels identified does not match number of channels in\n> grad structure!!!!!\n\nline 121 reads \n    grad.coilori(kCoil,:) = t(1:3,3);\n\nwhish means that the bug has been detected in an older version of the code. It might already have been fixed, it might also still persist."
+      - +@isprivate: "0"
+        commentid: "8136"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:10:40 +0100
+        thetext: "(In reply to comment #6)\n\nI made the following test script\n\ndataset = '/home/common/matlab/fieldtrip/data/test/bug1808/reduced.fif';\nhdr  = ft_read_header(dataset);\ngrad = ft_read_sens(dataset);\n\nand after \n\nmac001> svn update\nAt revision 6873.\n\nI get \n\nError using cell/unique (line 45)\nInput must be a cell array of strings.\n\nError in match_str (line 63)\n[dum1, dum2, c] = unique([a; b]);\n\nError in channelposition (line 296)\n[sel1, sel2] = match_str(sens.label, lab);\n\nError in ft_datatype_sens (line 123)\n        [chanpos, chanori, lab] = channelposition(sens, 'channel', 'all');\n\nError in ft_read_header (line 1720)\n  hdr.grad = ft_datatype_sens(hdr.grad);\n\nwhich means that the latest version of the code still has problems with this specific file."
+      - +@isprivate: "0"
+        commentid: "8137"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:15:46 +0100
+        thetext: "(In reply to comment #7)\n\nsens = \n\n    coilpos: [509x3 double]\n    coilori: [509x3 double]\n        tra: [305x509 double]\n       unit: 'cm'\n      label: {305x1 cell}\n       type: 'neuromag306'\n\nThere seems to be one channel missing.\n\nin \n> In fileio/private/channelposition at 288\n  In fileio/private/ft_datatype_sens at 123\n  In ft_read_header at 1720\n\nthis results into\n\n...\n    'MEG2131'    'MEG2132'    'MEG2133'\n    'MEG2141'    'MEG2142'    'MEG2143'\n    'MEG2211'    'MEG2212'    'MEG2213'\n    'MEG2221'    'MEG2222'    'MEG2223'\n    'MEG2231'    'MEG2232'    'MEG2233'\n                  []    'MEG2242'    'MEG2243'\n    'MEG2311'    'MEG2312'    'MEG2313'\n    'MEG2321'    'MEG2322'    'MEG2323'\n    'MEG2331'    'MEG2332'    'MEG2333'\n    'MEG2341'    'MEG2342'    'MEG2343'\n    'MEG2411'    'MEG2412'    'MEG2413'\n...\n\nwhich causes match_str to fail.\n\nThe question is: why is this one channel missing?"
+      - +@isprivate: "0"
+        commentid: "8138"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:19:04 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          > The question is: why is this one channel missing?
+
+
+
+          K>> dbstack
+          > In fileio/private/mne2grad at 101
+            In ft_read_header at 1260
+
+          K>> length(strmatch('MEG', {orig.chs.ch_name}))
+          ans =
+             305
+
+          So the channel is actually missing from the structure returned by the fif reading functions. Hence I would conclude that mne2grad is performing correctly in returning 305 channels. However, there is still an issue with the channelposition function.
+      - +@isprivate: "0"
+        commentid: "8139"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-06 09:47:01 +0100
+        thetext: "I checked with an other neuromag fif file that does have 306 channels, and it works without a flaw. \n\nThe problem is in the missing channel, which channelposition does not expect. The neuromag306 section in that function makes one position per triplet of channels. Then later around line 296 it copies the one position to each of the three channels (2*plan+1*mag) at each sensor location. That is where it fails.\n\nThe relevant code failing can be simulated with \n\n>> match_str({'a', 'b', 'c'}, {'b', []})\nError using cell/unique (line 45)\nInput must be a cell array of strings.\n\nError in match_str (line 63)\n[dum1, dum2, c] = unique([a; b]);\n\nwhich is because match_str does not expect the empty [] element in the cell array. Had it been an empty string '', then it would not have been a problem.\n\nI have enhanced the match_str function to deal with this\n\nmac001> svn commit utilities/match_str.m \nSending        utilities/match_str.m\nTransmitting file data .\nCommitted revision 6874.\nmac001> svn update\nU    plotting/private/match_str.m\nU    fileio/private/match_str.m\nU    forward/private/match_str.m\nUpdated to revision 6875.\n\nfollowing this update, the test script does not crash any more and returns\n\n>> hdr\nhdr = \n          label: {330x1 cell}\n         nChans: 330\n             Fs: 1000\n           grad: [1x1 struct]\n           elec: [1x1 struct]\n       chanunit: {1x330 cell}\n       nSamples: 1001\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n       chantype: {330x1 cell}\n\n>> grad\ngrad = \n     chanori: [305x3 double]\n     chanpos: [305x3 double]\n    chantype: {305x1 cell}\n    chanunit: {305x1 cell}\n     coilori: [509x3 double]\n     coilpos: [509x3 double]\n       label: {305x1 cell}\n         tra: [305x509 double]\n        type: 'neuromag306'\n        unit: 'cm'\n\nwhich seems correct to me.\n\n@Tim, please update to a FieldTrip version equal to or later than SVN revision 6875. This evening it will be on the ftp.fcdonders.nl server."
+      - +@isprivate: "0"
+        commentid: "8836"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:22 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "360"
+      date: 2012-11-06 08:59:00 +0100
+      delta_ts: 2012-11-06 08:59:04 +0100
+      desc: screenshot
+      filename: ft_read_header_mne2grad_error.png
+      type: image/png
+      size: "193206"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

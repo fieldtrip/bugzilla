@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3193"
+    creation_ts: 2016-10-26 15:46:00 +0200
+    short_desc: ft_artifact_eog fltpadding default introduces NaNs that avoid filtering
+    delta_ts: 2021-09-16 14:55:04 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3238
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2732"
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17869"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-26 15:46:43 +0200
+        thetext: "The issue starts with the cfg.artfctdef.eog.fltpadding default which is 0.1. This parameter introduces a 0.1s padding with NaNs (line 301 in ft_artifact_zvalue) due to ft_fetch_data and the private function preproc.m does not filter the data because it contains NaNs. To reproduce the but, use the dataFIC as follows:\n\ncfg=[];\ncfg.trl                      = data.cfg.previous.trl;\ncfg.artfctdef.eog            = [];\ncfg.artfctdef.eog.bpfilter   = 'yes';\ncfg.artfctdef.eog.bpfilttype = 'but';\ncfg.artfctdef.eog.bpfreq     = [8 10];\ncfg.artfctdef.eog.bpfiltord  = 4;\n\ncfg.artfctdef.eog.channel       = 'MLF22';\ncfg.artfctdef.eog.trlpadding    = 0;\n%% cfg.artfctdef.eog.fltpadding    = 0;%% \ncfg.artfctdef.eog.interactive   = 'yes';\ncfg.artfctdef.eog.cutoff        = 2.5;\n\n[cfg, artifact]      = ft_artifact_eog(cfg,dataFIC);\n\n\nSuggestion:\nAfter ft_fetch_data, we should detect NaNs and use ft_preproc_padding to add  the appropriate padtype: 'zero', 'mean', 'localmean', 'edge', 'mirror'"
+      - +@isprivate: "0"
+        commentid: "17870"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-26 16:18:02 +0200
+        thetext: "So, I would assume that this NaN-padding occurs, if the user inputs already preprocessed data? In some way this could then be classified as a user-error, because padding outside the scope of the data is impossible.\n\nYet, I can imagine the people would expect non-nanny behavior.\n\nPerhaps we should at least throw a warning in ft_artifact_zvalue if nans are detected at the edges (i.e. due to the fltpadding being non-zero). \n\nAlso, we may consider addressing this in bug 2732"
+      - +@isprivate: "0"
+        commentid: "17871"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-26 16:22:58 +0200
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #1)\nI agree: the warning is already implemented in ft_artifact_zvalue:\n\nWarning: data contains NaNs, no filtering or preprocessing applied \n\nHowever, the reason why it happened was a bit less logic given that fltpadding  is by default 0.1 so we're going to filter out of the data in many cases...\n\nDecision: or we change the defaults or the deal with NaN padding better"
+      - +@isprivate: "0"
+        commentid: "17872"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-26 16:24:39 +0200
+        thetext: "Good point. \n\nPerhaps we could stick to the default in case data is read from disk, and default to 0 if there's a data argument in the input?\n\nDealing with the NaNs is something that may be required, but can be followed up elsewhere."
+      - +@isprivate: "0"
+        commentid: "17873"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-26 16:46:31 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #3)
+          I like your solution Jefe. I could insert a conditional with warning to set padding values to zero with data as input (around line 229 in ft_artifact_zvalue):
+
+          if hasdata;
+            cfg.artfctdef.zvalue.trlpadding = 0;
+            cfg.artfctdef.zvalue.fltpadding = 0;
+            ft_warning('trlpadding and fltpadding are set to zero to avoid filter problems with NaN, see bug3193 for details');
+          end
+
+          If you agree I can make a pull request (I need to train my github disabilities)
+      - +@isprivate: "0"
+        commentid: "17874"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-26 16:49:32 +0200
+        thetext: :o). Sounds like a good plan. Good luck with your disabilities...
+      - +@isprivate: "0"
+        commentid: "17875"
+        comment_count: "6"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-26 17:07:24 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+          https://github.com/fieldtrip/fieldtrip/pull/242
+      - +@isprivate: "0"
+        commentid: "17882"
+        comment_count: "7"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-27 11:59:10 +0200
+        thetext: |-
+          (In reply to Diego Lozano Soldevilla from comment #6)
+
+          I prefer to continue the thread here:
+
+          Regarding ft_artifact_jump things are a bit different. There's the cfg.padding in addition to the trlpadding, artpadding and fltpadding. In case cfg.padding is different from zero,
+
+
+            if ~isfield(cfg.artfctdef.jump,'trlpadding'), cfg.artfctdef.jump.trlpadding = 0.5*cfg.padding; end
+            if ~isfield(cfg.artfctdef.jump,'artpadding'), cfg.artfctdef.jump.artpadding = 0.5*cfg.padding; end
+            if ~isfield(cfg.artfctdef.jump,'fltpadding'), cfg.artfctdef.jump.fltpadding = 0;               end
+
+          I noticed that for ft_artifact_jump only the cfg.artfctdef.jump.fltpadding = 0; is the critical parameter. I'll add this fix in the next pull request
+      - +@isprivate: "0"
+        commentid: "17883"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-10-27 12:04:11 +0200
+        thetext: OK, thanks for looking into this. It seems that you don't need to create a new pull request. If you make (and commit and push) changes in the branch that you are PR'ing, the new commit will be automatically added, I think.
+      - +@isprivate: "0"
+        commentid: "17884"
+        comment_count: "9"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-10-27 13:23:06 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #8)
+          you're welcome. Thanks for your feedback. I made another pull request from scratch because I didnt know how to add all together
+      - +@isprivate: "0"
+        commentid: "20591"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2021-09-16 14:54:55 +0200
+        thetext: As far as I can see, this has been addressed. Closing for now.

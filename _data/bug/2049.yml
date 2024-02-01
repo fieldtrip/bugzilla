@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2049"
+    creation_ts: 2013-03-13 13:45:00 +0100
+    short_desc: 'ft_statistics_montecarlo: implement confidence intervals for p-value'
+    delta_ts: 2014-03-12 12:21:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - e.maris
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9794"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-13 13:45:20 +0100
+        thetext: |-
+          Implement it and store the result in two separate fields: lower bound and upper bound, e.g.
+
+          stat.probupperbound = xxx
+          stat.prbmclownbnd = yyy
+      - +@isprivate: "0"
+        commentid: "9795"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-13 13:48:30 +0100
+        thetext: |-
+          stat.montecarlo
+          stat.montecarhi
+      - +@isprivate: "0"
+        commentid: "9915"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 11:44:09 +0100
+        thetext: "hmm humm, ehm...\n\nif isfield(stat, 'posclusters')\n  for i=1:length(stat.posclusters)\n    stat.posclusters(i).var = Nrand*stat.posclusters(i).prob.*(1-stat.posclusters(i).prob);\n    stat.posclusters(i).cirange =  1.96.*sqrt(stat.posclusters(i).var./Nrand);\n    if stat.posclusters(i).prob<cfg.alpha && stat.posclusters(i).prob+stat.posclusters(i).cirange>=cfg.alpha\n      warning('FieldTrip:posCluster_exceeds_alpha', sprintf('The p-value of positive cluster #%i is below %.3f but the confidence interval is above - consider increasing the number of permutations!', i, cfg.alpha));\n    end\n  end\nend\nif isfield(stat, 'negclusters')  \n  for i=1:length(stat.negclusters)\n    stat.negclusters(i).var = Nrand*stat.negclusters(i).prob.*(1-stat.negclusters(i).prob);\n    stat.negclusters(i).cirange =  1.96.*sqrt(stat.negclusters(i).var./Nrand);\n    if stat.negclusters(i).prob<cfg.alpha && stat.negclusters(i).prob+stat.negclusters(i).cirange>=cfg.alpha\n      warning('FieldTrip:negCluster_exceeds_alpha', sprintf('The p-value of negative cluster #%i is below %.3f but the confidence interval is above - consider increasing the number of permutations!', i, cfg.alpha));\n    end\n  end\nend\n\nhm?"
+      - +@isprivate: "0"
+        commentid: "9916"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 11:51:59 +0100
+        thetext: or rather a warning_once and be less specific about which cluster the niffy one is?
+      - +@isprivate: "0"
+        commentid: "9917"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 11:53:39 +0100
+        thetext: "tutorial data:\nWarning: The p-value of positive cluster #1 is below 0.025 but the confidence interval is above - consider increasing the number of permutations! \n> In ft_statistics_montecarlo at 396\n  In trunk\\private\\statistics_wrapper at 298\n  In ft_timelockstatistics at 111\n  In test_tutorial_clusterpermutationtimelock at 297"
+      - +@isprivate: "0"
+        commentid: "9918"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 11:55:24 +0100
+        thetext: |-
+          last spammail:
+          should the cirange field be there only for stat.posclusters and stat.negclusters or for stat.prob as well?
+      - +@isprivate: "0"
+        commentid: "9922"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-20 14:03:25 +0100
+        thetext: |-
+          Jm or Robert, before committing, is this correct?
+          stddev = sqrt(stat.prob.*(1-stat.prob));
+          stat.cirange = 1.96*stddev/sqrt(Nrand);
+      - +@isprivate: "0"
+        commentid: "9945"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-22 11:29:32 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          I have no idea from the top of the head. I suggest to check with Eric (now CC)
+      - +@isprivate: "0"
+        commentid: "9946"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-22 11:32:30 +0100
+        thetext: Eric, could you please check my last comment to verify that what I did is correct?
+      - +@isprivate: "0"
+        commentid: "9959"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-03-25 17:12:32 +0100
+        thetext: "Thanks Eric, we met this noon and he 'unconfused' my confusion: \nvar(p) = var(X/n) = p*(1-p)/n, and  p ± 1.96(sqrt(var(p))\n\nsvn ci ft_statistics_montecarlo.m -m \"enhancement #2049 - monte carlo confidence interval added, warning is thrown when p<alpha and CI includes alpha\"\nSending        ft_statistics_montecarlo.m\nTransmitting file data .\nCommitted revision 7702."

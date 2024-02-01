@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "816"
+    creation_ts: 2011-07-13 14:45:00 +0200
+    short_desc: improve the tweets of the svn changes
+    delta_ts: 2011-07-20 15:20:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2606"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:45:16 +0200
+        thetext: |-
+          ... as discussed during the meeting
+
+          Below is the shell script that runs as svn post commit hook, i.e. it is executed on the svn server after each commit. I think you should be able to execute it yourself when logged in on the svn server with ssh. It is located in /home/svnroot/fieldtrip/hooks.
+
+          Note that the extra software that is available on the svn server is limited (on purpose), but php appears to be available.
+
+          -------------------
+          #!/bin/sh
+
+          # uncomment the following line to prevent this script from executing
+          # exit 0
+
+          REPOS="$1"
+          REV="$2"
+
+          # there is a maximum of 140 characters per tweet
+          COMMENT=`svnlook log -r${REV} ${REPOS}`
+          AUTHOR=`svnlook author -r${REV} ${REPOS}`
+          STATUS=${AUTHOR}\(${REV}\)": "${COMMENT}
+          STATUS=`echo $STATUS | dd count=140 bs=1 2> /dev/null`
+
+          # this is the old twitter interface, which stopped working in 2010
+          #/usr/bin/curl --basic --user fieldtriptoolbx --data status="${STATUS}" https://twitter.com/statuses/update.xml
+
+          # this is the new twitter interface
+          $REPOS/hooks/twitter/ttytter -keyf=$REPOS/hooks/twitter/fieldtriptoolbx.key -status="${STATUS}" -silent
+      - +@isprivate: "0"
+        commentid: "2665"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-07-13 15:17:45 +0200
+        thetext: |-
+          The post-commit-twitter script now executes:
+
+          php /home/eelspa/fttweetcommit/tweetcommit.php "${AUTHOR}" "${REV}" "${COMMENT}"
+
+          and the tweetcommit.php performs the actual tweet, including a bit.ly URL to Google Code.
+
+          Unfortunately, as of now, the Google Code repository does not know about the latest revisions until the day after. So, all the links will be invalid until google code is synced with the local SVN. Nothing to do about this at the moment; Google Code needs to be synced instantaneously for this to work.
+
+          A sidenote: I was actually pleasantly surprised by how easy it was to call a PHP-script from the command line on the SVN server. So, if PHP can help in improving the syncing between SVN and google code, I can probably make it happen.
+      - +@isprivate: "0"
+        commentid: "2667"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 22:46:58 +0200
+        thetext: "There was a permission problem due to roboos (doing the commit) not being allowed to execute eelspa's php code in his homedir. To fix this I moved the fttwitter code from ~eelspa into the repository directory and made a small change to the post-commit-twitter script (to use $REPOS).\n\nThe automatic updates of googlecode are not yet happening. The consequence was that twitter was up to date, but googlecode not. I  increased the svnsync ferquency in the cron job to once per hour.  \n\noverall it is very nice!"

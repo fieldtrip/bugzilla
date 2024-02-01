@@ -1,0 +1,170 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1064"
+    creation_ts: 2011-10-21 11:44:00 +0200
+    short_desc: use the gradient function in ft_preproc_derivative instead of diff
+    delta_ts: 2019-08-10 11:56:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc:
+      - a.stolk8
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3663"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-21 11:44:18 +0200
+        thetext: right now ft_preproc_derivative deals with the padding that is needed after taking the diff, but the gradient function can do that automatically.
+      - +@isprivate: "0"
+        commentid: "4052"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:40 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "5325"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-02-22 09:27:52 +0100
+        thetext: "Behavior for a vector (idem for a matrix):\n\nA = [3 2 1 1 2 3];\n\nD = diff(A,[],2); % 2nd dimension - horizontal\n\nD = \n\n   -1 -1 0 1 1\n\nG = gradient(A);\n\nG = \n \n   -1 -1 -0.5 0.5 1 1\n\nThe padding appears to be in the center whereas ft_preproc_derivative now has the option to do the padding at the begin or the end.\n\n\nBehavior when specifying 'order':\n\norder = 2;\n\nD = diff(A, order, 2);\n\nD =\n\n   0 1 1 0\n\nG = gradient(A, order);\n\nG = \n\n   -0.5 -0.5 -0.25 0.25 0.5 0.5\n\n\nIn fact, order in gradient is used as a scalar determining the spacing between points in each direction. Whereas order in diff refers to the recursive application of diff. Id est, diff(diff(A,[],2),[],2). \n\ngradient(gradient(A)) gives\n\n0 0.25 0.75 0.75 0.25 0 \n\nwhich is totally different from gradient(A,2). any desired functionality here? perhaps a recursive call to gradient? e.g.\n\nfor i=1:order\n  A = gradient(A);\nend"
+      - +@isprivate: "0"
+        commentid: "5333"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-22 13:21:30 +0100
+        thetext: |-
+          actually, gradient does not do padding, it is just computing the derivative in a different way (implicitly extrapolating). Next it behaves differently from diff.
+
+          Executive decision needed.
+      - +@isprivate: "0"
+        commentid: "5466"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-07 13:57:24 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          make a test script to better illustrate the differences and commonalities between diff and gradient ('extrapolate' at edges?)
+
+          add optionality for 'case gradient' to preproc_derivative?
+      - +@isprivate: "0"
+        commentid: "5470"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-07 16:07:34 +0100
+        thetext: |-
+          x = rand(1,100)
+          y1 = (ft_preproc_derivative(x, 1, 'beg') + ft_preproc_derivative(x, 1, 'end'))/2
+          y2 = gradient(x)
+          plot(y1)
+          hold on
+          plot(y2, 'r.')
+
+          QED, see attached.
+
+          Conclusion: it is the same, except at the edges. Note that equivalence for order 1 implies equivalence for order N, because that would just be n-fold application of an equivalent algorithm
+      - +@isprivate: "0"
+        commentid: "5471"
+        comment_count: "6"
+        attachid: "237"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-07 16:08:22 +0100
+        thetext: |-
+          Created attachment 237
+          matlab figure with avg(diff) and gradient
+      - +@isprivate: "0"
+        commentid: "6822"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-07-18 10:28:57 +0200
+        thetext: "Ok, great. So the entire functionality can be reduced to something like this:\n\nfor i=1:order\n  A = gradient(A);\nend\n\nThis requires tweaking of the varargin settings. ft_preproc_derivative now desires 3 input variables; data, order, padding (i.e. type, e.g. 'beg', 'end'). \n\nShould be build in support for this now defined older implementation or simply change this to a 2-variable-input in high-level functions accordingly?"
+      - +@isprivate: "0"
+        commentid: "7613"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-09-26 14:51:34 +0200
+        thetext: |-
+          It seems only preproc in fieldtrip/private calls ft_preproc_derivative (unix cmd: grep ft_preproc_derivative *.m).
+
+          I have changed the number of input arguments in preproc from 3 to 2 accordingly, as padding is no longer needed in ft_preproc_derivative.
+      - +@isprivate: "0"
+        commentid: "19759"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:52:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "19803"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:08 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "237"
+      date: 2012-03-07 16:08:00 +0100
+      delta_ts: 2012-03-07 16:08:22 +0100
+      desc: matlab figure with avg(diff) and gradient
+      filename: Screen shot 2012-03-07 at 16.07.56.png
+      type: image/png
+      size: "37981"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

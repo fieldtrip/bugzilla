@@ -1,0 +1,355 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1815"
+    creation_ts: 2012-11-07 15:46:00 +0100
+    short_desc: ft_prepare_mesh should make hexahedral mesh
+    delta_ts: 2013-09-24 14:44:04 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    blocked: "1822"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    cc:
+      - carsten.wolters
+      - j.vorwerk
+      - JakobLudewig
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8171"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 15:46:07 +0100
+        thetext: this is needed, since ft_prepare_headmodel with method=simbio needs the hex-mesh.
+      - +@isprivate: "0"
+        commentid: "8202"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 12:05:32 +0100
+        thetext: "I suggest to make a test script that looks like this\n\nseg = zeros(101, 91, 81); % slightly different numbers in x, y, z\ntransform = eye(4); % update this so that the center of the volume is in [0 0 0]\n\ncreate a sphere in this seg with ones.\n\nput them together into something compatible with ft_datatype_segmentation\n\ncall ft_prepare_mesh to make a triangulated surface mesh\ncall ft_prepare_mesh to make a hexahedral mesh -> this requires code changes \ncall ft_prepare_mesh to make a tetrahedral mesh -> this requires code changes\n\nuse ft_plot_mesh for plotting all of them (ft_plot_mesh cannot do the hexahedral mesh yet, so it also needs to be extended)\n\nseg = zeros(101, 91, 81); % slightly different numbers in x, y, z\n\ncreate three sphere in the seg with value 1, 2 and 3.\n\nrepeat the mesh generation and plotting."
+      - +@isprivate: "0"
+        commentid: "8344"
+        comment_count: "2"
+        who:
+          +content: JakobLudewig
+          +@name: Jakob Ludewig
+        bug_when: 2012-11-20 16:17:54 +0100
+        thetext: |-
+          (In reply to comment #0)
+          I talked to Johannes and I will focus on this bug for now.
+
+          Cheers
+      - +@isprivate: "0"
+        commentid: "8357"
+        comment_count: "3"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-21 16:48:59 +0100
+        thetext: |-
+          (In reply to comment #2)
+          hi Jakub and Johannes,
+
+
+          I am trying to use the prepare_volume_mesh_segmentation function that Johannes sent me a few days ago, but I couldn't run it.
+
+          I did the following: I copied this function and also vgrid.m to fieldtrip/external/simbio, I created an example segmentation structure (fieldtrip style):
+
+
+          disp(singlesphere)
+
+          dim:       [91 104 111]
+          transform: [4x4 double]
+          coordsys:  'ctf'
+          unit:      'mm'
+          seg:       [91 104 111]     % this is binary mask of a sphere
+
+          and I called:
+          cfg=[];
+          cfg.tissue = 'seg';
+          mesh = prepare_volume_mesh_segmentation(cfg,singlesphere)
+
+          but I get an error:
+
+          vgrid is writing the wireframe mesh file, this may take some time ...
+          ./tp26314fb9_afbb_43e8_9e1e_19dbd6020202.sh: line 2: /home/mrphys/lilmag/matlab/fieldtrip/external/simbio/vgrid: No such file or directory
+          elapsed time: 0.015383
+          Trying to read FE mesh from file tpd1aede87_4d9e_4059_a32f_43a868ad17a1.v.
+          Could not open file tpd1aede87_4d9e_4059_a32f_43a868ad17a1.v for reading.
+          ??? Error using ==> read_vista_mesh
+          Error while reading mesh!
+
+          Error in ==> prepare_volume_mesh_segmentation at 121
+          [mesh.pnt,mesh.hex,labels] = read_vista_mesh(meshfile);
+
+
+
+
+          Could you help me why it does not work out for me? What did you use an input for the function? Or is this a problem with the path?
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8366"
+        comment_count: "4"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-21 19:56:24 +0100
+        thetext: |-
+          (In reply to comment #3)
+          Hi Lilla,
+
+          you have to put the vgrid.m exactly into the folder where the vgrid binary is located, since it is just a dummy-file so that matlab can locate the binary. Usually this would be /external/simbio/vgrid1.3.1/program/.
+
+          You have to obey that the binary is compiled under linux at the moment, I might have a try to compile it on a mac the next days.
+
+          Best, Johannes
+      - +@isprivate: "0"
+        commentid: "8369"
+        comment_count: "5"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-22 13:13:48 +0100
+        thetext: "(In reply to comment #4)\nhi Johannes,\n\nThanks. \nI am always using the latest svn version, so the binary file is located for me where it is located in the latest fieldtrip version.\n\nI put the vgrid.m to /external/simbio/vgrid1.3.1/program/ (where I could find also vgrid.C, is this the binary file? sorry, I do not really know which one that should be.)\nand I got the following error message:\n\n\n>> mesh = prepare_volume_mesh_segmentation([],singlesphere)\nvgrid is writing the wireframe mesh file, this may take some time ...\n/home/mrphys/lilmag/matlab/fieldtrip/external/simbio/vgrid1.3.1/program/vgrid: Option -min has incorrect value -max.\n\nUsage: /home/mrphys/lilmag/matlab/fieldtrip/external/simbio/vgrid1.3.1/program/vgrid <options> [infile] [outfile], where <options> includes:\n    -help\n   Prints usage information.\n    -in <string>\n   Input file. Default: tp6ab3a57c_0031_4958_a7bc_5fe24ab404fe.v\n    -out <string>\n   Output file. Default: tpb0b4b13c_2106_4ef1_8236_1747b5a4e54f.v\n    -material <string>\n   name of material file. Default:\n    -elem cube | tetra5 | tetra6a | tetra6b\n   Primitive type. Default: cube\n    -min <integer>\n   Minimal grid resolution. Default: 4\n    -max <integer>\n   Maximal grid resolution. Default: 4\n    -olevel <integer>\n   verbosity level. Default: 1\n    -smooth no | shift | marching\n   Smooth boundaries. Default: no\n    -shift <number>\n   Degree of node shifting (range 0-0.49). Default: 0.49\n    -format vm | hf | ipe | ascii | gmv | gpp | complex2d | dx\n   Output format. Default: hf\n    -surface [ true | false ]\n   Surface mesh output. Default: false\n    -np <integer>\n   # of partitions. Default: 1\n    -constraint no | box | plane | snodes\n   Constraint Types. Default: no\n    -explicit_links [ true | false ]\n   Write explicit vertex-vertex connectivity. Default: false\n    -simbio_mat_ids [ true | false ]\n   Use the SimBio material IDs defined in D1.2b page 6. Default: false\n    -matdb <string>\n   name of material DB file, containing data used by -simbio_mat_ids. Default:\n    -sm_iters <integer>\n   Smooth marching tet interface if > 0. Default: 0\n    -sm_weights <string>\n   name of file containing surface smoothing weights for Laplacian smoothing. Default:\n    -vsm_weights <string>\n   name of file containing volume smoothing weights for Laplacian smoothing. Default:\n    -nofields [ true | false ]\n   do not output any fields, except material. Default: false\nelapsed time: 0.028744\nTrying to read FE mesh from file tpb0b4b13c_2106_4ef1_8236_1747b5a4e54f.v.\nCould not open file tpb0b4b13c_2106_4ef1_8236_1747b5a4e54f.v for reading.\n??? Error using ==> read_vista_mesh\nError while reading mesh!\n\nError in ==> prepare_volume_mesh_segmentation at 123\n[mesh.pnt,mesh.hex,labels] = read_vista_mesh(meshfile);\n\n\nI used the debug function and I realized that there is no meshfile (= the file name written in the meshfile variable) in my temporary folder.\nSo, it seems to me that the meshfile is not getting written.\n\nDo you have another idea what could be the problem? What does it mean \"Option -min has incorrect value -max.\"?\n\nBest,\nLilla"
+      - +@isprivate: "0"
+        commentid: "8371"
+        comment_count: "6"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-22 14:00:31 +0100
+        thetext: |-
+          (In reply to comment #5)
+          Ok, that was an error I already fixed but forgot to mail you, see e-mail. Sorry, my bad.
+      - +@isprivate: "0"
+        commentid: "8372"
+        comment_count: "7"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-22 14:53:52 +0100
+        thetext: |-
+          (In reply to comment #6)
+          hey, no problem. that's why I am testing it.
+
+          and thanks! it worked!
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8519"
+        comment_count: "8"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-30 16:46:48 +0100
+        thetext: "(In reply to comment #7)\nhi Johannes and Jakob,\n\nI am working on the prepare_volume_mesh_segmentation function that Johannes sent me a week ago. I try to fit this among the other fieldtrip mesh functions. We (me and Robert) planned to have two separate functions:\n1. prepare_mesh_hexahedral for preparing hexahedral meshes from a segmentation \n2. and prepare_mesh_tetrahedral for tetrahedral meshes.\n\nBut I am realizing now during running prepare_volume_mesh that it depends on the resolution what kind of mesh (tetrahedral or hexahedral) I get. \nHow is the resolution specification implemented? When resolution =1, is the output always a hexahedral mesh independent of the size of the volume? and when resolution = 2 (or larger) is the mesh always tetrahedral? Or does the output depend also on the volume size? Is it possible to specify in vgrid to output a hexahedral mesh in any case independently of the resolution?\nIn general: what does resolution mean?\n\nthanks for the help!\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "8531"
+        comment_count: "9"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-12-03 17:40:41 +0100
+        thetext: |-
+          (In reply to comment #8)
+          Resolution in this case means how vgrid proceeds with the given vista-image, resolution 1 means a direct transformation, where each voxel is transformed to a hexaeder. Resolution 2 will then mean 8 voxels to a hexaeder, non-integer steps would force a resampling.
+
+          But, since I am not totally sure, how this resampling is executed, I think we should mainly not use it and better do a resampling inside matlab with fieldtrip-functions and then create a mesh with vgrid afterwards, which would probably then need to be transformed in matlab.
+
+          Forcing vgrid to always create cubic elements should already be done by the switch "-elem cube" (line 118), did you experience cases, where this did not happen? I never experienced that before, I would have to have a look at that.
+
+          Regarding splitting creation of tetrahedral and hexahdreal meshes:
+          This function is meant for creating hexahedral meshes only. vgrid is not a program one should use to create tetrahedral meshes, since it simply splits up hexahedras into tetrahedras to achieve this, which mainly means a much higher computational effort, without having the advantages of tetrahedral meshes (better shape of compartment boundaries etc.).
+
+          For tetrahedral meshes indeed a second function needs to be written, which should then implement a tetgen call.
+      - +@isprivate: "0"
+        commentid: "8543"
+        comment_count: "10"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-04 18:15:15 +0100
+        thetext: "(In reply to comment #9)\n(In reply to comment #9)\nhi Johannes,\n\nthanks a lot for your answer.\n\n\"Resolution 2 will then mean 8 voxels to a hexaeder, non-integer\nsteps would force a resampling.\"\n\nwhen I run prepare_volume_mesh_segmentation\nwith no resolution specified, or with with cfg.resolution = 1\nthe output structure looks like this:\n\ndisp(mesh)\n             pnt: [283008x3 double]\n             hex: [267731x8 double]\n          tissue: [267731x1 double]\n     tissuelabel: {'101'  '102'  '103'}\n      tissuename: {'tissue_1'  'tissue_2'  'tissue_3'}\n\nbut when cfg.resolution = 2, the output is like this:\n\nmesh4=prepare_volume_mesh_segmentation(cfg,seg);\n\ndisp(mesh4)\n             pnt: [37224x3 double]\n             hex: [166855x4 double]\n          tissue: [166855x1 double]\n     tissuelabel: {'1'}\n      tissuename: {'tissue_3'}\n\nAs you can see, in the hex field, there are actually 4 points defining a polyhedron. Therefore, I was asking if it makes tetrahedral meshes. And actually, I also get a warning on the screen:\n\n% vgrid is writing the wireframe mesh file, this may take some time ...\n% WARNING: max_maxdim must divide nx,ny,nz!\n% WARNING: enlarging image from size 91, 104, 111 to 92,106,112\n% WARNING: gridGenerator: Changing grid generation to 'tetra5' \n% elapsed time: 3.231\n% Trying to read FE mesh from file tp4f96190f_6895_4d28_b487_f938a19f7b37.v.\n% Successfully read mesh with 37224 nodes and 166855 elements.\n\nwhich says that it is changing the generation to 'tetra...'.\n\nI am wondering that if you do not suggest to use the resolution option from the vgrid, then maybe we could just have resolution = 1, without offering the option to change it.\n\nMy other question is: is it important what are the tissuelabels, right? Are these numbers only for differentiating the different tissue-types (in case there are more) or do they represent which hexahedron belongs to skin, brain... etc.? Is it ok for example if the input contains only the segmentation of the headsurface (here: tissue_3) and then it gets tissuelabel 101 (and not 103... for example)? \n\ncfg=[];\ncfg.tissue = {'tissue_3'}; \nmesh3=prepare_volume_mesh_segmentation(cfg,seg);\n\n  disp(mesh3)\n%             pnt: [37224x3 double]\n%             hex: [33371x8 double]\n%          tissue: [33371x1 double]\n%     tissuelabel: {'101'}\n%      tissuename: {'tissue_3'}\n\nI tested this function with test_volume_mesh_segmentation which you can find in the fieldtrip/test directory (it contains the example segmentation structure).\n\n\nBest,\nLilla"
+      - +@isprivate: "0"
+        commentid: "8545"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-04 21:17:41 +0100
+        thetext: "not to go into any details, but just as a hint:\n\nyou can do \n\ntmp.pnt = bnd.pnt;\ntmp.hex = bnd.hex(1,:); % get the first one \n\nand idem for tet and tri. Subsequently you can do \n\nft_plot_mesh(tmp)\n\nto get a quick view of the first (or any other) element. You can also plot all elements with\n\nft_plot_mesh(bnd)\n\nwhere facecolor=none and edgecolor=b would be suitable for a tetrahedral or hexahedral wireframe. But it is very slow in MATLAB if there are many elements. \n\nIt works much better if you do \n  ft_write_headshape(filename, bnd, 'format', 'ply')\nand use the free Paraview or Meshlab software for the display (see google). That allows you to look at the whole mesh. But looking at an individual element (see the first lines) is also useful."
+      - +@isprivate: "0"
+        commentid: "8556"
+        comment_count: "12"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-12-05 12:04:06 +0100
+        thetext: |-
+          (In reply to comment #10)
+          Ok, I found the error, will fix it soon.
+
+          For the second part:
+          The tissuelabels do not directly fix which values in the tissues vector correspond to which compartment, it is more important to identify the different compartments clearly so that we are able to assign the correct conductivities later on.
+      - +@isprivate: "0"
+        commentid: "8557"
+        comment_count: "13"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-12-05 12:18:56 +0100
+        thetext: |-
+          (In reply to comment #12)
+          If you replace lines 107+108 in prepare_volume_mesh_segmentation.m by
+
+          sb_write_materials(materialsfile,[1:numel(cfg.tissue)],tissue,cfg.resolution);
+
+          it should work now.
+      - +@isprivate: "0"
+        commentid: "8693"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-13 13:04:47 +0100
+        thetext: |-
+          mac001> svn commit prepare_mesh_hexahedral.m
+          Sending        prepare_mesh_hexahedral.m
+          Transmitting file data .
+          Committed revision 7176.
+
+          changed to reflect the new handling of teh vista executable, do not change into tempdir: that causes problems when it fails (and does not cd back).
+      - +@isprivate: "0"
+        commentid: "8762"
+        comment_count: "15"
+        attachid: "395"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-18 17:49:14 +0100
+        thetext: |-
+          Created attachment 395
+          hexagonal mesh with 1 hexagon
+      - +@isprivate: "0"
+        commentid: "8763"
+        comment_count: "16"
+        attachid: "396"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-18 17:50:01 +0100
+        thetext: |-
+          Created attachment 396
+          hexahedral mesh with 27 hexahedrons
+      - +@isprivate: "0"
+        commentid: "8764"
+        comment_count: "17"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-18 17:54:42 +0100
+        thetext: |-
+          (In reply to comment #13)
+          hi Johannes,
+
+          I attached the screenshots of two hexahedral meshes (sorry for the file descriptions, I always mix up hexagons with hexahedrals). I created an example segmentation (script for it in test/test_prepare_mesh_hexahedral) with really small radius (1 and 2 mms) and so I got meshes which contained only a few elements. Then I wrote them with ft_write_headshape into ply format and I opened them in paraview.
+
+          I am wondering if the hexahedrons should look like this... Could you take a look on the images, please? thanks.
+
+          Best,
+          Lilla
+      - +@isprivate: "0"
+        commentid: "8794"
+        comment_count: "18"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-12-21 14:38:49 +0100
+        thetext: |-
+          (In reply to comment #17)
+          hi all,
+
+          I plotted the meshes also with ft_plot_mesh, and they looked fine. So, it seems that problem arises when ft_write_headshape writes the mesh into 'ply' format. I will make an other bug for this, and I think we can conclude now that the hexahedral meshes are fine.
+
+          Therefore, I will close this bug.
+
+          P.s. I also inserted a ft_hastoolbox('simbio',1) in prepare_mesh_hexahedral, otherwise it doesn't run.
+
+          Best,
+          Lilla
+      - +@isprivate: "0"
+        commentid: "11302"
+        comment_count: "19"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-09-13 16:24:15 +0200
+        thetext: 'I created a new test script: test_ft_prepare_mesh. The content of the test script of this bug (test/test_bug1815) is moved to there. I will delete test_bug1815.'
+      - +@isprivate: "0"
+        commentid: "11401"
+        comment_count: "20"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-09-24 14:44:04 +0200
+        thetext: "(In reply to comment #19)\nhi all,\n\nI inserted build_mesh_hexahedral as a subfunction of prepare_mesh_hexahedral. \nI got the same mesh after I made the changes than before, so hopefully, it is fine.\n\ncheers,\nLilla"
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "395"
+        date: 2012-12-18 17:49:00 +0100
+        delta_ts: 2012-12-18 17:49:14 +0100
+        desc: hexagonal mesh with 1 hexagon
+        filename: screenshot_hexmeshEXP_1cube.png
+        type: image/png
+        size: "11229"
+        attacher:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "396"
+        date: 2012-12-18 17:50:00 +0100
+        delta_ts: 2012-12-18 17:50:01 +0100
+        desc: hexahedral mesh with 27 hexahedrons
+        filename: screenshot_hexmeshEXP_27cube.png
+        type: image/png
+        size: "16324"
+        attacher:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        data: REMOVED

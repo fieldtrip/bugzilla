@@ -1,0 +1,5 @@
+---
+title: release
+---
+
+{% include component %}

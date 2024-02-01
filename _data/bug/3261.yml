@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3261"
+    creation_ts: 2017-03-01 14:32:00 +0100
+    short_desc: ft_multiplotTFR with maskstyle = 'saturation' with non-evenly spaced frequency bands shows incorrect axis labels
+    delta_ts: 2017-11-20 20:09:21 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.n.oosterhof
+      +@name: nno
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18439"
+        comment_count: "0"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-03-01 14:32:34 +0100
+        thetext: "Greetings,\n\nwe (Luca Ronconi and I) encountered an issue when plotting data in ft_multiplotTFR: data with axes non-evenly spaced is displayed wrongly when using maskstyle='saturation'. In the code below, artificial signal is created in the range ~ 7 - 13Hz. When plotting the data without mask, or with maskstyle = 'opacity', axis labels in freq x time plots are correct. When using maskstyle='saturation' and viewing a freq x time plot, the plots seems to show signal in the range ~ 14 - 22 Hz, which is incorrect behaviour. \n\nNote that all layout plots (with a time x freq plot for each sensor) puts the data as if data is linearly spaced (but without axis labels), consistent with FieldTrip's warning:\n\n   \"Warning: (one of the) axis is/are not evenly spaced, but plots are made as\n   if axis are linear \n> In ft_multiplotTFR (line 409) \"\n\nHowever this is a separate issue - and we would argue, a bug - as FT displays the wrong labels on the frequency axis. This could lead to wrong inferences about which frequencies show a significant effect.\n\nA search on bugzilla found this issue: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3252. We were unable to run the code in comment #2 (\"Error using builtin - No tolerance can be NaN.\") therefore we don't know if the issue is related or not.\n\nSystem information: OSX 10.12, Matlab 2015a, FT commit 73dac6550219e5482813308d10f9a5f7ce3aa1a1.\n\nTo reproduce the issue: \n\n   close all; % close plots\n\n   cfg=struct();\n   cfg.layout='biosemi64.lay';\n   layout=ft_prepare_layout(cfg);\n\n   s=struct();\n   s.freq=3*1.05.^(0:50); % non-linear\n   s.label=layout.label(1:(end-2));\n   s.time=-.5+.02*(0:100);\n   s.dimord='chan_freq_time';\n\n   % create signal in particular time and frequency range\n   freq_idxs=20:30;\n   time_idxs=40:60;\n\n   s.powspctrm=zeros(64,51,101);\n   s.powspctrm(:,freq_idxs,time_idxs)=4;\n\n   % plot I: without mask, correct frequency\n\n   cfg = struct();\n   cfg.interactive = 'yes';\n   cfg.showlabels = 'yes';\n   cfg.layout=layout;\n   cfg.rotate=90; \n   cfg.showlabels  = 'yes';\n   cfg.parameter='powspctrm';\n\n   figure; ft_multiplotTFR(cfg, s);\n\n   % apply mask\n   s.mask=s.powspctrm>0;\n\n   % plot II: with opacity mask, correct frequency\n   cfg.maskstyle = 'opacity'; \n   figure; ft_multiplotTFR(cfg, s);\n\n   % plot III: with saturation mask, incorrect frequency\n   cfg.maskstyle = 'saturation'; \n   figure; ft_multiplotTFR(cfg, s);\n\n   expected_freqs=s.freq(freq_idxs);\n   expected_freq_range=[min(expected_freqs), max(expected_freqs)];\n   fprintf('Expected freq range: %.3f ... %.3f\\n',expected_freq_range);\n\n   % to see the differences in the last two plots, select the FP1 sensor\n   % in each of them and click on the selection to open a freq x time\n   % plot. The 'opacity' plot shows significant effects in the expected\n   % frequency range (7.581 ... 12.348 Hz). The 'saturation' plot shows\n   % significant effects in the wrong frequency range, about 14 .. 22 Hz."
+      - +@isprivate: "0"
+        commentid: "18446"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-02 09:50:11 +0100
+        thetext: ft_plot_matrix seems to use uimagesc when highlightstyle is opacity, and imagesc when highlightstyle is saturation. Feel free to fix :o)
+      - +@isprivate: "0"
+        commentid: "18449"
+        comment_count: "2"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-03-02 18:12:48 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #1)\n\n> ft_plot_matrix seems to use uimagesc when highlightstyle is opacity, and imagesc when > highlightstyle is saturation. Feel free to fix :o)\n\nThanks, that seems to solve the issue indeed. Any idea why? \n\nFor a fix, is it possible to put a test in place (that fails with current code and passes with code that fixes the issue)? As far as I understand FieldTrip's architecture and testing methodology I assume the answer is no, but I just want to make sure."
+      - +@isprivate: "0"
+        commentid: "18450"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-03-02 19:08:10 +0100
+        thetext: |-
+          well, I guess that in this case, the label 'failure' requires somebody to look at the result. So indeed, an automatic test without human intervention will not work.
+
+          uimagesc works because it was specifically designed for imagesc-like functionality with unequal axes sampling.
+      - +@isprivate: "0"
+        commentid: "18455"
+        comment_count: "4"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-03-03 17:05:09 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\n> well, I guess that in this case, the label 'failure' requires somebody to look at the result. So indeed, an automatic test without human intervention will not work.\n\nThanks for the clarification. Indeed I meant an automated test. I sent a PR:\n\nhttps://github.com/fieldtrip/fieldtrip/pull/355\n\n> uimagesc works because it was specifically designed for imagesc-like functionality with unequal axes sampling.\n\nI see, thanks. Follow up message about using that function is here: \n\nhttp://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3262"
+      - +@isprivate: "0"
+        commentid: "18786"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-07-04 15:18:35 +0200
+        thetext: This seems fixed, thanks to nic

@@ -1,0 +1,80 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3333"
+    creation_ts: 2017-08-17 23:37:00 +0200
+    short_desc: default_interpmethod not defined in ft_plot_topo, when handling nans
+    delta_ts: 2017-11-20 20:04:57 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: ek99
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18845"
+        comment_count: "0"
+        who:
+          +content: ek99
+          +@name: ""
+        bug_when: 2017-08-17 23:37:09 +0200
+        thetext: "Hi all,\n\nI am running into an error when I am trying to use the ft_plot_topo function (located in the plotting folder) with MEG data containing NaNs.  I would like to interpolate over data channels containing NaNs when plotting the data on a 2D mesh. \n\nThe ft_plot_topo function checks for NaNs at line 77, and will remove NaNs if the default_interpmethod is similar to the specified interpmethod (see line 205):\n\n% take out NaN channels if interpmethod does not work with NaNs\nif flagNaN && strcmp(interpmethod, default_interpmethod)\n  dat(NaNind) = [];\n  chanX(NaNind) = [];\n  chanY(NaNind) = [];\nend\n\nHowever, the default_interpmethod is not defined in this function and is not checked for as an variable input argument. \n\nIs the fact that the variable \"default_interpmethod\" is not defined a bug? Or is it not recommended to use the ft_plot_topo as a stand alone function? \n\nOne suggestion would be to add another line after line 74 to check for the default_interpmethod as a variable input, and if not defined, set it as 'V4'.\n\nFor example:\ndefault_interpmethod = ft_getopt(varargin, 'default_interpmethod', 'v4');\n\nI am using the latest version of Fieldtrip (as of Aug 17, 2017), on a Macintosh, El Capitan (10.11.6), with data collected from a Yokogawa/KIT MEG160 system.\n\nAny thoughts?\n\nThanks,\nEline"
+      - +@isprivate: "0"
+        commentid: "19013"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 19:36:57 +0100
+        thetext: I believe that default_interpmethod can be replaced by 'v4'. I am not sure whether the other supported interpolation methods will suffer from NaNs, but we'll find out soon enough.
+      - +@isprivate: "0"
+        commentid: "19014"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 19:45:32 +0100
+        thetext: 'I checked: griddata only returns meaningless all(nan) interpolated data with method ''v4''.'
+      - +@isprivate: "0"
+        commentid: "19015"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-11-09 20:00:15 +0100
+        thetext: |-
+          [jansch@mentat002 plotting]$ git commit ft_plot_topo.m
+          [master 7fe8809] FIX - fixed issue with nans
+           1 file changed, 1 insertion(+), 1 deletion(-)
+          [jansch@mentat002 plotting]$ git push upstream master
+          Counting objects: 7, done.
+          Delta compression using up to 4 threads.
+          Compressing objects: 100% (4/4), done.
+          Writing objects: 100% (4/4), 391 bytes | 0 bytes/s, done.
+          Total 4 (delta 3), reused 0 (delta 0)
+          remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+          To https://github.com/fieldtrip/fieldtrip.git
+             4e1ad88..7fe8809  master -> master

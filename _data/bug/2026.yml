@@ -1,0 +1,239 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2026"
+    creation_ts: 2013-03-04 16:58:00 +0100
+    short_desc: Suggestion for MRI and MEG coregistration (particularly useful for neuromag users)
+    delta_ts: 2014-06-18 12:34:02 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: moddaser
+      +@name: Hamid
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9636"
+        comment_count: "0"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-04 16:58:35 +0100
+        thetext: |-
+          Few suggestions for MRI and MEG co-registration using ft_volumerealign:
+
+          1) I think the steps in coregistration and forward model should be reorganised and kept separated.
+
+          The first step after reading mri should be segmentation. This enables us not to re-segment the mri in ft_volumerealign using 'headshape' method.  After segmentation, the next step should be ft_volumerealign followed by plotting the head surface together with the fiducial points and sensor locations. This plot is very important since sometimes there may be errors due to, for example, wrong fiducial points. At the moment, if I am not wrong, for checking the coregistration we should call ft_prepare_headmodel using 'singleshell' method which is an extra step if we are interested in 'singlespheres' method later.
+
+          2) As you are aware, fiducial (and landmark) points can be automatically estimated by transforming the segmented mri to the mni coordinate (we do this transformation anyway) and then define the fiducial points there, which have fixed locations. This makes the whole coregistration automatic and and it is not necessarily for the user to define these points (I think spm does this).
+
+          3) In the case of 'headshape', we can use the above automatic identified fiducial points as an initialisation of the icp2 function (R is not identity matrix anymore). In the case of 'headshape' method also, it would be very nice to be able to use a transformation with higher degree of freedom like 'fsl' method. This is useful when the subject MRI is not available (happens to me a lot) and we need to use another MRI. Therefore a transformation with bigger degree of freedom can better maps subject heads to another subject MRI.
+
+          The above suggestions may not be important for ctf system, but are important for the neuromag and possibly yokogawa and other users.
+      - +@isprivate: "0"
+        commentid: "9637"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-03-04 17:10:35 +0100
+        thetext: |-
+          Hamid, I don't agree:
+
+          -The first step after reading mri should be segmentation. This enables us not to
+          re-segment the mri in ft_volumerealign using 'headshape' method.
+
+          When the MRI is segmented, the anatomical landmarks: nasion, lpa and rpa are not identifiable anymore, so it is impossible to coregister a segmented volume to the neuromag coordinate system.
+
+
+          -After segmentation, the next step should be ft_volumerealign followed by plotting the
+          head surface together with the fiducial points and sensor locations.
+
+          This is site specific: not everybody collects a digitized headshape.
+
+          -At the moment, if I am not wrong, for checking the
+          coregistration we should call ft_prepare_headmodel using 'singleshell' method
+          which is an extra step if we are interested in 'singlespheres' method later.
+
+          Why use a singlespheres model, when you can use the singleshell?
+
+          -As you are aware, fiducial (and landmark) points can be automatically
+          estimated by transforming the segmented mri to the mni coordinate (we do this
+          transformation anyway) and then define the fiducial points there, which have
+          fixed locations. This makes the whole coregistration automatic and and it is
+          not necessarily for the user to define these points (I think spm does this).
+
+          I don't agree. SPM does a spatial normalisation that normalises the anatomy globally. Anatomical landmarks defined in the individual anatomy will end up approximately at the corresponding locations in the template anatomy, but not exactly. This also holds for the fiducials; nasion, lpa and rpa.
+
+          -In the case of 'headshape', we can use the above automatic identified
+          fiducial points as an initialisation of the icp2 function (R is not identity
+          matrix anymore). In the case of 'headshape' method also, it would be very nice
+          to be able to use a transformation with higher degree of freedom like 'fsl'
+          method. This is useful when the subject MRI is not available (happens to me a
+          lot) and we need to use another MRI. Therefore a transformation with bigger
+          degree of freedom can better maps subject heads to another subject MRI.
+      - +@isprivate: "0"
+        commentid: "9639"
+        comment_count: "2"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-04 18:03:51 +0100
+        thetext: "(In reply to comment #1)\n\nMany thanks for your reply:\n\n- When the MRI is segmented, the anatomical landmarks: nasion, lpa and rpa are\nnot identifiable anymore, so it is impossible to coregister a segmented volume\nto the neuromag coordinate system.\n\nI think, you can still load MRI to identify anatomical landmarks, but the benefit is that there is no need to resegmentation later when calling 'headshape' method.\n\n%%%%%%%%%%%%%%%%%%%%%\n\n- This is site specific: not everybody collects a digitized headshape.\n \nMy point is showing fiducial (na, lp, rp) together with the sensors and head surface (not head shape) is very useful. This helps to see if the coregistration is true or not. At the moment it seems to me you need to show brain volume rather than head surface (or scalp) for checking the registration.\n\n\n%%%%%%%%%%%%%%%%%%%%%%%\n\n- Why use a singlespheres model, when you can use the singleshell?\n\nIn my experience and some other people in our lab, singlesphere can outperform 'singleshell'.\n\n\n%%%%%%%%%%%%%%%%%%%%%%%\n\nI don't agree. SPM does a spatial normalisation that normalises the anatomy\nglobally. Anatomical landmarks defined in the individual anatomy will end up\napproximately at the corresponding locations in the template anatomy, but not\nexactly. This also holds for the fiducials; nasion, lpa and rpa.\n\n\n- I agree, it does not benefit the ctf users. However, this approximation is not important, since you do this transformation in the inverse solution later anyway, and if the landmarks are not at their right place, other points are not at their place as well, making the presentation of the 'nai' in the MNI coordinate wrong, as well as averaging across subjects.\n\nThe main point, however, is that this way of fiducial identification makes every thing automatic and user friendly, and in the case of neuromag system you can use this approximation as the initialisation to the 'icp2' function. Therefore, regardless of the above argument, these points do not need to be exact.\n\n\nMany thanks"
+      - +@isprivate: "0"
+        commentid: "9661"
+        comment_count: "3"
+        attachid: "433"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-05 14:32:01 +0100
+        thetext: |-
+          Created attachment 433
+          testing coregisteration
+      - +@isprivate: "0"
+        commentid: "9818"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-14 15:20:21 +0100
+        thetext: "the whole point of the FT toolbox is to allow people to follow different strategies. FT is about giving people choice. Not all strategies can and will be documented, as there is a exponential increase in the number of ways that steps can be combined. \n\nI guess this is mainly about documentation as everything that I read in the comments is already possible. Or if not, then what is the exact functionality that should be added precisely to what function? \n\n\nAd: I think the steps in coregistration and forward model should be [...] kept separated.\n-> Is that not precisely how it is?\n\nAd: for checking the coregistration we should call ft_prepare_headmodel\n-> don't think so. If you want to check the coregistration of the headmodel with the MRI, yes, but not if you want to check the coregistration of fiducials or headshapes.\n\nFurthermore you seem to disagree whether to use the fiducials to get a starting point for the headsurface-based registration, or whether to use the head surface to get a starting point for the fiducial-based registration. Should it not be possible to use either one, depending whether you value your measurement of the fiducials or of the head surface more? \n\nI also see some terminology confusion: there might be two geometrical descriptions of the head surface, one from a polhemus measurement, and one from an MRI \"measurement\". The MRI tends to be more heavily processed, but in principle both represent \"geometrical recordings\".\n\ndocumentation wise I see\nhttp://fieldtrip.fcdonders.nl/faq/how_to_coregister_an_anatomical_mri_with_the_gradiometer_or_electrode_positions\nhttp://fieldtrip.fcdonders.nl/tutorial/headmodel_meg\nhttp://fieldtrip.fcdonders.nl/tutorial/headmodel_eeg \n\nLilla (CC) is presently working on this, perhaps she can shed some more light by adding a few lines to the wiki that explain that one can use different strategies, and that the *tutorial* only explains the one that happens to be most appropriate for this specific tutorial dataset.\n\n@Hamid, If you wish the documentation to be extended, could you provide us with more tutorial datasets, e.g. a fif+mri+polhemus file from a single subject? I don't mind a faq or example script \"how to coregister in oxford style\". The Dusseldorf crew has also provided a specific example for their preferred pipeline (http://fieldtrip.fcdonders.nl/example/read_neuromag_mri_and_create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space)."
+      - +@isprivate: "0"
+        commentid: "9819"
+        comment_count: "5"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-14 19:51:20 +0100
+        thetext: "(In reply to comment #4)\n\n\nI have attached an example which coregister the MRI with the MEG based on head-shape points. The good thing about this code is that it is totally automatic. It also provide a plot based on the scalp which can be useful for checking the registration (please see images). You may amend the example and you can put it either in faq or in examples. \n\n\nI think the automatic coregistration can be extended for when the headshape points are not available, by automatic detection of fiducials in the mni space. The automatic detected fiducials can also be used as the initialisation of the above code and make it more robust."
+      - +@isprivate: "0"
+        commentid: "9820"
+        comment_count: "6"
+        attachid: "436"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-14 19:54:05 +0100
+        thetext: |-
+          Created attachment 436
+          Automatic coregistration using head-hsape points
+      - +@isprivate: "0"
+        commentid: "9821"
+        comment_count: "7"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-14 19:57:14 +0100
+        thetext: '(In reply to comment #6) The 3-D image is not clear enough but if you rotate in MATLAB it is much better. We can increase the size of fiducial, but I think not as an end user?'
+      - +@isprivate: "0"
+        commentid: "9836"
+        comment_count: "8"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-03-15 13:05:56 +0100
+        thetext: |-
+          (In reply to comment #4)
+          hi Robert,
+
+          I put these sentences in the introduction of the EEG and MEG headmodel tutorials:
+          "Different strategies can be used for the construction of head models. The processing pipeline of the tutorial is an example which we think is the most appropriate for the tutorial-dataset."
+
+          But this is true for all tutorials. I am wondering to put something like this also into the Introduction chapter of the tutorials (last paragraph of The FieldTrip toolbox section):
+
+          "The FT functions can be combined in several different ways for data-analysis. The tutorial sites give examples which are appropriate for the tutorial-dataset. However, they provide a good starting point to adapt the processing steps to different data-sets."
+
+          or something like this.
+      - +@isprivate: "0"
+        commentid: "9905"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-19 14:31:01 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          That would indeed be good to mention more often. Also in toronto I noticed people taking the tutorials for best-practices, which they are not.
+      - +@isprivate: "0"
+        commentid: "9906"
+        comment_count: "10"
+        who:
+          +content: moddaser
+          +@name: Hamid
+        bug_when: 2013-03-19 14:36:56 +0100
+        thetext: |-
+          (In reply to comment #4)
+          @Hamid, If you wish the documentation to be extended, could you provide us with
+          more tutorial datasets, e.g. a fif+mri+polhemus file from a single subject? I
+          don't mind a faq or example script "how to coregister in oxford style"...
+
+
+          -> Do you want some data set for this?
+      - +@isprivate: "0"
+        commentid: "13014"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-06 16:12:40 +0100
+        thetext: This is not likely to be pushed forward anymore, since Hamid has left science. Also, documentation seems to have been updated. I propose to close for now.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "433"
+        date: 2013-03-05 14:32:00 +0100
+        delta_ts: 2013-03-05 14:32:01 +0100
+        desc: testing coregisteration
+        filename: coregTest.fig
+        type: image/x-xfig
+        size: "20607"
+        attacher:
+          +content: moddaser
+          +@name: Hamid
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "436"
+        date: 2013-03-14 19:54:00 +0100
+        delta_ts: 2013-03-14 19:54:05 +0100
+        desc: Automatic coregistration using head-hsape points
+        filename: ForwardModelExampleNeuromag.tar.gz
+        type: application/x-gzip
+        size: "51200"
+        attacher:
+          +content: moddaser
+          +@name: Hamid
+        data: REMOVED

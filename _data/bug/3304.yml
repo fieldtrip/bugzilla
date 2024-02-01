@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3304"
+    creation_ts: 2017-06-08 08:40:00 +0200
+    short_desc: consolidate the handling of coordsys
+    delta_ts: 2017-06-13 09:55:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - a.stolk8
+      - j.schoffelen
+      - sandongriffin
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18713"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-08 08:40:51 +0200
+        thetext: "as discussed with Arjen, Sandon and JM over email: the coordsys handling is not as transparent as desired. \n\nIt would be good to move part of the replicated code to a separate (private) helper function."
+      - +@isprivate: "0"
+        commentid: "18714"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-08 08:43:25 +0200
+        thetext: |-
+          Regarding ‘neuromag’: there are some coordinate system names that are (partially or fully) equivalent. I think the clearest implementation is in ft_plot_axes at the bottom (in xyz2label)
+
+            switch lower(strx{1})
+              case {'ras' 'itab' 'neuromag' 'spm' 'mni' 'tal'}
+                labelx = {'-X (left)'      '+X (right)'   };
+                labely = {'-Y (posterior)' '+Y (anterior)'};
+                labelz = {'-Z (inferior)'  '+Z (superior)'};
+              case {'als' 'ctf' '4d', 'bti'}
+                labelx = {'-X (posterior)' '+X (anterior)'};
+                labely = {'-Y (right)'     '+Y (left)'};
+                labelz = {'-Z (inferior)'  '+Z (superior)'};
+              case {'paxinos'}
+                labelx = {'-X (left)'      '+X (right)'};
+                labely = {'-Y (inferior)'  '+Y (superior)'};
+                labelz = {'-Z (anterior)'  '+Z (posterior)'};
+              case {'lps'}
+                labelx = {'-X (right)'      '+X (left)'};
+                labely = {'-Y (anterior)'  '+Y (posterior)'};
+                labelz = {'-Z (inferior)'  '+Z (superior)'};
+              otherwise
+                warning('unknown coordsys');
+                labelx = {'-X (unknown)' '+X (unknown)'};
+                labely = {'-Y (unknown)' '+Y (unknown)'};
+                labelz = {'-Z (unknown)' '+Z (unknown)'};
+            end
+
+          I propose to move this to a separate (private) function. That could be extended with a 4th output label for the origin.
+      - +@isprivate: "0"
+        commentid: "18717"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-11 10:51:26 +0200
+        thetext: "I have moved this in a separate function. I also removed the ras_tal, all_ctf, etc. \n\nSee https://github.com/fieldtrip/fieldtrip/pull/453"
+      - +@isprivate: "0"
+        commentid: "18723"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-13 09:55:20 +0200
+        thetext: |-
+          for reference:
+
+          In https://github.com/fieldtrip/fieldtrip/pull/453 we have agreed that we will be following the following convention in FT for RAS coordinate systems with the anterior commissure as their origin.
+
+          spm==mni: the geometry is scaled according to MNI152 template
+          tal: the geometry is scaled according to TT88 atlas
+          acpc: the geometry is non-scaled, i.e. native subject size
+
+          This forms a clear and unambiguous principle that we can use to check (and where needed) update the corresponding fieldtrip functions.

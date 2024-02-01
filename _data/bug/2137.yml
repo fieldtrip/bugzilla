@@ -1,0 +1,165 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2137"
+    creation_ts: 2013-04-25 22:30:00 +0200
+    short_desc: ft_componentanalysis reports a randomseed error on newer versions of matlab
+    delta_ts: 2019-08-10 12:03:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: todorovic.ana
+      +@name: Ana Todorovic
+    assigned_to: fieldtriptoolbox
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+      - todorovic.ana
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10303"
+        comment_count: "0"
+        who:
+          +content: todorovic.ana
+          +@name: Ana Todorovic
+        bug_when: 2013-04-25 22:30:11 +0200
+        thetext: "I am running Matlab and FieldTrip internally, from mentat001. I have previously preprocessed and resampled my data. \n\nWhen running ft_componentanalysis from Matlab (versions R2012, R2009, R2008b), I get one of these two errors back (depending on the version):\n\n--------------------\nUndefined function or variable 'rng'.\n\nError in randomseed (line 44)\n    s=rng;\n\nError in ft_preamble_randomseed (line 11)\nftFuncRandomseed=randomseed(cfg.randomseed);\nError in ft_preamble (line 54)\n  evalin('caller', ['ft_preamble_' cmd]);\n\nError in ft_componentanalysis (line 163)\nft_preamble randomseed\n\n--------------------\n??? Undefined variable \"RandStream\" or class \"RandStream.getDefaultStream\".\n\nError in ==> randomseed at 41\n    stream = RandStream.getDefaultStream;\n\nError in ==> ft_preamble_randomseed at 11\nftFuncRandomseed=randomseed(cfg.randomseed);\nError in ==> ft_preamble at 54\n  evalin('caller', ['ft_preamble_' cmd]);\n\nError in ==> ft_componentanalysis at 163\nft_preamble randomseed\n\n--------------------\n\nHere is what I ran prior to getting the error:\n\n    cfg            = [];\n    cfg.detrend    = 'no';\n    cfg.resamplefs = 150;\n    data           = ft_resampledata(cfg, data);\n   \n    cfg            = [];\n    cfg.channel    = {'MEG'};\n    cfg.numcomponent = 60;\n    comp           = ft_componentanalysis(cfg, data);\n\nI don't get this error if I'm running version 2008a. In other words ft_componentanalysis works when I ask for matlab76 in the terminal, but not 77, 78, 79."
+      - +@isprivate: "0"
+        commentid: "10304"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-04-26 09:01:44 +0200
+        thetext: "Hi Ana,\nthis is strange, I cannot replicate it.  \n\nThe core of the error is in calling \n>>  state=randomseed([]); \nIt seems as if it's running in Matlab2008a (or older) when in fact the function 'matlabversion' detects a different (newer) version.\n\nWhen you open a Matlab (any version) from the beginning and type 'which randomseed' or 'which matlabversion', does it point to a file, or does it say (as it should) 'not found'?   \n\nIf you subsequently change directory into fieldtrip/utilities/private, then run the line\n>>  state=randomseed([]); \ndoes it work ok (no errors)?  (for the matlab versions you tested?)"
+      - +@isprivate: "0"
+        commentid: "10309"
+        comment_count: "2"
+        who:
+          +content: todorovic.ana
+          +@name: Ana Todorovic
+        bug_when: 2013-04-26 11:28:26 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          I did 'which randomseed' and 'which matlabversion' on two versions of Matlab, one that did the ICA with no error (76) and one that gave an error (79).  In both cases these functions were not found.
+
+          When I go to fieldtrip/utilites/private in matlab79 and type state=randomseed([]), I get the same error as with ICA:
+
+          ??? Undefined variable "RandStream" or class "RandStream.getDefaultStream".
+
+          Error in ==> randomseed at 41
+              stream = RandStream.getDefaultStream;
+
+          When I do it with matlab76, I get a bunch of numbers.
+      - +@isprivate: "0"
+        commentid: "10313"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-26 12:05:44 +0200
+        thetext: |-
+          I did the following on matlab2012b on torque and with that I am NOT able to reproduce the error. Could you please try this as well and see whether the error persists?
+
+          restoredefaultpath
+          clear all
+          addpath /home/common/matlab/fieldtrip
+          ft_defaults
+
+          cfg = [];
+          cfg.dataset = '/home/common/matlab/fieldtrip/data/Subject01.ds';
+          % cfg.dataset = dccnfilename('/home/common/matlab/fieldtrip/data/Subject01.ds');
+          data = ft_preprocessing(cfg);
+
+          cfg            = [];
+          cfg.detrend    = 'no';
+          cfg.resamplefs = 150;
+          data           = ft_resampledata(cfg, data);
+
+          cfg            = [];
+          cfg.channel    = {'MEG'};
+          cfg.numcomponent = 60;
+          comp           = ft_componentanalysis(cfg, data);
+      - +@isprivate: "0"
+        commentid: "10314"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-26 12:10:00 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          I am also not able to replicate the low-level problem on matlab 79/2009b on torque:
+
+          >> restoredefaultpath
+          >> cd /home/common/matlab/fieldtrip/utilities/private/
+          >> ver
+          -------------------------------------------------------------------------------------
+          MATLAB Version 7.9.0.529 (R2009b)
+          MATLAB License Number: 38957
+          Operating System: Linux 2.6.32-279.5.2.el6.x86_64 #1 SMP Fri Aug 24 01:07:11 UTC 2012 x86_64
+          Java VM Version: Java 1.6.0_12-b04 with Sun Microsystems Inc. Java HotSpot(TM) 64-Bit Server VM mixed mode
+          -------------------------------------------------------------------------------------
+          MATLAB                                                Version 7.9        (R2009b)
+          ...
+
+          >> randomseed(1)
+          ans =
+                     1
+            1812433254
+            3713160357
+            3109174145
+              64984499
+          ...
+      - +@isprivate: "0"
+        commentid: "10316"
+        comment_count: "5"
+        who:
+          +content: todorovic.ana
+          +@name: Ana Todorovic
+        bug_when: 2013-04-26 12:25:48 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          Restoring the default path helped! Thanks so much to both of you. I have no idea why my path wasn't what it should be, I barely ever used the matlabs above 76.
+      - +@isprivate: "0"
+        commentid: "10318"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-04-26 13:18:57 +0200
+        thetext: |-
+          Hi Ana,
+          I mark this as resolved.  ('Invalid' since it wasn't actually a bug in the code, but something in your path).   Feel free to re-open if still a problem.
+      - +@isprivate: "0"
+        commentid: "19938"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:55 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

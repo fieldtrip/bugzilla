@@ -1,0 +1,110 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2174"
+    creation_ts: 2013-05-21 14:39:00 +0200
+    short_desc: consider using mex-files for filtering (available on file exchange)
+    delta_ts: 2014-07-02 13:58:38 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - johanna.zumer
+      - n.lam
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10498"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-21 14:39:10 +0200
+        thetext: see http://www.mathworks.com/matlabcentral/fileexchange/32261-filterm
+      - +@isprivate: "0"
+        commentid: "10499"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-05-21 14:53:37 +0200
+        thetext: speedup is considerable (>50%), and results are (as far as I have checked now) 100% identical to filtfilt.
+      - +@isprivate: "0"
+        commentid: "10592"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-06-04 09:51:05 +0200
+        thetext: "A comment from Sarang when I told him of this:  \n\n\"If I understand correctly, these should be fully drop-in compatible with matlab's filter and filfilt functions. So if you simply put them in a new directory ahead in the path list, and rename the filterm.m to filter.m and filtfiltm.m to filtfilt.m, they should just work everywhere filtering is needed. Therefore no changes to FieldTrip/Nutmeg or any other personal code would be necessary.\n\nIt's probably advisable to do it this way (assuming the calculations really are identical), since otherwise it seems like it would get complicated to change all the filter references selectively for only people who have installed this code, and also because it looks like every user will be responsible for mex-compilation on their own computers.\"\n\nSarang: any experience with it to share?\n\nEelke: thoughts of whether ok to put these functions renamed into fieldtrip/private or so?"
+      - +@isprivate: "0"
+        commentid: "10763"
+        comment_count: "3"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2013-06-14 04:47:04 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          So I did go ahead and experiment with this. I discovered that Matlab (at least my version, R2012b) won't allow overriding of some built-in functions like filter.m, even if your replacement function is at the top of your path.
+
+          While optional toolbox functions like filtfilt don't seem to be protected like this, "private" directories appear to take priority over the path as well.
+
+          The bad news is that all this prevents use as a simple drop-in replacement. But, it's still easy enough to use with FieldTrip. it turns out that only one FT call of "filter" needs to be replaced with the new FilterM function, in preproc/private/filter_with_correction.m. And I replaced preproc/private/filtfilt.m with the equivalent provided by the FilterM package.
+
+          With only these changes... I can confirm that the computation ran several times faster with 100% identical results, as promised! First-time compilation went smoothly and automatically on my Mac. I will personally retain this setup for my own work.
+
+          Perhaps it would be simple to modify filter_with_correction and fieldtrip's private filtfilt to detect presence of FilterM (or enable it with a cfg.preproc field)?
+      - +@isprivate: "0"
+        commentid: "10766"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-06-14 08:41:27 +0200
+        thetext: |-
+          (In reply to comment #3)
+          Thanks for checking this out. I agree making a change to filter_with_correction would be the way to go. We might build in a check to see whether the user has installed FilterM, but actually we might also just distribute the mex-files with fieldtrip. I will discuss with Robert (adding as CC) how to proceed.
+      - +@isprivate: "0"
+        commentid: "13988"
+        comment_count: "5"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-07-02 13:58:38 +0200
+        thetext: |-
+          Todo (in general for nice small external mex solutions):
+          - add FiltFiltM files to external/signal
+          - create wrapper filtfilt.m over there, which calls the mex files
+
+          If the user wishes to use filtfilt (signal processing toolbox), rather than our wrapper, he/she needs to explicitly remove external/signal from the path. As long as we have not compiled the mex files for all platforms, this means that users on the non-available platforms indeed explicitly need to remove external/signal from their path, otherwise it won't work.
+
+          Note that external/signal should behave just like external/stats.

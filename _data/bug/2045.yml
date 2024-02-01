@@ -1,0 +1,312 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2045"
+    creation_ts: 2013-03-12 09:09:00 +0100
+    short_desc: spiketriggeredspectrum increases the number of spikes
+    delta_ts: 2013-03-12 16:04:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - bart.gips
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9748"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 09:09:07 +0100
+        thetext: |-
+          At the workshop one participant observed that the number of powerspectra was larger than the initial number of spikes. We figured out that it was due to him having specified overlapping trials in his spike structure, and then calling ft_spiketriggeredspectrum
+
+          I am not sure whether it is a problem, but can imagine that this causes the spikes in the overlapping segments to be represented twice in each trial.
+      - +@isprivate: "0"
+        commentid: "9754"
+        comment_count: "1"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 11:30:47 +0100
+        thetext: was this with cfg.method = 'fft' or cfg.method = 'convol'?
+      - +@isprivate: "0"
+        commentid: "9755"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 11:33:50 +0100
+        thetext: |-
+          the problem should have arisen then in ft_spike_maketrials, correct?
+          at that point, if the trials are overlapping, every spike gets represented multiple times
+      - +@isprivate: "0"
+        commentid: "9764"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 13:52:37 +0100
+        thetext: |-
+          I tried this, but get unexpected results already with ft_spike_maketrials
+
+
+          % ts = rand(1,200)*2*40000;
+          ts = 1:80000;
+
+          spike.label     = {'spike'};
+          spike.timestamp = {ts};
+
+          cfg = [];
+          cfg.hdr.TimeStampPerSample = 40;
+          cfg.hdr.FirstTimeStamp = 1;
+          cfg.hdr.Fs = 1000;
+          cfg.trlunit = 'samples';
+          cfg.trl = [
+               1 1000 0
+            1001 2000 0
+            ];
+          nonoverlap = ft_spike_maketrials(cfg, spike);
+
+
+          cfg.trl = [
+               1 1300 0
+             701 2000 0
+            ];
+          overlap = ft_spike_maketrials(cfg, spike);
+      - +@isprivate: "0"
+        commentid: "9765"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 14:50:13 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          This is not unexpected.
+
+          Your first sample is at 1, FirstTimeStamp = 1.
+
+          So 2000 samples would correspond to 1999*TimeStampPerSample + 1 = 79961
+
+          nonoverlap.timestamp{1}(end) = 79961 so this is the expected behavior.
+      - +@isprivate: "0"
+        commentid: "9766"
+        comment_count: "5"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 14:50:52 +0100
+        thetext: |-
+          (In reply to comment #0)
+          I am adding to the warning message then that spikes will be duplicated because the trials are non-overlapping.
+      - +@isprivate: "0"
+        commentid: "9767"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 14:58:23 +0100
+        thetext: "(In reply to comment #4)\n\nI do find it unexpected. Also with\n\nts = 1:80000;\n\nspike.label     = {'spike'};\nspike.timestamp = {ts};\n\ncfg = [];\ncfg.hdr.TimeStampPerSample = 40;\ncfg.hdr.FirstTimeStamp     = 20000; % somewhere in the middle\ncfg.hdr.Fs = 1000;\ncfg.trlunit = 'samples';\ncfg.trl = [ 1 1 0 ];\nspike = ft_spike_maketrials(cfg, spike);\n\nI'd expect all spikes that fall within a single LFP sample to be selected for the trial. There are 40 timestamps per sample, one spike per timestamp. But rather than 40 I get:\n\nspike = \n        label: {'spike'}\n    timestamp: {[20000]}\n         time: {[0]}\n        trial: {[1]}\n    trialtime: [0 0]\n          cfg: [1x1 struct]"
+      - +@isprivate: "0"
+        commentid: "9768"
+        comment_count: "7"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:05:57 +0100
+        thetext: |-
+          (In reply to comment #6)
+
+          Why would you expect that?
+
+          The sample corresponds to a certain timestamp that we know exactly.
+          In this case the duration of the trial is zero and runs from timestamp 20000 to 20000, but one spike happens to coincide with that sample.
+
+          In your logic, we would also select timestamps after the timestamp of the endsample and timestamps before the startsample.
+
+          That's a choice we could make, although it has the strange consequence that the first sample occurs at timestamp zero for some formats, while there can be no spike timestamps before that first sample.
+      - +@isprivate: "0"
+        commentid: "9769"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 15:14:09 +0100
+        thetext: "(In reply to comment #7)\n\nthe sample is an representation of the LFP averaged over a duration of 1ms. So one sample takes 1ms duration, 2 samples would take 2ms, etc.\n\nif TimeStampPerSample is 10, then I expect them to relate like\n\n123456789012345678901234567890\n111111111122222222223333333333\n\nYou could say \n\n-----1---- -----2----\n\ni.e. have the sample in the middle of the bin, but also then you have 1ms between samples. half of that time belongs to the first, the other half to the second bin.\n\nThink of TimeStampPerSample being 365 and then asking the question how many timestamps=days you have in one sample=year. I'd say that there are more days than only the 1st of July."
+      - +@isprivate: "0"
+        commentid: "9770"
+        comment_count: "9"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:24:59 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          The LFP is not averaged over 1 ms, it just samples the LFP at this particular timestamp but not at other timestamps before it.
+
+          But in terms of time, I agree with your point, if one selects 2 samples, then one selects effectively 2 ms of time, while we are selecting only 1 ms of timestamp time. Also the behaviour of the function would match with ft_appendspike.
+
+          I'll update the function accordingly.
+      - +@isprivate: "0"
+        commentid: "9771"
+        comment_count: "10"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:28:53 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          What I am unsure of is how to represent time then.
+
+          Suppose we have the begsample at 40000 timestamps.
+
+          We have 40 timestamps per sample for example.
+
+          So the start of the trial would be 39980.
+
+          What is t = 0 in this case (if the offset is zero).
+
+          39980?
+      - +@isprivate: "0"
+        commentid: "9772"
+        comment_count: "11"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:35:00 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          Also, there are 40 timestamps per trial.
+
+          But does the trial run from 19980 to 20020 then?
+          That wouldn't make sense, as it would contain 41 timestamps.
+          Do we run it from 19981 to 20020 or 19980 to 20019?
+      - +@isprivate: "0"
+        commentid: "9773"
+        comment_count: "12"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:38:50 +0100
+        thetext: please see the commit in revision 7642
+      - +@isprivate: "0"
+        commentid: "9774"
+        comment_count: "13"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:42:05 +0100
+        thetext: "sample = double(ts-FirstTimeStamp)/TimeStampPerSample + 1; % no rounding (compare ft_appendspike)\n  \nbegsample = cfg.trl(iTrial,1) - 1/2;\nendsample = cfg.trl(iTrial,2) + 1/2;\nsel       = find((sample>=begsample) & (sample<endsample));\n\nby using < instead of <= of the endsample, there are 40 timestamps.\nIt's rather arbitrary though that we didn't do sample>begsample instead."
+      - +@isprivate: "0"
+        commentid: "9775"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 15:42:54 +0100
+        thetext: "(In reply to comment #11)\n\nWhat happens if you do a trial with only one sample? If I have a sample that is\nindicated with time t, then I'd intuitively say that it runs from halfway t-dt\ntowards halfway t+dt. So the sample runs from t-0.5*dt to t+0.5*dt although \nI'd indicate it with the single number \"t\".\n\nThat is different in age: the mean age of a \"zero-year old baby\" is 6 months,\nbut we still say \"0 years\" and not \"0.5 years\". But with a lot of other things\nyou would take the middle."
+      - +@isprivate: "0"
+        commentid: "9776"
+        comment_count: "15"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:46:37 +0100
+        thetext: "(In reply to comment #14)\n\nI agree, but that fits with the just committed implementation, correct?\n\nIn the current implementation, if we would have\n\ncfg.trl = \n[1 1 0; 2 2 0] we would not be duplicating any spikes, by using < instead of <=\n\nLooking at ft_appendspike, it can happen there that spikes are actually duplicated, as it is doing a round operation and then testing with >= and <="
+      - +@isprivate: "0"
+        commentid: "9777"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 15:47:42 +0100
+        thetext: sounds good. So now we can move on to trying to replicate the actual bug (which I saw on screen, but don't have the full details for).
+      - +@isprivate: "0"
+        commentid: "9778"
+        comment_count: "17"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 15:49:53 +0100
+        thetext: |-
+          (In reply to comment #16)
+
+          Was that a bug then? If your trials are overlapping, spikes are duplicated.
+          That's not a bug, but just how the function should behave.
+      - +@isprivate: "0"
+        commentid: "9780"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 15:56:48 +0100
+        thetext: |-
+          (In reply to comment #17)
+
+          they seemed not to be duplicated in the time domain, but were in the frequency domain.
+
+          So after ft_spiketriggeredspectrum there were more spikes represented in the structure than before. That suggests that there is a for loop like
+
+          for each trial
+          for each spike in the trial
+          ...
+          end
+          end
+
+          which does the same spike twice if it is in the overlap region.
+
+          But since I don't have the data structure that the participant has< I cannot give more details.
+      - +@isprivate: "0"
+        commentid: "9781"
+        comment_count: "19"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 16:02:43 +0100
+        thetext: |-
+          (In reply to comment #18)
+
+          I'll check the code and will try to duplicate. Was it with the mtmfft or mtmconvol implementation?
+      - +@isprivate: "0"
+        commentid: "9782"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-12 16:04:34 +0100
+        thetext: |-
+          (In reply to comment #19)
+
+          don't know. I suggest yo check both. That is also the purpose of the test script, which also allows us to check in the future.

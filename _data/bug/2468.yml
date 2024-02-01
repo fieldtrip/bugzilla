@@ -1,0 +1,178 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2468"
+    creation_ts: 2014-02-10 15:38:00 +0100
+    short_desc: ft_sourcedescriptives can not handle output from beamformer_pcc with keeptrials='yes'
+    delta_ts: 2014-03-06 15:36:18 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2004"
+    everconfirmed: "1"
+    reporter:
+      +content: a.backus
+      +@name: Alexander Backus
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.backus
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12801"
+        comment_count: "0"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-10 15:38:06 +0100
+        thetext: "Source data output from ft_sourceanalysis with method='pcc' and keeptrials='yes' is in format unsuitable for subsequent processing by ft_sourcedescriptives.\n\nThe problem is that the single trial data for each source is represented inside the data.avg.mom field (nSources-by-1 cell array) where each cell has the dimensions nOrientations-by-nTrials.\n\nMy suggestion would be to revise beamformer_pcc so that it does not output the data.avg field but rather a data.trial field as is done in the rawtrial='yes' case (however the latter results in unnecessary looping over trials and redundancy). data.method should also not be 'average' in this case.\n\nAttached sdata.mat was created with the following script:\n-----------------------------------------------------------------\n% sourceanalysis with precomputed leadfield and spatial filters\ncfg                             = [];\ncfg.frequency                   = fdata.freq;\ncfg.grid                        = leadfieldModel;\ncfg.grid.filter                 = spatialFilters.avg.filter;\ncfg.vol                         = sourceVol;\ncfg.rawtrial                    = 'no'; % IMPORTANT TO PREVENT REDUNDANCY \ncfg.keeptrials                  = 'yes';\ncfg.keepleadfield               = 'no';\ncfg.method                      = 'pcc';\ncfg.(cfg.method).projectnoise   = 'no';\ncfg.(cfg.method).keepfilter     = 'no';\ncfg.(cfg.method).keepcsd        = 'no';\ncfg.(cfg.method).keepmom        = 'yes';\n    \nsdata                           = ft_sourceanalysis(cfg, fdata);\n\n% sourcedescriptives to project along strongest orientation\ncfg                 = [];\ncfg.projectmom      = 'yes';\ncfg.keeptrials      = 'yes';\ncfg.fixedori        = 'over_trials';\ndata                = ft_sourcedescriptives(cfg,sdata);\n-----------------------------------------------------------------\n\nThanks for the effort.\n\nBest,\nAlexander Backus"
+      - +@isprivate: "0"
+        commentid: "12802"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-10 15:40:09 +0100
+        thetext: Will look into it.
+      - +@isprivate: "0"
+        commentid: "12803"
+        comment_count: "2"
+        attachid: "589"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-10 15:43:21 +0100
+        thetext: |-
+          Created attachment 589
+          source data 'sdata'
+      - +@isprivate: "0"
+        commentid: "12808"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-11 11:14:14 +0100
+        thetext: |-
+          Hi Alex,
+          For this to be fixed in a generic way, I'd like to recompute the sdata variables.
+          Could you also upload the variables fdata, leadfieldModel, spatialFilters and sourceVol? Thanks.
+      - +@isprivate: "0"
+        commentid: "12809"
+        comment_count: "4"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-11 15:47:05 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\nI've uploaded the requested files to /home/common/temporary/jansch/bug_2468\n(fdata filesize is too big for bugzilla)\n\nIf need be, spatialFilters can be recreated with the following code:\n------------------------------------\n\ncfdata = ft_checkdata(fdata,'cmbrepresentation','fullfast'); \ncfdata = ft_checkdata(cfdata,'cmbrepresentation','sparse'); \ncfdata = ft_checkdata(cfdata,'cmbrepresentation','sparsewithpow'); \n\ncfg                             = [];\ncfg.frequency                   = fdata.freq;\ncfg.vol                         = sourceVol;\ncfg.grid                        = leadfieldModel;\ncfg.keeptrials                  = 'no';\ncfg.method                      = 'dics';\ncfg.(cfg.method).keepfilter     = 'yes';\ncfg.(cfg.method).lambda         = '5%';\ncfg.(cfg.method).fixedori       = 'no';\nspatialFilters                  = ft_sourceanalysis(cfg, cfdata);"
+      - +@isprivate: "0"
+        commentid: "12817"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-11 17:35:45 +0100
+        thetext: "Hi Alex,\nIt should work now, but you have to recompute the 'pcc' step.\nThe output of ft_sourceanalysis is now such that each of the 'dipoles' gets its own csdlabel, which can vary in the number of components.\n\nbash-4.1$ svn commit test/test_bug2468.m ft_sourcedescriptives.m inverse/beamformer_pcc.m private/statistics_wrapper.m \nSending        ft_sourcedescriptives.m\nSending        inverse/beamformer_pcc.m\nSending        private/statistics_wrapper.m\nAdding         test/test_bug2468.m\nTransmitting file data ....\nCommitted revision 9193.\n\nPlease verify if it now works and let me know."
+      - +@isprivate: "0"
+        commentid: "12821"
+        comment_count: "6"
+        who:
+          +content: a.backus
+          +@name: Alexander Backus
+        bug_when: 2014-02-12 10:03:20 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+          Hi JM,
+
+          ft_sourcedescriptives can indeed handle the pcc singe trial output now.
+
+          However, the resulting format after calling sourcedescr with:
+          --------------------------------------------------------------
+          cfg                 = [];
+          cfg.projectmom      = 'yes';
+          cfg.keeptrials      = 'yes';
+          cfg.fixedori        = 'over_trials';
+          data                = ft_sourcedescriptives(cfg,sdata);
+          --------------------------------------------------------------
+          ...is not suited for a function like ft_connectivityanalysis.
+
+          Problem is related to:
+          -------------------------------------
+          ft_datatype('data')
+          ans =
+          unknown
+          -------------------------------------
+
+          Should I explore this further?
+
+          I guess what we want is that ft_sourcedescriptives always outputs the same format, for everything that is input (e.g. different beamformers).
+
+          For now, I circumvent this problem but forging a datatype 'freq' structure where I then put my source data in, but I guess this is not the optimal way of data handling...
+
+          Best,
+          Alex
+      - +@isprivate: "0"
+        commentid: "12822"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-12 10:35:41 +0100
+        thetext: |-
+          Sorry, fooling around with dependencies between bugs, thought I knew the numbers by heart...
+
+          Indeed I think it is part of this bug to correctly detect it to be a source structure in ft_datatype; question is whether this would solve the downstream problems. I'll look into it.
+
+          For now good to hack it into a 'sensor'-based structure?
+      - +@isprivate: "0"
+        commentid: "12831"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-13 11:13:00 +0100
+        thetext: hmmm, if I do ft_datatype(data) I get 'source'. Are you sure you are using an up-to-date FT-version?
+      - +@isprivate: "0"
+        commentid: "12832"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-13 11:18:37 +0100
+        thetext: 'I suggest to move over the discussion to #2004, the issue that formed the basis of the current bug is solved.'
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "589"
+      date: 2014-02-10 15:43:00 +0100
+      delta_ts: 2014-02-10 15:43:21 +0100
+      desc: source data 'sdata'
+      filename: bug_2468.zip
+      type: application/x-zip-compressed
+      size: "907371"
+      attacher:
+        +content: a.backus
+        +@name: Alexander Backus
+      data: REMOVED

@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "980"
+    creation_ts: 2011-09-22 13:58:00 +0200
+    short_desc: ft_prepare_vol_sens loses vol.unit along the way
+    delta_ts: 2011-11-11 11:19:54 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - iversen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3293"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-22 13:58:11 +0200
+        thetext: |-
+          This is the case at least for the multisphere model. This causes problems later on when the units are assumed to exist
+
+          -check whether this is also the case for the other volume conductor models
+          -fix it
+      - +@isprivate: "0"
+        commentid: "3884"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-11 09:05:48 +0100
+        thetext: "John suggested this:\n\n\n====\ngit diff git-svn...HEAD -- forward/ft_prepare_vol_sens.m\ndiff --git a/forward/ft_prepare_vol_sens.m b/forward/ft_prepare_vol_sens.m\n@@ -165,7 +165,8 @@ elseif ismeg\n\n       % use the original sensor array instead of the one with a subset of\n       % channels, because we need the complete mapping of coils to channels \n-      sens = sens_orig;\n+      %sens = sens_orig; %***JRI*** this breaks using cfg.channel to fit a\n+      %subset of channels\n\n       % remove the coils that do not contribute to any channel output\n       % since these do not have a corresponding sphere\n\n\n@@ -189,7 +190,10 @@ elseif ismeg\n           % the coil-specific spheres in the volume conductor should not have\na label\n           % because the label is already specified for the coils in the\n           % sensor array\n-          vol = rmfield(vol, 'label');\n+          % *** JRI ***: vol.label is used below, so don't remove it!\n+            % FIXME something's wrong with the logic: should below\n+            % use sens.label, since they are identical?\n+            %vol = rmfield(vol, 'label');\n         end\n         return\n       end\n@@ -235,9 +239,16 @@ elseif ismeg\n         chanindex = strmatch(coillabel, vol.label, 'exact');  % what is the\nindex of this channel in the list of local spheres\n         multisphere.r(i,:) = vol.r(chanindex);\n         multisphere.o(i,:) = vol.o(chanindex,:);\n+        multisphere.label{i} = vol.label{chanindex}; % *** JRI ***\n       end\n-      vol = multisphere;\n+      %vol = multisphere; % *** JRI *** wrong, this clobbers other necessary\nfields of vol,\n+      % so use original and only replace what has changed\n+      vol.r = multisphere.r;\n+      vol.o = multisphere.o;\n+      vol.label = multisphere.label;\n+      % *** JRI ***\n+\n       % finally do the selection of channels and coils\n       % order them according to the users specification\n       [selchan, selsens] = match_str(channel, sens.label);\n@@ -253,6 +264,7 @@ elseif ismeg\n       % make the same selection of coils in the multisphere model\n       vol.r = vol.r(selcoil);\n       vol.o = vol.o(selcoil,:);\n+      vol.label = vol.label(selcoil); % *** JRI ***\n\n     case 'nolte'\n       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+      - +@isprivate: "0"
+        commentid: "3885"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-11 09:35:37 +0100
+        thetext: |-
+          Hi John,
+
+          I finally found some time to look into the issue in ft_prepare_vol_sens you reported. If I understand you correctly, the function did not behave appropriately when requesting only a subset of channels. I tried to reproduce it, but it seems to work with the present code.
+
+          I did the following (using Subject01 from the ftp-server)
+
+          vol = ft_read_vol('default.hdm'); %this is in Subject01.ds
+          hdr = ft_read_header('Subject01.res4');
+          sens = hdr.grad;
+
+          [vol2,sens2]=ft_prepare_vol_sens(vol,sens,'channel', sens.label(1:10));
+
+
+
+          Could you verify for yourself whether it works for you with the current code? Thanks.
+
+          Thanks for thinking along and the suggested patch.
+
+          BW, JM
+      - +@isprivate: "0"
+        commentid: "3938"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:54 +0100
+        thetext: I closed all bugs that were recently resolved.

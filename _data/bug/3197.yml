@@ -1,0 +1,479 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3197"
+    creation_ts: 2016-11-02 14:57:00 +0100
+    short_desc: matlab version dependent unpredictable failure of qsubfeval
+    delta_ts: 2016-11-14 16:06:06 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - h.lee
+      - j.herring
+      - marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17901"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-02 14:57:08 +0100
+        thetext: |-
+          Here's the problem:
+
+          when running qsubfeval on R2014b and R2015b it occasionally fails because it does not seem to inherit the correct path for the matlab session that is evoked through qsubfeval. I noticed this in the past already, which back then was the reason not to upgrade to a higher version of MATLAB. Now, it annoys me, so I would like to get it solved.
+
+          My higher level function fails because it cannot detect some functions from the matlab signal toolbox (dpss). I tested this (results are temporarily on /home/common/temporary/jansch) on R2013b, R2014b, R2015b doing the following
+
+          for k = 1:20
+          qsubfeval('dpss',100,4,'memreq',100*1024^2,'timreq',10*60,'batchid',num2str(k));
+          end
+
+          The cause of the failure does not seem to be the execution host, rather the path that is sent along in the options. For those jobs that fail, the /opt/matlab/R20XXb/toolbox stuff is missing. I don't have a clue where this erratic behavior comes from.
+
+          Any thinking along would be highly appreciated.
+
+          @Jim: I recall discussing with Robert that you also noticed some strange behavior using qsub functionality in matlab. Does this sound familiar?
+      - +@isprivate: "0"
+        commentid: "17902"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-02 15:48:59 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #0)
+
+          > Any thinking along would be highly appreciated.
+
+          Er is weer lekker bokbier, misschien een goede combinatie?
+      - +@isprivate: "0"
+        commentid: "17903"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-02 15:57:10 +0100
+        thetext: |-
+          Hi Jan-Mathijs,
+
+          could you disable the deleting of the temporary input and output files?
+
+          "qsubexec.m" line 89 of 123:
+              delete(inputfile);
+          "qsubget.m" line 104 of 245
+              % clean up all temporary files
+              % delete(inputfile); % this one has already been deleted in qsubexec immediately after loading it
+              if exist(outputfile, 'file'), delete(outputfile); end
+              if ~isempty(dir(logout)), delete(logout); end % note the wildcard in the file name
+              if ~isempty(dir(logerr)), delete(logerr); end % note the wildcard in the file name
+
+          that should allow you to look in the input mat files whether the "optin" structure is consistent over all jobs, and in the output mat files whether the "optout" is consistent. Since all computations are with the same input arguments, all inputs and outputs should be the same; the only difference in the input should be the random seed, and in the output some details such as execution time.
+      - +@isprivate: "0"
+        commentid: "17905"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-02 19:10:07 +0100
+        thetext: |-
+          Intermediate update:
+
+          I did some diagnostics on the output mat-files earlier, and I already noticed them to be different, i.e. the value of the 'path' key was different, and obviously the 'lasterr' as well.
+
+          the optin path is only the user's custom added path, whereas the optout path contains the /opt/matlab/R... directories as well, but only for the jobs that ran without error.
+      - +@isprivate: "0"
+        commentid: "17906"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-02 19:17:24 +0100
+        thetext: "(In reply to Jan-Mathijs Schoffelen from comment #3)\n\nqsubfeval should determine the path with fieldtrip/qsub/private/getcustompath.m\n\nThat function should reuse the path, since the path does not change and \n\nif isequal(path, previous_path)\n  % don't do the processing again, but return the previous values from cache\n  p = previous_argout{1};\n  d = previous_argout{2};\n  return\nend\n\nshould detect it as identical. So ... apparently the path command detects it differently.  \n\nCould you set a breakpoint around line 36 in that function, i.e. after the caching of the path failed?\n\nIf you start the whole test with \"clear all\" or  fresh matlab, then it should only end up on that breakpoint once at the first call. I wonder whether it will end up there multiple times..."
+      - +@isprivate: "0"
+        commentid: "17908"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-11-02 19:31:05 +0100
+        thetext: "It might be related to a problem I noticed at least for me and Sam. Running restoredefaultpath and/or matlabrc almost always causes a cycle of paths not being found to eventually leading to the paths being restored correctly after running it a few times. I went to Hong with this problem a few months ago but he did not know what would cause this behaviour. We could easily reproduce it.\n\nFor example:\n\n>> restoredefaultpath\n>> restoredefaultpath\n>> restoredefaultpath\nWarning: Name is nonexistent or not a directory: /opt/matlab/R2 \n> In restoredefaultpath at 51 \n>> restoredefaultpath\nError using restoredefaultpath (line 41)\nSystem error:\ncomp/mapreduce:/opt/matlab/R2014b/toolbox/distcomp:/opt/matlab/R2014b/toolbox/distcomp/distcomp:/opt/matlab/R2014b/toolbox/distcomp/user:/opt/matlab/R2014b/toolbox/distcomp/mpi:/opt/matlab/R2014b/toolbox/distcomp/parallel:/opt/matlab/R2014b/toolbox/distcomp/parallel/util:/opt/matlab/R2014b/toolbox/distcomp/lang:/opt/matlab/R2014b/toolbox/distcomp/cluster:/opt/matlab/R2014b/toolbox/distcomp/gpu:/opt/matlab/R2014b/toolbox/distcomp/array:/opt/matlab/R2014b/toolbox/distcomp/pctdemos:/opt/matlab/R2014b/toolbox/shared/pdelib:/opt/matlab/R2014b/toolbox/pde:/opt/matlab/R2014b/toolbox/pde/pdedemos:/opt/matlab/R2014b/toolbox/shared/filterdesignlib:/opt/matlab/R2014b/toolbox/signal/signal:/opt/matlab/R2014b/toolbox/signal/sigtools:/opt/matlab/R2014b/toolbox/signal/sptoolgui:/opt/matlab/R2014b/toolbox/signal/sigdemos:/opt/matlab/R2014b/toolbox/slcontrol/slcontrol:/opt/matlab/R2014b/toolbox/slcontrol/slctrlguis:/opt/matlab/R2014b/toolbox/slcontrol/slctrlutil:/opt/matlab/R2014b/toolbox/slcontrol/slctrlobsolete:/opt/matlab/R2014b/toolbox/slcontrol/slctrldemos:/opt/matlab/R2014b/help/toolbox/slcontrol/examples:/opt/matlab/R2014b/toolbox/shared/statslib:/opt/matlab/R2014b/toolbox/shared/statslib/sensitivity:/opt/matlab/R2014b/toolbox/stats/stats:/opt/matlab/R2014b/toolbox/stats/classreg:/opt/matlab/R2014b/toolbox/stats/clustering:/opt/matlab/R2014b/toolbox/stats/statsdemos:/opt/matlab/R2014b/toolbox/symbolic/symbolic:/opt/matlab/R2014b/toolbox/symbolic/symbolicdemos:/opt/matlab/R2014b/toolbox/ident/ident:/opt/matlab/R2014b/toolbox/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl\n/bin/bash:\n014b/toolbox/shared/dsp/dialog:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/utilities:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities/mex:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/utilities/mex:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities/init:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/vision:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/vision:/opt/matlab/R2014b/toolbox/shared/dsp/hdl:/opt/matlab/R2014b/toolbox/dsp/dsp:/opt/matlab/R2014b/toolbox/dsp/dsputilities:/opt/matlab/R2014b/toolbox/dsp/dsputilities/dspinit:/opt/matlab/R2014b/toolbox/dsp/dsputilities/dspmex:/opt/matlab/R2014b/toolbox/dsp/dspdemos:/opt/matlab/R2014b/toolbox/dsp/dspdeployabledemos:/opt/matlab/R2014b/help/toolbox/dsp/examples:/opt/matlab/R2014b/toolbox/dsp/filterdesign:/opt/matlab/R2014b/toolbox/shared/hdlshared:/opt/matlab/R2014b/toolbox/hdlfilter/hdlfilter:/opt/matlab/R2014b/toolbox/hdlfilter/hdlfiltdemos:/opt/matlab/R2014b/toolbox/coder/float2fixed:/opt/matlab/R2014b/toolbox/coder/float2fixed/dmm_emlauthoring:/opt/matlab/R2014b/toolbox/globaloptim:/opt/matlab/R2014b/toolbox/globaloptim/globaloptim:/opt/matlab/R2014b/toolbox/globaloptim/globaloptimdemos:/opt/matlab/R2014b/toolbox/shared/imaqlib:/opt/matlab/R2014b/toolbox/imaq/imaq:/opt/matlab/R2014b/toolbox/imaq/imaqdemos:/opt/matlab/R2014b/toolbox/shared/testmeaslib/simulink:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqblks:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqmex:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqmasks:/opt/matlab/R2014b/toolbox/shared/imageslib:/opt/matlab/R2014b/toolbox/images/colorspaces:/opt/matlab/R2014b/toolbox/images/images:/opt/matlab/R2014b/toolbox/images/imdata:/opt/matlab/R2014b/toolbox/images/imuitools:/opt/matlab/R2014b/toolbox/images/iptformats:/opt/matlab/R2014b/toolbox/images/iptutils:/opt/matlab/R2014b/toolbox/images/imdemos:/opt/matlab/R2014b/toolbox/shared/maputils:/opt/matlab/R2014b/toolbox/shared/mapgeodesy:/opt/matlab/R2014b/toolbox/map/map:/opt/matlab/R2014b/toolbox/map/mapgeodesy:/opt/matlab/R2014b/toolbox/map/mapdisp:/opt/matlab/R2014b/toolbox/map/mapformats:/opt/matlab/R2014b/toolbox/map/mapproj:/opt/matlab/R2014b/toolbox/map/mapdata:/opt/matlab/R2014b/toolbox/map/mapdata/sdts:/opt/matlab/R2014b/toolbox/map/mapdemos:/opt/matlab/R2014b/toolbox/geoweb/geoweb:/opt/matlab/R2014b/toolbox/javabuilder/javabuilderdemos:/opt/matlab/R2014b/toolbox/compiler/java:/opt/matlab/R2014b/toolbox/javabuilder/javabuilder:/opt/matlab/R2014b/toolbox/compiler/mlhadoop:/opt/matlab/R2014b/toolbox/compiler:/opt/matlab/R2014b/toolbox/compiler/compilerdemos:/opt/matlab/R2014b/toolbox/nnet:/opt/matlab/R2014b/toolbox/nnet/nncontrol:/opt/matlab/R2014b/toolbox/nnet/nnet:/opt/matlab/R2014b/toolbox/nnet/nnet/nnadapt:/opt/matlab/R2014b/toolbox/nnet/nnet/nndatafun:/opt/matlab/R2014b/toolbox/nnet/nnet/nnderivative:/opt/matlab/R2014b/toolbox/nnet/nnet/nndistance:/opt/matlab/R2014b/toolbox/nnet/nnet/nndivision:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitlayer:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitnetwork:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitweight:/opt/matlab/R2014b/toolbox/nnet/nnet/nnlearn:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetfun:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetinput:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetwork:/opt/matlab/R2014b/toolbox/nnet/nnet/nnperformance:/opt/matlab/R2014b/toolbox/nnet/nnet/nnplot:/opt/matlab/R2014b/toolbox/nnet/nnet/nnprocess:/opt/matlab/R2014b/toolbox/nnet/nnet/nnsearch:/opt/matlab/R2014b/toolbox/nnet/nnet/nntopology:/opt/matlab/R2014b/toolbox/nnet/nnet/nntrain:/opt/matlab/R2014b/toolbox/nnet/nnet/nntransfer:/opt/matlab/R2014b/toolbox/nnet/nnet/nnweight:/opt/matlab/R2014b/toolbox/nnet/nnguis:/opt/matlab/R2014b/toolbox/nnet/nnobsolete:/opt/matlab/R2014b/toolbox/nnet/nnutils:/opt/matlab/R2014b/toolbox/nnet/nndemos:/opt/matlab/R2014b/toolbox/nnet/nndemos/nndatasets:/opt/matlab/R2014b/toolbox/optim/optim:/opt/matlab/R2014b/toolbox/optim:/opt/matlab/R2014b/toolbox/optim/optimdemos:/opt/matlab/R2014b/t\nCommand executed:\n\"014b/toolbox/shared/dsp/dialog:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/utilities:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities/mex:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/utilities/mex:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/utilities/init:/opt/matlab/R2014b/toolbox/shared/dsp/vision/matlab/vision:/opt/matlab/R2014b/toolbox/shared/dsp/vision/simulink/vision:/opt/matlab/R2014b/toolbox/shared/dsp/hdl:/opt/matlab/R2014b/toolbox/dsp/dsp:/opt/matlab/R2014b/toolbox/dsp/dsputilities:/opt/matlab/R2014b/toolbox/dsp/dsputilities/dspinit:/opt/matlab/R2014b/toolbox/dsp/dsputilities/dspmex:/opt/matlab/R2014b/toolbox/dsp/dspdemos:/opt/matlab/R2014b/toolbox/dsp/dspdeployabledemos:/opt/matlab/R2014b/help/toolbox/dsp/examples:/opt/matlab/R2014b/toolbox/dsp/filterdesign:/opt/matlab/R2014b/toolbox/shared/hdlshared:/opt/matlab/R2014b/toolbox/hdlfilter/hdlfilter:/opt/matlab/R2014b/toolbox/hdlfilter/hdlfiltdemos:/opt/matlab/R2014b/toolbox/coder/float2fixed:/opt/matlab/R2014b/toolbox/coder/float2fixed/dmm_emlauthoring:/opt/matlab/R2014b/toolbox/globaloptim:/opt/matlab/R2014b/toolbox/globaloptim/globaloptim:/opt/matlab/R2014b/toolbox/globaloptim/globaloptimdemos:/opt/matlab/R2014b/toolbox/shared/imaqlib:/opt/matlab/R2014b/toolbox/imaq/imaq:/opt/matlab/R2014b/toolbox/imaq/imaqdemos:/opt/matlab/R2014b/toolbox/shared/testmeaslib/simulink:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqblks:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqmex:/opt/matlab/R2014b/toolbox/imaq/imaqblks/imaqmasks:/opt/matlab/R2014b/toolbox/shared/imageslib:/opt/matlab/R2014b/toolbox/images/colorspaces:/opt/matlab/R2014b/toolbox/images/images:/opt/matlab/R2014b/toolbox/images/imdata:/opt/matlab/R2014b/toolbox/images/imuitools:/opt/matlab/R2014b/toolbox/images/iptformats:/opt/matlab/R2014b/toolbox/images/iptutils:/opt/matlab/R2014b/toolbox/images/imdemos:/opt/matlab/R2014b/toolbox/shared/maputils:/opt/matlab/R2014b/toolbox/shared/mapgeodesy:/opt/matlab/R2014b/toolbox/map/map:/opt/matlab/R2014b/toolbox/map/mapgeodesy:/opt/matlab/R2014b/toolbox/map/mapdisp:/opt/matlab/R2014b/toolbox/map/mapformats:/opt/matlab/R2014b/toolbox/map/mapproj:/opt/matlab/R2014b/toolbox/map/mapdata:/opt/matlab/R2014b/toolbox/map/mapdata/sdts:/opt/matlab/R2014b/toolbox/map/mapdemos:/opt/matlab/R2014b/toolbox/geoweb/geoweb:/opt/matlab/R2014b/toolbox/javabuilder/javabuilderdemos:/opt/matlab/R2014b/toolbox/compiler/java:/opt/matlab/R2014b/toolbox/javabuilder/javabuilder:/opt/matlab/R2014b/toolbox/compiler/mlhadoop:/opt/matlab/R2014b/toolbox/compiler:/opt/matlab/R2014b/toolbox/compiler/compilerdemos:/opt/matlab/R2014b/toolbox/nnet:/opt/matlab/R2014b/toolbox/nnet/nncontrol:/opt/matlab/R2014b/toolbox/nnet/nnet:/opt/matlab/R2014b/toolbox/nnet/nnet/nnadapt:/opt/matlab/R2014b/toolbox/nnet/nnet/nndatafun:/opt/matlab/R2014b/toolbox/nnet/nnet/nnderivative:/opt/matlab/R2014b/toolbox/nnet/nnet/nndistance:/opt/matlab/R2014b/toolbox/nnet/nnet/nndivision:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitlayer:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitnetwork:/opt/matlab/R2014b/toolbox/nnet/nnet/nninitweight:/opt/matlab/R2014b/toolbox/nnet/nnet/nnlearn:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetfun:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetinput:/opt/matlab/R2014b/toolbox/nnet/nnet/nnnetwork:/opt/matlab/R2014b/toolbox/nnet/nnet/nnperformance:/opt/matlab/R2014b/toolbox/nnet/nnet/nnplot:/opt/matlab/R2014b/toolbox/nnet/nnet/nnprocess:/opt/matlab/R2014b/toolbox/nnet/nnet/nnsearch:/opt/matlab/R2014b/toolbox/nnet/nnet/nntopology:/opt/matlab/R2014b/toolbox/nnet/nnet/nntrain:/opt/matlab/R2014b/toolbox/nnet/nnet/nntransfer:/opt/matlab/R2014b/toolbox/nnet/nnet/nnweight:/opt/matlab/R2014b/toolbox/nnet/nnguis:/opt/matlab/R2014b/toolbox/nnet/nnobsolete:/opt/matlab/R2014b/toolbox/nnet/nnutils:/opt/matlab/R2014b/toolbox/nnet/nndemos:/opt/matlab/R2014b/toolbox/nnet/nndemos/nndatasets:/opt/matlab/R2014b/toolbox/optim/optim:/opt/matlab/R2014b/toolbox/optim:/opt/matlab/R2014b/toolbox/optim/optimdemos:/opt/matlab/R2014b/toolbox/dist\"\n\"/opt/matlab/R2014b/toolbox/local/getphlpaths.pl\" \"/opt/matlab/R2014b\"\n \n>> restoredefaultpath\nError using restoredefaultpath (line 41)\nSystem error: /bin/bash: line 1: oolbox/dist: No such file or directory\n/usr/bin/perl: No such file or directory\n\nCommand executed: \"oolbox/dist: No such file or directory\n/usr/bin/perl\" \"/opt/matlab/R2014b/toolbox/local/getphlpaths.pl\" \"/opt/matlab/R2014b\"\n \n>> restoredefaultpath\n>> \n\n\nConnected to this the paths do not always seem to be set correctly with each useage of qsubfeval as occasionally jobs break down on functions such as 'resample'."
+      - +@isprivate: "0"
+        commentid: "17909"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-11-02 19:31:49 +0100
+        thetext: '...I am indeed using matlab2014b, by the way'
+      - +@isprivate: "0"
+        commentid: "17910"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-02 19:58:51 +0100
+        thetext: |-
+          This is certainly a problem with the NFS mounted file system. Not with reading of files, but with reading the directory structure, i.e. the metadata. I recall that being a problem before, i.e. that the NetApp is not fast enough and gives (random) errors when trying to get an index of files.
+
+          Should we pass this by Mathworks, see whether they have seen this before on matlab installations that are located on a NetApp NFS mount?
+
+          Btw, just a random thought: could you try this with matlab started without JVM, i.e. log in text terminal and start "matlab2014b -nojvm". The reason for me asking is that we should rule out that it is a problem with Java interacting with the NFS file system.
+      - +@isprivate: "0"
+        commentid: "17911"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-02 20:04:38 +0100
+        thetext: "It might be that our problems are related. \n\nAt a higher level, i.e. calling a function through qsubfeval that itself calls a lower-level toolbox function (which subsequently cannot be found due to an incomplete path), the jobid.o123456 file mentions a similar warning in restoredefaultpath that Jim mentioned.\n\nA quick google does not result in much, but I get the impression that we might want to look into the direction of the toolboxcache (which apparently can be rehashed)."
+      - +@isprivate: "0"
+        commentid: "17912"
+        comment_count: "9"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-11-03 08:06:54 +0100
+        thetext: "The problem still occurs when calling an interactive text terminal session with qsub, followed by 'matlab2014b -nojvm' to call matlab. \n\nAs I first didn't know how to call a non-gui interactive matlab session, I also tried on one of the old mentat nodes (mentat025, I believe). There the problem did NOT occur."
+      - +@isprivate: "0"
+        commentid: "17913"
+        comment_count: "10"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-03 08:53:00 +0100
+        thetext: |-
+          Hi Jim,
+
+          I just tried to start matlab2014b with non-GUI interactive session, I don't reproduce the issue.  I had an impression that somehow the restoredefaultpath parses the unix command output wrongly.
+
+          The function 'restoredefaultpath' is a macro located at '/opt/matlab/R2014b/toolbox/local/restoredefaultpath.m' and it's just about 60 lines of code.  I think we should be able to identify the main cause by executing some part of the codes line by line.
+
+          After a quick look in this macro, I think the issue happens around line 25-27, and line 31-35. In these two code blocks, two unix commands are called and the output are parsed to construct a perl command.  Could you try to execute them line by line in your MATLAB session (e.g. copy-n-paste the code) and see what the outputs are?  Eg. the values of RESTOREDEFAULTPATH_perlPath, which('getphlpaths.pl').
+
+          Hong
+      - +@isprivate: "0"
+        commentid: "17914"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-03 08:59:55 +0100
+        thetext: |-
+          Hi all,
+          It now seems that this thread is discussing two related issues, which may (or not) depend on the same underlying cause. Should we continue discussing both of them here?
+
+          Anecdotally: when I add a 'rehash path' line to the to be executed matlab command (line 256 in qsubfeval) I get a 100 out of 100 successful execution of qsubfeval (as opposed to a ~75% failure) in matlab2014b
+      - +@isprivate: "0"
+        commentid: "17915"
+        comment_count: "12"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-11-03 09:13:44 +0100
+        thetext: |-
+          (In reply to Hurng-Chun Lee from comment #10)
+          It seems that the problem occurs in line 25:
+           [RESTOREDEFAULTPATH_status, RESTOREDEFAULTPATH_perlPath] = unix('which perl');
+          For some reason, occasionally the variable 'RESTOREDEFAULTPATH_perlPath' is filled with the entire default paths concatenated with the perl path causing a 'No such file or directory' error.
+      - +@isprivate: "0"
+        commentid: "17919"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-03 10:56:29 +0100
+        thetext: "I have also just confirmed the problem. I started matlab2014b without JVM (although I don't think it is specific to the Java interface or not). Then I did this\n\n>> i = 0; while (true); i = i + 1; restoredefaultpath; end\n\nThe first time it failed after 4 iterations. The second time it failed after 13, the third time it failed after 8.\n\nThe code executed by matlab in the restoredefaultpath.m function and by the linux shell that it calls is always the same. The inconsistent error cannot be due to the (consistent) code.\n\nI set a breakpoint in the restoredefaultpath function and looked up the string that is evaluated by the system call. I then made the following Bash equivalent of it. It writes the stdout of each result to a file.\n\ni=0\nwhile ( true ) ; do\ni=$(expr $i + 1)\n/usr/bin/perl /opt/matlab/R2014b/toolbox/local/getphlpaths.pl /opt/matlab/R2014b > test.$i\necho $i\ndone\n\nIf I run this for about 100 iterations, none of the results seems to be inconsistent. So perl is doing its work properly.\n\nLooking in more detail in restoredefaultpath, I see that the error is already caused on line 25 unix('which pearl') not returning an appropriate answer on its stdout.\n\nOn the matlab command line I tried this\n\n\n>> system('which which')\noolbox/distcomp/mapreduce:/opt/matlab/R2014b/toolbox/distcomp:/opt/matlab/R2014b/toolbox/distcomp/distcomp:/opt/matlab/R2014b/toolbox/distcomp/user:/opt/matlab/R2014b/toolbox/distcomp/mpi:/opt/matlab/R2014b/toolbox/distcomp/parallel:/opt/matlab/R2014b/toolbox/distcomp/parallel/util:/opt/matlab/R2014b/toolbox/distcomp/lang:/opt/matlab/R2014b/toolbox/distcomp/cluster:/opt/matlab/R2014b/toolbox/distcomp/gpu:/opt/matlab/R2014b/toolbox/distcomp/array:/opt/matlab/R2014b/toolbox/distcomp/pctdemos:/opt/matlab/R2014b/toolbox/shared/pdelib:/opt/matlab/R2014b/toolbox/pde:/opt/matlab/R2014b/toolbox/pde/pdedemos:/opt/matlab/R2014b/toolbox/shared/filterdesignlib:/opt/matlab/R2014b/toolbox/signal/signal:/opt/matlab/R2014b/toolbox/signal/sigtools:/opt/matlab/R2014b/toolbox/signal/sptoolgui:/opt/matlab/R2014b/toolbox/signal/sigdemos:/opt/matlab/R2014b/toolbox/slcontrol/slcontrol:/opt/matlab/R2014b/toolbox/slcontrol/slctrlguis:/opt/matlab/R2014b/toolbox/slcontrol/slctrlutil:/opt/matlab/R2014b/toolbox/slcontrol/slctrlobsolete:/opt/matlab/R2014b/toolbox/slcontrol/slctrldemos:/opt/matlab/R2014b/help/toolbox/slcontrol/examples:/opt/matlab/R2014b/toolbox/shared/statslib:/opt/matlab/R2014b/toolbox/shared/statslib/sensitivity:/opt/matlab/R2014b/toolbox/stats/stats:/opt/matlab/R2014b/toolbox/stats/classreg:/opt/matlab/R2014b/toolbox/stats/clustering:/opt/matlab/R2014b/toolbox/stats/statsdemos:/opt/matlab/R2014b/toolbox/symbolic/symbolic:/opt/matlab/R2014b/toolbox/symbolic/symbolicdemos:/opt/matlab/R2014b/toolbox/ident/ident:/opt/matlab/R2014b/toolbox/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl: File name too long\n/usr/bin/which\n\nans =\n\n     0\n\n>> system('which which')\n/usr/bin/which\n\nans =\n\n     0\n \nso the 2nd time it is fine, but the first time the return value is all messed up. Interesting is that the first call has \"perl\" at the end, whereas I did \"which which\" and that should not have anything to do with perl. That suggests to me that there is a problem with some sort of caching of the which command. Or perhaps a memory problem, i.e. reusing a previously allocated segment of memory? \n\nI subsequently tried \nwhile (true); unix('which which'); end\nand\nwhile (true); unix('which perl'); end\nin MATLAB, but both are fine.\n\n\nSo far my diagnosis is that the matlab \"unix\" command (which is the same as the \"system\" command) does not correctly return the stdout results of the executed call."
+      - +@isprivate: "0"
+        commentid: "17920"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-03 11:16:34 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #13)\n\nI tried reproducing once more, and now I cannot reproduce. As before I did\n\ni = 0; while (true); i = i + 1; restoredefaultpath; end\n\nI realize that I have started matlab a few times, and that it may be on different cluster computers. Yes, that is the case:\n\ndccn-l029.dccn.nl: \n                                                                                  Req'd    Req'd       Elap\nJob ID                  Username    Queue    Jobname          SessID  NDS   TSK   Memory   Time    S   Time\n----------------------- ----------- -------- ---------------- ------ ----- ------ ------ --------- - ---------\n12268157.dccn-l029.dcc  roboos      interact STDIN             31054   --       1    1gb  00:30:00 C       --    dccn-c011\n12268186.dccn-l029.dcc  roboos      interact STDIN             30838   --       1    1gb  00:30:00 C       --    dccn-c011\n12268188.dccn-l029.dcc  roboos      interact STDIN             18364     1      1    1gb  01:00:00 C       --    dccn-c011\n12268189.dccn-l029.dcc  roboos      interact STDIN             14583   --       1    1gb  00:30:00 R  00:24:25   dccn-c004\n\nSo it seems that on c004 it works, whereas on c011 I repeatedly got errors.\n\nI stopped and started matlab once more, it again lands on c004. Running this gives a warning, but no error \n\n>> i = 0; while (true); i = i + 1; restoredefaultpath; end\nWarning: Name is nonexistent or not a directory:\n/opt/matlab/R2014b/toolbox/matlab/configtools \n\nI ssh'ed into c004 and c011, and started matlab2014b on both. Neither of them is now reproducing the problem.... update, this ran for about 1,5 minutes on both simultaneously. And then both gave errors \n\n\n\n---------------------------------------------\non c011\n---------------------------------------------\n>>  i = 0; while (true); i = i + 1; restoredefaultpath; end\nWarning: Name is nonexistent or not a directory: /opt/matlab/R2014b/toolbox/dist \n> In restoredefaultpath at 51 \nError using restoredefaultpath (line 41)\nSystem error: /bin/bash:\ncomp/mapreduce:/opt/matlab/R2014b/toolbox/distcomp:/opt/matlab/R2014b/toolbox/distcomp/distcomp:/opt/matlab/R2014b/toolbox/distcomp/user:/opt/matlab/R2014b/toolbox/distcomp/mpi:/opt/matlab/R2014b/toolbox/distcomp/parallel:/opt/matlab/R2014b/toolbox/distcomp/parallel/util:/opt/matlab/R2014b/toolbox/distcomp/lang:/opt/matlab/R2014b/toolbox/distcomp/cluster:/opt/matlab/R2014b/toolbox/distcomp/gpu:/opt/matlab/R2014b/toolbox/distcomp/array:/opt/matlab/R2014b/toolbox/distcomp/pctdemos:/opt/matlab/R2014b/toolbox/shared/pdelib:/opt/matlab/R2014b/toolbox/pde:/opt/matlab/R2014b/toolbox/pde/pdedemos:/opt/matlab/R2014b/toolbox/shared/filterdesignlib:/opt/matlab/R2014b/toolbox/signal/signal:/opt/matlab/R2014b/toolbox/signal/sigtools:/opt/matlab/R2014b/toolbox/signal/sptoolgui:/opt/matlab/R2014b/toolbox/signal/sigdemos:/opt/matlab/R2014b/toolbox/slcontrol/slcontrol:/opt/matlab/R2014b/toolbox/slcontrol/slctrlguis:/opt/matlab/R2014b/toolbox/slcontrol/slctrlutil:/opt/matlab/R2014b/toolbox/slcontrol/slctrlobsolete:/opt/matlab/R2014b/toolbox/slcontrol/slctrldemos:/opt/matlab/R2014b/help/toolbox/slcontrol/examples:/opt/matlab/R2014b/toolbox/shared/statslib:/opt/matlab/R2014b/toolbox/shared/statslib/sensitivity:/opt/matlab/R2014b/toolbox/stats/stats:/opt/matlab/R2014b/toolbox/stats/classreg:/opt/matlab/R2014b/toolbox/stats/clustering:/opt/matlab/R2014b/toolbox/stats/statsdemos:/opt/matlab/R2014b/toolbox/symbolic/symbolic:/opt/matlab/R2014b/toolbox/symbolic/symbolicdemos:/opt/matlab/R2014b/toolbox/ident/ident:/opt/matlab/R2014b/toolbox/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl:\nNo such file or directory\n\nCommand executed:\n\"comp/mapreduce:/opt/matlab/R2014b/toolbox/distcomp:/opt/matlab/R2014b/toolbox/distcomp/distcomp:/opt/matlab/R2014b/toolbox/distcomp/user:/opt/matlab/R2014b/toolbox/distcomp/mpi:/opt/matlab/R2014b/toolbox/distcomp/parallel:/opt/matlab/R2014b/toolbox/distcomp/parallel/util:/opt/matlab/R2014b/toolbox/distcomp/lang:/opt/matlab/R2014b/toolbox/distcomp/cluster:/opt/matlab/R2014b/toolbox/distcomp/gpu:/opt/matlab/R2014b/toolbox/distcomp/array:/opt/matlab/R2014b/toolbox/distcomp/pctdemos:/opt/matlab/R2014b/toolbox/shared/pdelib:/opt/matlab/R2014b/toolbox/pde:/opt/matlab/R2014b/toolbox/pde/pdedemos:/opt/matlab/R2014b/toolbox/shared/filterdesignlib:/opt/matlab/R2014b/toolbox/signal/signal:/opt/matlab/R2014b/toolbox/signal/sigtools:/opt/matlab/R2014b/toolbox/signal/sptoolgui:/opt/matlab/R2014b/toolbox/signal/sigdemos:/opt/matlab/R2014b/toolbox/slcontrol/slcontrol:/opt/matlab/R2014b/toolbox/slcontrol/slctrlguis:/opt/matlab/R2014b/toolbox/slcontrol/slctrlutil:/opt/matlab/R2014b/toolbox/slcontrol/slctrlobsolete:/opt/matlab/R2014b/toolbox/slcontrol/slctrldemos:/opt/matlab/R2014b/help/toolbox/slcontrol/examples:/opt/matlab/R2014b/toolbox/shared/statslib:/opt/matlab/R2014b/toolbox/shared/statslib/sensitivity:/opt/matlab/R2014b/toolbox/stats/stats:/opt/matlab/R2014b/toolbox/stats/classreg:/opt/matlab/R2014b/toolbox/stats/clustering:/opt/matlab/R2014b/toolbox/stats/statsdemos:/opt/matlab/R2014b/toolbox/symbolic/symbolic:/opt/matlab/R2014b/toolbox/symbolic/symbolicdemos:/opt/matlab/R2014b/toolbox/ident/ident:/opt/matlab/R2014b/toolbox/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl\"\n\"/opt/matlab/R2014b/toolbox/local/getphlpaths.pl\" \"/opt/matlab/R2014b\"\n\n---------------------------------------------\non c004\n---------------------------------------------\n/opt/matlab/R2014b/toolbox/matlab/configtools \n> In restoredefaultpath at 51 \nWarning: Name is nonexistent or not a directory:\n/opt/matlab/R2014b/toolbox/matlab/configtools \n> In restoredefaultpath at 51 \nWarning: Name is nonexistent or not a directory:\n/opt/matlab/R2014b/toolbox/matlab/configtools \n> In restoredefaultpath at 51 \nWarning: Name is nonexistent or not a directory:\n/opt/matlab/R2014b/toolbox/matlab/configtools \n> In restoredefaultpath at 51 \nWarning: Name is nonexistent or not a directory:\n/opt/matlab/R2014b/toolbox/matlab/configtools \n> In restoredefaultpath at 51 \nWarning: Name is nonexistent or not a directory:\n... and this goes on\n\n\nIt happening on both at the same time (as far as I can judge) is weird: that suggests a common underlying cause (i.e. network or NFS). \n\nI tried once more, now the error happened on c011, but c004 is still doing fine. Also note that one has an error, the other a warning. \n\nI tried once more. Now both are running fine (for 3 minutes already)."
+      - +@isprivate: "0"
+        commentid: "17921"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-03 11:28:37 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #14)\n\nI kept on trying, now also on mentat203.\n\nEvery few minutes I get an error on c011. On c004 and mentat203 I don't get these errors.\n\nNote that on ganglia I can recognize myself in this nfsinfo.Cmeta graph, \n\nhttp://ganglia/graph_all_periods.php?c=Mentat%20Cluster&h=mentat203.dccn.nl&r=hour&z=default&jr=&js=&st=1478168544&v=1630&m=nfsinfo.Cmeta&vl=CltMeta%2Fsec&z=large\n\nIt also shows up in the packets sent and received.\n\nOn c004 and c011 it is not so easy to see, as those machines have other jobs that create activity. But on c011 the nfsinfo.Cmeta graph shows my test starts and stops (due to errors).\n\nSince c011 is the least inconsistent in reproducing the error, I suggest that Hong installs matlab2014b on a local disk and runs it from there, comparing whether there is a difference between local and NFS matlab."
+      - +@isprivate: "0"
+        commentid: "17923"
+        comment_count: "16"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-03 15:00:15 +0100
+        thetext: "Hi,\n\nThe problem is mainly the PATH is messed up for some reason.  Hereafter is a diagnose I did with Jim outside this ticket.  I asked Jim to check the output value of RESTOREDEFAULTPATH_perlPath in the restoredefaultpath.m.  Let me put out conversations in here:\n\n===\nHi Hong,\n \nIndeed, that is where the path is messed up. I don’t understand, though, how this comes into the Perl path. Running unix(‘which perl’) gives the correct path  ‘/usr/bin/perl’.\n \nI do not know how '/opt/matlab/R2014b/toolbox/wavelet/wavedemo’ is added to the PATH environment in my session.\n \nBest,\n \nJim\n \nFrom: Lee, H. \nSent: Thursday, November 03, 2016 9:47 AM\nTo: Herring, J.D. (Jim) <J.Herring@donders.ru.nl>\nSubject: Re: [Bug 3197] matlab version dependent unpredictable failure of qsubfeval\n \nHi Jim,\n \nI see the problem is on this line: \n \n/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl\n \nThere should be a ‘:’ to separate '/opt/matlab/R2014b/toolbox/wavelet/wavedemo’ from ‘/usr/bin/perl’\n \nLooks like the PATH is messed up, do you know how the '/opt/matlab/R2014b/toolbox/wavelet/wavedemo’ is added to the PATH environment variable in your session?  \n \nFurthermore, just to be sure, what is the output of unix(‘which perl’)?\n \nHong\n\nOn 3 Nov 2016, at 09:27, Herring, J.D. (Jim) <j.herring@donders.ru.nl> wrote:\n \nHi Hong,\n \nSure, the value is:\n \nIf there is an error:\n'comp/mapreduce:/opt/matlab/R2014b/toolbox/distcomp:/opt/matlab/R2014b/toolbox/distcomp/distcomp:/opt/matlab/R2014b/toolbox/distcomp/user:/opt/matlab/R2014b/toolbox/distcomp/mpi:/opt/matlab/R2014b/toolbox/distcomp/parallel:/opt/matlab/R2014b/toolbox/distcomp/parallel/util:/opt/matlab/R2014b/toolbox/distcomp/lang:/opt/matlab/R2014b/toolbox/distcomp/cluster:/opt/matlab/R2014b/toolbox/distcomp/gpu:/opt/matlab/R2014b/toolbox/distcomp/array:/opt/matlab/R2014b/toolbox/distcomp/pctdemos:/opt/matlab/R2014b/toolbox/shared/pdelib:/opt/matlab/R2014b/toolbox/pde:/opt/matlab/R2014b/toolbox/pde/pdedemos:/opt/matlab/R2014b/toolbox/shared/filterdesignlib:/opt/matlab/R2014b/toolbox/signal/signal:/opt/matlab/R2014b/toolbox/signal/sigtools:/opt/matlab/R2014b/toolbox/signal/sptoolgui:/opt/matlab/R2014b/toolbox/signal/sigdemos:/opt/matlab/R2014b/toolbox/slcontrol/slcontrol:/opt/matlab/R2014b/toolbox/slcontrol/slctrlguis:/opt/matlab/R2014b/toolbox/slcontrol/slctrlutil:/opt/matlab/R2014b/toolbox/slcontrol/slctrlobsolete:/opt/matlab/R2014b/toolbox/slcontrol/slctrldemos:/opt/matlab/R2014b/help/toolbox/slcontrol/examples:/opt/matlab/R2014b/toolbox/shared/statslib:/opt/matlab/R2014b/toolbox/shared/statslib/sensitivity:/opt/matlab/R2014b/toolbox/stats/stats:/opt/matlab/R2014b/toolbox/stats/classreg:/opt/matlab/R2014b/toolbox/stats/clustering:/opt/matlab/R2014b/toolbox/stats/statsdemos:/opt/matlab/R2014b/toolbox/symbolic/symbolic:/opt/matlab/R2014b/toolbox/symbolic/symbolicdemos:/opt/matlab/R2014b/toolbox/ident/ident:/opt/matlab/R2014b/toolbox/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl'\n \nIf it works correctly:\n‘/usr/bin/perl’\n \nBest,\n \nJim\n===\n\nSo when the ':' separator is missing in the environment PATH (for an unknown reason), restoredefaultpath.m parses wrongly the output of unix('which perl') wrongly; and therefore the consequent errors.\n\nIt looks to me that MATLAB at runtime tries to modify the PATH variable, and sometimes it modifies it correctly; but sometimes wrongly ..."
+      - +@isprivate: "0"
+        commentid: "17924"
+        comment_count: "17"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-03 15:41:58 +0100
+        thetext: https://www.explainxkcd.com/wiki/index.php/1171:_Perl_Problems
+      - +@isprivate: "0"
+        commentid: "17929"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-04 09:00:40 +0100
+        thetext: "(In reply to Hurng-Chun Lee from comment #16)\n\n> So when the ':' separator is missing in the environment PATH (for an unknown reason), > restoredefaultpath.m parses wrongly the output of unix('which perl') wrongly; and\n> therefore the consequent errors.\n>\n> It looks to me that MATLAB at runtime tries to modify the PATH variable, \n> and sometimes it modifies it correctly; but sometimes wrongly ...\n\nSo what do you propose to work towards a solution?\n\nMy proposal to continue to work to resolving this is at the end of #c15, and once we know whether this is an Intel versus AMD problem (an not a NFS problem) to contact Mathworks with details on the computer, linux version, etc."
+      - +@isprivate: "0"
+        commentid: "17930"
+        comment_count: "19"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-04 09:44:26 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #18)
+
+          Could you explain to me why do you think this issue (i.e. a mess-up of the PATH environmental variable) is NFS related?
+
+          btw, I tried to reproduce it by interactive job (running on dccn-c011) with your infinite loop; but I failed to reproduce the problem.
+      - +@isprivate: "0"
+        commentid: "17931"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-04 10:00:14 +0100
+        thetext: "(In reply to Hurng-Chun Lee from comment #19)\n\nRight now I do not think that any more, but I want to rule out that it is something we are ourselves to blame for we open an issue with Mathworks.\n\n\nIt still only takes me 2 minutes to reproduce. Can you sudo to roboos and try?\n\n------------------------------------------------\n\n\nroboos@dccn-c011> /opt/matlab/R2014b/bin/matlab -nojvm\n\n                                                                                < M A T L A B (R) >\n                                                                      Copyright 1984-2014 The MathWorks, Inc.\n                                                                      R2014b (8.4.0.150421) 64-bit (glnxa64)\n                                                                                September 15, 2014\n\n \nFor online documentation, see http://www.mathworks.com/support\nFor product information, visit www.mathworks.com.\n \nstarted parsing startup.m\nadding to path: ~/matlab/fieldtrip/\nadding to path: ~/matlab/fieldtrip/test/\nadding to path: ~/matlab/fieldtrip/qsub/\nWarning: Executing startup failed in matlabrc.\nThis indicates a potentially serious problem in your MATLAB setup, which should be resolved as soon as possible.  Error detected was:\nMATLAB:javachk:featureNotAvailable\nurlread is not supported because:\nJava is not currently available. \n> In matlabrc at 228 \n>> i = 0; while (true); i = i + 1; restoredefaultpath; end\nError using restoredefaultpath (line 41)\nSystem error: /bin/bash:\n/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl:\nNo such file or directory\n\nCommand executed:\n\"/ident/nlident:/opt/matlab/R2014b/toolbox/ident/idobsolete:/opt/matlab/R2014b/toolbox/ident/idguis:/opt/matlab/R2014b/toolbox/ident/idutils:/opt/matlab/R2014b/toolbox/ident/idhelp:/opt/matlab/R2014b/toolbox/ident/iddemos:/opt/matlab/R2014b/toolbox/ident/iddemos/examples:/opt/matlab/R2014b/toolbox/wavelet/wavelet:/opt/matlab/R2014b/toolbox/wavelet/wmultisig1d:/opt/matlab/R2014b/toolbox/wavelet/compression:/opt/matlab/R2014b/toolbox/wavelet/wavedemo/usr/bin/perl\"\n\"/opt/matlab/R2014b/toolbox/local/getphlpaths.pl\" \"/opt/matlab/R2014b\"\n\n>> i\n\ni =\n\n    23"
+      - +@isprivate: "0"
+        commentid: "17933"
+        comment_count: "21"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-04 11:02:10 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #20)
+
+          I finally reproduced it on dccn-c011.
+
+          With some hard attempts, I also managed to compare the output of the "strace", and noticed the difference:
+
+          For the good one:
+
+          ===
+          read(0, "which perl\0", 11)             = 11
+          clone(child_stack=0, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f45c8e5da10) = 6994
+          rt_sigprocmask(SIG_UNBLOCK, [HUP ALRM], NULL, 8) = 0
+          setitimer(ITIMER_REAL, {it_interval={15, 0}, it_value={15, 0}}, NULL) = 0
+          wait4(6994, [{WIFEXITED(s) && WEXITSTATUS(s) == 0}], 0, NULL) = 6994
+          --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=6994, si_status=0, si_utime=0, si_stime=0} ---
+          setitimer(ITIMER_REAL, {it_interval={0, 0}, it_value={0, 0}}, NULL) = 0
+          rt_sigprocmask(SIG_BLOCK, [HUP ALRM], NULL, 8) = 0
+          getpgrp()                               = 18228
+          rt_sigprocmask(SIG_BLOCK, [TTOU], [HUP PIPE ALRM], 8) = 0
+          ioctl(3, SNDRV_TIMER_IOCTL_SELECT or TIOCSPGRP, [18228]) = 0
+          rt_sigprocmask(SIG_SETMASK, [HUP PIPE ALRM], NULL, 8) = 0
+          write(1, "\0\0\0\0", 4)                 = 4
+          read(0, "\0\0\0\0", 4)                  = 4
+          read(0, "\20\0\0\0\0\0\0\0", 8)         = 8
+          read(0, "/home/tg/honlee\0", 16)        = 16
+          chdir("/home/tg/honlee")                = 0
+          read(0, "\1\0\0\0", 4)                  = 4
+          read(0, "\10\0\0\0\0\0\0\0", 8)         = 8
+          read(0, "\35\0\223\0\0\0\0\0", 8)       = 8
+          read(0, "\3\0\0\0", 4)                  = 4
+          read(0, "W\0\0\0\0\0\0\0", 8)           = 8
+          read(0, "\"/usr/bin/perl\" \"/opt/matlab/R20"..., 87) = 87
+          ===
+
+          and the bad one:
+
+          ===
+          read(0, "which perl\0", 11)             = 11
+          clone(child_stack=0, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f45c8e5da10) = 10476
+          rt_sigprocmask(SIG_UNBLOCK, [HUP ALRM], NULL, 8) = 0
+          setitimer(ITIMER_REAL, {it_interval={15, 0}, it_value={15, 0}}, NULL) = 0
+          wait4(10476, [{WIFEXITED(s) && WEXITSTATUS(s) == 0}], 0, NULL) = 10476
+          --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=10476, si_status=0, si_utime=0, si_stime=0} ---
+          setitimer(ITIMER_REAL, {it_interval={0, 0}, it_value={0, 0}}, NULL) = 0
+          rt_sigprocmask(SIG_BLOCK, [HUP ALRM], NULL, 8) = 0
+          getpgrp()                               = 18228
+          rt_sigprocmask(SIG_BLOCK, [TTOU], [HUP PIPE ALRM], 8) = 0
+          ioctl(3, SNDRV_TIMER_IOCTL_SELECT or TIOCSPGRP, [18228]) = 0
+          rt_sigprocmask(SIG_SETMASK, [HUP PIPE ALRM], NULL, 8) = 0
+          write(1, "\0\0\0\0", 4)                 = 4
+          read(0, "\0\0\0\0", 4)                  = 4
+          read(0, "\20\0\0\0\0\0\0\0", 8)         = 8
+          read(0, "/home/tg/honlee\0", 16)        = 16
+          chdir("/home/tg/honlee")                = 0
+          read(0, "\1\0\0\0", 4)                  = 4
+          read(0, "\10\0\0\0\0\0\0\0", 8)         = 8
+          read(0, "\35\0\223\0\0\0\0\0", 8)       = 8
+          read(0, "\3\0\0\0", 4)                  = 4
+          read(0, "\34\30\0\0\0\0\0\0", 8)        = 8
+          read(0, "\"014b/toolbox/shared/dsp/dialog:"..., 6172) = 6172
+          ===
+
+          The only sensitive difference is the last two lines:
+
+          ===
+          read(0, "W\0\0\0\0\0\0\0", 8)           = 8
+          read(0, "\"/usr/bin/perl\" \"/opt/matlab/R20"..., 87) = 87
+
+          vs
+
+          read(0, "\34\30\0\0\0\0\0\0", 8)        = 8
+          read(0, "\"014b/toolbox/shared/dsp/dialog:"..., 6172) = 6172
+          ===
+
+          Another interesting thing is that if I "strace" the process (matlab_helper), I cannot reproduce the problem; but if I don't strace the process, then I can reproduce it in few seconds.
+
+          I think it's very likely the memory handling inside the matlab_helper process.
+
+          I am trying to copy over the matlab on dccn-c011.
+      - +@isprivate: "0"
+        commentid: "17934"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-04 12:43:48 +0100
+        thetext: |-
+          @JM and Jim: I discussed with Hong.
+
+          The current working hypothesis is that there is a hardware-related memory corruption on dccn-c011 that caused this. That node has been taken offline and will be investigated.
+
+          If in any of the next days you encounter the same problem, please report as that would indicate that it is not a c011-specific issue.
+      - +@isprivate: "0"
+        commentid: "17935"
+        comment_count: "23"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2016-11-04 12:48:23 +0100
+        thetext: Hi Robert, in comment 14 you said you also got warnings on c004 (although no errors).
+      - +@isprivate: "0"
+        commentid: "17936"
+        comment_count: "24"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-04 12:55:30 +0100
+        thetext: "(In reply to Jim Herring from comment #23)\n\nYou are right. But I don't think that those warnings relate to the same problem. On my own laptop I am also getting warnings\n\n>> i = 0; while (true); i = i + 1; restoredefaultpath; end\nWarning: Duplicate directory name: /Applications/MATLAB_R2012b.app/toolbox/shared/hdlshared \n> In restoredefaultpath at 52 \nWarning: Duplicate directory name: /Applications/MATLAB_R2012b.app/toolbox/shared/hdlshared \n> In restoredefaultpath at 52 \nWarning: Duplicate directory name: /Applications/MATLAB_R2012b.app/toolbox/shared/hdlshared \n> In restoredefaultpath at 52 \nWarning: Duplicate directory name: /Applications/MATLAB_R2012b.app/toolbox/shared/hdlshared \n> In restoredefaultpath at 52\n...\n\nThe warnings on c004 are more indicative of a (NFS?) file system error, as the directory does exist:\n\nroboos@dccn-c004> ls /opt/matlab/R2014b/toolbox/matlab/configtools/\n+matlab  settings.xsd\n\nSo I am not sure whether we have traced all errors yet..."
+      - +@isprivate: "0"
+        commentid: "17960"
+        comment_count: "25"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-14 10:44:16 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #22)\n\nHi all,\n\ndo you encounter the same issue recently (i.e. after we took c011 offline)?  \n\nMeanwhile, we have done a thorough memory test using \"memtest86+\".  However, the report shows no problem at all with the memory hardware.\n\nShall we put the machine back to the cluster again and see if it will happen again?"
+      - +@isprivate: "0"
+        commentid: "17961"
+        comment_count: "26"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-14 10:59:52 +0100
+        thetext: |-
+          (In reply to Hurng-Chun Lee from comment #25)
+
+          I did not encounter any problems in the past period. I am not sure whether I would be happy if c011 were put online again.
+      - +@isprivate: "0"
+        commentid: "17962"
+        comment_count: "27"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-14 11:17:10 +0100
+        thetext: "(In reply to Hurng-Chun Lee from comment #25)\n\nI realize that we can do some easy testing with this\n\n-----\nt = tic;\nwhile toc(t)<60\n  restoredefaultpath\nend\n-----\n\nI just submitted it 1000 times using matlab_sub. The jobs are presently running on \n\ndccn-c019\ndccn-c033\ndccn-c034\ndccn-c027\ndccn-c028\ndccn-c006\ndccn-c019"
+      - +@isprivate: "0"
+        commentid: "17963"
+        comment_count: "28"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-14 11:33:02 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #27)\n\nthe 1000 jobs just finished. None of them had an error. Quite some of them (but not all) had a warning \n\n>> [^HWarning: Duplicate directory name: /opt/matlab/R2012b/toolbox/shared/hdlshared]^H\n[^H> In restoredefaultpath at 52\n  In test125 at 3\n  In run at 64]^H\n\nI also get those warning sometimes on my Macbook Pro.\n\nThe jobs ran on \n\nroboos@mentat001> grep Nodes *.o* | tr -s ' ' | cut -f 2 -d ' ' | sort | uniq\ndccn-c006.dccn.nl\ndccn-c019.dccn.nl\ndccn-c027.dccn.nl\ndccn-c028.dccn.nl\ndccn-c033.dccn.nl\ndccn-c034.dccn.nl\n\n@Hong, does that cover the whole MATLAB queue?"
+      - +@isprivate: "0"
+        commentid: "17964"
+        comment_count: "29"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-14 11:34:02 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #28)
+
+          If the problem can still be reproduced on c011, I think that we can stand by our working hypothesis of it being a hardware related problem. Have hardware tests been performed?
+      - +@isprivate: "0"
+        commentid: "17965"
+        comment_count: "30"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-14 13:22:55 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #28)
+
+          The whole MATLAB queue contains the following machines:
+
+          dccn-c006
+          dccn-c007
+          dccn-c019
+          dccn-c020
+          dccn-c021
+          dccn-c027
+          dccn-c028
+          dccn-c033
+          dccn-c034
+
+          so dccn-c007, dccn-c020, dccn-c021 are not on your list.
+      - +@isprivate: "0"
+        commentid: "17966"
+        comment_count: "31"
+        who:
+          +content: h.lee
+          +@name: Hurng-Chun Lee
+        bug_when: 2016-11-14 13:26:52 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #29)\n\nYes or no ... in comment #25, I mentioned that the memory hardware has been tested thoroughly and no error was reported.  \n\nWe could try to perform a whole-node hardware test but I should ask Edward first how it can be done.  I take it as an assumption that there is no need/wish to put the machine online."
+      - +@isprivate: "0"
+        commentid: "17967"
+        comment_count: "32"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-11-14 16:06:06 +0100
+        thetext: |-
+          (In reply to Hurng-Chun Lee from comment #31)
+
+          If the node is offline available again (through ssh) we could test it once more.

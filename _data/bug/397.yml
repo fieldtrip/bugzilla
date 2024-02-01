@@ -1,0 +1,64 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "397"
+    creation_ts: 2011-01-13 10:49:00 +0100
+    short_desc: move private/prepare_dipole_grid to ft_prepare_sourcemodel in main directory
+    delta_ts: 2011-01-14 13:29:58 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - lilla.magyari
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1014"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-13 10:49:10 +0100
+        thetext: "this is for the MNE integration. \n\nBesides moving, the calling functions need to be changed:\n\nroboos@mentat001> grep prepare_dipole_grid *.m */*.m\nft_dipolefitting.m:  [grid, cfg] = prepare_dipole_grid(cfg, vol, sens);\nft_headmodelplot.m:    sourcegrid = prepare_dipole_grid(cfg, vol, sens);\nft_megrealign.m:grid = prepare_dipole_grid(cfg, volold, data.grad);\nft_prepare_leadfield.m:[grid, cfg] = prepare_dipole_grid(cfg, vol, sens);\nft_sourceanalysis.m:  [grid, cfg] = prepare_dipole_grid(cfg, vol, sens);\n\nI think that the best is to change those functions into using a tmpcfg and copy the relevant cfg fields into the tmpcfg. \n\nWhen Searching through the code of prepare_dipole_grid, it turns out that the following cfg fields are being used\ncfg.grid\ncfg.mri\ncfg.headshape\ncfg.tightgrid\ncfg.symmetry\ncfg.smooth\ncfg.threshold\ncfg.spheremesh\ncfg.inwardshift\ncfg.mriunits\ncfg.sourceunits\nThose fields are teh ones that have to be copied into the tmpcfg.\n\nThe function now takes vol and sens as 2nd and 3rd argument, these should be specified as cfg.vol and cfg.sens (or cfg.grad/elec) for consistency with other functions"
+      - +@isprivate: "0"
+        commentid: "1015"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-13 11:29:22 +0100
+        thetext: "revision 2573 and 2574 (which I just committed) implement the required changes: there is now a function ft_prepare_sourcemodel in the main directory\n\nwhat still needs to be done is \n- clean documentation inside that function\n- implement a cfg.method for explicit specification on how the grid should be contstructed"
+      - +@isprivate: "0"
+        commentid: "1017"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-13 12:09:52 +0100
+        thetext: "Since revision 2575 it is possible to read the cortical sheet in fieldtrip style\n----------------------------------------------------------\n\n>> cfg\ncfg = \n    headshape: 'sub10-oct-6-src.fif'\n\n>> ft_prepare_sourcemodel(cfg)\n\tReading a source space...[done]\n\tCompleting triangulation info...[done]\n\tCompleting selection triangulation info...[done]\n\tReading a source space...[done]\n\tCompleting triangulation info...[done]\n\tCompleting selection triangulation info...[done]\n\t2 source spaces read\nconverting units from 'm' to 'cm'\n8196 dipoles inside, 0 dipoles outside brain\n\nans = \n\n        pos: [8196x3 double]\n        tri: [16384x3 int32]\n       unit: 'cm'\n     inside: [1x8196 double]\n    outside: []\n\n>> ft_plot_mesh(grid, 'facecolor', 'skin', 'edgecolor', 'none', 'vertexcolor', 'none')\n>> camlight"

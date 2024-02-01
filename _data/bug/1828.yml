@@ -1,0 +1,245 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1828"
+    creation_ts: 2012-11-08 16:48:00 +0100
+    short_desc: ft_convert_coordsys fails with particular input MRI dimensionality
+    delta_ts: 2012-12-18 14:20:05 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8219"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-08 16:48:12 +0100
+        thetext: |-
+          My first hunch is, that the function relies on some baked-in voxel coordinates, which only make sense with a baked-in dimension.
+
+          Let's check...
+      - +@isprivate: "0"
+        commentid: "8220"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 17:52:19 +0100
+        thetext: I am curious as to the data on which it fails. How obscure is it?
+      - +@isprivate: "0"
+        commentid: "8222"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-08 18:13:43 +0100
+        thetext: |-
+          hcp-data. do I need to say more? ;-)
+
+          Not obscure at all. 176x256x256 anatomical, with the 176 dimension being the left right axis.
+
+          My early hunch by the way was not correct, but I have been trying to debug this one for the past 2 hours or so. :-(
+
+          align_ctf2spm does not seem to provide a sufficiently close coregistration.
+      - +@isprivate: "0"
+        commentid: "8226"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-09 10:40:21 +0100
+        thetext: |-
+          When the MRI is resliced, the affine registration is improved, but still not perfect.
+          It is however good enough for the segmentation to produce a 'normal' output.
+
+          As of yet, this is still quite anecdotal, will upload some data soon.
+      - +@isprivate: "0"
+        commentid: "8238"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 11:45:15 +0100
+        thetext: |-
+          OK, it seems that the way spm_affreg is used in align_ctf2spm does not work super-robustly.
+
+          Created bug1828.mat on /home/common/matlab/fieldtrip/data/test
+      - +@isprivate: "0"
+        commentid: "8239"
+        comment_count: "5"
+        attachid: "369"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:11:08 +0100
+        thetext: |-
+          Created attachment 369
+          axial slice with AC identified in red
+      - +@isprivate: "0"
+        commentid: "8240"
+        comment_count: "6"
+        attachid: "370"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:11:53 +0100
+        thetext: |-
+          Created attachment 370
+          axial slice with AC according to opt=0 (one-step coregistration)
+      - +@isprivate: "0"
+        commentid: "8241"
+        comment_count: "7"
+        attachid: "371"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:12:25 +0100
+        thetext: |-
+          Created attachment 371
+          axial slice with AC according to opt=1 (spm_affreg)
+      - +@isprivate: "0"
+        commentid: "8242"
+        comment_count: "8"
+        attachid: "372"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:12:50 +0100
+        thetext: |-
+          Created attachment 372
+          axial slice with AC according to opt=2 (spm_normalise)
+      - +@isprivate: "0"
+        commentid: "8243"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:15:05 +0100
+        thetext: |-
+          bash-3.2$ svn commit ft_convert_coordsys.m private/align_ctf2spm.m ../test/test_bug1828.m
+          Adding         test/test_bug1828.m
+          Sending        utilities/ft_convert_coordsys.m
+          Sending        utilities/private/align_ctf2spm.m
+          Transmitting file data ...
+          Committed revision 6906.
+
+          added (as of yet) undocumented option opt to ft_convert_coordsys that determines its behavior
+
+          opt = 0: plain coregistration using only approximate fiducial locations
+          opt = 1: initial rough estimate followed by spm_affreg
+          opt = 2: initial rough estimate followed by spm_normalise
+
+
+          FIXME: this should be also built into align_itab2spm
+      - +@isprivate: "0"
+        commentid: "8244"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-12 12:16:57 +0100
+        thetext: the distance (in voxel units) between the anatomically defined AC and the coregistration matrix based 'AC' is 40.8 (using opt = 0), 34.9 (using opt=1), and 5.8 (using opt=2), for the test data
+      - +@isprivate: "0"
+        commentid: "8464"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-28 15:53:27 +0100
+        thetext: "jan2-mac:utilities jan$ svn commit -m \"enhancement - added more robust functionality for coregistration also for itab2spm conversion\" ft_convert_coordsys.m private/align_itab2spm.m \nSending        ft_convert_coordsys.m\nSending        private/align_itab2spm.m\nTransmitting file data ..\nCommitted revision 7035."
+      - +@isprivate: "0"
+        commentid: "8757"
+        comment_count: "12"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-18 14:20:05 +0100
+        thetext: Test script was failing because spm() could not be found. I now added ft_hastoolbox('SPM8',1) to the script.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "369"
+        date: 2012-11-12 12:11:00 +0100
+        delta_ts: 2012-11-12 12:11:08 +0100
+        desc: axial slice with AC identified in red
+        filename: Screen shot 2012-11-12 at 12.09.56 PM.png
+        type: image/png
+        size: "60248"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "370"
+        date: 2012-11-12 12:11:00 +0100
+        delta_ts: 2012-11-12 12:11:53 +0100
+        desc: axial slice with AC according to opt=0 (one-step coregistration)
+        filename: Screen shot 2012-11-12 at 12.10.09 PM.png
+        type: image/png
+        size: "56531"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "371"
+        date: 2012-11-12 12:12:00 +0100
+        delta_ts: 2012-11-12 12:12:25 +0100
+        desc: axial slice with AC according to opt=1 (spm_affreg)
+        filename: Screen shot 2012-11-12 at 12.10.18 PM.png
+        type: image/png
+        size: "56331"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "372"
+        date: 2012-11-12 12:12:00 +0100
+        delta_ts: 2012-11-12 12:12:50 +0100
+        desc: axial slice with AC according to opt=2 (spm_normalise)
+        filename: Screen shot 2012-11-12 at 12.10.25 PM.png
+        type: image/png
+        size: "60543"
+        attacher:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        data: REMOVED

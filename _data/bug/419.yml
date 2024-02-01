@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "419"
+    creation_ts: 2011-01-20 10:09:00 +0100
+    short_desc: singleplotTFR is not robust
+    delta_ts: 2011-07-13 14:46:37 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1078"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-01-20 10:09:00 +0100
+        thetext: |-
+          the underlying uimagesc seems to crash (due to rounding issues) if the input TFR has non evenly spaced tois (and there also seems to be an issue with the fois, which is not straightforward to reproduce).
+
+          E.g. when creating a TFR from downsampled data (cfg.resamplefs = 256 in this case), and specifying the cfg like this
+
+          cfg.foi = 2.5:2.5:30;
+          cfg.t_ftimwin = ones(1,nfoi).*0.4;
+          cfg.toi = -0.2:0.05:1
+          cfg.etc
+
+          there are 2 issues:
+          -the t_ftimwin will never exactly be 0.4, so the frequencies will be adjusted slightly
+          -the toi can never be exactly the requested bins, because dt is not an integer number of samples
+
+          the plotting should be made robust against this, or the user should be punished by specifying a problematic cfg for ft_freqanalysis, and ordered back to the drawing table.
+      - +@isprivate: "0"
+        commentid: "1082"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-01-20 10:25:03 +0100
+        thetext: |-
+          Hmmm, another consequence of the more accurate foi that I didn't anticipate? I think the most robust way, but probably also the most difficult way, to fix this would be:
+          * using imagesc instead of uimagesc
+          * do not give in the exact axis as it is done now, but a placeholder axis (which is monotonously increasing)
+          * 'manually' add the axis-labels and a automatically defined set of axis-ticks (by using set(gca,'Ytick',....,'yticklabel',...)) andsoforth.
+
+          This would have one drawback though that I think cannot be avoided. If the axis labels are set by the plotting function itself, it will scale with the figure window. Meaning, if the window is enlarged, more ticks are added at the axis. This will never happen if the ticks are set manually...
+          Oh, and that will of course also mean that the axis are not 'scaled linearly' by adding copies of time-bins/frequency-bins (what uimagesc does I think). Hmmm...
+      - +@isprivate: "0"
+        commentid: "1084"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-20 10:29:12 +0100
+        thetext: |-
+          > * using imagesc instead of uimagesc
+
+          uimagesc is required for logarithmic and otherwise irregular spaced (but nevertheless monotonic) foi and toi specifications.
+      - +@isprivate: "0"
+        commentid: "1657"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2011-03-18 01:17:43 +0100
+        thetext: Has this been discussed in the meetings the past weeks? I'm still curious how we would fix this. Strangely enough, aren't the new, more accurate, foi's still monotonically increasing? (which is what the error tells us if we want to plot new freqdata). Aren't we maybe just talking about a bug in uimagesc (just crossed my mind while commenting)?
+      - +@isprivate: "0"
+        commentid: "2617"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:46:37 +0200
+        thetext: changed the status for a whole bunch of resolved bugs to CLOSED

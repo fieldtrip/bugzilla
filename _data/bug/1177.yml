@@ -1,0 +1,166 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1177"
+    creation_ts: 2011-11-22 22:06:00 +0100
+    short_desc: Using of EGI electrode layout throws a Yokogawa-related warning
+    delta_ts: 2012-08-23 14:02:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - b.reuderink
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4169"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-11-22 22:06:02 +0100
+        thetext: "I'm using fieldtrip-20111121. We recorded data using EGI's 128-channel HydroCel GSN (electrode file name = GSN-HydroCel-129.sfp, included with FieldTrip).\n\nWhen I run the following command:\nelec = ft_read_sens('GSN-HydroCel-129.sfp','fileformat','besa_sfp');\n\nI get the following warning, which leads me to think that FieldTrip may not be selecting the correct layout, or may be doing something else wrong:\n\nWarning: could be Yokogawa system \n> In fileio/private/ft_senstype at 268\n  In fileio/private/channelposition at 46\n  In fileio/private/ft_datatype_sens at 103\n  In ft_read_sens at 226\n\nThis did not happen with older versions of FieldTrip. If I pause ft_sensetype at line 268, it seems to show that it thinks it's a MEG setup (isgrad=true), but this is an EEG setup (and iselec=false for some reason). I don't think it is actually choosing the wrong layout (I don't know what it means that the type variable does not get set correctly; should be 'egi128'), but it doesn't seem like this warning should occur."
+      - +@isprivate: "0"
+        commentid: "4295"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-28 14:57:05 +0100
+        thetext: |-
+          Dear Matt Mollison,
+
+          Thank you for reporting this bug. I have confirmed this issue in SVN revision 4870. Do you know the latest version of FiedTrip that you used that did not issue this warning? That might help to find the cause.
+      - +@isprivate: "0"
+        commentid: "4342"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2011-11-29 19:55:18 +0100
+        thetext: |-
+          I don't remember when the warning started to occur. I downloaded two fieldtrip archives to test the command elec=ft_read_sens('GSN-HydroCel-129.sfp','fileformat','besa_sfp');.
+
+          The warning does occur with 2011-10-31.
+          The warning does not occur with 2011-10-16.
+
+          October 16 is not necessarily the most recent version of FT in which the warning does not occur. But, this means the bug was introduced some time between October 16 and 31. Hope that helps narrow down the search space.
+      - +@isprivate: "0"
+        commentid: "4647"
+        comment_count: "3"
+        attachid: "209"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 13:33:25 +0100
+        thetext: |-
+          Created attachment 209
+          Script to localize the introduction of bug #1177
+      - +@isprivate: "0"
+        commentid: "4648"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 13:34:04 +0100
+        thetext: |-
+          Apparently, the bug was introduced in revision 4507 and 4508 (automatic syncing).
+
+          @Jörn, you made these commits. Could you investigate the origin of these warning messages, and find out if there is an underlying bug?
+
+          PS: I localized this bug with the incredible "git bisect" command. Given a shell script, it effectively (O(n log n)) probes revisions to see which ones fail. The scripts are attached for future reference.
+      - +@isprivate: "0"
+        commentid: "4667"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-03 14:36:13 +0100
+        thetext: '*** Bug 1062 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "4691"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-01-06 15:44:01 +0100
+        thetext: |-
+          (skip this if you are lazy)
+          I think you are wrong, my commit has nothing to do with it. It should have been introduced one revision later, in revision 4511 from what I see in the code (which btw eliminates my commit from 4507, that's why it wasn't me)
+          Aaanyway this error is caused, because channelposition line 41 adds a sens.ori field (so that all sens can be dealt with equally). ft_senstype does not know that and thinks if there is a .pnt, .label and .ori field, so this must be MEG data and not EEG data. Actually, this error is caused because the sens structured read in from read_sens is in the old format. So, having sens.pnt, sens.label and sens.ori, it could actually be MEG data, but could also be EEG.
+
+          (start here again this if you are lazy)
+          This error can be dealt with in various ways, and I need to know what the appropriate is. Suggested fixes, starting with my favourite:
+
+          1) Change ft_read_sens to that it returns only sens structures in the new format
+          7) Call fixsens in the end of ft_read_data
+          12) Call fixsens in the beginning of ft_datatype_sens
+          35) Do not add .ori
+
+          Need input from Robert or JM on this.
+      - +@isprivate: "0"
+        commentid: "4695"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-06 16:40:22 +0100
+        thetext: What about changing line 145 in ft_read_sens from sens.pnt = XXXX into sens.chanpos ?
+      - +@isprivate: "0"
+        commentid: "4696"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-06 16:41:25 +0100
+        thetext: fixed with revision 5097
+      - +@isprivate: "0"
+        commentid: "7210"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:10 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "209"
+      date: 2012-01-03 13:33:00 +0100
+      delta_ts: 2012-01-03 13:33:25 +0100
+      desc: 'Script to localize the introduction of bug #1177'
+      filename: locate-bug1177.zip
+      type: application/zip
+      size: "508"
+      attacher:
+        +content: b.reuderink
+        +@name: Boris Reuderink
+      data: REMOVED

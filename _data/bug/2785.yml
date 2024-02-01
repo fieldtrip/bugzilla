@@ -1,0 +1,131 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2785"
+    creation_ts: 2014-12-16 11:53:00 +0100
+    short_desc: ft_timelockgrandaverage selects wrong time window and thus returns wrong results
+    delta_ts: 2019-08-10 12:29:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: thomas.hartmann
+      +@name: Thomas Hartmann
+    assigned_to: fieldtriptoolbox
+    cc:
+      - gianpaolo.demarchi
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14954"
+        comment_count: "0"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-12-16 11:53:21 +0100
+        thetext: "i found a critical bug in ft_timelockgrandaverage. basically, if the cfg.latency field is used and the dof field is present in the data, data is always selected from the beginning of the trials.\n\nthe problem is in line 154ff:\n\n  if hastime\n    timesel = nearest(varargin{i}.time, cfg.latency(1)):nearest(varargin{i}.time, cfg.latency(2));\n    varargin{i}.time = varargin{i}.time(timesel);\n  end\n  \n  if hasdof\n    timesel = nearest(varargin{i}.time, cfg.latency(1)):nearest(varargin{i}.time, cfg.latency(2));\n    varargin{i}.dof = varargin{i}.dof(chansel,timesel);\n  end\n\nin line 156, the original time field is modified according to the latency. in line 160, this altered field is used for a new time selection. this leads to a mismatch because the time field is already cut while the rest of the data is not.\n\ni would suggest using the well tested ft_selectdata function instead.\ni would also be willing to fix the bug using ft_selectdata if you think it is the right way to go.\n\nplease let me know as soon as possible because this bug leads to wrong results and should be fixed asap.\n\nbest,\nthomas"
+      - +@isprivate: "0"
+        commentid: "14957"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 13:43:19 +0100
+        thetext: |-
+          I can confirm the problem and wrote a test script for it (which is presently failing with an error).
+
+          mac011> svn commit test/test_bug2785.m
+          Adding         test/test_bug2785.m
+          Transmitting file data .
+          Committed revision 10053.
+
+          I agree that ft_selectdata should be used for a consistent selection of all fields of the input data. Please go ahead and improve the code.
+
+          You might want to review/rerun the relevant test scripts during the rewrite to make sure that existing functionality remains intact.
+
+          mac011> grep -l ft_timelockgrandaverage fieldtrip/test/test*.m
+          test_bug1162.m
+          test_bug2372.m
+          test_bug2471.m
+          test_bug2785.m
+          test_ft_timelockgrandaverage.m
+          test_tutorial_eventrelatedaveraging20130308.m
+      - +@isprivate: "0"
+        commentid: "14958"
+        comment_count: "2"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-12-16 13:56:17 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\ntest_bug2785.m fails where it should not:\n\nIndex exceeds matrix dimensions.\nError in ft_timelockanalysis (line 278)\n    s (:,windowsel) = s (:,windowsel) + dat;            % compute the sum\nError in test_bug2785 (line 30)\navg = ft_timelockanalysis(cfg, data); \n\nalso, doing some of the other tests will prove to be quite tedious because the path to the data is hardcoded. i will do my best, though..."
+      - +@isprivate: "0"
+        commentid: "14959"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 14:02:31 +0100
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #2)
+
+          sorry, that was something I fixed on the fly, but forgot to commit. It had to do with estimating sample from the first trial, which has length 1.
+
+          mac011> svn commit utilities/ft_datatype_raw.m ft_timelockanalysis.m
+          Sending        ft_timelockanalysis.m
+          Sending        utilities/ft_datatype_raw.m
+          Transmitting file data ..
+          Committed revision 10054.
+
+          regarding the other tests: if they involve data that is on disk, then you don't have to bother. I was hoping that there would be some test scripts that start with some data that is generated on the fly.
+      - +@isprivate: "0"
+        commentid: "14960"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 16:09:38 +0100
+        thetext: "note that I just did a small update regarding an apparent typo in an if-clause\n\nmac011> svn commit ft_timelockgrandaverage.m \nSending        ft_timelockgrandaverage.m\nTransmitting file data .\nCommitted revision 10056."
+      - +@isprivate: "0"
+        commentid: "14963"
+        comment_count: "5"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2014-12-17 11:05:46 +0100
+        thetext: alright, here is the pull request.
+      - +@isprivate: "0"
+        commentid: "14968"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-17 16:04:49 +0100
+        thetext: "after some discussion on \nhttps://github.com/fieldtrip/fieldtrip/pull/52#issuecomment-67329094\nI updated the code.\n\nmac011> svn commit ft_timelockgrandaverage.m test/test_tutorial_eventrelatedaveraging20130308.m test/test_bug2785.m\nSending        ft_timelockgrandaverage.m\nSending        test/test_bug2785.m\nSending        test/test_tutorial_eventrelatedaveraging20130308.m\nTransmitting file data ...\nCommitted revision 10059.\n\nthis works with all current test scripts."
+      - +@isprivate: "0"
+        commentid: "20037"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:29:30 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

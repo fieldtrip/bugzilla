@@ -1,0 +1,369 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1818"
+    creation_ts: 2012-11-07 15:53:00 +0100
+    short_desc: ft_read_headshape has to be made consistent with new segmentation/parcellation
+    delta_ts: 2013-06-30 15:16:24 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked:
+      - "1822"
+      - "1840"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: JakobLudewig
+      +@name: Jakob Ludewig
+    cc:
+      - carsten.wolters
+      - j.vorwerk
+      - lilla.magyari
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8174"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 15:53:48 +0100
+        thetext: |-
+          at this moment there is
+
+            case 'vista'
+              ft_hastoolbox('simbio', 1);
+              [nodes,elements,labels] = read_vista_mesh(filename);
+              shape.pnt     = nodes;
+              if size(elements,2)==8
+                shape.hex     = elements;
+              elseif size(elements,2)==4
+                shape.tet = elements;
+              else
+                error('unknown elements format')
+              end
+              shape.index = labels;
+
+          that should be changed such that it is compatible with FT_DATATYPE_PARCELLATION.
+      - +@isprivate: "0"
+        commentid: "8186"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-07 18:33:24 +0100
+        thetext: It might not be possible to make it fully compatible. As altrnative it can be considered to do the reformatting of the mesh structure into a parcellation in ft_read_atlas.
+      - +@isprivate: "0"
+        commentid: "8203"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-08 12:09:46 +0100
+        thetext: 'to do: make a test script. This test script can only be made if we have a variety of test data. So to do first: get test data.'
+      - +@isprivate: "0"
+        commentid: "8227"
+        comment_count: "3"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-09 10:41:34 +0100
+        thetext: |-
+          After a closer look at the parcellation datatype it seems to me as a reasonable option to store the meshes according to it.
+          The extension of the datatype to add the option of assigning anatomical labels to elements (triangles, tetrahedrons, hexahedrons etc.) instead of assigning them to points makes very much sense in my opinion (it even has the advantage that you gain a unique coverage of your domain).
+          The question, which I cannot overlook, is, whether there would occur problems in other routines relying on this datatype when adding this possibility.
+      - +@isprivate: "0"
+        commentid: "8228"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-09 11:18:59 +0100
+        thetext: "(In reply to comment #3)\n\nOther functions calling ft_read_headshape expect the output to contain a pnt field, not a pos field. That is a small and silly difference, but still.\n\nSo a mesh has a pnt, and a  parcellation has a pos. \n\nAlthough the ft_datatype_xxx definitions are meant to standardize \"objects\" and ensure them to be consistent in different parts of the code, there are still \"objects\" that are not properly defined. That is largely due to there not being enough usage of the objects and consensus on how they should look. So here we have this problem, i.e. ft_datatype_mesh or ft_datatype_headshape are simply not defined (as function), since the mesh or headshape object are still ambiguous.\n\nBut what we can easily do is to extend ft_datatype_parcellation such that pnt is renamed in pos. Other FT functions that expect a parcellation will always be passing their input data through ft_datatype_parcellation anyway. This on-the-fly conversion (in this case trivial) is something that we also do in other cases, e.g converting between source and volume, raw and timelock, etc.\n\nI suggest Lilla stays in charge of this bug. \n\nCould you send her some different example files that she can work on?\n\nThe test case would then look like\n  mesh = ft_read_headshape('yourfile.xxx');   \n  parcellation1 = ft_datatype_parcellation(mesh) % should rename ont into pos; \n  parcellation2 = ft_datatype(mesh, 'datatype', 'parcellation;) % should also work\nand then check for the different files and that the MATLAB structures are as expected."
+      - +@isprivate: "0"
+        commentid: "8251"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-12 18:08:47 +0100
+        thetext: "Lilla and I were confused about file formats and software packages that write them. We spent some time with google...\n\n-------\nVista employs a data file format that allows any collection of images, edge vectors, and other structured objects to be stored in a single file. This allows, for example, both an edge set and the image from which it was derived to be kept in one file.\n\nhttp://www.cs.ubc.ca/nest/lci/vista/vista.html\nhttp://www.cs.ubc.ca/nest/lci/vista/file.html\n\n--------\nVgrid is a fast and robust octree-based 3D mesh generator for unstructured gridswhich works directly on segmented (labeled) 3D images\n\nhttp://www.rheinahrcampus.de/~medsim/vgrid/\nhttp://www.rheinahrcampus.de/~medsim/vgrid/manual.html\n\nVgrid saves the data in one of these formats:\n - hf selects Vista graph format (default). \n - vm and ipe are variations of the vm format \n - ascii selects a simple home-grown ASCII mesh format. Volume meshes only. \n - gmv selects the GMV ASCII format (http://www-xdiv.lanl.gov/XCM/gmv/GMVHome.html). For both surface and volume meshes. \n - gpp selects the GPPView/GeoFEM format (http://geofem.tokyo.rist.or.jp/download_en/gppview.html). Volume meshes only. \n - complex2d selects the complex2d format of GrAL (http://www.math.tu-cottbus.de/~berti/gral). For surface meshes only. \n - dx selects the format of OpenDX (http://www.opendx.org). For surface meshes only.\n\n--------\nTetGen is a program to generate tetrahedral meshes of any 3D polyhedral domains. TetGen generates exact constrained Delaunay tetrahedralizations, boundary conforming Delaunay meshes, and Voronoi partitions.\n\nhttp://tetgen.berlios.de/\n\nTetGen supports a bunch of file formats:\n.node files\n.poly files\n.smesh files\n.ele files\n.face files\n\nOther supported file formats (recognized by file extensions):\n.off files\n.mesh files\n.ply files\n.stl files\n \nhttp://tetgen.berlios.de/fformats.html\n\nIn general it seems that there is always a *.node file for the vertices with a corresponding file that describes how the vertices are combined. \n\n------------\n\nIt would be good to have more example files from tetgen and from vista. \n\nVgrid does not seem to have its own file format, but uses formats defined elsewhere. Also for those example files might be useful."
+      - +@isprivate: "0"
+        commentid: "8262"
+        comment_count: "6"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-13 10:45:09 +0100
+        thetext: |-
+          I'm not sure where this should lead, even though there is a variety of possible output formats for both programs, I would think that it should be sufficient to be able to read their native/standard output format? This would be the vista format for vgrid and *.ele with a *.node for tetgen.
+          Of course, it is always advantageous to be able to handle as many file formats as possible, but I am not sure whether there is any need for the handling of further file formats at this moment. If necessary, read functions for further file formats should be quite easy to implement.
+      - +@isprivate: "0"
+        commentid: "8263"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-13 11:20:23 +0100
+        thetext: "(In reply to comment #6)\n> I'm not sure where this should lead, ...\n\nIt should lead to a complete set of test files and a clear description of what file can act as input and/or output to which software in case an excursion out of the ideal fieldtrip pipeline is needed. \n\nFor example the \"vista format\" seems to be a container that can contain multiple geometrical representations. How does a hypothetical user get an anatomical MRI that was segmented with AFNI and written in the Analyze format into the SIMBIO pipeline? \n\nThis might involve \n  segmentation = ft_read_mri(analyze_file)\n  ft_write_mri(vista_file, segmentation)\n  call vgrid on the command line, have it write the result to the hf(?) vista format\n  mesh = ft_read_headshape(hf_vista_file)\n  headmodel = ft_headmodel_simbio(mesh)\n  etc.\n\nSo here I am seeing an interaction between analyze (could also have been nifti, or minc, or dicom) and two vista formats.\n\nReading from \"the\" vista format would not be sufficient to allow this excursion. \n\nThat is why I want to have an inventory of formats that ft_read_headshape could support. Some formats seem to be more appropriate for ft_read_mri. For some formats we need the respective write functions. These functions does not have to support all formats, but we have to be able to communicate to users how to implement a particular pipeline.\n\nThis is not only about programming, but as much about documentation. Remember that someone has to be using the code, and that that someone does not have your expertise. Comment 5 could at a certain point be changed into a FAQ: \"how do I make an excursion to software XX for the SIMBIO pipeline?\". The answer to that needs to address both the \"why\" and the \"how\"."
+      - +@isprivate: "0"
+        commentid: "8264"
+        comment_count: "8"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-13 11:51:07 +0100
+        thetext: |-
+          (In reply to comment #7)
+          "It should lead to a complete set of test files and a clear description of what
+          file can act as input and/or output to which software in case an excursion out
+          of the ideal fieldtrip pipeline is needed."
+
+          The question is, whether it should be a description of what can act as input and/or output or a description what should act as input and/or output. There is a bunch of different formats, but most of theme are needless in our case, so that a documentation of these would only confuse the user.
+          Thus, from my point of view a complete set of test files for the parts of ft_read_headshape needed for simbio consists of a *.v-mesh and a *.ele with *.node.
+          The other file formats should not be used, so that it should be clearly stated in the documentation to use the standard file formats when taking an excursion to get a simbio-headmodel.
+
+          Do we agree here?
+
+          Additionally, there should be test files for the input of vgrid and tetgen, which would be a MRI/segmentation in the vista format for vgrid and a set of surfaces in the *.poly format for tetgen, but this should not be handled by ft_read_headshape of course.
+      - +@isprivate: "0"
+        commentid: "8265"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-13 12:23:10 +0100
+        thetext: "(In reply to comment #8)\n\nwhether a format is needed depends on the users needs, not on the developer's \n\nE.g. George probably has his rat brain files in *.stl format, not in a vista format. So he should be enabled to convert them to vista format.\n\nThe SIMBIO developers can indeed work with the limited perspective that they don't have to care about the users and only worry about their own specific formats, the FieldTrip developers should care about bridging the gaps.\n\nTo repeat myself: I don't want to make read/write code for all formats. But in order to determine usefulness and which formats need support, we have to know which formats exist. So far there was no list, now there is. I suggest we move on with getting things done.\n\n@Lilla, how far are you with making test scripts and assigning bugs to the others?\n\n@Johannes if you have more files that you consider to be useful for testing any read/write code, please pass them on to Lilla."
+      - +@isprivate: "0"
+        commentid: "8266"
+        comment_count: "10"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-13 15:16:10 +0100
+        thetext: |-
+          (In reply to comment #9)
+          Ok, then maybe I didn't get your point correctly before.
+
+          Including the read/write functions for the vista MRI format to ft_read/write_mri might make sense so that we would need a test file for that too, I'll search for one...
+      - +@isprivate: "0"
+        commentid: "8267"
+        comment_count: "11"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-13 17:34:00 +0100
+        thetext: "hi Jakob,\n\nI assigned this bug for you. \n\nYou can find a test script in fieldtrip/test/test_bug1818.m This script is testing if the ft_read_headshape function can read in vista and tetgen meshes in an appropriate FieldTrip format.\n\nWhen I run the test script, I get an error because ft_read_headshape can not read in the tetgen mesh (but it works well with vista mesh).  When test script can run without an error, the meshes are also in the appropriate format, and this bug is solved.\n\nPlease, take a look on bug1819 as well, because also labels for the elements should be added for the tetgen mesh.\n\nYou will probably need to change the path to the example files in the test script.\n\nThanks and let us know if you have questions.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "8269"
+        comment_count: "12"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-14 10:17:57 +0100
+        thetext: |-
+          (In reply to comment #11)
+          Hey Lilla,
+          there where some smaller mistakes in the test script, if you correct them it should work fine (at least it did on my pc...).
+
+          1. ft_read_headshape doesn't recognize the tetgen-format automatically so that you have to add ft_read_headshape(...,'format','tetgen') to the call.
+          2. When reading in tetgen meshes, you shouldn't give the full filename but only the name without ending, so without the .1.ele/.1.node part. Furthermore, you don't read .ele and .node seperately but at once.
+          3. To create a parcellation afterwards, you already need the information which element belongs to which compartment. To achieve this, you have to include what I posted for bug 1819.
+
+          A corrected script for the tetgen part looks like this:
+
+          % tetgen
+          mesh = ft_read_headshape('/home/common/matlab/fieldtrip/data/test/bug1818/tet_4layer_127_127_127','format','tetgen');
+
+          parcellation1 = ft_datatype_parcellation(mesh);
+          parcellation2 = ft_datatype_parcellation(mesh,'parcellationstyle','probabilistic');
+
+          if~(ft_datatype(parcellation1,'parcellation'))
+            error('the conversion to a parcellation failed');
+          end
+
+          if~(ft_datatype(parcellation2,'parcellation'))
+            error('the conversion to a parcellation failed');
+          end
+
+          Best, Johannes
+      - +@isprivate: "0"
+        commentid: "8270"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-14 11:09:28 +0100
+        thetext: |-
+          (In reply to comment #12)
+
+          > 1. ft_read_headshape doesn't recognize the tetgen-format automatically so that
+          > you have to add ft_read_headshape(...,'format','tetgen') to the call.
+
+          Then that is something to be fixed in fileio/ft_filetype if possible. Please have a look there.
+      - +@isprivate: "0"
+        commentid: "8271"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-14 11:14:20 +0100
+        thetext: |-
+          (In reply to comment #12)
+
+          > 2. When reading in tetgen meshes, you shouldn't give the full filename but only
+          > the name without ending, so without the .1.ele/.1.node part. Furthermore, you
+          > don't read .ele and .node seperately but at once.
+
+          This has to be made robust to user specification of either one of the files. I suggest something along the line of
+
+          [p, f, x] = fileparts(inputfilename)
+          elefile    = fullfile(p, [f '.ele']);
+          nodefile = fullfile(p, [f '.node']);
+
+          for consistency with other fieldtrip behavior, the following should be made to work:
+
+          [f, p] = uigetfile('*', 'please select one of the tetgen files');
+          and then allow the user to do
+          mesh = ft_read_mesh(fullfile(p, f))
+      - +@isprivate: "0"
+        commentid: "8272"
+        comment_count: "15"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-14 12:06:33 +0100
+        thetext: |-
+          Ok, if I think about it it's perhaps a bit more complicated. The problem is, that a .ele file necessarily has to come with a .node file, but not the other way round. A .node might also be the only file, just containing a node list, or come with a .face file containing surface definitions.
+
+          Would it be reasonable to let the user enter the name of the .ele file if he wants to read the mesh?
+      - +@isprivate: "0"
+        commentid: "8273"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-14 12:16:12 +0100
+        thetext: |-
+          (In reply to comment #15)
+
+          This is not unique to the problem we are solving here, there are many cases like this. E.g. (known for Lilla) the brainvision and ctf dataset formats have a variety of files that belong together.
+
+          ft_filetype can do something like
+
+          if node and ele exist, then it is tetgen_ele
+          elseif node and surf exist, then it is tetgen_surf
+          elseif only node exist, then it is tetgen_node
+
+          In the tetgen_ele section in ft_read_headshape you know that you need a ele and a node file and hence can do
+          [p, f, x] = fileparts(inputfilename)
+          elefile    = fullfile(p, [f '.ele']);
+          nodefile = fullfile(p, [f '.node']);
+
+          In the tetgen_surf section in ft_read_headshape (*) you know that you need a surf and a node file and hence can do
+          [p, f, x] = fileparts(inputfilename)
+          surffile    = fullfile(p, [f '.surf']);
+          nodefile = fullfile(p, [f '.node']);
+
+          and in the tetgen_node section just read the nodes, there is no filename confusion.
+
+          Note that we do not need the tetgen_surf section for now, I am just mentioning it for illustrative purposes.
+      - +@isprivate: "0"
+        commentid: "8275"
+        comment_count: "17"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-14 14:08:58 +0100
+        thetext: "(In reply to comment #16)\nOk, I have now added\n\nelseif (filetype_check_extension(filename, '.ele') || filetype_check_extension(filename, '.node')) && exist([p f '.node']) && exist([p f '.ele'])\n  type = 'tetgen_tet';\n  manufacturer = 'TetGen - A Quality Tetrahedral Mesh Generator and a 3D Delaunay Triangulator';\n  content = 'tetgen tetrahedral mesh';\nelseif (filetype_check_extension(filename, '.face') || filetype_check_extension(filename, '.node')) && exist([p f '.node']) && exist([p f '.face'])\n  type = 'tetgen_fac';\n  manufacturer = 'TetGen - A Quality Tetrahedral Mesh Generator and a 3D Delaunay Triangulator';\n  content = 'tetgen surface mesh';\nelseif filetype_check_extension(filename, '.node')\n  type = 'tetgen_nod';\n  manufacturer = 'TetGen - A Quality Tetrahedral Mesh Generator and a 3D Delaunay Triangulator';\n  content = 'tetgen nodes ';\nend\n\nto ft_filetype and\n\n  case 'tetgen_tet'\n    % reads in the tetgen format and rearranges according to FT conventions\n    % tetgen files also return a 'faces' field (not used here)\n    [p, f, x] = fileparts(filename);\n    shape = rmfield(shape,'fid');\n    IMPORT = importdata([p f '.node'],' ',1);\n    shape.pnt = IMPORT.data(:,2:4);\n    IMPORT = importdata([p f '.ele'],' ',1);\n    shape.tet = IMPORT.data(:,2:5);\n    if size(IMPORT.data,2)==6\n        shape.tissue = IMPORT.data(:,6);\n    end\n    \n    % add label (see above at vista)\n    % shape.tissue \n    % shape.tissuelabel\n    \n  case 'tetgen_fac'\n    error('TetGen .face not yet implemented!')\n        \n  case 'tetgen_nod'\n    error('TetGen .node not yet implemented!')\n\nto ft_read_headshape, which works fine on my machine."
+      - +@isprivate: "0"
+        commentid: "8276"
+        comment_count: "18"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2012-11-14 14:16:43 +0100
+        thetext: |-
+          One more point for Lilla:
+
+          If you assign the labels by
+
+              % representation of data is compatible with ft_datatype_parcellation
+              shape.tissue = zeros(size(labels));
+              numlabels = size(unique(labels),1);
+              shape.tissuelabel = {};
+              for i = 1:numlabels
+                  ulabel = unique(labels);
+                  shape.tissue(labels == ulabel(i)) = i;
+                  shape.tissuelabel{i} = num2str(ulabel(i));
+              end
+
+          it might happen, that you change the labels of the different tissues when reading a mesh. Is there a need for the parcellation datatype, that the tissues start at 1 and are increasing in steps of one? Otherwise it would probably be better to keep the original labels to avoid confusion, which would mean
+
+                  shape.tissue(labels == ulabel(i)) = ulabel(i);
+
+          or easier
+
+                  shape.tissue = labels;
+      - +@isprivate: "0"
+        commentid: "8277"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-14 16:03:21 +0100
+        thetext: "(In reply to comment #18)\n\n> Is there a need for the parcellation datatype, that the tissues\n> start at 1 and are increasing in steps of one? \n\nmesh.tissue contains the indices into mesh.tissuelabel, so the following should work:\n\nfor i=1:length(mesh.tissue)\nfprintf('the tissue is %s\\n' mesh.tissuelabel{mesh.tissue(i)});\nend\n\nIt would be possible to represent it like\n\nmesh.tissue = [10 11 12]\nmesh.tissuelabel = {[], [], [], [], [], [], [], [], [], 'label10', 'label11', 'label12'}\n\nbut that would not be as nice. The index numbers should not be interpreted to start with, they serve to look it up. \n\nThe consequence of the empty tissies later in the code is that we would also have to represent conductivities like\n\nconductivity = [ inf, inf, inf, inf, inf, inf, inf, inf, inf, cond10, cond11, cond12 ]\n\nNote that due to the requirement of mesh.tissue to be used to index other fields that negative numbers are not possible. Fractional numbers (floats) are also not possible, nor is zero."
+      - +@isprivate: "0"
+        commentid: "8343"
+        comment_count: "20"
+        who:
+          +content: JakobLudewig
+          +@name: Jakob Ludewig
+        bug_when: 2012-11-20 16:16:14 +0100
+        thetext: |-
+          (In reply to comment #11)
+          Ok, I'll look into it.
+
+          Greetings
+          Jakob
+      - +@isprivate: "0"
+        commentid: "8360"
+        comment_count: "21"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2012-11-21 17:17:25 +0100
+        thetext: "(In reply to comment #19)\nhi Robert,\ncan I close this bug? \n\nWe created this bug primarily for reading in fem tetrahedral and hexahedral meshes and converting them to FT-style matlab structures. The test script  (test_bug1818) for this bug runs without error.\n\nI can file a new bug for testing other meshes as well.\n\nLilla"
+      - +@isprivate: "0"
+        commentid: "8361"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-21 17:43:29 +0100
+        thetext: |-
+          (In reply to comment #21)
+
+          yes, this seems to be resolved.

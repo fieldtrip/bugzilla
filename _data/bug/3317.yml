@@ -1,0 +1,146 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3317"
+    creation_ts: 2017-06-21 15:36:00 +0200
+    short_desc: ft_singleplotTFR and ft_multiplotTFR show useless warnings
+    delta_ts: 2019-04-02 12:06:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dmatthes
+      +@name: Daniel Matthes
+    assigned_to: fieldtriptoolbox
+    cc:
+      - a.stolk8
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18765"
+        comment_count: "0"
+        who:
+          +content: dmatthes
+          +@name: Daniel Matthes
+        bug_when: 2017-06-21 15:36:27 +0200
+        thetext: "If I call ft_singleplotTFR or ft_multiplotTFR with data containing a trialinfo, I got the following warning.\n\nWarning: could not determine dimord of \"trialinfo\" in:\n\n        label: {64×1 cell}\n       dimord: 'rpt_chan_freq_time'\n         freq: [1×49 double]\n         time: [1×345 double]\n    powspctrm: [1×64×49×345 double]\n    cumtapcnt: [49×1 double]\n    trialinfo: 100\n          cfg: [1×1 struct]\n\n \n> In getdimord>warning_dimord_could_not_be_determined (line 621)\n  In getdimord (line 572)\n  In ft_selectdata (line 201)\n  In ft_freqdescriptives (line 132)\n  In ft_singleplotTFR (line 190)\n\nOn my opinion, it should not appear because the trialinfo variable has nothing to do with the dimension of the powspctrm array.\n\nBut I'm not really sure, how to fix it, therefore I report this behavior as a bug."
+      - +@isprivate: "0"
+        commentid: "18766"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-22 20:08:23 +0200
+        thetext: |-
+          the error indicates that getdimord is not smart enough. It should know what the dimensions of trial info are (I even know this from the top of my head: it is "rpt_other")
+
+          Can you suggest a fix/PR for getdimord?
+      - +@isprivate: "0"
+        commentid: "18767"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-22 20:09:24 +0200
+        thetext: hmm, it is a weird structure, since it has a single trial.
+      - +@isprivate: "0"
+        commentid: "18890"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-08-25 18:45:51 +0200
+        thetext: Just backing up this observation. getdimord warnings are ubiquitous, and sometimes fields (e.g. fourierspctrm) disappear in relation to the warning. I assumed this is work in progress, but if not, let me know so I could start collecting/simulating the issues as I go.
+      - +@isprivate: "0"
+        commentid: "19674"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2019-04-01 08:59:54 +0200
+        thetext: Daniel/Arjen, does this need to be followed up? If so, please suggest a way forward by means of a PR, as per Robert's suggestion.
+      - +@isprivate: "0"
+        commentid: "19675"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2019-04-01 09:06:20 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+          Haven't observed this behavior in a while, so closing this issue
+      - +@isprivate: "0"
+        commentid: "19685"
+        comment_count: "6"
+        who:
+          +content: dmatthes
+          +@name: Daniel Matthes
+        bug_when: 2019-04-02 10:28:48 +0200
+        thetext: The warning is still existing. I will try to create a fix, when I find the time.
+      - +@isprivate: "0"
+        commentid: "19687"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-04-02 12:06:07 +0200
+        thetext: |-
+          the detection of dimord is (has been) improving over time. Whenever I encounter a case that annoys me, I always try to to improve hte getdimord function.
+
+          "private/getdimord.m" line 424 now has
+
+            case {'sampleinfo' 'trialinfo' 'trialtime'}
+              if isequalwithoutnans(datsiz, [nrpt nan])
+                dimord = 'rpt_other';
+              end
+
+          which I think should deal with the specific one.
+
+          However, using "git blame" I see that this piece of code is already present since 2014.  So apparently something is wrong ....
+
+          Ah, I see that the data structure is internally not consistent. The field freq.cumtapcnt should be ntrials*1, which suggests that the data consists of 49 trials, whereas powspctrm and trialinfo show that it is only contains a single trial.
+
+          Please try the following with freq.cumtapcnt commented out or not:
+
+          ------------
+          freq = [];
+          for i=1:64
+            freq.label{i} =num2str(i);
+          end
+          freq.freq = 1:49;
+          freq.time = 1:345;
+          freq.powspctrm = randn(1, 64, 49, 345);
+          % freq.cumtapcnt = ones(49,1);
+          freq.trialinfo = 100;
+          freq.cfg = [];
+
+
+          cfg = [];
+          cfg.avgoverfreq = 'yes';
+          cfg.avgovertime = 'yes';
+          freq_avg = ft_selectdata(cfg, freq);
+
+          ------------
+
+          The question then is: Where does this incorrect freq.cumtapcnt come from?

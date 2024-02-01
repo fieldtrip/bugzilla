@@ -1,0 +1,157 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1791"
+    creation_ts: 2012-10-25 09:59:00 +0200
+    short_desc: implement a function for TMS artifact removal
+    delta_ts: 2015-07-15 13:22:15 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - eelke.spaak
+      - lennartverhagen
+      - martin.schecklmann
+      - nathanweisz
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7988"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-25 09:59:23 +0200
+        thetext: |-
+          At the Trento workshop I looked at the existing code from Lennart. It was not appropriate to share that with the course participants so I made a first implementation of a simpler version, see http://code.google.com/p/fieldtrip/source/detail?r=6788
+
+          The different ideas on TMS artifact handling have to be merged and combined in this function.
+      - +@isprivate: "0"
+        commentid: "8122"
+        comment_count: "1"
+        who:
+          +content: martin.schecklmann
+          +@name: schecklman_m
+        bug_when: 2012-11-02 17:03:00 +0100
+        thetext: "Dear Fieldtrip team,\n\nI have to thank you for this kind and helpful workshop in Trento and especially for your help with the TMS-related artifact. I see that Robert has postet the \"bug\" already. However, I just want to add some important details which might be included in this fieldtrip-function.\n\nFirstly, I want to state one small bugs in the first version of the function I got on the workshop (ft_removetmsartifact). Highpass- instead of lowpass-filter should be used. The inclusion of the possibility to replace the artifact with Gaussion noise might be of interest, too. \n\nI think it should be made clear that there are two kinds of TMS-induced artifacts. The first one is the technical artifact which last only about 30ms which should be replaced with zeros or noise. The second one which might be not aware to everyone - I guess - is a long-lasting slow drift (about 100ms or longer) in the data which arises only in locations where a head muscle is activated by the TMS pulse. This slow drift comes about by the movement of the cap/electrodes due to movement of the head muscle. For example, it could be easily observed by eye if you stimulate temporal areas that the cap is moving under the coil. For this artifact the highpass-filtering from both sides of the artifact works very well. I tested this function by using a higpass filter with 3Hz in one subject. In a recent paper (Weisz, Lüchinger, Thut, Müller, in press, HBM, Effects of Individual Alpha rTMS Applied to the Auditory Cortex and Its Implications for the Treatment of Chronic Tinnitus), the short-lasting artifact was replaced by noise and then the physiologic artifacts on the electrodes under the coil were identified via subsequent ICA. This might also depict an effective method to handle this kind of artifacts.\n\nThank you again.\n\nMartin Schecklmann"
+      - +@isprivate: "0"
+        commentid: "8391"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-23 20:04:17 +0100
+        thetext: Jim, a donders phd student, will soon start working on this and improve and document the existing solution.
+      - +@isprivate: "0"
+        commentid: "8467"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-11-28 16:28:39 +0100
+        thetext: 'Note at bug binge: the test script is failing, because a variable ''data'' is not found. This is probably a trivial fix, but I don''t know where to find suitable TMS test data.'
+      - +@isprivate: "0"
+        commentid: "8760"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 14:42:22 +0100
+        thetext: '*** Bug 1903 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "10752"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-13 16:44:03 +0200
+        thetext: |-
+          Some comments by Lyzko sent to Robert:
+
+          -cfg.hpxxx should be cfg.lpxxx.
+          -the artifact removal part of the function only works on trials that contain single pulses, even though pulsedetect() can detect multiple pulses. This is due to the use of nearest, which only allows one input (or [min max]).
+          -filtering in the 'twopass' method should probably only be applied on the data containing TMS artifacts (probably the filtering should be done on the whole trial to prevent edge artifacts but only the data around the TMS-pulse should be used).
+      - +@isprivate: "0"
+        commentid: "11155"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-08-14 16:16:11 +0200
+        thetext: |-
+          Adding         ft_artifact_tms.m
+          Transmitting file data ..
+          Committed revision 8394.
+
+          ft_artifact_tms works as a wrapper around ft_artifact_zvalue by calculating the first temporal derivative of the data and detecting z-thresholded peaks. The user can specify the window before, and after the detected event to mark as an artifact. Alternatively, the user can specify to read the onset of the TMS-pulses based on markers placed in the data, again the user can specify the period to be marked as an artifact.
+      - +@isprivate: "0"
+        commentid: "11222"
+        comment_count: "7"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-08-27 17:01:22 +0200
+        thetext: |-
+          Created and added test script for tutorial.
+
+          Adding         test_tutorial_tmseeg.m
+          Transmitting file data .
+          Committed revision 8430.
+
+
+          First draft of tutorial can be found at http://fieldtrip.fcdonders.nl/development/eeg_tms
+      - +@isprivate: "0"
+        commentid: "11362"
+        comment_count: "8"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-09-19 10:41:34 +0200
+        thetext: "I am going to close this bug as a TMS-EEG tutorial has been created on how to deal with a TMS-EEG dataset using FieldTrip. See: http://fieldtrip.fcdonders.nl/tutorial/tms-eeg\n\nThe function ft_removetmsartifact is as of now deprecated and will be removed in the future. \n\nSending        ft_removetmsartifact.m\nTransmitting file data .\nCommitted revision 8471."
+      - +@isprivate: "0"
+        commentid: "13204"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-02 21:50:15 +0200
+        thetext: the deprecation of ft_removetmsartifact should be documented in the help of that function. At the moment the help suggests that the function will be further developed.
+      - +@isprivate: "0"
+        commentid: "13208"
+        comment_count: "10"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-04-03 10:03:20 +0200
+        thetext: |-
+          I've updated the help to reflect the deprecated status.
+
+          Sending        ft_removetmsartifact.m
+          Transmitting file data .
+          Committed revision 9338.

@@ -1,0 +1,111 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2437"
+    creation_ts: 2014-01-16 15:15:00 +0100
+    short_desc: consider using image opening to post-process thresholded map when doing (source) statistics
+    delta_ts: 2014-01-22 13:49:11 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12516"
+        comment_count: "0"
+        attachid: "582"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-16 15:15:12 +0100
+        thetext: |-
+          Created attachment 582
+          opening demo
+
+          There is a thresholded n-dimensional binary map involved in all clustering routines, derived from comparing the computed statistic to the specified critical threshold.
+
+          For sensor-level time/frequency/channel clustering we have the parameter cfg.minnbchan, which removes samples from this binary map in case the time/frequency clusters are connected by a number of channels less than the value of cfg.minnbchan. This makes sense because from physiological prior info we can expect 'real' clusters to be connected by more than just a narrow bridge of samples.
+
+          I recall several posts on the mailing list from people asking about a similar cfg.minnbtim or cfg.minnbfreq parameter, separating clusters that are connected by a narrow bridge in the time or freq dimension. This would also make sense, I think. However, this is not possible to implement in the same way as cfg.minnbchan, as throughout findcluster() the time/freq dimension is treated as a regular 2D matrix (which is good, because then labelling of the clusters is very fast through spm_bwlabel).
+
+          Similarly, I just ran into this issue when doing source statistics: I observed a big cluster consisting of two physiologically plausible 'blobs' connected by a physiologically highly implausible narrow bridge of samples (in 3D the probability of getting such a wacky bridge is of course much higher than in 2D). The clustering routine of course treated this cluster as one, making the results hard to interpret.
+
+          After a short amount of Googling I found some stuff about morphological binary image processing. This is a useful link: http://www.johnloomis.org/ece563/notes/BinaryImages/morph/morph.html and this one is specific to Matlab: http://www.mathworks.nl/help/images/morphology-fundamentals-dilation-and-erosion.html . The process of 'opening' (an erosion followed by a dilation) seems to do exactly what I would want here: destroy narrow bridges, retain only major features of the image. See the attachment for a demonstration of what it does on a 2D thing I drew:
+
+            subplot(2,1,1);
+            imagesc(im);
+            colormap gray;
+            title('original');
+            subplot(2,1,2);
+            imagesc(imopen(im, ones(3,3)));
+            colormap gray;
+            title('opened');
+
+          I think it would be a good idea to add this functionality to clusterstat. At least first we might implement it in the case of source statistics, as it is very straightforward there, just add a call to imopen() before doing the labelling of clusters. For time/freq clustering I'm not sure how this would combine with the handling of neighbouring channels (although it might be very simple in that case, too).
+
+          Does anyone see a problem with me implementing this? Maybe we could discuss how to proceed during the meeting.
+      - +@isprivate: "0"
+        commentid: "12517"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-16 18:28:07 +0100
+        thetext: |-
+          From the top of my head: I think there is a minnbchan option somewhere to prevent narrow bridges (in channel-dimension?)
+
+          imopen/imclose/imerode/imdilate all are related to this. There is also something with a "structural element" that one can specify for some of the image toolbox operations.
+
+          I suggest to look into how it is presently done for channels (somewhere in the code of Eric), and make it consistent.
+      - +@isprivate: "0"
+        commentid: "12565"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-22 13:49:11 +0100
+        thetext: Took a vote at FT meeting, people seem in favour. Will implement (after researching what would be the proper structuring element for an n-d opening operation).
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "582"
+      date: 2014-01-16 15:15:00 +0100
+      delta_ts: 2014-01-16 15:15:12 +0100
+      desc: opening demo
+      filename: openingdemo.png
+      type: image/png
+      size: "9183"
+      attacher:
+        +content: eelke.spaak
+        +@name: Eelke Spaak
+      data: REMOVED

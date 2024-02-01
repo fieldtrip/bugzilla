@@ -1,0 +1,79 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3227"
+    creation_ts: 2017-01-02 21:48:00 +0100
+    short_desc: ft_datatype_source chokes on 'rawtrial' source level data with filters kept
+    delta_ts: 2017-01-06 12:17:19 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to: fieldtriptoolbox
+    cc: jens.klinzing
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18121"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-02 21:48:19 +0100
+        thetext: This came up on the discussion list. If I recall well, Jens in CC has reported this in the past. Sounds like a good time to fix it (rather than telling users not to specify cfg.rawtrial in combination with cfg.METHOD.keepfilter='yes';
+      - +@isprivate: "0"
+        commentid: "18132"
+        comment_count: "1"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-01-04 12:57:05 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #0)
+
+          Yes, that was bug #2861
+      - +@isprivate: "0"
+        commentid: "18138"
+        comment_count: "2"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-01-05 15:32:00 +0100
+        thetext: "So, currently if you call ft_sourceanalysis with cfg.rawtrial = 'yes' and cfg.keepfilter = 'yes' calling ft_datatype_source on the result will fail.\n\nThe reason is the additional field source.trial.label (actually not .trial.filter) because it is expected to have as many rows as there are source points but it obviously only has as many rows as there are channels... (ft_datatype_source, line 187).\n\nThis problem occurs whether you provide a filter when calling ft_sourceanalysis or not.\n\nSuggestions how to solve the problem:\n1) Stop allowing the user to set cfg.rawtrial while providing a filter. Either you want to construct the filter from each single trial (is there a situation where this makes sense?) or you provide your own filter. Why would you want both at the same time? \n2) Change the code in a way that it parallels the PCC code (ie. you call ft_sourceanalysis only once, with keeptrials = yes, which computes a common filter and applies it to the single trials)? \nIf that is not feasible, why not call ft_sourceanalysis twice, once with keepfilter = yes and the second time with keeptrials = yes while providing the filter (why should there be rawtrials involved?). If the user sets keepfilter = 'yes' for the second call, just attach the provided filter to the output."
+      - +@isprivate: "0"
+        commentid: "18139"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-06 09:58:16 +0100
+        thetext: "(In reply to Jens Klinzing from comment #2)\n\nI agree with you that we should clean up the rather opaque (and historically 'grown') options in ft_sourceanalysis rawtrial/singletrial/keeptrials. Yet, I am a bit reluctant to patch this, because building patch upon patch upon patch is ugly and not efficient, and I'd rather do a big overhaul in a single step in this case. However, this requires much more thought.\nAs an alternative, we could \n-disable the combination 'rawtrial'/'keepfilter', i.e. throw an error\n-exclude the label field to be treated the same as the other cell-array type datafields in ft_datatype_source\n-put the spatial filter one level up in the output structure: if I recall well, in the past (with rawtrial + filters present) the filter ended up both at source.trial(x).filter, and at source.filter, causing problems as well...\n\nWhat a mess :o)"
+      - +@isprivate: "0"
+        commentid: "18140"
+        comment_count: "4"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2017-01-06 12:17:19 +0100
+        thetext: "I understand your points. So let's just keep it running for now, while keeping the user from making mistakes.\n\nCurrently, setting the rawtrial option constructs the spatial filter on single trials if no filter is provided. However, it effectively turns into a keeptrials option in case a filter is provided - but not for PCC where there is no rawtrial option. If it should stay this way, I think we should explain this somewhere in the documentation.\n\nYou suggested to disable the 'rawtrial'/'keepfilter' combination. However, if we allow the user to construct spatial filters based on single trials, maybe he/she should be able to keep those filters as well. Or are single-trial filters deprecated anyways, so it doesnt have to be supported? \n\nTo your second point, in my last try I only got back the single trial-based filters at source.trial(x).filter in the output, without a source.filter."

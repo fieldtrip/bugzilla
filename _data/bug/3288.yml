@@ -1,0 +1,233 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3288"
+    creation_ts: 2017-04-23 04:27:00 +0200
+    short_desc: SPM12 mex files fail with Matlab 2017a
+    delta_ts: 2019-08-10 12:40:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: external
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - arnaudpoublan
+      - brady.williamson
+      - g.flandin
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18574"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-23 04:27:15 +0200
+        thetext: "On 2015b, the following produces:\n\nmri = dccnpath('/home/common/matlab/fieldtrip/data/test/latest/mri/nifti/single_subj_T1.nii');\nV1 = ft_write_mri('test.nii', mri.anatomy,  'transform', mri.transform,  'spmversion', 'spm12', 'dataformat', 'nifti_spm');\n\nV1 = \n\n      fname: 'test.nii'\n        dim: [181 217 181]\n         dt: [16 0]\n      pinfo: [3x1 double]\n        mat: [4x4 double]\n          n: [1 1]\n    descrip: 'NIFTI-1 Image'\n    private: [1x1 nifti]\n\n\nOn 2017a, after running for many minutes, it complains about missing symbols. There's a whole list, I just copy-pasted 3 of them:\n\nMissing symbol '_wmemset' required by\n'/usr/lib/libstdc++.6.dylib->/Users/arjsto/Documents/MATLAB/fieldtrip/external/spm12/spm_existfile.mexmaci64'\nMissing symbol '_write' required by\n'/usr/lib/libstdc++.6.dylib->/Users/arjsto/Documents/MATLAB/fieldtrip/external/spm12/spm_existfile.mexmaci64'\nMissing symbol '_writev' required by\n'/usr/lib/libstdc++.6.dylib->/Users/arjsto/Documents/MATLAB/fieldtrip/external/spm12/spm_existfile.mexmaci64'.\n\nError in write_hdr_raw (line 49)\nif spm_existfile(hname)\n\nError in nifti/create (line 25)\n    sts = write_hdr_raw(fname, o.hdr, o.dat.dtype(end-1)=='B');\n\nError in volumewrite_spm (line 79)\n    create(N);\n\nError in ft_write_mri (line 65)\n    V = volumewrite_spm(filename, dat, transform, spmversion);\n\n\nAnyone any idea?"
+      - +@isprivate: "0"
+        commentid: "18579"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-24 09:10:34 +0200
+        thetext: "some of the dynamic libraries required by the mex file seem to be missing. This is not a FT issue, but possibly an SPM issue. \n\nA work-around would be to recompile the SPM mex files, but in that case a similar problem might appear for the older MATLAB versions.\n\nI'll CC Guillaume on this."
+      - +@isprivate: "0"
+        commentid: "18581"
+        comment_count: "2"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2017-04-24 17:13:04 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+          The Mac MEX files shipped with SPM12 don't indeed seem to work with MATLAB R2017a. The fix is to recompile them yourself, instructions are here:
+            https://en.wikibooks.org/wiki/SPM/Installation_on_64bit_Mac_OS_%28Intel%29
+          Otherwise you can download freshly compiled ones:
+            http://www.fil.ion.ucl.ac.uk/spm/download/spm12_updates/spm12_mexmaci64.tar.gz
+          This is specific to macOS and I'm not sure to understand what is going on. If you find a combination of MATLAB, macOS and Xcode versions that can be used to generate a set of MEX files with maximum compatibility with other MATLAB and macOS versions, I would be interested!
+      - +@isprivate: "0"
+        commentid: "18585"
+        comment_count: "3"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-25 01:19:30 +0200
+        thetext: "(In reply to Guillaume from comment #2)\n\nThanks, Guillaume. After replacing the original mexfiles with the ones you sent, now the previous code follows through smoothly in both matlab versions (on a 2015 macbook pro running version OS Sierra 10.12.4).\n\n2015B:\n>> mri = ft_read_mri('/Users/arjsto/Projects/Ecog/data/template/single_subj_T1_1mm.nii');\nWarning: adding /Users/arjsto/Documents/MATLAB/fieldtrip/external/freesurfer toolbox to your MATLAB path \n>> V1 = ft_write_mri('test15.nii', mri.anatomy,  'transform', mri.transform,  'spmversion', 'spm12', 'dataformat', 'nifti_spm');\nWarning: adding /Users/arjsto/Documents/MATLAB/fieldtrip/external/spm12 toolbox to your MATLAB path \n\n2017A:\n>> mri = ft_read_mri('/Users/arjsto/Projects/Ecog/data/template/single_subj_T1_1mm.nii');\nWarning: adding /Users/arjsto/Documents/MATLAB/fieldtrip/external/freesurfer toolbox to your MATLAB path \n>> V1 = ft_write_mri('test17.nii', mri.anatomy,  'transform', mri.transform,  'spmversion', 'spm12', 'dataformat', 'nifti_spm');\nWarning: adding /Users/arjsto/Documents/MATLAB/fieldtrip/external/spm12 toolbox to your MATLAB path \n\nRan test_spm12, which tests several spm12 but also spm8 functionalities, and the spm12 functions came through under both matlab 2015B and 2017A. Interestingly, the spm8 functionalities threw the same errors as above regarding the missing symbols under matlab2017a, suggesting the spm8 mexmaci64 files suffer the same problems as the spm12 did (but given it now works for spm12, this is less pressing maybe). \n\n@Robert: unfortunately I do not have any other matlab versions or mac64-based OS's to test these spm12-related mexmaci64 files on. Do you want to test it on your computer before reeling in my upcoming PR?"
+      - +@isprivate: "0"
+        commentid: "18586"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-25 01:25:42 +0200
+        thetext: https://github.com/fieldtrip/fieldtrip/pull/412
+      - +@isprivate: "0"
+        commentid: "18589"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-25 13:28:24 +0200
+        thetext: |-
+          I ran test_spm12 with R2012b and the new mex files and did not observe any issues. So I'll merge...
+
+          bummer, I just merged and now I notice fieldtrip/external/spm12/external/fieldtrip.
+
+          So fieldtrip mex files were included. That is not good, it should only have updated existing mex files, not added new ones.
+      - +@isprivate: "0"
+        commentid: "18590"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-25 13:33:42 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #5)\n\nI compared the content of external/spm12 prior to and after the merge and deleted the files that were not there before. \n\nmac011> git commit -a\n[master 692f1fc] removed external SPM12 mex files that were not included before. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3288#c5\n 59 files changed, 0 insertions(+), 0 deletions(-)\n\nmac011> git push upstream master\nYou're about to push master, is that what you intended? [y|n] y\nCounting objects: 5, done.\nDelta compression using up to 4 threads.\nCompressing objects: 100% (5/5), done.\nWriting objects: 100% (5/5), 563 bytes | 0 bytes/s, done.\nTotal 5 (delta 4), reused 0 (delta 0)\nremote: Resolving deltas: 100% (4/4), completed with 4 local objects.\nTo github.com:fieldtrip/fieldtrip.git\n   0be90e1..692f1fc  master -> master"
+      - +@isprivate: "0"
+        commentid: "18596"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-25 21:47:49 +0200
+        thetext: Oops, missed those too yeah. Thanks.
+      - +@isprivate: "0"
+        commentid: "18597"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-25 21:59:22 +0200
+        thetext: "Btw, Guillaume, some people in our lab are experiencing another strange matlab-version specific issue that affects spm usage. Namely, under Matlab 2016b str2num('') throws the following error \n\nError using str2num (line 31)\nRequires character vector or array input.\n\nwhereas under Matlab 2015b or 2017a it simply returns an vector array.\n\nOne of the locations (there are multiple in spm_vol) it affects spm usage is\n\nError in spm_vol>spm_vol_hdr (line 78)\nn = str2num(n);\n\nwhere n here comes from spm_fileparts, which sets n = '' ([pth,nam,ext,n] = spm_fileparts(p);)\n\nAgain, str2num('') only fails under 2016b. Have you seen this issue before, and if so, found a workaround?"
+      - +@isprivate: "0"
+        commentid: "18600"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 01:40:48 +0200
+        thetext: "The puzzle is even more complex:\n\nstr2num('') fails on 2016b\n\nHowever, taking the same str2num from 2016b and running it in 2017a works fine. And btw, the 2017a str2num is identical to the 2016b str2num (but different from the 2015b str2num), suggesting it's something about the 2016b environment that causes str2num('') to throw the above error.\n\nTaking the 2015b str2num and putting it in the 2016b environment also works fine, thus solving the entire issue. Although I still don't understand how mathworks broke and fixed the issue in the first place.\n\nThis is likely to be a big issue, if it isn't already for 2016b SPM users? I see three possible solutions:\n1) The few cases in spm_vol where str2num('') may occur are prevented somehow; \n2) Have a 2015b copy of str2num in fieldtrip and add it to the path when spm(12) is added to the path and the matlab version is 2016b. I'm hoping this won't violate Matlab copyrights;\n3) Document this issue on the wiki, and leave it up to the user to find an older version of str2num (not preferred).\n\nI'm guessing you really don't like the second solution, Robert? What's your take on this, Guillaume: is this issue know to SPM users?\n\nFinally, for clarification, the issue occurs because in \n[pth,nam,ext,num] = spm_fileparts(fname) \n\nnum = '';\nif ~ispc, fname = strrep(fname,'\\',filesep); end\n[pth,nam,ext] = fileparts(fname);\nind = find(ext==',');\nif ~isempty(ind)\n    num = ext(ind(1):end);\n    ext = ext(1:(ind(1)-1));\nend \n\nwhen ind is empty, num is ''. And num is later passed on to str2num, in spm_vol. For example at line 75:\nfunction V = spm_vol_hdr(p)\n[pth,nam,ext,n] = spm_fileparts(p);\np = fullfile(pth,[nam ext]);\nn = str2num(n);"
+      - +@isprivate: "0"
+        commentid: "18605"
+        comment_count: "10"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2017-04-26 10:52:56 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #9)
+          I'm not aware of any particular problem regarding str2num. I've just tried on several MATLAB versions and str2num('') always return []. And, as you mention, the code of the str2num.m function is identical between R2016b and R2017a. Could it be that when you use R2016b, there is an overloaded ismatrix function somewhere in the path that breaks str2num?
+      - +@isprivate: "0"
+        commentid: "18606"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-26 15:33:56 +0200
+        thetext: "(In reply to Guillaume from comment #10)\n\nIt also works fine for me \n\n>> str2num('')\nans =\n     []\n\n>> which ismatrix\nbuilt-in (/Applications/MATLAB_R2016b.app/toolbox/matlab/elmat/ismatrix)\n\n>> ver\nMATLAB Version: 9.1.0.441655 (R2016b)"
+      - +@isprivate: "0"
+        commentid: "18607"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 22:31:27 +0200
+        thetext: I think you both nailed it. It seems this may indeed have been a user error, in which fieldtrip wasn't added to the path correctly (adding all subfolders instead of just the main folder). As a result, ismatrix from one of the subdirectories was used instead of the matlab base ismatrix, causing str2num to fail on ismatrix.
+      - +@isprivate: "0"
+        commentid: "18608"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 22:31:36 +0200
+        thetext: I think you both nailed it. It seems this may indeed have been a user error, in which fieldtrip wasn't added to the path correctly (adding all subfolders instead of just the main folder). As a result, ismatrix from one of the subdirectories was used instead of the matlab base ismatrix, causing str2num to fail on ismatrix.
+      - +@isprivate: "0"
+        commentid: "18610"
+        comment_count: "14"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2017-04-27 11:11:23 +0200
+        thetext: |-
+          Good to know, thanks. So it seems that the FieldTrip version of ismatrix should be modified to be more compatible with the MATLAB one: the check on dimensions should be >= instead of >.
+
+          Different issue but concerning a similar type of function, I've just read this:
+            https://www.nitrc.org/forum/forum.php?forum_id=7281
+          iscomplex.m is provided by FieldTrip as well and I guess it must behave differently in some corner cases. Given that this function is only used by the 'stats' module, could it be moved to the 'private' directory?
+      - +@isprivate: "0"
+        commentid: "18620"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-02 15:42:32 +0200
+        thetext: |-
+          (In reply to Guillaume from comment #14)
+
+          I tested, on 2012b ismatrix([]) indeed returns true and a size of [0 0] is considered a matrix. The code dates back some 10 years (when it was introduced to some toolbox, and later to general), but only has to be compatible with nowadays versions.
+
+          mac011> git commit -a
+          [master 7d1f4ff] ENH - make ismatrix more compatible with Mathworks implementation, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3288#c14
+           1 file changed, 1 insertion(+), 1 deletion(-)
+
+          I am fine with moving is complex to private.
+
+          [master 6a57dee] move iscomplex top private, avoid the problem mentioned in http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3288#c14
+           1 file changed, 0 insertions(+), 0 deletions(-)
+           rename external/stats/{ => private}/iscomplex.m (100%)
+      - +@isprivate: "0"
+        commentid: "18798"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-07-07 10:04:37 +0200
+        thetext: '*** Bug 3322 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "18829"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-14 16:48:49 +0200
+        thetext: '*** Bug 3330 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "20225"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:32 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20424"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:40:42 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,127 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2464"
+    creation_ts: 2014-01-30 12:20:00 +0100
+    short_desc: ft_selectdata "cfg.foilim" setting is ignored but its use is recommended in the help
+    delta_ts: 2014-03-06 15:36:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: p.taesler
+      +@name: Philipp Taesler
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12773"
+        comment_count: "0"
+        attachid: "588"
+        who:
+          +content: p.taesler
+          +@name: Philipp Taesler
+        bug_when: 2014-01-30 12:20:22 +0100
+        thetext: "Created attachment 588\nsample data reduced in size to reproduce the reported behaviour\n\nft_selectdata (or rather ft_selectdata_new) will ignore the cfg.foilim setting (at least for frequency data). The cfg.frequency setting is the one that seems to work, however the help section for ft_selectdata_new is advocating the use of \"foilim\" (\"cfg.frequency = [beg end] -> this is less common, preferred is to use foilim\" (from help)):\n\nfreq = \n\n        label: {61x1 cell}\n       dimord: 'chan_freq_time'\n         freq: [1x44 double]\n         time: [0 0.0520 0.1000]\n    powspctrm: [61x44x3 double]\n    cumtapcnt: [45x44 double]\n          cfg: []\n\ncfg = \n\n    foilim: [10 20]\n\n\ntest = ft_selectdata(cfg, freq)\nthe call to \"ft_selectdata_new\" took 0 seconds\n\ntest = \n\n        label: {61x1 cell}\n       dimord: 'chan_freq_time'\n         freq: [1x44 double]\n         time: [0 0.0520 0.1000]\n    powspctrm: [61x44x3 double]\n    cumtapcnt: [45x44 double]\n          cfg: [1x1 struct]\n\nWhereas\n\ncfg = \n\n    frequency: [10 20]\n\nproduces\n\ntest = \n\n        label: {61x1 cell}\n       dimord: 'chan_freq_time'\n         freq: [1x11 double]\n         time: [0 0.0520 0.1000]\n    powspctrm: [61x11x3 double]\n    cumtapcnt: [45x44 double]\n          cfg: [1x1 struct]\n\nAlso, the cumtapcnt field seems unaffected, but I'm not sure if this is intended or not. Tested with fieldtrip-20140121.\n\nMay be related to bug 1881"
+      - +@isprivate: "0"
+        commentid: "12829"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-12 14:27:07 +0100
+        thetext: will look into it, thanks for reporting.
+      - +@isprivate: "0"
+        commentid: "12836"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 14:33:26 +0100
+        thetext: "Hi Philipp, \nI have been fooling around with ft_selectdata_new for some other purpose, but it seems to have resolved your problem along the way (with revision 9200). That is, cfg.foilim and cfg.frequency now give the same results. The only thing left now is to prune the cumtapcnt..."
+      - +@isprivate: "0"
+        commentid: "12837"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 14:34:09 +0100
+        thetext: |-
+          To verify:
+
+          cfg = [];
+          cfg.foilim = [10 20];
+          sel = ft_selectdata(cfg, freq);
+
+          cfg = [];
+          cfg.frequency = [10 20];
+          sel2 = ft_selectdata(cfg, freq);
+
+          assert(isequal(rmfield(sel, 'cfg'), rmfield(sel2, 'cfg'))); % the cfg needs to be removed because they are by construction different...
+      - +@isprivate: "0"
+        commentid: "12838"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 14:41:25 +0100
+        thetext: hmmm, in your case there should actually not be a cumtapcnt to begin with, because your data seem to be an average across observations anyway, so the cumtapcnt information is not usable.
+      - +@isprivate: "0"
+        commentid: "12839"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 14:42:02 +0100
+        thetext: With which I mean that this could be a flaw in FieldTrip in ft_freqanalysis, and is not only a 'problem' in ft_selectdata.
+      - +@isprivate: "0"
+        commentid: "12840"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-02-14 15:37:10 +0100
+        thetext: |-
+          svn commit -m "enhancement - correctly deal with cumtapcnt in tfr data " test/test_bug2464.m test/test_ft_selectdata.m utilities/ft_selectdata_new.m
+          Sending        test/test_bug2464.m
+          Sending        test/test_ft_selectdata.m
+          Sending        utilities/ft_selectdata_new.m
+          Transmitting file data ...
+          Committed revision 9202.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "588"
+      date: 2014-01-30 12:20:00 +0100
+      delta_ts: 2014-01-30 12:20:22 +0100
+      desc: sample data reduced in size to reproduce the reported behaviour
+      filename: bugdata_ft_selectdata.mat
+      type: text/plain
+      size: "62343"
+      attacher:
+        +content: p.taesler
+        +@name: Philipp Taesler
+      data: REMOVED

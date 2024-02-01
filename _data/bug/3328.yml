@@ -1,0 +1,131 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3328"
+    creation_ts: 2017-08-02 14:11:00 +0200
+    short_desc: error with new notification system
+    delta_ts: 2017-08-23 15:20:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: UNCONFIRMED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "0"
+    reporter:
+      +content: dmatthes
+      +@name: Daniel Matthes
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18814"
+        comment_count: "0"
+        who:
+          +content: dmatthes
+          +@name: Daniel Matthes
+        bug_when: 2017-08-02 14:11:10 +0200
+        thetext: |-
+          If I call the following routines in a row,
+
+          ft_warning off;
+          cfg = ft_definetrial(cfg);
+          data = ft_preprocessing(cfg);
+
+          I get the following error trace, when ft_preprocessing is executed:
+
+          Error using isstruct
+          Not enough input arguments.
+
+          Error in mergeconfig>mergeconfig_helper (line 49)
+            elseif  isfield(input, fn) && ~isstruct(default.(fn))
+
+          Error in mergeconfig>mergeconfig_helper (line 53)
+              input.(fn) = mergeconfig_helper(input.(fn), default.(fn));
+
+          Error in mergeconfig>mergeconfig_helper (line 53)
+              input.(fn) = mergeconfig_helper(input.(fn), default.(fn));
+
+          Error in mergeconfig>mergeconfig_helper (line 39)
+                    input(j) = mergeconfig_helper(input(j), default(j));
+
+          Error in mergeconfig>mergeconfig_helper (line 53)
+              input.(fn) = mergeconfig_helper(input.(fn), default.(fn));
+
+          Error in mergeconfig>mergeconfig_helper (line 53)
+              input.(fn) = mergeconfig_helper(input.(fn), default.(fn));
+
+          Error in mergeconfig (line 12)
+            input = mergeconfig_helper(input, default);
+
+          Error in ft_preamble_init (line 55)
+          cfg = mergeconfig(cfg, rmfield(ft_default, 'preamble'));
+
+          Error in ft_preamble (line 85)
+          evalin('caller', full_cmd);
+
+          Error in ft_preprocessing (line 182)
+          ft_preamble init
+
+          If I add a cfg = rmfield(cfg, {'notification'}); between ft_definetrial and ft_preprocessing or if I omit ft_warning off; then the error doesn't appear.
+
+          So I think, the error is produced by the new notification system. It was not not possible for me to find the source of this error in a short time and fix it, therefore I reported the error here
+      - +@isprivate: "0"
+        commentid: "18827"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-14 16:42:24 +0200
+        thetext: |-
+          Hi Daniel,
+
+          I have seen the problem before, and have tried to address it already back then.
+
+          It has to do with the state of the notification system which is maintained between calls in the global ft_default variable.
+
+
+          If I do
+
+          global ft_default
+          ft_default = []
+
+          ft_warning off
+
+          cfg = [];
+          cfg.dataset = 'test_playback.edf';
+          cfg.trialdef.triallength = 1;
+          cfg.trialdef.ntrials = inf;
+
+          cfg = ft_definetrial(cfg);
+          data = ft_preprocessing(cfg);
+
+
+          I cannot reproduce it. Could you try this (with one of your data sets)?
+      - +@isprivate: "0"
+        commentid: "18861"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 15:20:28 +0200
+        thetext: |-
+          Hi Daniel,
+
+          Can you give an update on this issue? If I don't hear back from you, I will assume that the issue has been resolved.

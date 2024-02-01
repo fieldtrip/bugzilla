@@ -1,0 +1,94 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "472"
+    creation_ts: 2011-02-03 22:14:00 +0100
+    short_desc: Matlab crashes after call to ft_write_data
+    delta_ts: 2011-03-31 14:13:52 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: philipvandenbroek
+      +@name: Philip van den Broek
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1377"
+        comment_count: "0"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2011-02-03 22:14:18 +0100
+        thetext: "During debugging, fieldtrip buffers are installed and destroyed several times. At some point, Matlab entirely crashes, it just disappears even without a crash report. The terminal provides the following information:\n\nMATLAB(4080,0xb56a8000) malloc: *** mmap(size=504000512) failed (error code=12)\n*** error: can't allocate region\n*** set a breakpoint in malloc_error_break to debug\nOut of memory with unchecked malloc in line 106vpn-85-36:~ philip$ \n\nRunning Matlab 2010a and a recent FieldTrip version (third week of January)\n\nThe code below replicates the behavior:\n\nfunction testft\n% start without a buffer\nft_destroy_buffer\n% number of attempts\ncnt = 1; \n% use default url\nurl = 'buffer://localhost:1972';\n% dummy header\nhdr.Fs = 256;\nhdr.nChans = 100;\n% after a few attempts, Matlab crashes\nwhile(1)\t\n\tdisp(['counter: ' num2str(cnt)]); cnt = cnt + 1;\n\tft_create_buffer(1972);\n\tft_write_data(url,rand(hdr.nChans,10000), 'header', hdr, 'dataformat', 'fcdc_buffer', 'append', false);\n\tft_read_header(url)\n\tft_destroy_buffer\n\tpause(0.1); % probably meaningless\nend"
+      - +@isprivate: "0"
+        commentid: "1541"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-01 20:41:20 +0100
+        thetext: "I cannot reproduce the error on my MacBook pro (OS X 10.6.6) with MATLAB 2010a and using th ecurrent fieldtrip. I don't think that there are any relevant changes to the buffer mex file (which seems to be causing the crash). Are your computer details different?\n\n------------------------------------\nIn main: spawning tcpserver thread\n\nans = \n\n             Fs: 256\n         nChans: 100\n       nSamples: 10000\n    nSamplesPre: 0\n        nTrials: 1\n           orig: [1x1 struct]\n          label: {100x1 cell}\n\nEntering exitFun() routine\nrequesting cancelation of tcpserver thread\ncleaning up list entry localhost:1972\ncounter: 121\n..."
+      - +@isprivate: "0"
+        commentid: "1543"
+        comment_count: "2"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2011-03-01 21:52:52 +0100
+        thetext: |-
+          You are right, in 64-bit mode, it doesn't crash, although ultimately I think it will because memory usage increases every time a new buffer is created and destroyed. This memory is not released if you stop the loop and execute clear mex.
+          Using 32-bit Matlab2010a, it crashes after a few attempts.
+          I am sorry, I forgot to mention this 32-bit detail.
+      - +@isprivate: "0"
+        commentid: "1545"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-02 09:03:23 +0100
+        thetext: |-
+          I indeed also noticed the memory leak upon many iterations. That is something to look into.
+
+          But first for reproducing the crash: how can I start MATLAB 2010a in 32 bit mode? Oh... I already know.
+
+          It might be that a bug was fixed but that the mexmaci was not recompiled to reflect the latest code changes. Some recent cleanups of the fieldtrip SVN directories and esp. the mex files make it difficult to track,
+      - +@isprivate: "0"
+        commentid: "1696"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-29 14:02:31 +0200
+        thetext: fixed in rev 3240
+      - +@isprivate: "0"
+        commentid: "1719"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-03-31 14:13:52 +0200
+        thetext: changed the status of most recently resolved/fixed bugs into "CLOSED"

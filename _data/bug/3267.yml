@@ -1,0 +1,149 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3267"
+    creation_ts: 2017-03-10 17:53:00 +0100
+    short_desc: ft_redefinetrial incorrectly claims trialinfo cannot be combined
+    delta_ts: 2017-12-04 10:08:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3379
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: braingirl
+      +@name: Teresa Madsen
+    assigned_to:
+      +content: braingirl
+      +@name: Teresa Madsen
+    cc:
+      - a.stolk8
+      - braingirl
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18477"
+        comment_count: "0"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-03-10 17:53:23 +0100
+        thetext: |-
+          When I run ft_redefinetrial using the cfg.length and overlap options, I get this error:
+
+          the input is raw data with 15 channels and 1000 trials
+          Error using ft_redefinetrial (line 264)
+          Old trialinfo cannot be combined into new trialinfo, please specify trialinfo in cfg.trl(:,4)
+          Error in ft_redefinetrial (line 300)
+            data   = ft_redefinetrial(tmpcfg, data);
+          264         error('Old trialinfo cannot be combined into new trialinfo, please specify trialinfo in cfg.trl(:,4)');
+
+          This occurs because of line 261, which tests whether:
+          isequal(dataold.trialinfo(iTrlorig,:),1)
+
+          According to the comment, this is supposed to be checking whether trials that are combined have the same trialinfo (I assume that syntax was thought to mean equal along the 1st dimension), but really, it's testing whether all of the old trialinfo is equal to 1.
+
+          Instead, it should be testing whether there is only 1 unique row of old trialinfo, to unambiguously copy over to the new trialinfo:
+          size(unique(dataold.trialinfo(iTrlorig,:),'rows'),1) == 1
+
+          Also, it's more efficient to put the numel(iTrlorig) test first, as the other is unnecessary if so.  So I'll be pushing a version with that line changed to:
+          if numel(iTrlorig) == 1 || size(unique(dataold.trialinfo(iTrlorig,:),'rows'),1) == 1
+
+          I don't know how I've never run into this error before, but I swear I've seen warnings about trialinfo that confused me, so let me know if there are other functions that might make use of similar tests that need fixing.
+
+          ~Teresa
+      - +@isprivate: "0"
+        commentid: "18478"
+        comment_count: "1"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-03-10 18:04:28 +0100
+        thetext: https://github.com/fieldtrip/fieldtrip/pull/367
+      - +@isprivate: "0"
+        commentid: "18483"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-11 10:46:43 +0100
+        thetext: |-
+          (In reply to Teresa Madsen from comment #0)
+
+          thanks. Could you also check the other ft_appendxxx functions? I would expect these to have something similar.
+
+          mac011> grep -l trialinfo ft_append*
+          ft_appenddata.m
+          ft_appendfreq.m
+          ft_appendsource.m
+          ft_appendtimelock.m
+      - +@isprivate: "0"
+        commentid: "18496"
+        comment_count: "3"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-03-13 18:08:50 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #2)\n\nSure.  I had already done a quick search for the exact same wording and didn't find it in any other functions, but here are the details of a closer look:\n\nFT_APPENDDATA \n- if cattrial - Concatenates along 1st dimension with no check of contents, which seems fine, except that it's not robust to different #s of columns across inputs, but an error seems appropriate in that case, as users would need to decide how to rectify the situation, based on their custom use of trialinfo.  It also wouldn't work with a non-default dimord, but is it safe to assume rows are trials?\n\n- if catlabel - Starts with sampleinfo & trialinfo from the *last* input cell (i used after end of loop through all input cells - I'm changing this to 1 as it could have missed mismatched data there), and compares 2:Ndata to that using isequaln.  If there's not an exact match, it removes the field from the output and prints a message to that effect, but do you think that's worth a warning?\n\n\nFT_APPENDFREQ \n- with cfg.appenddim = 'rpt' 'rpttap' or 'subj' - Concatenates trialinfo along that dimension, with no check of contents, as for cattrial above.\n\n- with cfg.appenddim = 'chan' 'freq' or 'time' - Ignores trialinfo completely as far as I can tell, not even copying it into the output.  Is there good reason for that, or should I add it?\n\n\nFT_APPENDSOURCE\n- with cfg.appenddim = 'rpt' 'rpttap' or 'subj' - If none of those dimensions are found in dimord, it doesn't check for trialinfo, which I guess is reasonable.  Otherwise, concatenates trialinfo along that dimension, with no check of contents, as for cattrial above.\n\n- with cfg.appenddim = 'pos' 'freq' or 'time' - None of these have been implemented yet - they just lead to an error and a FIXME comment.\n\n\nFT_APPENDTIMELOCK\n- with cfg.appenddim = 'chan' - Just takes the first input's trialinfo without verifying equality.  And that's only if the first input has a trial field - otherwise it doesn't check for trialinfo at all.\n\n- with cfg.appenddim = 'rpt' - Preallocates zeros to the field, and then slots trialinfo in one input cell at a time.  No check of contents, but number of columns must match, as for cattrial above.  Again, only if 1st input has a trial field."
+      - +@isprivate: "0"
+        commentid: "18500"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-14 14:26:16 +0100
+        thetext: "raw data\n- if cattrial: only concatenate if ncols are equal.\n- if catlabel: only copy the sampleinfo+trialinfo from the input to the output if it is the same (isequal) in all inputs. \n\nfreq\n- general rules for cattrial and catlabel should be the same as above. \n- i did not even know that it could do cattime or catfreq. This should be handled the same as catlabel.\n\nsource\n- fine with me to not (yet) support all possibilities, so the explicit error is fine. Perhaps you can add some comments (pointer to this bug) to the code for a future person who might work on it.\n\ntimelock\n- general rules for cattrial and catlabel should be the same as above. \n- silly that this one cannot cattime, whereas appendfreq can. Could you add it to the code, but then simply throw an error (like for the unimplemented options in appendsource)?"
+      - +@isprivate: "0"
+        commentid: "18613"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-05-02 12:04:50 +0200
+        thetext: "I have reimplemented all ft_appendxxx functions, see bug #3287. This also involved the default append dimension. \n\nAll existing tests scripts run, I made some new tests for ft_append* as well, including one specifically related to this issue.\n\nmac011> git commit \n[master 8d55f9e] ENH - added test script for http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3267\n 1 file changed, 112 insertions(+)\n create mode 100644 test/test_bug3267.m\n\nI will close this bug. Please reopen if you feel there is still work to be done."
+      - +@isprivate: "0"
+        commentid: "18698"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-31 07:30:01 +0200
+        thetext: "There's still a (critical) issue here. If ft_redefinetrial with cfg.length is used on data that is the appended product of two datasets with overlapping or even identical sampleinfos, then the trialinfo of the redefined data structure is incorrect.\n\nHowever, no error is thrown. The problem arises from around line 253 in ft_redefinetrial:\n\niTrlorig  =  find(begsample <= dataold.sampleinfo(:,2) & endsample >= dataold.sampleinfo(:,1)); % Determines which old trials are present in new trials\n\n.. which will find trials from the first appended dataset when searching for trials belonging to the second. For instance, the output could be:\n\nans =\n\n     1\n     1\n     1\n     2\n     2\n     2\n     3\n     3\n     3\n     4\n     4\n     4\n     5\n     5\n     5\n     1\n     1\n     2\n     2\n     2\n     7\n     3\n     3\n     4\n     4\n     4\n     9\n    10\n     5\n     5\n\nwhereas it should have been 1 1 1 ... 10 10 10\n \nProposed solution: the above works fine if no sampleinfo is present in the first place.  fixsampleinfo will then reconstruct one on the fly. Perhaps ft_appenddata should do more rigorous testing for overlapping or inconsistent ordering of sampleinfos while appending, and simply remove the sampleinfo field if there's an issue?\n\nSee https://github.com/fieldtrip/fieldtrip/pull/447 for a testscript"
+      - +@isprivate: "0"
+        commentid: "18699"
+        comment_count: "7"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-05-31 07:47:35 +0200
+        thetext: |-
+          (In reply to Arjen Stolk from comment #6)
+
+          Perhaps a statement like this, at the end of ft_appenddata?
+
+           % check whether the trials are consecutive segments
+           if isfield(data, 'sampleinfo') && any(diff(data.sampleinfo(:,1))<0)
+                warning('removing sampleinfo because the appended trials are not consecutive segments')
+                data = rmfield(data, 'sampleinfo');
+           end
+
+          See the same PR as above, for the proposed implementation.

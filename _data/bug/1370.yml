@@ -1,0 +1,121 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1370"
+    creation_ts: 2012-03-13 14:39:00 +0100
+    short_desc: Buffer crashes or does not keep up with the load from time to time
+    delta_ts: 2012-08-23 10:42:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc:
+      - a.stolk8
+      - sla.samiee
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5533"
+        comment_count: "0"
+        attachid: "238"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-13 14:39:05 +0100
+        thetext: "Created attachment 238\nSoheila's test script\n\nAlthough Robert and me already talked about this, there was a lady on the mailinglist reporting the same problem in their lab. This suggests that the problem is not specific caused by our (computer) hardware. The problem in short is, that every once in a while the \"buffer cannot keep up with the load\". It might be a problem with the shared memory, because (at least in our lab) the problem occurs more frequently when the acqusition computer ran for some time already.\n\nOn the mailinglist, Soheila reported the same problem and also provided an example script that crashes fairly early in their lab.\n\nHer original mail:\n\nDear Jörn,\n\n   Thanks for your answer. I use CTF/VSM MedTech System. I use 364 channels and the sampling rate is 1200. The decimation rate is 1. \n    As I saw in my recording there are two reasons for crashing in matlab session one of them is about transferring data which rarely occurs when the system is freshly restarted and the second one is related to reading data from buffer. When the number of samples of data which should be read is high we may see such problem. \n    I wanted to check the timing of MEG System data stream and I used a m-file similar to what is published in fieldtrip website (http://fieldtrip.fcdonders.nl/example/measuring_the_timing_delay_and_jitter_for_a_real-time_application), I attach the mfile to this email. When I run it step by step there is no problem, but when I run the whole file the problem of crashing matlab is occurred exactly when \"i=2\"  and we are on the line of reading the data (dat = buffer('get_dat', [s(i-1),s(i)],host,port); ). The problem occurs even if I restarted the computer just before running this file.\n    On the other hand, although when the computer is freshly restarted we won't see any crash in matlab session during transferring data, but sometimes we see the message of \"Internal Converter thread does not keep up with load\" in the acq2ft terminal in acquisition system. This problem is depend on the rate of sending the data which is related to number of the channels and sampling rate, when we have more sampling rate or more number of channels we will see this message more times and when this message show on the screen, no data transfer to field trip buffer and we can't read data on the other computer. \n\nI appreciate it if you help me solve both of these problems about matlab crash and error in data transferring.\n\nAll the best,\nSoheila"
+      - +@isprivate: "0"
+        commentid: "5726"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-03-28 14:55:44 +0200
+        thetext: |-
+          I just met with Jörn. Here is a quick summary for future reference:
+
+          The problem seems to appear with CTF acquisition, specifically acq2ftx.c:330, when the data is put in a FieldTrip buffer on a remote computer; when the ft-buffer is run locally, or remotely with a cross-link cable, the error is much less probable.
+
+          My hunch is this: The CTF software writes to a shared memory region, that is quickly transported to the ft-buffer. When the transport happens to slowly, acq2ftx detects that data in the shared memory region is lost.
+
+          It is difficult to test this problem, since the scanner is fully booked. Luckily, Soheila has a work-around. And Wouter is starting pilots soon, and might use a setup similar to the one causing problems; this might enable debugging.
+      - +@isprivate: "0"
+        commentid: "5913"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-04-16 14:53:47 +0200
+        thetext: Today we tested a few setups in the MEG lab. It proved quite difficult to crash acq2ftx. One thing that lead to crashes was reading a short trial repeatedly from the ft-buffer, at maximum speed. The fact that the other processes (on different computers) freeze while communicating with the ft-buffer hints at a locking problem --- otherwise the buffer would keep running.
+      - +@isprivate: "0"
+        commentid: "5914"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-04-16 15:07:33 +0200
+        thetext: Apparently, we used an older version of acq2ftx, that still contains bug 933.
+      - +@isprivate: "0"
+        commentid: "5915"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-04-16 16:39:45 +0200
+        thetext: after replacing the old version, we tried to crash the buffer in the same way we succeeded some hours ago, but this time it did not work. Unfortunately, the error used to appear so irregular that it is hard to tell whether it is resolved now - Wouter's pilots this week should give a second impression, which hopefully confirms out current beliefs ;)
+      - +@isprivate: "0"
+        commentid: "6476"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-06-20 15:15:50 +0200
+        thetext: |-
+          status update:
+          in all pilots from Wouter, there were no crashes anymore. Maybe you can consider this bug as fixed - it can be reopened in case the buffer crashes again some day. (thanks for fixing btw!)
+      - +@isprivate: "0"
+        commentid: "6859"
+        comment_count: "6"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-07-25 15:14:45 +0200
+        thetext: Considering fixed, thanks.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "238"
+      date: 2012-03-13 14:39:00 +0100
+      delta_ts: 2012-03-13 14:39:05 +0100
+      desc: Soheila's test script
+      filename: DataStreamTiming.m
+      type: text/x-objcsrc
+      size: "1005"
+      attacher:
+        +content: jorn
+        +@name: Jörn M. Horschig
+      data: REMOVED

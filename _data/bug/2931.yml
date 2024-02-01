@@ -1,0 +1,165 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2931"
+    creation_ts: 2015-07-15 16:24:00 +0200
+    short_desc: Problem with antialiasing filter in resample
+    delta_ts: 2019-08-10 12:30:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - g.flandin
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15921"
+        comment_count: "0"
+        attachid: "721"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-07-15 16:24:11 +0200
+        thetext: "Created attachment 721\nSPM resampling code\n\nI got the report below from one of our SPM users. Until now we haven't used ft_preproc_resample but there resample sigproc function is used as well and I think it's the default. One idea we discussed with Guillaume is that if our in-house downsampling function which uses fft can be added to FT as an option we can then call ft_preproc_resample in SPM code and give all the choices to the user so that people who are worried about this behaviour of resample can choose another option. Adding our code will be good for FT as well because all the present options require sigproc toolbox. I attach the code to this bug. \n\nVladimir\n\n--------\n\nI am writing to you because Alain (cc’ed) brought an issue to my attention, concerning the way Matlab handles downsampling.\n\nFrom the following bit of code, am I correct in assuming that SPM uses Matlab’s resample() to downsample?\n\nif flag_tbx % Signal Proc. Toolbox\n    Dnew(blkchan,:) = resample(Dtemp', P, Q)';\nelse\n    Dnew(blkchan,:) = spm_timeseries_resample(Dtemp,P/Q);\nend\n\nThe problem is that resample() does actually not have an appropriate antialiasing filter.\n\nHere is a snippet of code that illustrates this. I create 100 trials of a random signal at 600Hz to which I add a few sinusoids. I then downsample the signal using both resample() and decimate(). You can see that the peaks just above Nyquist frequency get folded back into resample()’s downsampled signal. \n\nclear close all\n\nfs = 600; % sampling frequency of 1kHz\nNtrials=50;\n \n% Create random data\nx = rand(Ntrials,3*fs) ;\n \n% Add a few peaks below and above new Nyquist frequency\nx = x+repmat(.2*sin(2*pi*50*[1:3*fs]/fs),Ntrials,1);\nx = x+repmat(.5*sin(2*pi*60*[1:3*fs]/fs),Ntrials,1);\nx = x+repmat(.6*sin(2*pi*160*[1:3*fs]/fs),Ntrials,1);\nx = x+repmat(.8*sin(2*pi*220*[1:3*fs]/fs),Ntrials,1);\nx = x+repmat(1*sin(2*pi*155*[1:3*fs]/fs),Ntrials,1);\n \nx = [zeros(Ntrials,3*fs) x zeros(Ntrials,3*fs)]; % pad with zeros\nx=x'; % time* channels\n \ny = resample(x,fs/2,fs);\n \nz=[]; % decimate does not work for multidimensional arrays\nfor i=1:size(x,2)\n    z(:,i) = decimate(x(:,i),2);\nend\n \nfigure; % psd plots\nsubplot(3,1,1)\npwelch(mean(x,2),[],[],[],fs); legend('original')\nsubplot(3,1,2);\npwelch(mean(y,2),[],[],[],fs/2); legend('resample')\nsubplot(3,1,3);\npwelch(mean(z,2),[],[],[],fs/2); legend('decimate')\n\nThis can have serious implications for EEG/MEG data, especially for those looking at high gamma effects."
+      - +@isprivate: "0"
+        commentid: "15922"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-07-15 16:33:53 +0200
+        thetext: The results for the test script indeed look pretty bad. I'd never tested Matlab's resample() before, but just trusted the documentation which explicitly states "resample applies an antialiasing FIR lowpass filter".
+      - +@isprivate: "0"
+        commentid: "15923"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-07-15 16:41:24 +0200
+        thetext: |-
+          The guys who found this out suggested adding this code to reduce the cutoff frequency for resample
+
+          [p2,q2] = rat( P/Q, 1e-12 );
+          pqmax = max(p2,q2); bta=5;
+          fc = 1/2/pqmax;
+          FCFACTOR=0.8;
+          fc=fc*FCFACTOR;
+          L = 2*10*pqmax + 1;
+          h = p2*firls( L-1, [0 2*fc 2*fc 1], [1 1 0 0]).*kaiser(L,bta)' ;
+
+          y = resample(x,P,Q,h)
+
+          It might be a good idea to add it to FT code for the resample option.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "15924"
+        comment_count: "3"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-07-15 16:42:13 +0200
+        thetext: See also this related discussion http://www.auditory.org/mhonarc/2014/msg00420.html
+      - +@isprivate: "0"
+        commentid: "15989"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-07 15:20:15 +0200
+        thetext: what about adding an optional lowpassfiltering step (using Alex Widmann's firws filter), with an appropriate cutoff frequency? I would be reluctant on having the fourth input argument to the resample-function, which looks a bit magical to me (and moreover it uses firls, which is strongly discouraged by Alex).
+      - +@isprivate: "0"
+        commentid: "15990"
+        comment_count: "5"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-08-08 06:55:38 +0200
+        thetext: Yes, this could be done as well. But adding our code which doesn't use the sigproc toolbox will also be useful.
+      - +@isprivate: "0"
+        commentid: "15991"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-09 20:10:35 +0200
+        thetext: "Fair point. I was not aware that the resampling functions are signal processing toolbox functions. It would anyhow be good to have a single function that is doing the resampling. As far as I am aware ft_preproc_resample is not used in FT, because the downsampling runs through ft_resampledata, rather than through preproc.m which is the only function that calls it. \nI am perfectly fine with adding an optional method that is achieving the resampling through an fft, and back again. My feeling would be to get rid of ft_preproc_resample, and implement all functionality in a clean way in ft_resampledata. Unless you guys would prefer to keep ft_preproc_resample."
+      - +@isprivate: "0"
+        commentid: "15992"
+        comment_count: "7"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-08-09 20:44:10 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #6)
+          As I understand the code philosophy, SPM should call the low-level module functions rather than high-level functions. So if ft_resampledata uses FT data structures rather than generic matrices, it would not conform to the present standards. What would make sense is that ft_resampledata calls ft_preproc_resample and spm_eeg_downsample calls it as well.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "15993"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-08-09 21:04:05 +0200
+        thetext: I was afraid of that. This is fine with me.
+      - +@isprivate: "0"
+        commentid: "16400"
+        comment_count: "9"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2015-11-20 20:14:29 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #8)
+          It looks like the last comment meant that you expected me to implement it, but I thought that someone at the Donders would. Anyway, I did it now and committed. Should not affect FT too much as you don't even use this function.
+      - +@isprivate: "0"
+        commentid: "20072"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:30:49 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "721"
+      date: 2015-07-15 16:24:00 +0200
+      delta_ts: 2015-07-15 16:24:11 +0200
+      desc: SPM resampling code
+      filename: spm_timeseries_resample.m
+      type: text/plain
+      size: "1245"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

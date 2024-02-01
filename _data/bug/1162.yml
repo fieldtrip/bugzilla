@@ -1,0 +1,248 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1162"
+    creation_ts: 2011-11-17 09:03:00 +0100
+    short_desc: Previous structure not saved
+    delta_ts: 2014-03-13 10:26:50 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: m.noordenbos
+      +@name: Mark
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4029"
+        comment_count: "0"
+        who:
+          +content: m.noordenbos
+          +@name: Mark
+        bug_when: 2011-11-17 09:03:16 +0100
+        thetext: |-
+          In the recent fieldtrip versions the 'previous' structure is not saved when calling ft_timelockgrandaverage, with the option cfg.keepindividual='yes'.
+
+          I think something is wrong in the section below:
+
+          % do the general cleanup and bookkeeping at the end of the function
+          ft_postamble trackconfig
+          ft_postamble callinfo
+          ft_postamble previous varargin
+          ft_postamble history grandavg
+          ft_postamble savevar grandavg
+
+          Best,
+          Mark Noordenbos
+      - +@isprivate: "0"
+        commentid: "4036"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:32 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4082"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:55:04 +0100
+        thetext: |-
+          Dear Mark,
+
+          Could you also in this case provide a test script?
+
+          Best,
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4083"
+        comment_count: "3"
+        who:
+          +content: m.noordenbos
+          +@name: Mark
+        bug_when: 2011-11-17 11:27:46 +0100
+        thetext: |-
+          (In reply to comment #2)
+          Dear Boris,
+
+          If I just call the function ft_timelockgrandaverage with cfg.keepindividuals='yes'
+
+          The following Data struct is returned:
+
+          Data =
+
+                   label: {30x1 cell}
+                    time: [1x400 double]
+              individual: [19x30x400 double]
+                  dimord: 'subj_chan_time'
+                     cfg: [1x1 struct]
+
+          With Data.cfg
+
+          ans =
+
+              keepindividual: 'yes'
+                 trackconfig: 'off'
+                 checkconfig: 'loose'
+                   checksize: 100000
+                     channel: {30x1 cell}
+                     latency: [-0.2000 0.5980]
+                normalizevar: 'N-1'
+                    callinfo: [1x1 struct]
+                     version: [1x1 struct]
+                    previous: []
+
+          As you can see the Data.cfg.previous is empty
+
+          Best,
+          Mark
+      - +@isprivate: "0"
+        commentid: "4102"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-17 13:58:59 +0100
+        thetext: |-
+          The problem can be confirmed with the following example code, that I added to the test repository as test_bug1162.m
+
+          timelock1 = [];
+          timelock1.label = {'1' '2'};
+          timelock1.time  = 1:5;
+          timelock1.dimord = 'rpt_chan_time';
+          timelock1.avg = randn(2,5);
+          timelock1.cfg = 'this is number 1';
+
+          timelock2 = [];
+          timelock2.label = {'1' '2'};
+          timelock2.time  = 1:5;
+          timelock2.dimord = 'rpt_chan_time';
+          timelock2.avg = randn(2,5);
+          timelock2.cfg = 'this is number 2';
+
+          cfg = [];
+          grandavg = ft_timelockgrandaverage(cfg, timelock1, timelock2);
+
+          % grandavg.cfg.previous{1} should be 'this is number 1'
+          % grandavg.cfg.previous{2} should be 'this is number 1'
+          disp(grandavg.cfg.previous);
+
+          assert(iscell(grandavg.cfg.previous));
+          assert(~isempty(grandavg.cfg.previous));
+          assert(~isempty(grandavg.cfg.previous{1}));
+          assert(~isempty(grandavg.cfg.previous{2}));
+      - +@isprivate: "0"
+        commentid: "4138"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-18 14:58:56 +0100
+        thetext: Robert confirmed this bug, changing status to NEW.
+      - +@isprivate: "0"
+        commentid: "4236"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-23 15:38:22 +0100
+        thetext: |-
+          OK, this is the problem: ft_postamble_previous evaluates for the strings (pointing to variables in the caller function) whether they have a cfg-field, and then stores it in cfg.previous{tmpindx}. In the case of the string being 'varargin'  the 'eval(ft_default.postamble{tmpindx});' (ft_default.postamble{tmpindx} being 'varargin') yields a cell-array, rather than the expected structure.
+
+          I suggest to make ft_postamble_previous a bit smarter to also deal with the cell array (which will typically occur if the call in the caller function is 'ft_postamble previous varargin' (as opposed to 'ft_postamble previous data1 data2'
+      - +@isprivate: "0"
+        commentid: "4237"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-11-23 15:44:23 +0100
+        thetext: |-
+          fixed it
+
+          the code now reads as follows (revision 4805):
+
+          % FT_POSTAMBLE_PREVIOUS adds the cfg structure from the input data
+          % structure(s) to the current configuration structure as cfg.previous
+          %
+          % Use as
+          %   ft_postamble previous inputvar
+          %   ft_postamble previous inputvar1 inputvar2
+          %   ft_postamble previous varargin
+
+          global ft_default
+
+          % remember the cfg history of the input data structures
+          cfg.previous = {};
+          cnt = 0;
+          for tmpindx=1:length(ft_default.postamble)
+            if exist(ft_default.postamble{tmpindx}, 'var')
+              tmpvar = eval(ft_default.postamble{tmpindx});
+            else
+              tmpvar = [];
+            end
+            if isa(tmpvar, 'struct')
+              % the variable is a data structure
+              cnt=cnt+1;
+              if isfield(tmpvar, 'cfg')
+                cfg.previous{cnt} = tmpvar.cfg;
+              else
+                cfg.previous{cnt} = [];
+              end
+            elseif isa(tmpvar, 'cell')
+              % the variable is a cell-array (i.e. most likely a varargin)
+              for cellindx=1:numel(tmpvar)
+                cnt=cnt+1;
+                if isfield(tmpvar{cellindx}, 'cfg')
+                  cfg.previous{cnt} = tmpvar{cellindx}.cfg;
+                else
+                  cfg.previous{cnt} = [];
+                end
+              end
+            end
+          end
+          clear tmpindx tmpvar cellindx cnt
+
+          if length(cfg.previous)==1
+            % replace the cell-array by the single struct
+            cfg.previous = cfg.previous{1};
+          end
+      - +@isprivate: "0"
+        commentid: "13079"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-13 10:26:50 +0100
+        thetext: 'for reference: revision 9285 introduced a regression test error due to bug #2471. It is not further addressed here but in the other bug.'

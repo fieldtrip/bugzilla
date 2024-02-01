@@ -1,0 +1,96 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2463"
+    creation_ts: 2014-01-30 11:00:00 +0100
+    short_desc: cfg.channel option leads to unexpected results with various functions due to changes in ft_senstype
+    delta_ts: 2014-05-14 20:08:50 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: p.taesler
+      +@name: Philipp Taesler
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12770"
+        comment_count: "0"
+        attachid: "587"
+        who:
+          +content: p.taesler
+          +@name: Philipp Taesler
+        bug_when: 2014-01-30 11:00:05 +0100
+        thetext: "Created attachment 587\ndata with our 61 eeg labels, being cut to 21 in the current ft version\n\nSince fieldtrip-20140121 functions using the option \"cfg.channel = {'EEG'}\" give different results from fieldtrip-20130901.\n\nChannels that were previously included in the analysis are now stripped from the data. Investigation shows, that the behaviour of ft_channelselection seems to have changed, probably due to changes in ft_senstype. Channels that were previously included in the \"EEG\" subset are now stripped, probably due to an intersection with a smaller list of candidates returned by ft_senslabel in connection with changed classification by ft_senstype (see example).\n\nWith attached example data, 61 channel subset of an extended 1020 setup (IFCN 10/10 afaik):\n\ndata = \n    label: {61x1 cell}\n\n\n- fieldtrip-20130901\n\nft_senstype(data.label)\nans = ext1020\n\n- fieldtrip-20140121\n\nft_senstype(data.label)\nans = eeg1020\n\n\nThis leads to our data being reduced to the 21 channels that intersect with the 1020 system.\n\nMaybe related to bug 2028."
+      - +@isprivate: "0"
+        commentid: "13175"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-26 17:38:47 +0100
+        thetext: "thanks for the report, your analysis so far seems to point in a likely cause for the problem.\n\nFor reference, I have copied the data to (internal) /home/common/matlab/fieldtrip/data/test/bug2463.mat\n\nI implemented a test script and one change. However, the change does not fix the complete problem yet.\n\nroboos@mentat001> svn commit \nSending        fileio/ft_chantype.m\nSending        ft_channelselection.m\nAdding         test/test_bug2463.m\nTransmitting file data ...\nCommitted revision 9322."
+      - +@isprivate: "0"
+        commentid: "13176"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-26 17:54:52 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\n\nthe problem is at line 341 in ft_senstype\n\nelseif (mean(ismember(ft_senslabel('eeg1010'),            sens.label)) > 0.8)\n  type = 'eeg1010';\n\nThere is only a fraction of 0.7093 in the labels that matches the 1010 set (which has 86 labels in them), i.e. 61/86=0.7093.\n\nHere it does not make sense to perform the selection like this. I will change the selection around, i.e. if 80% of your channels are in the 1010 set, it seems that eeg1010 is an appropriate label for the set, even though you only have 61 from the (predefined) 86.\n\n\nroboos@mentat001> svn commit \nSending        forward/ft_senstype.m\nTransmitting file data .\nCommitted revision 9323.\n\nThis should fix it. The test script now runs without error."
+      - +@isprivate: "0"
+        commentid: "13182"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-31 11:31:18 +0200
+        thetext: '*** Bug 2499 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13623"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:50 +0200
+        thetext: closed several of my bugs that have been resolved
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "587"
+      date: 2014-01-30 11:00:00 +0100
+      delta_ts: 2014-01-30 11:00:05 +0100
+      desc: data with our 61 eeg labels, being cut to 21 in the current ft version
+      filename: bugdata_ft_senstype.mat
+      type: text/plain
+      size: "426"
+      attacher:
+        +content: p.taesler
+        +@name: Philipp Taesler
+      data: REMOVED

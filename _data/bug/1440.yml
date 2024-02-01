@@ -1,0 +1,206 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1440"
+    creation_ts: 2012-04-19 11:31:00 +0200
+    short_desc: fixname doesn't parse filename correctly leading to error in warning once
+    delta_ts: 2012-08-23 10:35:15 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5946"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-19 11:31:01 +0200
+        thetext: |-
+          A simple warning of a undetected filetype should be given, instead, it results in an error:
+          ??? Invalid field name: 'could_not_determine_filetype_of_~_storage_common_dataarx_kahana'.
+
+          Error in ==> warning_once at 82
+            previous.(fname).timeout = now+timeout;
+
+          Error in ==> ft_filetype at 1019
+            warning_once(sprintf('could not determine filetype of %s', filename));
+
+
+          Eelke, you worked on fixname yesterday right? I set it to critical becauce fixname and warning once are used in so many locations (I think).
+      - +@isprivate: "0"
+        commentid: "5947"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-19 11:31:49 +0200
+        thetext: Added Eelke to CC list.
+      - +@isprivate: "0"
+        commentid: "5948"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-19 11:37:07 +0200
+        thetext: My guess is this was an error before I worked on fixname as well. The ~ in your path name is not replaced by an underscore, therefore it becomes an invalid field name.
+      - +@isprivate: "0"
+        commentid: "5949"
+        comment_count: "3"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-19 11:38:11 +0200
+        thetext: |-
+          506 $ svn commit fixname.m
+          Sending        fixname.m
+          Transmitting file data .
+          Committed revision 5661.
+      - +@isprivate: "0"
+        commentid: "5950"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-19 11:42:11 +0200
+        thetext: |-
+          Hey, what about using genvarname instead (http://www.mathworks.nl/help/techdoc/ref/genvarname.html) in the warning_once function (and possibly elsewhere)?
+
+          Adding Joern (who originally wrote warning_once) and Robert (who originally wrote fixname) to CC as well, perhaps they had a particular reason for not using genvarname.
+
+          (BTW, I did change fixname now to also strip ~ characters.)
+      - +@isprivate: "0"
+        commentid: "5951"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-19 11:56:05 +0200
+        thetext: |-
+          Hmmm, private/fixname.m got updated, but /fileio/private/fixname.m didn't.
+          Which is weird, since the autosync property is set. (svn proplist filename)
+
+          Eelke can you check if both fixname.m's above are the same in your dev-copy?
+      - +@isprivate: "0"
+        commentid: "5952"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-04-19 11:59:20 +0200
+        thetext: |-
+          Nevermind, there was a conflict in my fixnames, after reverting they both synced properly. Also, bug is confirmed fixed, I closed it.
+
+          Still though, weird it didn't popup before, those paths (with the home-dir-~) have always been the same.
+      - +@isprivate: "0"
+        commentid: "5953"
+        comment_count: "7"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-19 12:01:15 +0200
+        thetext: |-
+          OK :) Indeed, my fixnames were identical.
+
+          Closed though this bug may be, the genvarname suggestion above still stands. Why not use that? It also seems nice that that one will be updated by mathworks if the rules for valid names change in future releases.
+      - +@isprivate: "0"
+        commentid: "5954"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-19 12:52:52 +0200
+        thetext: "(In reply to comment #7)\n\n\nI was not aware of genvarname, that is the only reason why it was not considered. Sounds like a useful function. But looking at it, I find it rather ugly.\n\n >> genvarname('jan.mathijs')\nans =\njan0x2Emathijs\n\nAll unaccepted characters are replaced by their hexadeximal counterpart, whereas in fixname they are replaced by an underscore.\n\nThe strategy used in genvarname however is interesting, when compared to fixname. In fixname a list is maintained of all invalid characters that we encountered once upon a time, whereas genvarname does it the other way around and maintains a list of allowed characters.\n\nWe can replace fixname by something like this\n\n\n>> regexp('jan.Mathijs_is#the$example', '\\W')\nans =\n     4    15    19\n\nso \nstr = 'jan.Mathijs_is#the$example';\nstr(regexp(str, '\\W')) = '_';\n\nstr =\njan_Mathijs_is_the_example\n\n\n\n\nshould we reopen and do it like this?"
+      - +@isprivate: "0"
+        commentid: "5958"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-04-20 09:43:06 +0200
+        thetext: I didn't look at either function, but there no real need to keep a list of allowed characters, is there? we just need the ascii range (48 to 59 for numbers, 97 to 122 for letters, all characters needs to be lowered)
+      - +@isprivate: "0"
+        commentid: "5959"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-04-20 10:34:14 +0200
+        thetext: whoops, Robert's solution is similar and more elegant
+      - +@isprivate: "0"
+        commentid: "5960"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-20 16:50:23 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          who is going to do it?
+      - +@isprivate: "0"
+        commentid: "5961"
+        comment_count: "12"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-20 16:52:21 +0200
+        thetext: Sorry for the silence, I've been busy with non-fieldtrip things (crazy, I know ;) ). I will fix it, it is still in my bug list.
+      - +@isprivate: "0"
+        commentid: "5962"
+        comment_count: "13"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-21 07:59:47 +0200
+        thetext: |-
+          bash-3.2$ svn commit private/fixname.m
+          Sending        private/fixname.m
+          Transmitting file data .
+          Committed revision 5685.
+      - +@isprivate: "0"
+        commentid: "5963"
+        comment_count: "14"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-04-21 08:05:28 +0200
+        thetext: 'I also changed fixname so that it takes care of leading digits: if these are present, an ''x'' is prepended to the output string. This is the same behaviour as genvarname.'
+      - +@isprivate: "0"
+        commentid: "7144"
+        comment_count: "15"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-08-23 10:35:15 +0200
+        thetext: closing my bugs

@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3339"
+    creation_ts: 2017-08-25 11:13:00 +0200
+    short_desc: it would be nice if trialinfo could be a table rather than a numeric array
+    delta_ts: 2019-08-10 12:36:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - malina.szychowska
+      - stefanwiens
+      - sws
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18885"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-25 11:13:58 +0200
+        thetext: "the table class in MATLAB allows for columns to have a label, and for elements of different types in the different columns (like the string on/off in one, and 1..4 in another column) . A bit like a cell-array, but more strict. \n\nI propose to investigate what would be neededd to support this. Perhaps it is sufficient that the trialfun returns \"trl\" as a table rather than numeric array."
+      - +@isprivate: "0"
+        commentid: "18886"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-08-25 11:20:48 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #0)
+
+          I think that this should only be realistically considered if the table-class is backward compatible with a matrix given the bunch of user scripts that depend on trialinfo being a matrix.
+      - +@isprivate: "0"
+        commentid: "18896"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-30 09:28:17 +0200
+        thetext: "Note that default behavior would not change, i.e. it will only apply if people use a table as output to their own trialfun.\n\n\nLastName = {'Smith';'Johnson';'Williams';'Jones';'Brown'};\nAge = [38;43;38;40;49];\nHeight = [71;69;64;67;64];\nWeight = [176;163;131;133;119];\nBloodPressure = [124 93; 109 77; 125 83; 117 75; 122 80];\nT = table(Age,Height,Weight,BloodPressure,LastName);\n\nAll indexing operations in the table that use round brackets () return a table. All operations that use {} return an array (like table2array).\n\n\n>> T(:,1)\nans =\n  5×1 table\n    Age\n    ___\n    38 \n    43 \n    38 \n    40 \n    49 \n\n\n>> T{:,1}\nans =\n    38\n    43\n    38\n    40\n    49\n\n\nI think that FieldTrip code would only do the first type of indexing, e.g. when rejecting trials. The user could to use the 2nd type of indexing when doing something like this\n\ncfg.trials = data.trialinfo{:,1)>40  % age > 40\n\nbut could also do\n\ncfg.trials = data.trialinfo.Age>40 \n\nSorry, age is a stupid example here. Think of reaction time instead, or some other per-trial measure.\n\nI realize that simply making a trialfun that returns trl as table will fail, since ft_preprocessing will do \n\nfor i=1:ntrl\nbegsample = trl(i,1)\nendsample = trl(i,2)\ndata.trial{i} = ft_read_data(...)\nend\n\nsome changes to ft_read_data (if istable(begsample) ...) would get us quite far."
+      - +@isprivate: "0"
+        commentid: "18945"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-22 13:48:36 +0200
+        thetext: |-
+          I implemented ft_steadystatesimulation to return trialinfo as a table. This subsequently required some changes to the code in ft_rejectartifact, ft_selectdata and convert_event.
+
+          Rather than to have it percolate slowly, more efficient would be to use ft_checkdata for this. Functions that don't like tables could use 'trialinfostyle' = table/array. When empty, it should remain as it is. Otherwise it should be converted.
+      - +@isprivate: "0"
+        commentid: "18947"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-09-22 13:55:47 +0200
+        thetext: |-
+          I started with a personal branch to implement this
+
+          mac011> git commit -a
+          [bug3339-table 934e898] implemneted conversion between table and matrix in ft_checkdata, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3339
+           1 file changed, 17 insertions(+)
+
+          mac011>     git push --set-upstream origin bug3339-table
+          Counting objects: 68, done.
+          Delta compression using up to 4 threads.
+          Compressing objects: 100% (68/68), done.
+          Writing objects: 100% (68/68), 7.78 KiB | 0 bytes/s, done.
+          Total 68 (delta 56), reused 0 (delta 0)
+          remote: Resolving deltas: 100% (56/56), completed with 26 local objects.
+          To github.com:robertoostenveld/fieldtrip.git
+           * [new branch]      bug3339-table -> bug3339-table
+          Branch bug3339-table set up to track remote branch bug3339-table from origin.
+      - +@isprivate: "0"
+        commentid: "19168"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-01-07 14:35:50 +0100
+        thetext: this has been slightly further improved in relation to iMotions data and merged into master with https://github.com/fieldtrip/fieldtrip/pull/630
+      - +@isprivate: "0"
+        commentid: "20330"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:36:41 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

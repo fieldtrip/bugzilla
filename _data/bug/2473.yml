@@ -1,0 +1,205 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2473"
+    creation_ts: 2014-02-14 09:49:00 +0100
+    short_desc: 'ft_databrowser: crash when using preproc window containing vector more than once'
+    delta_ts: 2021-09-16 14:05:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "2314"
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.schoffelen
+      - n.lam
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12833"
+        comment_count: "0"
+        attachid: "592"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-02-14 09:49:04 +0100
+        thetext: |-
+          Created attachment 592
+          preproc_window1
+
+          When supplying a vector in ft_databrowser's preproc window, the layout/format of the vector is changed after saving and closing so that the square brackets end up in separate lines from the numbers.
+
+          For example, see attached figure 'preproc_window1' for the preproc window before saving and closing and see figure 'preproc_window2' for the preproc window after reopening the preproc window again. Clicking on 'save and close' then results in a crash.
+      - +@isprivate: "0"
+        commentid: "12834"
+        comment_count: "1"
+        attachid: "593"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-02-14 09:49:46 +0100
+        thetext: |-
+          Created attachment 593
+          preproc_window2
+      - +@isprivate: "0"
+        commentid: "13006"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-03-06 15:46:54 +0100
+        thetext: |-
+          Assigned to a named person, to keep this on the radar.
+
+          Could you provide a test-script for this? This could get us started debugging.
+          Please, also add this one to the dependency of the mother of all databrowser bugs.
+      - +@isprivate: "0"
+        commentid: "13117"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-03-20 09:28:33 +0100
+        thetext: "I had already added this bug to the dependency of the MOFB, or did I miss something? \n\nI've created a test script that loads some data and opens the databrowser although I did not think it to be useful at first as the error seems to be produced somewhere in the databrowser ui. I don't know how to access the pushbutton callback from outside of ft_databrowser.m."
+      - +@isprivate: "0"
+        commentid: "13140"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-03-24 13:55:32 +0100
+        thetext: The error seems to result from printstruct printing the cfg.preproc structure 'wrong'. I'll look further into it.
+      - +@isprivate: "0"
+        commentid: "13142"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-03-24 15:50:54 +0100
+        thetext: |-
+          printmat, which is called by printstruct seems to parse the key-value pair 'cfg.preproc' and [3 45] by first printing the 'cfg.preproc' part, followed by adding '=[', forming a new line, then adding '3 45', followed by a new line with ']'. Turning 'cfg.preproc = [3 45]' into:
+          'cfg.preproc = [
+          3 45
+          ]'
+
+          The function is quite small:
+          function str = printmat(name, val)
+          siz = size(val);
+          if prod(siz)==0
+            str = sprintf('%s = [];\n', name);
+          elseif prod(siz)==1
+            str = sprintf('%s = %s;\n', name, printval(val));
+          elseif numel(siz)==2
+            str = sprintf('%s = [\n', name);
+            for row=1:siz(1)
+              for col=1:siz(2)
+                str = sprintf('%s %s', str, printval(val(row,col)));
+              end
+              str = sprintf('%s\n', str);
+            end
+            str = sprintf('%s];\n', str);
+          else
+            str = sprintf('%s = %s;\n', name, printval(val));
+          end
+      - +@isprivate: "0"
+        commentid: "13153"
+        comment_count: "6"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-03-25 15:17:50 +0100
+        thetext: In principle evaluating the code produced by printmat does work in the command window. However, ft_databrowser checks whether each line contains 'cfg.preproc' and it adds a semicolon to each line which makes it impossible to evaluate any value that is spread over multiple lines (although it seems reasonable to allow this).
+      - +@isprivate: "0"
+        commentid: "13167"
+        comment_count: "7"
+        who:
+          +content: n.lam
+          +@name: ""
+        bug_when: 2014-03-26 13:20:14 +0100
+        thetext: 'FT-meeting discussion: the problem should be solved at the level of databrowser: the error-catching mechanism should be user-friendly and robust.'
+      - +@isprivate: "0"
+        commentid: "13186"
+        comment_count: "8"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-04-01 12:57:22 +0200
+        thetext: |-
+          Although the main problem related to this bug seems to be related to ft_databrowser, I wonder whether printmat behaves as desired.
+
+          Printmat prints, for example, [1 2 3] as:
+          [
+          1 2 3
+          ]
+
+          Shouldn't printmat print [1 2 3] as it is?
+      - +@isprivate: "0"
+        commentid: "13187"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-01 13:48:45 +0200
+        thetext: "(In reply to Jim Herring from comment #8)\n\nI think that either one could be considered as correct. Printing it as one-liner would be visually more appealing though. \n\nI adjusted it for you\n\nmac011> svn commit printstruct.m\nSending        printstruct.m\nTransmitting file data .\nCommitted revision 9326.\n\n\nNote however that it is now not fully consistent with numeric and cell-arrays:\n\n>> a = [1 2 3];\n>> printstruct(a)\nans =\na = [ 1 2 3 ];\n\n\n>> b = {1, 2, 3};\n>> printstruct(b)\nans =\nb = {\n 1, 2, 3\n};\n\nAlso the comma's are different. I don't know why there are comma's in the first place."
+      - +@isprivate: "0"
+        commentid: "20586"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2021-09-16 14:04:56 +0200
+        thetext: All looks good to me in the current fieldtrip version (2021)
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "592"
+        date: 2014-02-14 09:49:00 +0100
+        delta_ts: 2014-02-14 09:49:04 +0100
+        desc: preproc_window1
+        filename: preproc_window1.PNG
+        type: image/png
+        size: "25849"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "593"
+        date: 2014-02-14 09:49:00 +0100
+        delta_ts: 2014-02-14 09:49:46 +0100
+        desc: preproc_window2
+        filename: preproc_window2.PNG
+        type: image/png
+        size: "25761"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED

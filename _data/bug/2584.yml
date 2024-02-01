@@ -1,0 +1,168 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2584"
+    creation_ts: 2014-05-17 22:15:00 +0200
+    short_desc: 'ft_selectdata: new version does not correctly select trials from  a raw data structure'
+    delta_ts: 2016-06-16 16:38:33 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - chrysa.lithari
+      - eelke.spaak
+      - n.lam
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13701"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-17 22:15:57 +0200
+        thetext: |-
+          This is the case when the input data has variable trial length.
+          The cause can be tracked down to line 279 in getdimord, where the values in the variable datsiz are compared to [nrpt nchan ntime]. ntime is based on the number of elements in the data structure's first time-axis, whereas the third element of datsize seems to be based on the longest trial. This comparison fails, and hence the dimord is set to {unknnown}_unknown_unknown, which causes the datfield trial not to be rpt-selected in ft_selectdata.
+
+          @ Nietzsche: this may have seerious consequences for the changes you made to mous_erf_pipeline, because the trial subselection you built in relied on ft_selectdata performing correctly (now all data fields (e.g. importantly the trialinfo field) are correctly selected, safe the trials). Currently it leads to a mismatch between actual trials and what we think they contain.
+
+          It can be replicated by:
+
+          data.trial={1 2 3 [4 5]};
+          data.time={1 1 1 [1 2]};
+          data.label={'chan01'};
+
+          cfg.trials=[3 4];
+          dataout=ft_selectdata(cfg,data);
+      - +@isprivate: "0"
+        commentid: "13702"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-17 22:21:36 +0200
+        thetext: |-
+          I changed line 57 in getdimord from
+
+          ntime = length(data.time{1})
+
+          into
+
+          tmp   = getdimsiz(data, 'time');
+          ntime = tmp(3); % raw data may contain variable length trials
+
+          This seems to solve the issue.
+
+          @Robert: agreed?
+
+          @Nietzsche: let's recompute some stuff
+      - +@isprivate: "0"
+        commentid: "13703"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-17 22:26:12 +0200
+        thetext: |-
+          bash-4.1$ svn commit -m "bugfix - fixed issue that pertained to ft_selectdata to perform poorly with variable trial length raw data, bug 2584" getdimord.m
+          Sending        getdimord.m
+          Transmitting file data .
+          Committed revision 9550.
+      - +@isprivate: "0"
+        commentid: "13704"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-17 23:01:29 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          Dat moet ik eens bekijken op een regulier moment. Maar ik heb wel vertrouwen in je
+          zaterdagavond-oordeel. Fijn weekend, Robert
+      - +@isprivate: "0"
+        commentid: "13705"
+        comment_count: "4"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-18 08:49:48 +0200
+        thetext: This seems pretty severe, right? Should we email the community? At least I now feel compelled to check all my analysis scripts...
+      - +@isprivate: "0"
+        commentid: "13706"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-05-18 09:56:57 +0200
+        thetext: "Regular checking of analysis scripts is something I would recommend anyway ;-). \n\nYet, I think that the scope to the community is rather limited, because I doubt if many people use variable epoch lengths. Informing the community makes sense though."
+      - +@isprivate: "0"
+        commentid: "17556"
+        comment_count: "6"
+        who:
+          +content: chrysa.lithari
+          +@name: Chrysa
+        bug_when: 2016-06-16 11:46:09 +0200
+        thetext: Hi, I have datasets with variable trial lengths and when I use ft_selectdata with cfg.latency = 'poststim', it gives me as output trials which all have the length of the first trial. Any suggestions?
+      - +@isprivate: "0"
+        commentid: "17557"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-16 13:53:28 +0200
+        thetext: no
+      - +@isprivate: "0"
+        commentid: "17558"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-16 13:58:37 +0200
+        thetext: |-
+          with the previous comment I meant that I don't have a suggestion. This 'closed fixed' bug specifically pertained to the selection of trials from a raw data structure, not to a selection of the subset of the time points in the trials of a data structure.
+
+          I agree that the function's help suggests 'poststim' as an option, but rather than selectdata, I'd use ft_redefinetrial. Still, please feel free to suggest us with a fix for ft_selectdata to improve it's behavior.
+      - +@isprivate: "0"
+        commentid: "17559"
+        comment_count: "9"
+        who:
+          +content: chrysa.lithari
+          +@name: Chrysa
+        bug_when: 2016-06-16 16:27:30 +0200
+        thetext: thanks for the quick reply. I ll use redefinetrial.
+      - +@isprivate: "0"
+        commentid: "17560"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-16 16:38:33 +0200
+        thetext: a contribution to improving ft_selectdata would (although it will be more work for you) be also much appreciated.

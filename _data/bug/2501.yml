@@ -1,0 +1,89 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2501"
+    creation_ts: 2014-03-17 11:49:00 +0100
+    short_desc: databrowser displays old events after appending data
+    delta_ts: 2015-01-12 09:23:02 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: phyllis.mania
+      +@name: Phyllis
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13087"
+        comment_count: "0"
+        who:
+          +content: phyllis.mania
+          +@name: Phyllis
+        bug_when: 2014-03-17 11:49:06 +0100
+        thetext: "%note: as discussed in the mailinglist, this issue can be resolved by clearing the cfg field before calling the databrowser\n\nEEG = rmfield(EEG, 'cfg')\n\n_________\n\n\n%after reading in and re-referencing two separate EEG recordings (with ft_preprocessing), I define the trials in each dataset(data_pt1 and data_pt2):\n\ncfg = [];\ncfg.dataset             = 'data_pt1.vhdr';\ncfg.trialdef.eventtype  = 'Stimulus';\ncfg.trialfun            = 'my_trialfun';\ncfg.trialdef.prestim    = 1.25; \ncfg.trialdef.poststim   = 3.55; \ncfg.trialdef.eventvalue = {'S 11', 'S 12', 'S 13', 'S14'};\n\ncfg      = ft_definetrial(cfg);\nEEG_pt1  = ft_redefinetrial(cfg, data_pt1);\n\n\n%(analogous for data_pt2, i.e. EEG_pt2)\n\n\n%append 1st and 2nd half of experiment\ncfg   = [];\nEEG   = ft_appenddata(cfg, EEG_pt1, EEG_pt2);\n\n\n%when looking at the data all event triggers are displayed throughout the data \ncfg = [];\ncfg.continuous = 'no';\nft_databrowser(cfg, EEG);"
+      - +@isprivate: "0"
+        commentid: "13088"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-17 12:36:12 +0100
+        thetext: "Getting the events from the provenance information (data.cfg.previous.previous...) is the problem here.\n\nI suspect that it also causes problems if data were downsampled, e.g. \n\ncfg = ...\ndata = ft_preprocessing(cfg)\n\n\ncfg = ...\nresampled = ft_resampledata(cfg, data)\n\ncfg = ...\nft_databrowser(cfg, resampled) \n\nIn this case ft_databrowser would also get the events from the cfg.previous, without taking into account that the samples don't match. \n\nRemoving the provenance (i.e. cfg) works, but is not the desired way to go about. Perhaps we should noty use ft_findcfg, but only use data.cfg.event if the events are at the present level and not deeper down in the history."
+      - +@isprivate: "0"
+        commentid: "13160"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-03-25 16:59:48 +0100
+        thetext: see http://mailman.science.ru.nl/pipermail/fieldtrip/2014-March/007676.html
+      - +@isprivate: "0"
+        commentid: "13161"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2014-03-25 17:00:22 +0100
+        thetext: and http://mailman.science.ru.nl/pipermail/fieldtrip/2014-March/007680.html
+      - +@isprivate: "0"
+        commentid: "13163"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-25 17:14:08 +0100
+        thetext: I guess that ft_findcfg shoudl not be used to dig all the way through the provenance (cfg.previous.previous), but that only data.cfg.event is to be considered (if present).
+      - +@isprivate: "0"
+        commentid: "14334"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-09-11 11:55:00 +0200
+        thetext: "Robert's suggestion sounds like a good one.\n\nbash-4.1$ svn diff ft_databrowser.m\nIndex: ft_databrowser.m\n===================================================================\n--- ft_databrowser.m\t(revision 9790)\n+++ ft_databrowser.m\t(working copy)\n@@ -262,12 +262,16 @@\n     % don't use the events in case the data has been resampled\n     warning('the data has been resampled, not showing the events');\n     event = [];\n+  elseif isfield(data, 'cfg') && isfield(data.cfg, 'event')\n+    % use the event structure from the data as per bug #2501\n+    event = data.cfg.event;\n   elseif ~isempty(cfg.event)\n     % use the events that the user passed in the configuration\n     event = cfg.event;\n   else\n     % fetch the events from the data structure in memory\n-    event = ft_fetch_event(data);\n+    %event = ft_fetch_event(data);\n+    evnet = [];\n   end\n   \n   cfg.channel = ft_channelselection(cfg.channel, hdr.label);\nbash-4.1$ svn commit -m \"enhancement - only use event info from data if it is in data.cfg.event, #2501\" ft_databrowser.m\nSending        ft_databrowser.m\nTransmitting file data .\nCommitted revision 9793."

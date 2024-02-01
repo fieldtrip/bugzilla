@@ -1,0 +1,178 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2399"
+    creation_ts: 2013-11-29 16:12:00 +0100
+    short_desc: ft_datatype_sens fails as of today (29-nov-2013)
+    delta_ts: 2014-02-24 10:56:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12142"
+        comment_count: "0"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-29 16:12:31 +0100
+        thetext: |-
+          At some revision since 8875, my calls to ft_sourceanalysis fail, with the following error:
+
+          Error using ft_datatype_sens (line 361)
+          inconsistent number of channels in sensor description
+
+          Error in ft_checkconfig (line 243)
+            cfg.grad = ft_datatype_sens(cfg.grad);
+
+          Error in ft_preamble_trackconfig (line 31)
+          cfg = ft_checkconfig(cfg, 'trackconfig', 'on');
+
+          Error in ft_preamble (line 54)
+            evalin('caller', ['ft_preamble_' cmd]);
+
+          Error in ft_prepare_sourcemodel (line 118)
+          ft_preamble trackconfig
+
+          Error in ft_sourceanalysis (line 333)
+            grid = ft_prepare_sourcemodel(tmpcfg);
+
+          There were quite a few commits since 8875, so I have not yet investigated what causes the error, in the hope that someone will recognize this.
+
+          I did notice two things: in ft_datatype_sens, in revision 8755, size(sens.chanpos,1) is different from numel(sens.label) and some other fields (causing the error), and, for some reason, sens.chanpos contained non-NaN values, whereas they are NaN in my original data (ICA-->rejectcomponent was used).
+      - +@isprivate: "0"
+        commentid: "12143"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-29 16:19:57 +0100
+        thetext: |-
+          NOTE: in the last paragraph of my previous comment, I meant that in the *newest* revision (8924) this inequality holds and the NaNs are gone from chanpos, in 8875 this is still OK.
+
+          Robert? JM? You two seem to have a lot of commits since yesterday afternoon. For now I have just rolled back to 8755 and everything works again, so for me there's no hurry (but maybe some DCCN people are encountering this).
+      - +@isprivate: "0"
+        commentid: "12144"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 16:47:54 +0100
+        thetext: |-
+          Some more specifics would be helpful here.
+          I.e. a grad structure that causes trouble and some more specifics as to how it was created.
+          Is the inconsistency only present within the function, or does an inconsistent gradiometer structure enter the function
+
+          Most of my commit yesterday were just cosmetic changes.
+      - +@isprivate: "0"
+        commentid: "12145"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 17:03:31 +0100
+        thetext: |-
+          ah, this is my change "inconsistent number of channels in sensor description".
+
+          The code that calls channelposition expects all channels in the output, so any occurrence of this is a potential bug. That is why I changed it (temporary) in an error. It should not happen, so the code needs to be fixed so that all channels are returned (as a nan if needs be).
+
+          Please change the error at the end in channelposition back into a warning, but do give me the input to ft_datatype_sens/channelposition that causes it!
+      - +@isprivate: "0"
+        commentid: "12146"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-11-29 17:08:14 +0100
+        thetext: mooi verborgen in een rookgordijn van commits ;-). Maar in ieder geval is mijn lokale FT-versie weer bijna in sync met svn...
+      - +@isprivate: "0"
+        commentid: "12147"
+        comment_count: "5"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2013-11-29 17:15:52 +0100
+        thetext: "(In reply to comment #3)\nI'm not entirely sure I understand your comment Robert. After a bit of debugging, I found out that the problem seems to happen at the level of ft_sourceanalysis. At line 286 a sens is taken from a call to prepare_headmodel, and this one is wrong:\n\nK>> sens\n\nsens = \n\n     balance: [1x1 struct]\n    chantype: {273x1 cell}\n    chanunit: {273x1 cell}\n     coilori: [546x3 double]\n     coilpos: [546x3 double]\n    coordsys: 'ctf'\n       label: {273x1 cell}\n         tra: [273x546 double]\n        type: 'ctf275'\n        unit: 'm'\n     chanpos: [301x3 double]\n     chanori: [301x3 double]\n\neven though both cfg.grad and data.grad (identical in this case) are correct:\n\nK>> cfg.grad\n\nans = \n\n     balance: [1x1 struct]\n     chanori: [301x3 double]\n     chanpos: [301x3 double]\n    chantype: {301x1 cell}\n    chanunit: {301x1 cell}\n     coilori: [594x3 double]\n     coilpos: [594x3 double]\n    coordsys: 'ctf'\n       label: {301x1 cell}\n         tra: [301x594 double]\n        type: 'ctf275'\n        unit: 'm'\n\nSee https://dl.dropboxusercontent.com/u/4023322/data-bug2399.mat (10MB) for a cfg and tl input for ft_sourceanalysis, which will generate the error.\n\n(En inderdaad JM, lekker rookgordijn :) Fijn weekend voor nu. Of tot vanavond natuurlijk, bij het grote feest!)"
+      - +@isprivate: "0"
+        commentid: "12149"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 20:54:29 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          > I'm not entirely sure I understand your comment Robert.
+
+          Oh, I now see that I did not yet commit the change of the warning into the error. I had doubts about it, hence your report immediately triggered me to think it was this change. But then it is another related change (nevertheless my fault).
+      - +@isprivate: "0"
+        commentid: "12150"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-29 21:14:32 +0100
+        thetext: |-
+          I fixed it.
+
+          mbp> svn commit test/test_bug2399.m forward/
+          Sending        forward/ft_apply_montage.m
+          Sending        forward/ft_prepare_vol_sens.m
+          Adding         test/test_bug2399.m
+          Transmitting file data ...
+          Committed revision 8925.
+      - +@isprivate: "0"
+        commentid: "12159"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-02 09:11:29 +0100
+        thetext: |-
+          I have reverted part of the change in commit 8922 and 8925. Rather than recomputing the channel positions for MEG, I keep the selected channel positions. That is much cheaper and less error-prone than recomputing them. They are still recomputed for EEG.
+
+          mac001> svn commit forward/ test/
+          Sending        forward/ft_prepare_vol_sens.m
+          Sending        test/test_headmodel_localspheres_new_old.m
+          Transmitting file data ..
+          Committed revision 8928.
+
+          This is only marginally related to this bug, but the thought was triggered by it.
+      - +@isprivate: "0"
+        commentid: "12925"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:30 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

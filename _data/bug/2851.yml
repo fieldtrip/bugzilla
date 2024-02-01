@@ -1,0 +1,254 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2851"
+    creation_ts: 2015-02-23 13:58:00 +0100
+    short_desc: merge freq2timelock and comp2timelock into ft_checkdata
+    delta_ts: 2016-06-17 15:58:28 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2822
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: luca.ambrogioni
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15418"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 13:58:43 +0100
+        thetext: as discussed in relation to the frequency domain MNE implementation
+      - +@isprivate: "0"
+        commentid: "15419"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 14:18:39 +0100
+        thetext: |-
+          it might be useful to look at other places where a similar data conversion is performed. One that comes in mind is ft_megplanar, which has
+
+          % store the original representation, this is used later on to convert it back
+          isfreq = ft_datatype(data, 'freq');
+          israw  = ft_datatype(data, 'raw');
+          istlck = ft_datatype(data, 'timelock');  % this will be temporary converted into raw
+
+          % check if the input data is valid for this function, this converts the data if needed
+          data = ft_checkdata(data, 'datatype', {'raw' 'freq'}, ...)
+
+          if istlck
+            % the timelocked data has just been converted to a raw representation
+            % and will be converted back to timelocked at the end of this function
+            israw = true;
+          end
+
+          if isfreq,
+            if ~isfield(data, 'fourierspctrm'), error('freq data should contain Fourier spectra'); end
+          end
+
+          and at the bottom of the code it converts it back where needed
+
+          if istlck
+            % convert the raw structure back into a timelock structure
+            interp = ft_checkdata(interp, 'datatype', 'timelock');
+            israw  = false;
+          end
+      - +@isprivate: "0"
+        commentid: "15420"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 14:21:18 +0100
+        thetext: |-
+          In private/freq2timelock there is also mention of timelock2freq, which is the companion  converter. It is also used in ft_dipolefitting, but not in ft_sourceanalysis. Might the lack of calling that function be the reason for frequency-mne failing to produce meaningful output? I don't think so.
+
+
+          mac011> grep freq2timelock *.m
+          ft_dipolefitting.m:  data = freq2timelock(cfg, data);
+          ft_sourceanalysis.m:    [data, cfg] = freq2timelock(cfg, data);
+
+          mac011> grep timelock2freq *.m
+          ft_dipolefitting.m:      [dip.pow, dip.csd, dip.fourier] = timelock2freq(dip.mom);
+      - +@isprivate: "0"
+        commentid: "15421"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 14:28:28 +0100
+        thetext: |-
+          >> Re = randn(3,10);
+          >> Im = randn(3,10);
+
+          % ignoring the scaling by the number of elements, I see that
+
+          >> Cov = ([Re Im] * [Re Im]')
+          Cov =
+             19.1545    1.3243    2.1364
+              1.3243   24.8980  -10.4490
+              2.1364  -10.4490   45.9311
+
+          >> Covi = ([Re+i*Im] * [Re+i*Im]')
+          Covi =
+            19.1545 - 0.0000i   1.3243 + 4.4870i   2.1364 - 2.2914i
+             1.3243 - 4.4870i  24.8980 + 0.0000i -10.4490 + 6.6850i
+             2.1364 + 2.2914i -10.4490 - 6.6850i  45.9311 + 0.0000i
+
+          >> real(Covi)
+          ans =
+             19.1545    1.3243    2.1364
+              1.3243   24.8980  -10.4490
+              2.1364  -10.4490   45.9311
+
+          The difference in the number of elements needs further thought.
+      - +@isprivate: "0"
+        commentid: "15430"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 15:23:30 +0100
+        thetext: |-
+          Regarding comp2timelock, the following functions need to be changed:
+
+          [jansch@mentat002 fieldtrip]$ grep comp2timelock *.m
+          ft_dipolefitting.m:  data = comp2timelock(cfg, data);
+          ft_sourceanalysis.m:    [data, cfg] = comp2timelock(cfg, data);
+
+          Regarding freq2timelock, the following functions need to be changed:
+
+          [jansch@mentat002 fieldtrip]$ grep freq2timelock *.m
+          ft_dipolefitting.m:  data = freq2timelock(cfg, data);
+          ft_sourceanalysis.m:    [data, cfg] = freq2timelock(cfg, data);
+      - +@isprivate: "0"
+        commentid: "15431"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 15:28:32 +0100
+        thetext: 'Sidetrack: at the moment test_ft_sourcenalysis is working sub-optimally. I tried running it in the context of some changes pertaining to this bug and I noticed that the try-catch in lines 1030-1055 prevent the assertion to catch meaningful errors (e.g. I would expect an error when calling test_ft_sourceanalysis(datainfo(9)) %NOTE: I created the datainfo variable outside the function to prevent the test function to run over a bunch of non-functional eeg datasets to begin with ---> the change in the inside handling should yield a false assertion, because the data on disk still has the indexed representation). Probably this should be moved to a different bug.'
+      - +@isprivate: "0"
+        commentid: "15440"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-23 16:17:10 +0100
+        thetext: |-
+          [jansch@mentat002 fieldtrip]$ svn commit -m "enhancement - moved conversion of non-timelocked data to ft_checkdata, see bug 2851" ft_sourceanalysis.m
+          Sending        ft_sourceanalysis.m
+          Transmitting file data .
+          Committed revision 10251.
+      - +@isprivate: "0"
+        commentid: "15442"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 17:38:53 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+
+          should we give the split [Re Im] representation of freq data an explicit name to facilitate converting it back? The issue is that data handling in ft_selectdata probably would not be able to real with it, since there is either an additional dimension (with 2 elements) or the two have to be multiplexed along an existing dimension.
+
+          We might also consider moving the [Re Im] handling to the low-level code where the actual computation is performed. I guess this also is what Luca would like most. But that requires to identify which low-level functions are affected. E.g. dipole_fit would be one of them.
+      - +@isprivate: "0"
+        commentid: "15447"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-24 08:57:52 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          I think you raise 2 points here:
+
+          1) ft_selectdata will choke if the data representation is inconsistent. This could be solved by extending the time-field (since the xxx2timelock will yield a chan_time matrix always). Also, in sequence of steps I think it would make sense to first pass the freq/comp data through ft_selectdata, and then through ft_checkdata for the conversion. If the back-conversion is done at the end of the high-level function ft_selectdata does not need to know about it.
+          2) to keep it generic, there could be different ways in which the data can be multiplexed along the second dimension of the [Re Im] matrix. This indeed makes data handling challenging, e.g. with chan_freq_time data having a different multiplexing than rpt_chan_freq data. We could look into how it's dealt with in the statistics functions, where a cfg.dim/cfg.dimord are passed to functions like clusterstat to get the reshaping right. In other words, rather than defining it within the data structure, we could keep track of these within the high level function, because the reformatted data will not leave the high-level function anyway. Perhaps, it's also worthwhile to look at how align_spm2ctf etc are doing it, these functions also keep track of how to permute/flip the anatomical volumes.
+      - +@isprivate: "0"
+        commentid: "15463"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-25 10:22:56 +0100
+        thetext: |-
+          After a discussion with Robert, we have decided the following:
+
+          freq2timelock and comp2timelock will be deprecated and the handling of complex-valued data will move to the lower-level functions (to keep it closest to the algorithm). As a consequence, the bookkeeping in the high level functions stays clean (no ad-hoc and potential inconsistent data representations, where e.g. the order of calls to ft_checkdata and ft_selectdata matter).
+          Concretely:
+          1) freq2timelock and comp2timelock will be removed from ft_checkdata.m again
+          2) freq2timelock and comp2timelock will be removed from the svn-repo
+          3) ft_dipolefitting and ft_sourceanalysis will just need to deal with the different datatypes, i.e. if ft_datatype(data,'freq'), % do something, elseif ft_datatype(data,'timelock'), % do something else, end;
+          4) the low-level functions dipole_fit, minimumnormestimate, etc. need to deal with the complex-valued data, preferably like this:
+
+          %at the beginning of each function
+          if iscomplex(datamatrix)
+            complexflag = true;
+            datamatrix  = [real(datamatrix) imag(datamatrix)]
+            OR
+            invC = inv(real(C)); etc
+          else
+            complexflag = false;
+            invC = inv(C);
+          end
+
+          % at the end of each function
+          if complexflag,
+            % ensure that the returned data is properly formatted, e.g.
+            for k = ...
+              dip.mom{k} = dip.mom{k}(:,1:N) + 1i.*dip.mom{k}(:,1:N);
+            end
+          end
+
+
+          I suggest that JM does 1-3, and explicitly builds in an error in the lower-level functions.
+          It's then up to Luca to revert these errors into functional code.
+          Does that sound like a plan?
+      - +@isprivate: "0"
+        commentid: "17385"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-01 14:12:34 +0200
+        thetext: Due to lack of development initiative of the people involved, I change status for now.
+      - +@isprivate: "0"
+        commentid: "17386"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-01 14:14:31 +0200
+        thetext: most of the stuff in the points 1-3 have been dealt with by the way.

@@ -1,0 +1,131 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1881"
+    creation_ts: 2012-12-11 17:23:00 +0100
+    short_desc: ft_selectdata_new fails to select frequency limits for coherence data
+    delta_ts: 2014-05-14 20:08:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2197
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8630"
+        comment_count: "0"
+        attachid: "389"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-12-11 17:23:25 +0100
+        thetext: "Created attachment 389\ntoy data after coherence computation using 'coh' method\n\nI want to select a frequency range of the coherence spectrum\n\ncfg        = [];\ncfg.foilim = [0 90];\nf          = ft_selectdata(cfg,freqcomp_ecg);\n\nfreqcomp = \n\n     labelcmb: {273x2 cell}\n       dimord: 'chan_freq'\n    cohspctrm: [273x466 double]\n         freq: [1x466 double]\n          dof: 340\n          cfg: [1x1 struct]\n\nbut ft_selectdata_new chunk the dimord in 'chan' AND 'freq' (line 82; dimtok = tokenize(dimord, '_');). Then 'chancmb' case cannot be found and 'chan' dimord part is used provoking an error because field freqcomp.label is expected:\n case 'chan'\n        dimsiz(i) = length(varargin{1}.label);\n\nIs there a bug in the expected dimord after ft_connectivityanalysis, method='coh' or should I make a case for the dimord: 'chan_freq' + labelcmb? Attached toy data"
+      - +@isprivate: "0"
+        commentid: "8669"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-12-12 14:19:30 +0100
+        thetext: bug could be in ft_connectivityanalysis, struct.dimord should possibly be 'chancmb_freq'
+      - +@isprivate: "0"
+        commentid: "13223"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-04-03 21:15:42 +0200
+        thetext: |-
+          Created a placeholder test function for this one.
+
+          Note to Robert (in particular): this is a tricky one. Ft_selectdata_new does not support data with labelcmb. In the part of the code that deals with channel selection, it only looks at the label field (hard coded). If I recall correctly, this issue is partially dealt with in ft_selectdata_old by creating a dummy variable, where the labelcmb is temporarily converted into a pseudo-label cell-array (by concatenating as a string the two columns of labelcmb). Then the selections are done, and the appropriate labelcmb is put back in the output. We could do something like this in ft_selectdata_new (I think this will keep the code clean), where somewhere high up in the code we do something like (pseudocode):
+
+          haslabelcmb = isfield(varargin{x},'labelcmb')
+          haslabel    = isfield(varargin{x},'label')
+
+          if haslabelcmb && haslabel
+            % this is freq data old-style with crsspctrm
+          elseif haslabelcmb && ~haslabel
+            % this is connectivity data with linearly indexed combinations, I think it is fair for the user to expect a meaningful output of the function here
+
+            % call ft_selectdata twice: once with the data scrubbed from the label-related fields and once with the data scrubbed from the labelcmb related fields
+
+
+            % combine the output
+
+            return;
+
+          elseif ~haslabelcmb
+            % business as usual: proceed
+          end
+      - +@isprivate: "0"
+        commentid: "13225"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-04 09:07:58 +0200
+        thetext: "I have over the last few days been working on old/new style representations in relation to sources (see bug 2185) and making extensions to ft_selectdata_new, ft_datatype_source and related functions. \n\nShall I also have a go at this bug, with the recent coding experience still fresh in my head?"
+      - +@isprivate: "0"
+        commentid: "13337"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-15 18:58:43 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+
+          The ft_selectdata_newer implementation correctly deals with this.
+      - +@isprivate: "0"
+        commentid: "13625"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:08:51 +0200
+        thetext: closed several of my bugs that have been resolved
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "389"
+      date: 2012-12-11 17:23:00 +0100
+      delta_ts: 2012-12-11 17:23:25 +0100
+      desc: toy data after coherence computation using 'coh' method
+      filename: cohdata.mat
+      type: application/octet-stream
+      size: "9846468"
+      attacher:
+        +content: dlozanosoldevilla
+        +@name: Diego Lozano Soldevilla
+      data: REMOVED

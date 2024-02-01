@@ -1,0 +1,145 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "738"
+    creation_ts: 2011-06-07 14:19:00 +0200
+    short_desc: ft_read_event and ft_read_data have to be made faster
+    delta_ts: 2014-02-24 10:56:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "1773"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: philipvandenbroek
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2325"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-07 14:19:41 +0200
+        thetext: "On 6 Jun 2011, at 13:07, Philip van den Broek wrote:\n\nPS: ook het sorteren van de events aan het einde van de functie ft_read_event is ook een reden om ft_buffer te gebruiken omdat alleen de laatste (nieuwste binnengekomen) events verwerkt moeten worden.\n\nHoi Robert,\n\nIk begrijp je standpunt, voor mij is de belangrijkste reden voor het gebruik van ft_buffer de efficiëntie van de code (zo snel mogelijk naar de aanroep buffer('GET_HDR', ... ) of buffer('GET_EVT', ... ). De functies ft_read_header en ft_read_event controleren eerst alle opties en dit kost op mijn machine bijvoorbeeld minimaal 3 ms extra t.o.v. het gebruik van ft_buffer. Is er een optie in de aanroep van deze functies mogelijk die de controles overslaat (in een online setting hoeven ze niet iedere keer gecontroleerd te worden). Alhoewel 3 ms op zich weinig is, beïnvloedt het de performance in een online setup wel nadelig vanwege het aantal keren dat de aanroep gedaan wordt. Ik denk dan bijvoorbeeld aan:\nft_read_data/header('buffer://localhost:1972','poll'), (the 'poll' option to indicate skipping the additional option checks)\nvoor het huidige aantal samples/events, of\nft_read_data/header(...,'poll','blocking',true/false,'timeout',0.1), \nals je de timeout optie wil gebruiken"
+      - +@isprivate: "0"
+        commentid: "2326"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-07 14:23:03 +0200
+        thetext: "The following code demonstrates the problem\n\n% start a buffer on the command line like this\nmanzana> cd fieldtrip/realtime/general\nmanzana> ./buffer.maci64 \n\n% inititalize it with some data\nfilename = 'buffer://localhost:1972';\n\nhdr = [];\nhdr.Fs = 1000;\nhdr.nChans = 10;\nft_write_data(filename, [], 'header', hdr);\n\nfor i=1:100\n  event = [];\n  event.sample  = i;\n  event.value   = 1;\n  event.offset  = 0;\n  event.duration = 0;\n  event.type    ='trigger';\n  ft_write_event(filename, event);\nend\n\n% read from the buffer, this should be made faster\nft_read_event(filename)"
+      - +@isprivate: "0"
+        commentid: "2327"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-07 14:30:01 +0200
+        thetext: |-
+          it only runs slow on the first call when all functions have to be compiled in memory
+
+          >> tic; ft_read_event(filename); toc
+          Elapsed time is 0.330049 seconds.
+
+          >> tic; ft_read_event(filename); toc
+          Elapsed time is 0.015560 seconds.
+          >> tic; ft_read_event(filename); toc
+          Elapsed time is 0.005377 seconds.
+          >> tic; ft_read_event(filename); toc
+          Elapsed time is 0.005958 seconds.
+          >> tic; ft_read_event(filename); toc
+          Elapsed time is 0.006223 seconds.
+      - +@isprivate: "0"
+        commentid: "2328"
+        comment_count: "3"
+        attachid: "67"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-07 14:30:21 +0200
+        thetext: |-
+          Created attachment 67
+          screenshot with profiling details
+      - +@isprivate: "0"
+        commentid: "2330"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-07 14:44:59 +0200
+        thetext: |-
+          I replaced the ismember is any(strcmp(...)) which is much faster and I switched to ft_getopt (which is a mex file) instead of keyval.
+
+          @Philip: Could you check whether the speed is now acceptable for you?
+      - +@isprivate: "0"
+        commentid: "2357"
+        comment_count: "5"
+        who:
+          +content: philipvandenbroek
+          +@name: Philip van den Broek
+        bug_when: 2011-06-10 10:53:01 +0200
+        thetext: "De resultaten hieronder laten zien dat via ftb=ft_buffer(filename) en ftb.poll() resultaten veel sneller beschikbaar komen. Ik ben nog niet overtuigd dat dit met de twee benodigde aanroepen van ft_read_header (nsamples) en ft_read_event te benaderen is omdat sowieso ft_read_event altijd alle events inleest en dit is voor polling niet  nodig. Daarnaast geeft ft_read_header niet het aantal events terug en is dan voor polling (informatie over aantal binnengekomen events in buffer sinds start buffer) niet bruikbaar, tenzij event.number een nieuw veld wordt in de event structure.\nIk zou toch graag een efficiente poll functionaliteit behouden, is het een optie om ft_read_header(filename,'poll',varargin) hetzelfde te laten doen als ftb.poll(varargin)?\n\n\n>> tic,for n=1:100,ft_read_header(filename);end,toc\nElapsed time is 0.152558 seconds.\n>> tic,for n=1:100,ft_read_header(filename);end,toc\nElapsed time is 0.151979 seconds.\n\n>> tic,for n=1:100,ft_read_event(filename);end,toc\nElapsed time is 0.380948 seconds.\n>> tic,for n=1:100,ft_read_event(filename);end,toc\nElapsed time is 0.380295 seconds.\n\n>> tic,for n=1:100,ftb.poll();end,toc\nElapsed time is 0.017608 seconds.\n>> tic,for n=1:100,ftb.poll();end,toc\nElapsed time is 0.017382 seconds.\n\n>> ft_read_event(filename)\n\nans = \n\n1x100 struct array with fields:\n    type\n    value\n    sample\n    offset\n    duration\n\n>> ftb.poll()\n\nans = \n\n    nsamples: 0\n     nevents: 100\n\n>>"
+      - +@isprivate: "0"
+        commentid: "2391"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-06-16 14:18:14 +0200
+        thetext: I just committed the change (i.e. blocking in ft_read_event). This was accidental, and the svn log message does not mention it. I don't believe it breaks anything so I won't revert.
+      - +@isprivate: "0"
+        commentid: "12524"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-17 08:53:01 +0100
+        thetext: I am cleaning out bugzilla, I believe nothing remains to be done here.
+      - +@isprivate: "0"
+        commentid: "12954"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:41 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "67"
+      date: 2011-06-07 14:30:00 +0200
+      delta_ts: 2011-06-07 14:30:21 +0200
+      desc: screenshot with profiling details
+      filename: Picture 1.png
+      type: image/png
+      size: "38942"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

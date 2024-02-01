@@ -1,0 +1,217 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1108"
+    creation_ts: 2011-11-03 08:16:00 +0100
+    short_desc: extend/replace ft_spikesimulation and add an example to the tutorial
+    delta_ts: 2013-01-15 22:10:17 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - a.stolk8
+      - martinvinck
+      - r.oostenveld
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3799"
+        comment_count: "0"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2011-11-03 08:16:12 +0100
+        thetext:
+      - +@isprivate: "0"
+        commentid: "3802"
+        comment_count: "1"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2011-11-03 08:21:42 +0100
+        thetext: '*** Bug 1109 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "6268"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-05 14:42:50 +0200
+        thetext: Martin also has code for simulating spike trains. Together we have to come up with a framework function that allows the different types of simulations to be integrated.
+      - +@isprivate: "0"
+        commentid: "6272"
+        comment_count: "3"
+        attachid: "271"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-05 15:17:52 +0200
+        thetext: |-
+          Created attachment 271
+          ft_spikesimulation
+      - +@isprivate: "0"
+        commentid: "6273"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-05 15:22:12 +0200
+        thetext: |-
+          agreed
+
+          the attached version can also estimate the effect of presynaptic spiketrains on the postsynaptic dendritic charge, the resulting membrane potential, and the local field potential (of multiple neurons)
+      - +@isprivate: "0"
+        commentid: "6274"
+        comment_count: "5"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-05 15:23:35 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          .. and the effect of a cortical rhythm on the above ;)
+      - +@isprivate: "0"
+        commentid: "6275"
+        comment_count: "6"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-05 15:27:46 +0200
+        thetext: |-
+          The flow of the function is not entirely clear to me
+
+              1) output spike rates generated according to some probability model
+              2) simulation of the resulting dendritic currents by taking an EPSC function
+              (which is conventionally taken as exp(-t/tau)
+              3) leaky-integration > this should then be the integral of the EPSC function,
+              an EPSP (which is conventionally taken as the alpha function t*exp(-t/tau)
+              4) the addition of another cortical rhythm to the resulting LFP (what is the
+              function of that?)
+      - +@isprivate: "0"
+        commentid: "6277"
+        comment_count: "7"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-05 15:36:41 +0200
+        thetext: |-
+          There are two types of functions that we could take to simulate the probability of spiking:
+
+          1) Based on a circular model.
+          My suggestion would be to either use the cosine model function or the von mises model.
+          The cosine function is given as pdf(tau) = (1 + k*cos(mu-phs))/2pi. The sine function you are using boils down to that in the end.
+          The von Mises function is given as exp(k*cos(mu-phs))/2*pi*Bessel0(k)
+
+          The cosine function is analytically very tractable and corresponds to the Taylor expansion of the von Mises around k = 0.
+          With resultant length equal to k/2. So the resultant length of the distribution can then be easily controlled. The cosine model may not the best model for high phase concentrations as the von Mises distribution occurs more naturally for many applications for similar reasons as the Gaussian in the linear case.
+
+          This model has been used e.g. in Vinck et al. (2011, Journal of Computational Neuroscience).
+
+          --> As there is only one frequency here, it will cause an unrealistic peak in the spike-LFP locking spectrum. It's therefore better to create a mixture of the PDF or create some variation in the ongoing frequency.
+
+          2) Based on band pass filtered (Gaussian) white noise. In this case we can refer to Zeitler et al. (2006) who have created models of spiking probability and also given the analytic dependence of the spike-field coherence for a Poisson process.
+          The disadvantage of this model is that the probability can not be easily controlled since the firing rate needs to be non-negative > since it's white noise any negative value can occur in theory.
+      - +@isprivate: "0"
+        commentid: "6278"
+        comment_count: "8"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-05 15:59:49 +0200
+        thetext: Yes, that would be the operations possible. This function was designed to simulate the influence of a cortical rhythm and spike rate of a neural population, hence the 4th implementation.
+      - +@isprivate: "0"
+        commentid: "6279"
+        comment_count: "9"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-05 16:00:59 +0200
+        thetext: With respect to your suggestions, I'm fine with you inserting them or even replacing the coarse versions that are in there (if you think they're of added value)
+      - +@isprivate: "0"
+        commentid: "6280"
+        comment_count: "10"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-05 16:02:24 +0200
+        thetext: |-
+          (In reply to comment #8)
+              Yes, but why is that again in step 4? Isn't that implemented already in step 1
+              (the influence of the population rhythm on spiking activity). As the spike
+              trains become rhythmic then, they create a rhythmic membrane potential / LFP.
+      - +@isprivate: "0"
+        commentid: "6304"
+        comment_count: "11"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-07 07:29:38 +0200
+        thetext: |-
+          In fact, the ft_spikedensity function already allows to convolve spike-trains with an alpha function (for examples, see test_ft_spikedensity) and would return what you call the 'membrane potential' trial-per-trial.
+          It would be easy to add the exponential kernel so that after simulating the spikes you only have to call ft_spikedensity twice.
+      - +@isprivate: "0"
+        commentid: "6305"
+        comment_count: "12"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-06-07 09:13:43 +0200
+        thetext: Ok. I'm starting to lose overview of the functions. Will you document how to use the different steps? In case it's there already, sorry for my ignorance. :)
+      - +@isprivate: "0"
+        commentid: "6821"
+        comment_count: "13"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2012-07-18 10:20:15 +0200
+        thetext: Any luck here?
+      - +@isprivate: "0"
+        commentid: "6987"
+        comment_count: "14"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-08-11 13:40:40 +0200
+        thetext: hi Arjen, I'm picking up the work again, put it on my list.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "271"
+      date: 2012-06-05 15:17:00 +0200
+      delta_ts: 2012-06-05 15:17:52 +0200
+      desc: ft_spikesimulation
+      filename: ft_spikesimulation.m
+      type: text/plain
+      size: "18554"
+      attacher:
+        +content: a.stolk8
+        +@name: Arjen Stolk
+      data: REMOVED

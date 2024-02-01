@@ -1,0 +1,169 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1262"
+    creation_ts: 2012-01-16 17:20:00 +0100
+    short_desc: Problem reading fcdc_buffer_offline filetypes (version 20111231)
+    delta_ts: 2015-05-04 13:42:31 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P2
+    bug_severity: major
+    target_milestone: '---'
+    blocked: "2888"
+    everconfirmed: "1"
+    reporter:
+      +content: r.vlek
+      +@name: Rutger Vlek
+    assigned_to:
+      +content: b.reuderink
+      +@name: Boris Reuderink
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4804"
+        comment_count: "0"
+        who:
+          +content: r.vlek
+          +@name: Rutger Vlek
+        bug_when: 2012-01-16 17:20:41 +0100
+        thetext: "The following problem occurred while attempting to slice data from a dataset in fcdc_buffer_offline format (in FieldTrip version 20111231):\n\n--------------------------------------\n\nError in ==> utilities/private/dataset2files at 13\nif isempty(format)\n\n??? Output argument \"datafile\" (and maybe others) not assigned during call to\n\"/Users/rutger/source/fieldtrip-20111231/utilities/private/dataset2files.m>dataset2files\".\n\nError in ==> ft_checkconfig at 466\n    [cfg.dataset, cfg.headerfile, cfg.datafile] = dataset2files(cfg.dataset,\n    []);\n\nError in ==> ft_definetrial at 116\ncfg = ft_checkconfig(cfg, 'dataset2files', {'yes'});\n\n--------------------------------------\n\nThis seems related to the fact that the fcdc_buffer_offline format uses a directory rather than a file to indicate location of the dataset, and the problem is complicated even more by using files without extension for header, samples and events. The representation of this slightly complicated data format appeared inconsistent over various functions related to file reading (ft_read_event.m, dataset2files.m, ft_filetype.m).\n\nI managed to solve the problem with the following changes (all fixes replace previous code):\n\n------------------ft_read_event.m --- lines.849 to 856----------\n\n case 'fcdc_buffer_offline'\n    [path, file, ext] = fileparts(filename);\n    if isempty(hdr)        \n      headerfile = fullfile(path, 'header');    % Rutger's fix\n      hdr = read_buffer_offline_header(headerfile);\n    end\n    eventfile  = fullfile(path, 'events');      % Rutger's fix\n    event = read_buffer_offline_events(eventfile, hdr);\n\n----dataset2files.m (both in fileio and utilities) --- lines.106 to 109--------\n\n  case 'fcdc_buffer_offline'\n    [path, file, ext] = fileparts(filename);\n    headerfile = fullfile(path, 'header');  %Rutger's fix\n    datafile   = fullfile(path, 'samples'); %Rutger's fix\n\n------------------ft_filetype --- lines.576 to 579----------\nelseif isdir(p) && exist(fullfile(p, 'header'), 'file') && exist(fullfile(p, 'events'), 'file') %Rutger's fix\n  type = 'fcdc_buffer_offline';\n  manufacturer = 'Donders Centre for Cognitive Neuroimaging';\n  content = 'FieldTrip buffer offline dataset';"
+      - +@isprivate: "0"
+        commentid: "4805"
+        comment_count: "1"
+        who:
+          +content: r.vlek
+          +@name: Rutger Vlek
+        bug_when: 2012-01-16 17:21:50 +0100
+        thetext: Can someone from the FieldTrip development team check and incorporate these fixes in a fature release?
+      - +@isprivate: "0"
+        commentid: "4806"
+        comment_count: "2"
+        who:
+          +content: r.vlek
+          +@name: Rutger Vlek
+        bug_when: 2012-01-16 17:22:15 +0100
+        thetext: |-
+          (In reply to comment #1)
+          future I mean :)
+      - +@isprivate: "0"
+        commentid: "4807"
+        comment_count: "3"
+        who:
+          +content: r.vlek
+          +@name: Rutger Vlek
+        bug_when: 2012-01-16 18:29:41 +0100
+        thetext: |-
+          (In reply to comment #2)
+          Additionally, I discovered a bug in read_buffer_offline_header.m, resulting in the following error:
+
+          --------------------------------------
+          ??? Error using ==> read_buffer_offline_header at 96
+          Invalid channel name definition - broken header file?
+
+          Error in ==> ft_read_header at 925
+              [hdr, nameFlag] = read_buffer_offline_header(headerfile);
+
+          Error in ==> trialfun_rtpp at 10
+              hdr = ft_read_header(cfg.headerfile);
+
+          Error in ==> ft_definetrial at 166
+              [trl, event] = feval(cfg.trialfun, cfg);
+          --------------------------------------
+
+          It can be fixed this way:
+
+          ------------------ft_read_event.m --- lines.89 to 98----------
+
+            if numel(indCol)>=1
+              ind = str2num(s(1:(indCol-1))); %Rutger's fix
+              name = s((indCol+1):end);       %Rutger's fix
+              if ~isempty(ind) && ind>=1 && ind<=hdr.nChans
+                hdr.label{ind} = name;
+                nameFlag = 2;
+              else
+                error('Invalid channel name definition - broken header file?');
+              end
+            end
+      - +@isprivate: "0"
+        commentid: "5696"
+        comment_count: "4"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-03-28 10:27:09 +0200
+        thetext: |-
+          Hi Rutger, this seems like a useful patch. I tried to copy your changes, but I got a bit confused during the patching of ft_filetype.m, since it appears to have been changed in the meanwhile.
+
+          Would it be possible for you to use the latest SVN version, and
+          1) modify the files to implement this fix, and
+          2) send me the version you used, and the output of "svn diff"?
+
+          That would enable me to quickly integrate your changes.
+      - +@isprivate: "0"
+        commentid: "5834"
+        comment_count: "5"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-04-11 15:21:44 +0200
+        thetext: "Got the changed code by email. Patch is below, waiting for test data to create script.\n\n--\n\n--- a/fileio/ft_filetype.m\n+++ b/fileio/ft_filetype.m\n@@ -580,7 +580,7 @@ elseif isdir(filename) && most(filetype_check_extension({ls.name}, '.nte'))\n   manufacturer = 'Neuralynx';\n   content = 'spike timestamps';\n   \n-elseif isdir(filename) && exist(fullfile(filename, 'header'), 'file') && exist(fullfile(filename, 'events'), 'file')\n+elseif isdir(p) && exist(fullfile(p, 'header'), 'file') && exist(fullfile(p, 'events'), 'file')\n   type = 'fcdc_buffer_offline';\n   manufacturer = 'Donders Centre for Cognitive Neuroimaging';\n   content = 'FieldTrip buffer offline dataset';\n--"
+      - +@isprivate: "0"
+        commentid: "6052"
+        comment_count: "6"
+        attachid: "263"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-05-07 12:50:26 +0200
+        thetext: |-
+          Created attachment 263
+          Generated (noisy) sines and saved with record.exe.
+      - +@isprivate: "0"
+        commentid: "6172"
+        comment_count: "7"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-05-23 12:59:48 +0200
+        thetext: Fixed in SVN revision 5750. Test was added in SVN rev. 5749. Closed.
+      - +@isprivate: "0"
+        commentid: "6458"
+        comment_count: "8"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-06-20 15:03:23 +0200
+        thetext: Changed my resolved bugs to closed.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "263"
+      date: 2012-05-07 12:50:00 +0200
+      delta_ts: 2012-05-07 12:50:26 +0200
+      desc: Generated (noisy) sines and saved with record.exe.
+      filename: test_bug1262.zip
+      type: application/x-zip-compressed
+      size: "72549"
+      attacher:
+        +content: b.reuderink
+        +@name: Boris Reuderink
+      data: REMOVED

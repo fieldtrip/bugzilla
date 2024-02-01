@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1339"
+    creation_ts: 2012-02-23 07:26:00 +0100
+    short_desc: wrong number of sensors from bti2grad
+    delta_ts: 2012-04-02 16:26:45 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: yuvharpaz
+      +@name: Yuval
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5336"
+        comment_count: "0"
+        who:
+          +content: yuvharpaz
+          +@name: Yuval
+        bug_when: 2012-02-23 07:26:54 +0100
+        thetext: |-
+          when using ft_read_header the "gradiometers" for our 4D248 layout are 271
+          in the grad structure we get 271 labels with 276 points, orientations etc.
+          this is because bti2grad sums the number of coils and for some gradiometers 2 coils are given per point.
+
+          I attached a header from read_4d_hdr.
+
+          at the moment I fixed it by adding
+
+          numcoils(numcoils>0,1)=1;
+
+          just before
+
+            totalcoils = sum(numcoils);
+      - +@isprivate: "0"
+        commentid: "5337"
+        comment_count: "1"
+        attachid: "231"
+        who:
+          +content: yuvharpaz
+          +@name: Yuval
+        bug_when: 2012-02-23 07:29:57 +0100
+        thetext: |-
+          Created attachment 231
+          hdr from read_4d_hdr
+      - +@isprivate: "0"
+        commentid: "5340"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-23 09:45:19 +0100
+        thetext: |-
+          Hi Yuval,
+
+          This is actually intended. The labels refer to the sensors, the pnt and ori to the coils.
+          Coils don't have a label. The grad.tra matrix links the labels with the pnt/ori. Each row (corresponding to a sensor) gives the weights with which the individual coils contribute to that sensor. For unbalanced magnetometers there's a one-to-one relation between coils and sensors, a gradiometer requires 2 coils to be properly described. With five gradiometer references (out of 23 reference sensors), there are 5*2 + 18*1 coils. Add this to the 248 magnetometer coils of the true sensors you'll get to 276
+
+          Some more information can be found on: http://fieldtrip.fcdonders.nl/faq/how_are_electrodes_magnetometers_or_gradiometers_described
+
+          Note that since some time FieldTrip uses a slightly different representation of the gradiometers, making the distinction between sensors and coils more clear. To get to this new representation you can do:
+
+          grad = bti2grad(hdr);
+          gradnew = ft_datatype_sens(grad);
+
+          Let me know if things are not clear.
+
+          JM
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "231"
+      date: 2012-02-23 07:29:00 +0100
+      delta_ts: 2012-02-23 07:29:57 +0100
+      desc: hdr from read_4d_hdr
+      filename: hdr.mat
+      type: application/octet-stream
+      size: "111592"
+      attacher:
+        +content: yuvharpaz
+        +@name: Yuval
+      data: REMOVED

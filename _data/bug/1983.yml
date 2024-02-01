@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1983"
+    creation_ts: 2013-02-13 14:53:00 +0100
+    short_desc: ft_prepare_sourcemodel should support cfg.grid.unit
+    delta_ts: 2016-11-29 09:04:39 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2755
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9418"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-02-13 14:53:04 +0100
+        thetext: |-
+          In  http://fieldtrip.fcdonders.nl/example/create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space it is implicitly expected that ft_prepare_sourcemodel assumes 'cm' for cfg.grid, independently of the input cfg.hdm. In the example, the units for cfg.hdm are 'mm', but the example script states cfg.grid.xgrid/ygrid/zgrid in 'cm' (as can be deduced from the comment in the example script. There used to be a workaround before, which multiplied these numbers by 10 after ft_prepare_sourcemodel, which is a pretty nasty hack. Nowadays, given that we became old and wise and knowledgable, we know that the correct way to go about with this is either
+          (1) Specify cfg.grid in the same units as cfg.hdm or
+          (2) Set the unit-field of cfg.grid correctly, i.e. set cfg.grid.unit = 'cm'
+
+          However, (2) does not work, but I see no reason why it should not work.
+
+
+          Work to be done:
+          1) Change example script
+          2) Add support for cfg.unit to ft_prepare_sourcemodel (if no unit-field is present, assume same units as cfg.hdm).
+      - +@isprivate: "0"
+        commentid: "9419"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-13 15:07:50 +0100
+        thetext: |-
+          What do you mean by
+          1) 'specify' cfg.grid in the same units? Do you  mean call ft_convertunits(cfg.grid,cfg.hdm.unit)?
+
+          2) why does this option not work? what aspect of it does not work?  code crash? wrong results?  did you try cfg.grid = ft_convertunits(cfg.grid) and did it either fail or give wrong units?
+
+          Either way, I agree example script should be changed and add support to ft_prepare_sourcemodel for units.
+          however, instead of: if no unit field, assume same as cfg.hdm, is there a way to determine it with ft_convertunits?
+
+          See also related bugs to inconsistent units:
+          bug 686
+          bug 1794
+      - +@isprivate: "0"
+        commentid: "9420"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-02-13 15:29:19 +0100
+        thetext: also check why cfg.grid.tight does not do what it should
+      - +@isprivate: "0"
+        commentid: "9421"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-02-13 15:34:07 +0100
+        thetext: |-
+          (In reply to comment #1)
+          1) no, I meant that the actual numbers should be converted, e.g. cfg.grid.xgrid = -200:10:200 (so -200mm to +200mm) rather than -20:1:20 (which is what is currently done in the example script)
+
+          2) sorry, not working is indeed misleading here. Here it stands for: FieldTrip is currently disregaring the cfg.grid.unit field.
+
+          Imho, determining the units is obviously impossible (the plain number 20 can be mm, cm, m, T, kg, $, etc., but I think deducing if they need to be converted from hdm is also not a very good idea. Better would be to output a warning, that the function assumes that units are in 'xx'. I am not quite sure if this is what you meant
+      - +@isprivate: "0"
+        commentid: "9422"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-13 15:59:51 +0100
+        thetext: "Ok, to clarify, if you load 'standard_grid3d8mm', then this grid has no units, but it is clearly 'cm'. \nCalling grid_out=ft_convert_units(grid) will correctly give grid_out the .unit field with 'cm'. \nHowever, grid_mm=ft_convert_units(grid,'mm') will give grid_mm a .unit field with 'mm' and a .pos in 'mm', but as you said, the .xgrid/.ygrid/.zgrid are not modified.\n\nSo one action point is to make ft_convert_units change the values in .xgrid/.ygrid/.zgrid as well as .pos."
+      - +@isprivate: "0"
+        commentid: "9423"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-02-13 16:07:56 +0100
+        thetext: |-
+          hm, that's a bit tricky right? You can say it's clearly 'cm' because you know that we are working on a human brain. If it was a mouse brain, 'mm' might be more appropriate with those numbers - how should FieldTrip know?
+          I wouls suggest to add the .unit field to the template grids, and let ft_convert_units only convert if there is a conversion between known units.
+      - +@isprivate: "0"
+        commentid: "9424"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-13 16:31:32 +0100
+        thetext: |-
+          (In reply to comment #5)
+          It's tricky indeed, but I think Robert intends for it to be used to guess, due to all the calls to ft_estimate_units within ft_convert_units.  It's not always right, and yes the mouse brain example would fail.  But still I think forcing a call to ft_convert_units somewhere in the pipeline would be the way to go (and would match ways of doing it in other pieces of code).
+
+          I agree .unit should be added to templates.
+      - +@isprivate: "0"
+        commentid: "14769"
+        comment_count: "7"
+        who:
+          +content: marc.lalancette
+          +@name: Marc Lalancette
+        bug_when: 2014-11-06 00:54:50 +0100
+        thetext: |-
+          To fix the "FIXME" at line 312, which is an issue with units (thus part of this bug), and which creates a 2-meter-wide grid when units are 'm', replace lines 315,318,321:
+              grid.xgrid = floor(min(sens.chanpos(:,1))):cfg.grid.resolution:ceil(max(sens.chanpos(:,1)));
+          %(similarly for y and zgrid)
+
+          with:
+              grid.xgrid = cfg.grid.resolution*(floor(min(sens.chanpos(:,1))/cfg.grid.resolution):ceil(max(sens.chanpos(:,1))/cfg.grid.resolution));
+              grid.ygrid = cfg.grid.resolution*(floor(min(sens.chanpos(:,2))/cfg.grid.resolution):ceil(max(sens.chanpos(:,2))/cfg.grid.resolution));
+              grid.zgrid = cfg.grid.resolution*(floor(min(sens.chanpos(:,3))/cfg.grid.resolution):ceil(max(sens.chanpos(:,3))/cfg.grid.resolution));
+      - +@isprivate: "0"
+        commentid: "17623"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-07 12:00:57 +0200
+        thetext: I cannot find the location in the code for which Marc suggested a fix. I suggest to close for now, feel free to reopen if new info becomes available

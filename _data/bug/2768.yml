@@ -1,0 +1,180 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2768"
+    creation_ts: 2014-11-26 23:01:00 +0100
+    short_desc: Cannot combine opacity and atlas in ft_sourceplot
+    delta_ts: 2019-08-10 12:41:23 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: All
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - jens.klinzing
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14884"
+        comment_count: "0"
+        attachid: "678"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-11-26 23:01:43 +0100
+        thetext: "Created attachment 678\nAll mentioned plots.\n\nWhen combining opacity and atlas masking in a source plot (no matter if slice, surface, or ortho) a strange plotting error arises. The chosen functional areas show the actual data but with a faint color overlay. The outer edge of the plot (outside of the functional areas and even outside the brain) is drawn fully opaque (s. attachment). Using the atlas alone works.\n\nExample code:\ncfg                             = [];\ncfg.method                      = 'ortho';\ncfg.funparameter                = 'avg.pow';\ncfg.funcolormap                 = 'jet';\ncfg.maskparameter               = cfg.funparameter;\ncfg.opacitymap                  = 'vdown'; % same with 'auto'\ncfg.funcolorlim                 = [-2.01 2.01]; \n\ncfg.atlas                       = fullfile(home, '_fieldtrip','template','atlas','aal','ROI_MNI_V4.nii');\ncfg.roi                         = labels_cerebrum;\ndata.coordsys                   = 'mni';\n\nft_sourceplot(cfg, data)\n\nThe cell array 'labels_cerebrum' just contains all 90 labels outside of cerebellum. All figures in the attachment are done with this code with just the respective parts commented out.\n\n\nAnother (maybe related) problem is seen already when only using opacity for data containing negative and positive values. A dark blue frame is drawn around the plot. I solved this problem in the past by taking the vdown opacity map and setting the very first value to zero.\n\nAll the best and keep up the good work!\nJens"
+      - +@isprivate: "0"
+        commentid: "14885"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-27 09:29:08 +0100
+        thetext: |-
+          Hi Jens,
+
+          for reproducing it would be good to know which MATLAB version on which platform you are using.
+
+          thanks for reporting
+          Robert
+      - +@isprivate: "0"
+        commentid: "14886"
+        comment_count: "2"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-11-27 11:25:08 +0100
+        thetext: |-
+          The problem occurred on Linux CentOS 6.3/Matlab 2013b and Windows 7/2013a.
+
+          Sorry for not stating that in my original post!
+      - +@isprivate: "0"
+        commentid: "14889"
+        comment_count: "3"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-11-27 14:24:39 +0100
+        thetext: (Fieldtrip version from Tuesday, Nov 25)
+      - +@isprivate: "0"
+        commentid: "14893"
+        comment_count: "4"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-11-27 16:31:47 +0100
+        thetext: Same problem with Windows 7/2014b.
+      - +@isprivate: "0"
+        commentid: "15395"
+        comment_count: "5"
+        attachid: "702"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-02-19 11:59:34 +0100
+        thetext: |-
+          Created attachment 702
+          Plot with blue frame
+
+          Plotted data 'source_diff' from the extended beamformer tutorial after interpolation. If masking is used it shows a blue frame covering parts of the mri.
+      - +@isprivate: "0"
+        commentid: "15396"
+        comment_count: "6"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-02-19 12:00:34 +0100
+        thetext: |-
+          The latter problem (dark blue frame around plot when plotting negative and positive values with masking) has already been reported in 2012 here:
+          http://mailman.science.ru.nl/pipermail/fieldtrip/2012-July/005440.html
+
+          This bug is still in place. It can be reproduced by taking the tutorial dataset (see attachment "Plot with blue frame"):
+          ftp://ftp.fcdonders.nl/pub/fieldtrip/tutorial/beamformer_extended/source_diff.mat
+
+          ...and plotting it like this (mri_mni is the MNI template mri):
+          cfg_int = [];
+          cfg_int.downsample = 1;
+          cfg_int.parameter = 'avg.pow';
+          source_diff_int = ft_sourceinterpolate(cfg_int, source_diff, mri_mni);
+
+          cfg = [];
+          cfg.method = 'slice';
+          cfg.funparameter = 'pow';
+          cfg.maskparameter = 'pow';
+          ft_sourceplot(cfg,source_diff_int)
+      - +@isprivate: "0"
+        commentid: "18235"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2017-01-17 15:26:03 +0100
+        thetext: It's unclear what the status of this one is, but given the fact that we're severely underpowered in terms of people contributing to fixing issues on bugzilla, Robert and JM have decided to close the low-priority bugs for now. This in order to keep the number of open bugs manageable. Feel free to reopen it, if you are willing to move this one forward towards a more proper resolution.
+      - +@isprivate: "0"
+        commentid: "20273"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:13 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20471"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:23 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "678"
+        date: 2014-11-26 23:01:00 +0100
+        delta_ts: 2014-11-26 23:01:43 +0100
+        desc: All mentioned plots.
+        filename: all versions.PNG
+        type: image/png
+        size: "570835"
+        attacher:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "702"
+        date: 2015-02-19 11:59:00 +0100
+        delta_ts: 2015-02-19 11:59:34 +0100
+        desc: Plot with blue frame
+        filename: tutorial source_diff blue frame.PNG
+        type: image/png
+        size: "105296"
+        attacher:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        data: REMOVED

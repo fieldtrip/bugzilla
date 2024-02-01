@@ -1,0 +1,189 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3335"
+    creation_ts: 2017-08-23 14:26:00 +0200
+    short_desc: ft_version not found
+    delta_ts: 2019-08-10 12:41:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marcel.zwiers
+      +@name: Marcel Zwiers
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18857"
+        comment_count: "0"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2017-08-23 14:26:34 +0200
+        thetext: |-
+          qsubcellfun can't find ft_version.m anymore (used to work just fine). I ran qsubcellfun with just the qsub module in my matlabpath and got the following error:
+
+          submitting job marzwi_dccn_c011_p16318_b1_j001... torque id 14145510.dccn-l029.dccn.nl
+          cleaning up all scheduled and running jobs, don't worry if you see warnings from "qdel"
+          ??? Undefined function or variable 'ft_version'.
+
+          Error in ==> ft_notification at 72
+          [v, p] = ft_version;
+
+          Error in ==> ft_warning at 58
+            varargout{:} = ft_notification(varargin{:});
+
+          Error in ==> qsubcellfun at 381
+              ws = ft_warning('off', 'FieldTrip:qsub:jobNotAvailable');
+
+          Error in ==> dd_basicproc>run_job at 1581
+          	OK = qsubcellfun(@dd_basicproc_getsnr, stackjob(Job,'Nifti','Subj'), num2cell(1:NrSubj), LogNames, ...
+      - +@isprivate: "0"
+        commentid: "18858"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 15:17:11 +0200
+        thetext: "it happens to be called here\n  private/ft_notification.m:[v, p] = ft_version;\nand ft_notification is called by ft_warning and ft_error. \n\nSee also https://github.com/fieldtrip/fieldtrip/pull/445\n\nI will fix it...\n\n[bug3335 f2be558] added ft_version to address http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3335\n 1 file changed, 154 insertions(+)\n create mode 100644 qsub/private/ft_version.m"
+      - +@isprivate: "0"
+        commentid: "18859"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 15:19:13 +0200
+        thetext: |-
+          I solved it for now with https://github.com/fieldtrip/fieldtrip/pull/498
+
+          However, having experienced ft_error and ft_warning for some time, I am not happy with them. The ft_notify/info/debug all work fine, but for warning and error I find it confusing. So probably I will revert ft-warning to warning, and ft_error to error. But that is not part of this issue.
+      - +@isprivate: "0"
+        commentid: "18864"
+        comment_count: "3"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2017-08-23 15:46:09 +0200
+        thetext: |-
+          Mhhh, I now get:
+
+          submitting job marzwi_dccn_c011_p30513_b2_j001... torque id 14146370.dccn-l029.dccn.nl
+          cleaning up all scheduled and running jobs, don't worry if you see warnings from "qdel"
+          Too many outputs requested.  Most likely cause is missing [] around
+          left hand side that has a comma separated list expansion.
+
+          Error in ==> ft_version at 147
+            ftver = a.Version;
+
+          Error in ==> ft_notification at 72
+          [v, p] = ft_version;
+
+          Error in ==> ft_warning at 58
+            varargout{:} = ft_notification(varargin{:});
+
+          Error in ==> qsubcellfun at 381
+              ws = ft_warning('off', 'FieldTrip:qsub:jobNotAvailable');
+
+          Error in ==> qsubcellfun at 323
+            [stackargout{:}] = qsubcellfun(@cellfun, stackargin{:}, optarg{:});
+
+          Error in ==> ni_nifti_job at 365
+          				qsubcellfun(@ni_resetdwi, DTISeriesG(Sel), repmat({false},size(DTISeriesG(Sel))), 'TimReq',60, 'MemReq',100*1024^2, 'jvm','no', 'Stack',10, 'options','-l gres=bandwidth:999');
+      - +@isprivate: "0"
+        commentid: "18865"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 15:48:49 +0200
+        thetext: |-
+          (In reply to Marcel Zwiers from comment #3)
+
+          ah, it cannot determine the fieldtrip version, since fieldtrip is not on the path. Only qsub is on the path.
+
+          So I guess that the ft_warning/ft_error reverting is needed anyway...
+      - +@isprivate: "0"
+        commentid: "18866"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 15:51:40 +0200
+        thetext: |-
+          mac011> git commit -a
+          [bug3335 71d7f57] added a defaultId function to private and replaced ft_warning by warning(defaultId, ...). Idem for ft_error. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3335#c4
+      - +@isprivate: "0"
+        commentid: "18867"
+        comment_count: "6"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2017-08-23 15:56:19 +0200
+        thetext: It is some sort of regression since having only the qsub module in the path used to work fine until recently. So this will no longer be possible?
+      - +@isprivate: "0"
+        commentid: "18868"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-23 18:44:27 +0200
+        thetext: |-
+          (In reply to Marcel Zwiers from comment #6)
+
+          it is indeed a regression error. It should be fixed and I will do that. Right now you know how to work around it: just add fieldtrip in total, not only ssub.
+      - +@isprivate: "0"
+        commentid: "18870"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-08-24 08:38:23 +0200
+        thetext: |-
+          [bug3335-alt 5bcf12e] replaced ft_warning and ft_error with warning and error, only in qsub. See http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3335
+           25 files changed, 62 insertions(+), 619 deletions(-)
+           delete mode 100644 qsub/private/ft_notification.m
+           delete mode 100644 qsub/private/ft_warning.m
+
+          I cerated a PR and merged it with the master
+          https://github.com/fieldtrip/fieldtrip/pull/500
+
+          @Marcel, please verify the solution.
+      - +@isprivate: "0"
+        commentid: "20303"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:37 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20503"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:51 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

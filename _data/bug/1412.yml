@@ -1,0 +1,155 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1412"
+    creation_ts: 2012-04-10 17:09:00 +0200
+    short_desc: For .cnt files, ft_read_header() of different versions produce different nSamples
+    delta_ts: 2014-02-24 10:56:36 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1490
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: paul.cmchang
+      +@name: Paul Chang
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - arno
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5818"
+        comment_count: "0"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2012-04-10 17:09:01 +0200
+        thetext: "dear all,\nI have found that for a given Neuroscan continuous file, the ft_read_header() of version fieldtrip-20120109 and fieldtrip-20120409 will give different nSample, as follows:\n\n(1) fieldtrip-20120109\n\n>> hdr = ft_read_header('Sub1_1.cnt')\nLoading file Sub1_1.cnt ...\nReading data .....\nScaling data .....\nReading Event Table...\n\nhdr = \n\n             Fs: 1000\n         nChans: 64\n       nSamples: 1505200  <=============================\n    nSamplesPre: 0\n        nTrials: 1\n          label: {64x1 cell}\n           orig: [1x1 struct]\n       chantype: {64x1 cell}\n       chanunit: {64x1 cell}\n\n\n\n(2) fieldtrip-20120409\n\n>> hdr = ft_read_header('Sub1_1.cnt')\nLoading file Sub1_1.cnt ...\nReading data .....\nScaling data .....\nReading Event Table...\n\nhdr = \n\n             Fs: 1000\n         nChans: 64\n       nSamples: 0   <========================================\n    nSamplesPre: 0\n        nTrials: 1\n          label: {64x1 cell}\n           orig: [1x1 struct]\n       chantype: {64x1 cell}\n       chanunit: {64x1 cell}\n\nThe .cnt file (Sub1_1.cnt) is attached for your reference. I would like to know\n(a) Is it a new feature in version fieldtrip-20120409? If yes, is there any function call to retrieve nSamples?\n(b) the ft_read_header() of version fieldtrip-20120409 seems to take much more memory resource than that of version fieldtrip-20120109. I cannot run newer versions on a Windows PC equipped with 3GB RAM, but the same PC can run version fieldtrip-20120109 smoothly. Are there any parameters that I can pass to the newer ft_read_header() to reduce memory usage?\n\nThanks."
+      - +@isprivate: "0"
+        commentid: "5819"
+        comment_count: "1"
+        attachid: "249"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2012-04-10 17:41:37 +0200
+        thetext: "Created attachment 249\nThe test file to reproduce this case\n\nThe test file is sized around 100 MB in bzip format.\nPlease visit \n\nhttp://xuyierjing.nccu.edu.tw/xuyi/tmp/Sub1_1.cnt.bz2\n\nto download."
+      - +@isprivate: "0"
+        commentid: "6132"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-16 13:39:05 +0200
+        thetext: "there has been an update of loadcnt.m somewhere in february, which may point to the cause of the problem. \n\ncourse of action (for the assignee): determine whether the problem(s) are caused by the loadcnt not behaving well, or that the interface to FieldTrip is not behaving well (i.e. suggesting that the way FT deals with the output of loadcnt should change)."
+      - +@isprivate: "0"
+        commentid: "6180"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-05-24 16:59:35 +0200
+        thetext: "Hi Paul,\n\nThanks for the report. The output of ft_read_header should provide the right output now. \n\n\nIn some cases, the orig.header.numsamples = 0, and the output number of samples is wrong. In the previous version of loadcnt.m the orig.header.nums field was used (instead of numsamples). This was changed in r5380 to fix bug 1348. This bug was due to loadcnt.m being updated to the most recent version (from neuroscan), which removed the nums field, in favor of using numsamples. \nI added a workaround for when numsamples is 0. The reason is unknown to me (it looks like a neuroscan data-file specific bug). I re-added the nums field to loadcnt.m so that it can be used in ft_read_header.m.\n\nRobert, I added you to the CC in case I missed something here (you performed r5380). The only reason I can see when the output should actually be 0, is when the datafile is empty, which would result in many other errors, so the workaround should be fine I think."
+      - +@isprivate: "0"
+        commentid: "6182"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-05-25 09:25:46 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          Hi Roemer, thanks for picking this up. The loadcnt function is shared with EEGLAB, or better: we just use the EEGLAB version. Earlier this year Arno informed us that the function was updated in EEGLAB and that therefore we also might want to update our copy
+
+          So making changes to only our copy of loadcnt is not ideal. I'll CC Arno on this bug...
+
+          @Arno, could the h.nums be added to the EEGLAB copy of loadcnt as well?
+
+          Please see http://code.google.com/p/fieldtrip/source/diff?spec=svn5806&r=5806&format=side&path=/trunk/fileio/private/loadcnt.m
+          for the change that Roemer made.
+
+          Or is there another header field we should use to determine the number of samples. Or (probably better) should the fix be in numsamples?
+
+          Right now the fieldtrip version of loadcnt returns
+
+          >> hdr.orig.header.numsamples
+          ans =
+               0
+
+          >> hdr.orig.header.nums
+          ans =
+               1505200
+      - +@isprivate: "0"
+        commentid: "6287"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-05 22:47:27 +0200
+        thetext: Based on the 8 test datasets for bug 1490 it seems that right now header.nums always contains the right value (this is with the modification that Roemer made to loadcnt), whereas numsamples is not always correct.
+      - +@isprivate: "0"
+        commentid: "10540"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 14:00:32 +0200
+        thetext: there are two bugs related to neuroscan cnt, bug 1412 and bug 1490. My proposed solution (discussed with Vladimir over skype) is to move fieldtirp/fileio/private/loadcnt.m to fieldtrip/external/eeglan and merge it with the "official" eeglab version. That ensures that the flow of teh code and changes ot the code can be better tracked.
+      - +@isprivate: "0"
+        commentid: "11421"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-24 17:08:04 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          I have resolved the loadcnt issue as commented. Also see the comment in bug 1490, svn revision 8519 and revision 8526.
+      - +@isprivate: "0"
+        commentid: "12946"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:36 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "249"
+      date: 2012-04-10 17:41:00 +0200
+      delta_ts: 2012-04-10 17:41:37 +0200
+      desc: The test file to reproduce this case
+      filename: attachment-location.txt
+      type: text/plain
+      size: "0"
+      attacher:
+        +content: paul.cmchang
+        +@name: Paul Chang
+      data: REMOVED

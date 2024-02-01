@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1405"
+    creation_ts: 2012-04-02 21:08:00 +0200
+    short_desc: ft_senstype does not work with volume data
+    delta_ts: 2012-04-11 16:48:37 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bugzilla
+      +@name: Gio Piantoni
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5766"
+        comment_count: "0"
+        who:
+          +content: bugzilla
+          +@name: Gio Piantoni
+        bug_when: 2012-04-02 21:08:14 +0200
+        thetext: |-
+          load /path/to/fieldtrip/template/headmodel/standard_mri.mat
+
+          mri = ft_checkdata(mri, 'hasunits', 'yes');
+          % this last line is adapted from ft_sourceinterpolate
+
+          % ERROR:
+          Reference to non-existent field 'nChans'.
+
+          Error in ft_senstype (line 188)
+          elseif isheader && input.nChans==1 && ~isempty(regexp(input.label{1}, '^csc'))
+
+          Error in ft_convert_units (line 56)
+            if ft_senstype(obj, 'meg')
+
+          Error in ft_checkdata (line 402)
+            data = ft_convert_units(data);
+
+          It looks like ft_senstype.m is not very robust in recognizing datatype (see FIXME at line 122).
+          A quick workaround is of course isfield(input, 'nChans') in ft_senstype but maybe there is a more elegant way.
+
+          Thanks!
+      - +@isprivate: "0"
+        commentid: "5772"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-03 16:11:43 +0200
+        thetext: |-
+          hmm, why does an anatomical MRI end up in ft_senstype...?
+
+          Regardless of that, I suggest that for all ft_XXXtype we use an approach like
+
+          try
+           % do the detection here
+          catch
+            type = 'unknown'
+          end
+
+          to make them more robust without having to make the detection too complex.
+      - +@isprivate: "0"
+        commentid: "5779"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-04-04 11:04:48 +0200
+        thetext: "Note: Marlieke has reported on the mailing list a similar error with different code, but getting the error on line 188 of ft_senstype.  \nMadelon has also just reported this error to me directly (but I assumed it had to do with her new data EEG cap type), but it also crashed with line 188 of ft_senstype."
+      - +@isprivate: "0"
+        commentid: "5788"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 12:31:53 +0200
+        thetext: "the output of ft_read_mri may contain a header (of all the dicom files), which causes \"isheader\"  to be true, whereas it was not the expected header.\n\nI fixed it (as suggested by Giovanni) and added a test script \n\nmanzana> svn commit forward/ft_senstype.m test/test_bug1405.m \nSending        forward/ft_senstype.m\nAdding         test/test_bug1405.m\nTransmitting file data ..\nCommitted revision 5587."
+      - +@isprivate: "0"
+        commentid: "5790"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 12:48:55 +0200
+        thetext: "The question remained: why is senstype being called on an MRI? I tracked that down, it is due to the hasunits option, which causes it to go through ft_convert_units which tries ft_convert_units.\n\nLooking at ft_convert_units, I see \n\n\n  if ft_senstype(obj, 'meg')\n    siz = norm(idrange(obj.chanpos));\n    unit = ft_estimate_units(siz);\n\n  elseif ft_senstype(obj, 'eeg')\n    siz = norm(idrange(obj.chanpos));\n    unit = ft_estimate_units(siz);\n\nwhich in both cases can in principle fail, because eeg or meg data might not have  chanpos. This error can indeed be triggered by \n\n>> hdr = ft_read_header('Subject01.ds');\n\n>> ft_checkdata(hdr, 'hasunits', 'yes')\n??? Reference to non-existent field 'chanpos'.\n\nError in ==> ft_convert_units at 57\n    siz = norm(idrange(obj.chanpos));\n\nError in ==> ft_checkdata at 402\n  data = ft_convert_units(data);\n\nwhere the header is a MEG header, but itself does not contain chanpos. Also a raw data structure (output of ft_preprocessing) would suffer the same fate.\n\nI changed this, it now returns the appropriate error\n\n>> ft_checkdata(hdr, 'hasunits', 'yes')\n??? Error using ==> ft_convert_units at 98\ncannot determine geometrical units\n\nError in ==> ft_checkdata at 402\n  data = ft_convert_units(data);"
+      - +@isprivate: "0"
+        commentid: "5791"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-04 12:51:14 +0200
+        thetext: |-
+          (In reply to comment #4)
+
+          manzana> svn commit
+          Sending        forward/ft_convert_units.m
+          Sending        forward/ft_voltype.m
+          Transmitting file data ..
+          Committed revision 5589.
+
+          The change in ft_voltype.m was only to align the whitespace
+      - +@isprivate: "0"
+        commentid: "5857"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:37 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

@@ -1,0 +1,327 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "963"
+    creation_ts: 2011-09-14 15:35:00 +0200
+    short_desc: neuromag data units should be reflected in the grad structure and ft_convert_units
+    delta_ts: 2014-02-24 10:56:30 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "686"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - eelke.spaak
+      - g.barnes
+      - j.schoffelen
+      - litvak.vladimir
+      - mark.woolrich
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3235"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 15:35:11 +0200
+        thetext: |-
+          On 13 Sep 2011, at 13:28, Barnes, Gareth wrote:
+
+          Hi Robert
+          Just to confirm. It looks to me that the lfs for neuromag grads maybe a factor of 50 out.
+          Let me know what you think and if there is anything I can do to help.
+
+          Best
+          Gareth
+      - +@isprivate: "0"
+        commentid: "3236"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 15:35:21 +0200
+        thetext: "On 14 Sep 2011, at 15:33, Robert Oostenveld wrote:\n\nHi Gareth\n\nthanks for letting me know. I suspect it to be a units problem, where the channel-level data is represented in fT/cm (or more general fieldstrength/distance) and where the leadfield is computed as fT (fieldstrength difference between the two coils, irrespective of their distance). \n\nCould you check in grad.tra whether it contains on a single row corresponding with a planar channel a +1 and a -1 (or a +1 and a +1, where the orientation is the other way around) or whether it is scaled with distance?\n\nSee also http://fieldtrip.fcdonders.nl/faq/how_are_electrodes_magnetometers_or_gradiometers_described\n\nNote that the consequence of this is that fieldtrip/forward/ft_convert_units.m should in the case of a conversion not only modify the coil positions, but also the scaling that is incorporated in the tra matrix.\n\nRobert"
+      - +@isprivate: "0"
+        commentid: "3237"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-14 15:38:31 +0200
+        thetext: 'note that this relates to bug #686 and to bug #953'
+      - +@isprivate: "0"
+        commentid: "7931"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-18 10:54:38 +0200
+        thetext: |-
+          The following functions should be updated
+
+          fieldtrip/fileio/private/bti2grad.m
+          fieldtrip/fileio/private/ctf2grad.m
+          fieldtrip/fileio/private/fif2grad.m
+          fieldtrip/fileio/private/itab2grad.m
+          fieldtrip/fileio/private/mne2grad.m
+          fieldtrip/fileio/private/netmeg2grad.m
+          fieldtrip/fileio/private/yokogawa2grad.m
+          fieldtrip/fileio/private/yokogawa2grad_new.m
+
+          1) change grad.pnt into grad.coilpos etc.
+          2) add the grad.unit and chanunit according to the present implementation
+          3) test all existing code, nothing should ahve changed -> make test script that compares old to new
+          4) implement support for chanunit in ft_compute_leadfield and ft_convert_units
+          5) change the chanunit for the neuromag planar channels from T into T/cm and divide the grad.tra by 8 cm
+      - +@isprivate: "0"
+        commentid: "8029"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 13:54:41 +0100
+        thetext: |-
+          The following commit ensures that the xxx2grad functions specify the geometrical units of the coil positions.
+
+          mac001> svn commit
+          Sending        bti2grad.m
+          Sending        fif2grad.m
+          Sending        mne2grad.m
+          Sending        yokogawa2grad.m
+          Sending        yokogawa2grad_new.m
+          Transmitting file data .....
+          Committed revision 6798.
+
+          The consequence is that this section
+              if ~isfield(sens, 'unit')
+                sens = ft_convert_units(sens);
+              end
+          in ft_datatype_sens does not have to do anything with newly read/converted data. It remains relevant in case a grad structure is stored in a mat file.
+      - +@isprivate: "0"
+        commentid: "8031"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 14:20:12 +0100
+        thetext: "The following commit ensures consistent use of coilpos/coilori instead of pnt/ori in the low-level code. \n\nmac001> svn commit\nSending        private/bti2grad.m\nSending        private/channelposition.m\nSending        private/ctf2grad.m\nSending        private/fif2grad.m\nSending        private/ft_datatype_sens.m\nSending        private/itab2grad.m\nSending        private/mne2grad.m\nSending        private/read_bti_m4d.m\nSending        private/yokogawa2grad.m\nTransmitting file data .........\nCommitted revision 6799.\n\nThe consequence is that ft_datatype_sens does not have to perform the conversion of pnt->coilpos any more."
+      - +@isprivate: "0"
+        commentid: "8047"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 17:22:01 +0100
+        thetext: |-
+          (In reply to comment #3)
+
+          from the list
+
+          1) change grad.pnt into grad.coilpos etc.
+          2) add the grad.unit and chanunit according to the present implementation
+          3) test all existing code, nothing should ahve changed -> make test script that
+          compares old to new
+          4) implement support for chanunit in ft_compute_leadfield and ft_convert_units
+          5) change the chanunit for the neuromag planar channels from T into T/cm and
+          divide the grad.tra by 8 cm
+
+          1) is done
+          2) is done for unit, not yet for chanunit
+          3) there is the test_bug963 script for this
+          4 and 5 not yet done.
+      - +@isprivate: "0"
+        commentid: "8051"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-29 22:33:17 +0100
+        thetext: |-
+          There seem to be two related test scripts that were made by Cristiano.
+          - test_bug686 is related to bug 686
+          - test_bug1042 is related to bug 1042
+
+          The first one does not crash, but the output does not look very good. It suggests that a change in geometrical units does not translate linearly into a change in leadfield values.
+
+          The second one also does not crash (it is still running), but the comments in the bug report suggest that a change in conductivity does not translate linearly into a change in leadfield values.
+
+          what a mess.
+      - +@isprivate: "0"
+        commentid: "8063"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-30 23:46:03 +0100
+        thetext: |-
+          I have made an initial change to ft_compute_leadfield that allows the user to call it with unit=arbitrary or unit=si. In the latter case, the input is converted into m and the output should be T, T/m or V.
+
+          mbp> svn commit forward/ft_compute_leadfield.m
+          Sending        forward/ft_compute_leadfield.m
+          Transmitting file data .
+          Committed revision 6834.
+
+          It relies on ft_convert_units, which at this moment is not capable of converting the head model parameters. So for a very simple head models (without params) it works, but for more complex ones it won't.
+
+          I also added a test script. This should be extended.
+
+          mbp> svn commit
+          Adding         test/test_leadfield_units.m
+          Transmitting file data .
+          Committed revision 6835.
+      - +@isprivate: "0"
+        commentid: "8126"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-11-04 16:57:13 +0100
+        thetext: "mac001> svn commit forward/ft_convert_units.m \nSending        forward/ft_convert_units.m\nTransmitting file data .\nCommitted revision 6869.\n\nenabled the code to multiply/divide the grad.tra with the units in case channel units are expressed in T/m or T/cm"
+      - +@isprivate: "0"
+        commentid: "8758"
+        comment_count: "10"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-12-18 14:27:15 +0100
+        thetext: test_bug963 was failing because the reference data's grad.chantype had 'meg' in it, where the new code generated chantypes of 'megmag' etc. I have now regenerated the reference data sets. The test script is still failing, though.
+      - +@isprivate: "0"
+        commentid: "9368"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 14:08:21 +0100
+        thetext: |-
+          r7452 | roboos | 2013-02-07 14:07:00 +0100 (Thu, 07 Feb 2013) | 2 lines
+
+          enhancement - rather than testing for the 0.3 fraction of unknown type/units, check whether the number of channels with unknown type/units does not increase over the initial ft_read_sens
+
+          the test script now runs without reporting errors
+      - +@isprivate: "0"
+        commentid: "9369"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-07 14:10:41 +0100
+        thetext: "I also removed the exception for the yokogawa data\n\nmac001> svn commit \nSending        test/test_bug963.m\nTransmitting file data .\nCommitted revision 7453."
+      - +@isprivate: "0"
+        commentid: "9396"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-08 16:28:33 +0100
+        thetext: "I implemented a function for converting the (neuromag) gradiometer definition from T into T/m (and other units). Renamed unit into units for ft_compute_leadfield for consistency with cfg.units here and there. Added feedback option to ft_convert_units, default=false. Made test script for neuromag units.\n\nmac001> svn commit `cat out`  \nSending        forward/ft_compute_leadfield.m\nSending        forward/ft_convert_units.m\nAdding         test/test_neuromag_units.m\nAdding         utilities/ft_convert_grad.m\nTransmitting file data ....\nCommitted revision 7456."
+      - +@isprivate: "0"
+        commentid: "9611"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-03 11:23:21 +0100
+        thetext: |-
+          (In reply to comment #13)
+
+          FIXME: ft_convert_grad should be renamed to ft_convert_sens. Bipolar EEG/ECoG also can be expressed in uV/distance.
+      - +@isprivate: "0"
+        commentid: "10501"
+        comment_count: "15"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-05-21 15:21:02 +0200
+        thetext: "(In reply to comment #14)\n\nHi Robert,\n\nWe are now past the SPM course and I'd like to make one last push to finish with the leadfield scaling issue as this is something I'd definitely like to get into the official SPM12 release. \n\nI also need this functionality to get proper scaling for Neuromag data to replace Mark's hacks. Is there any chance we could get it done in the next few weeks? I'm on holiday next week but then I'm here till August.\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "10538"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 13:18:28 +0200
+        thetext: |-
+          (In reply to comment #14)
+
+          as discussed with Vladimir over skype: rather than keeping it in a separate function, the functionality should be merged with ft_datatype_sens
+      - +@isprivate: "0"
+        commentid: "10539"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-05-24 13:19:10 +0200
+        thetext: |-
+          (In reply to comment #16)
+
+          see test_neuromag_units for a test file
+      - +@isprivate: "0"
+        commentid: "10854"
+        comment_count: "18"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-07-01 14:29:22 +0200
+        thetext: |-
+          (In reply to comment #17)
+          Hi Robert,
+
+          Is there any progress with scaling. I'm here till August with no breaks and if you are still around I'd like to get it done.
+      - +@isprivate: "0"
+        commentid: "10855"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 16:17:39 +0200
+        thetext: |-
+          (In reply to comment #18)
+
+          I am only shortly around. Let me move the discussion over to the more general bug 686 on leadfield units.
+      - +@isprivate: "0"
+        commentid: "11760"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 11:20:35 +0100
+        thetext: |-
+          mac001> svn commit
+          Sending        fileio/ft_read_sens.m
+          Sending        test/test_bug1856.m
+          Sending        test/test_bug963.m
+          Transmitting file data ...
+          Committed revision 8675.
+      - +@isprivate: "0"
+        commentid: "12928"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:30 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

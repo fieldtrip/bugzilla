@@ -1,0 +1,269 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "223"
+    creation_ts: 2010-11-17 01:13:00 +0100
+    short_desc: peermaster and peerslave don't launch
+    delta_ts: 2011-01-05 12:01:09 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: peer
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "441"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-11-17 01:13:27 +0100
+        thetext: |-
+          I've been playing around with the peer toolbox a bit. I know it's still being actively worked on so I hope this is useful.
+
+          The peer toolbox no longer launches on my system. I believe the last version of peer that work is from November 5, 2010 (however it's really slow to get the jobs out to the slaves).
+
+          Here's what I did with fieldtrip-20101115: I added the root fieldtrip directory to my path, ran fieldtripdefs, and then added fieldtrip-20101115/peer to my path. Running peermaster produces this error (peerslave gives a similar problem):
+
+          ===============================
+          >> peermaster
+          peer: init
+          ??? Error using ==> peer
+          unknown command for peer
+
+          Error in ==> peerinfo at 29
+          info = peer('peerinfo');
+
+          Error in ==> peermaster at 80
+          info   = peerinfo;
+          ===============================
+
+          I can see that peer/private/peer.m exists, but even if it were to execute properly it would just call "error('cannot locate mex file');"
+      - +@isprivate: "0"
+        commentid: "442"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-17 09:32:34 +0100
+        thetext: "Hi Matt, \nthanks for the contribution. \n\nWhat is the operating system on which you are trying this? I suspect windows, because we don't have a mex file fore windows yet."
+      - +@isprivate: "0"
+        commentid: "445"
+        comment_count: "2"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-11-17 16:49:29 +0100
+        thetext: |-
+          I'm on Mac OS X 10.6.4 on a 2.8GHz quad-core Intel Xeon tower with 14GB of RAM. I'm running MATLAB 2010b (64-bit).
+
+          Let me know if you need any other info, or if you'd like me to test anything.
+      - +@isprivate: "0"
+        commentid: "446"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-17 17:29:24 +0100
+        thetext: "It should work on OSX, because that is also what I use to develop it on. However, I have an older (32 bit) matlab on my desktop which I use by default, so the mexi64 mex file might be missing. Please try within in matlab\n\npeercompile\n\nand then on the osx command line (xterm/terminal) \n\ncd ~/fieldtrip/peer/src\nmake clean\nmake\n\nThat should compile all the stuff for your computer. Then try out this\nhttp://fieldtrip.fcdonders.nl/faq/how_to_get_started_with_peer_distributed_computing_on_my_own_desktop_computer\nfollowed by the peerslave command line (which is called peerslave.maci64 for yours) example here\nhttp://fieldtrip.fcdonders.nl/faq/how_can_i_set_up_the_peer_distributed_computing_on_a_single_multicore_computer\n\nnote that the matlab object file (*.o) and the command line object files are not compatible (because the error message handling). In Matlab you therefore might have to cd into the peer/src directory and do\n!rm *.o"
+      - +@isprivate: "0"
+        commentid: "448"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-11-17 17:46:25 +0100
+        thetext: I compiled the mex files and peerslave.maci64 binary on manzana (my desktop apple computer) with MATLAB2010a and in 64 bit mode. The updated files are comitted as SVN revision 2126 and will be pushed to ftp and google this evening.
+      - +@isprivate: "0"
+        commentid: "449"
+        comment_count: "5"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-11-17 19:37:12 +0100
+        thetext: |-
+          Thanks for the instructions. peercompile in matlab worked fine. Despite 'make' throwing a few errors at the command line, running a peermaster/peerslave and a peercellfun job like the pinv call on the "how to get started" page works fine. However, it's still way slower than just running cellfun with the pinv example, even when making a = randn(2000,2000) (76 seconds vs 325 seconds). Is that because it has to load the data into memory for each job? Or maybe there are other subtleties that I'm not realizing.
+
+          Anyway, here is the command line output from 'make' in case that is useful:
+
+          muen223-182-dhcp:src matt$ make clean
+          rm -f core *.o *.obj *.a ../peerslave.maci *~
+          muen223-182-dhcp:src matt$ make
+          gcc -I. -Wall -pthread -arch i386 -I. -c tcpserver.c
+          tcpserver.c: In function ‘tcpserver’:
+          tcpserver.c:281: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c udsserver.c
+          udsserver.c: In function ‘udsserver’:
+          udsserver.c:202: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c tcpsocket.c
+          tcpsocket.c: In function ‘tcpsocket’:
+          tcpsocket.c:72: warning: assignment from incompatible pointer type
+          tcpsocket.c:315: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c discover.c
+          discover.c: In function ‘discover’:
+          discover.c:89: warning: assignment from incompatible pointer type
+          discover.c:280: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c announce.c
+          announce.c: In function ‘announce’:
+          announce.c:85: warning: assignment from incompatible pointer type
+          announce.c:141: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c expire.c
+          expire.c: In function ‘expire’:
+          expire.c:148: warning: statement with no effect
+          expire.c:168: warning: zero-length printf format string
+          gcc -I. -Wall -pthread -arch i386 -I. -c util.c
+          gcc -I. -Wall -pthread -arch i386 -I. -c extern.c
+          gcc -I. -Wall -pthread -arch i386 -I. -c peerinit.c
+          peerinit.c: In function ‘hash’:
+          peerinit.c:33: warning: suggest parentheses around assignment used as truth value
+          peerinit.c: In function ‘peerinit’:
+          peerinit.c:119: warning: pointer targets in passing argument 1 of ‘hash’ differ in signedness
+          peerinit.c:120: warning: pointer targets in passing argument 1 of ‘hash’ differ in signedness
+          peerinit.c:121: warning: pointer targets in passing argument 1 of ‘hash’ differ in signedness
+          peerinit.c:122: warning: pointer targets in passing argument 1 of ‘hash’ differ in signedness
+          gcc -I. -Wall -pthread -arch i386 -I. -c security.c
+          gcc -I. -Wall -pthread -arch i386 -I. -c localhost.c
+          gcc -I. -Wall -pthread -arch i386 -I. -c smartshare.c
+          gcc -I. -Wall -pthread -arch i386 -I. -c smartmem.c
+          smartmem.c: In function ‘smartmem_info’:
+          smartmem.c:29: warning: unused variable ‘str’
+          smartmem.c:28: warning: unused variable ‘fp’
+          gcc -I. -Wall -pthread -arch i386 -I. -c smartcpu.c
+          smartcpu.c: In function ‘smartcpu_info’:
+          smartcpu.c:30: warning: unused variable ‘AvgLoad15’
+          smartcpu.c:30: warning: unused variable ‘AvgLoad5’
+          smartcpu.c:30: warning: unused variable ‘AvgLoad1’
+          smartcpu.c:29: warning: unused variable ‘str’
+          smartcpu.c:28: warning: unused variable ‘fp’
+          gcc -I. -Wall -pthread -arch i386 -I. -c connect.c
+          ar rv libpeer.a tcpserver.o udsserver.o tcpsocket.o discover.o announce.o expire.o util.o extern.o peerinit.o security.o localhost.o smartshare.o smartmem.o smartcpu.o connect.o
+          ar: creating archive libpeer.a
+          a - tcpserver.o
+          a - udsserver.o
+          a - tcpsocket.o
+          a - discover.o
+          a - announce.o
+          a - expire.o
+          a - util.o
+          a - extern.o
+          a - peerinit.o
+          a - security.o
+          a - localhost.o
+          a - smartshare.o
+          a - smartmem.o
+          a - smartcpu.o
+          a - connect.o
+          gcc -I. -Wall -pthread -arch i386 -I. -I/Applications/MATLAB_R2009a.app/extern/include -c peerslave.c
+          peerslave.c:27:20: error: engine.h: No such file or directory
+          peerslave.c:28:20: error: matrix.h: No such file or directory
+          peerslave.c:34: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘*’ token
+          peerslave.c:35: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘*’ token
+          peerslave.c: In function ‘main’:
+          peerslave.c:77: error: ‘Engine’ undeclared (first use in this function)
+          peerslave.c:77: error: (Each undeclared identifier is reported only once
+          peerslave.c:77: error: for each function it appears in.)
+          peerslave.c:77: error: ‘en’ undeclared (first use in this function)
+          peerslave.c:78: error: ‘mxArray’ undeclared (first use in this function)
+          peerslave.c:78: error: ‘argin’ undeclared (first use in this function)
+          peerslave.c:78: error: ‘argout’ undeclared (first use in this function)
+          peerslave.c:78: warning: left-hand operand of comma expression has no effect
+          peerslave.c:78: error: ‘options’ undeclared (first use in this function)
+          peerslave.c:78: warning: left-hand operand of comma expression has no effect
+          peerslave.c:78: error: ‘arg’ undeclared (first use in this function)
+          peerslave.c:78: warning: left-hand operand of comma expression has no effect
+          peerslave.c:78: error: ‘opt’ undeclared (first use in this function)
+          peerslave.c:78: warning: left-hand operand of comma expression has no effect
+          peerslave.c:396: warning: implicit declaration of function ‘engOpen’
+          peerslave.c:444: error: expected expression before ‘)’ token
+          peerslave.c:445: error: expected expression before ‘)’ token
+          peerslave.c:453: warning: implicit declaration of function ‘mxGetM’
+          peerslave.c:453: warning: implicit declaration of function ‘mxGetN’
+          peerslave.c:454: error: ‘previous’ undeclared (first use in this function)
+          peerslave.c:455: warning: implicit declaration of function ‘mxCreateCellMatrix’
+          peerslave.c:457: warning: implicit declaration of function ‘mxSetCell’
+          peerslave.c:457: warning: implicit declaration of function ‘mxGetCell’
+          peerslave.c:459: warning: implicit declaration of function ‘mxCreateString’
+          peerslave.c:460: warning: implicit declaration of function ‘mxCreateDoubleScalar’
+          peerslave.c:465: warning: implicit declaration of function ‘engPutVariable’
+          peerslave.c:467: warning: implicit declaration of function ‘mxDestroyArray’
+          peerslave.c:471: warning: implicit declaration of function ‘engEvalString’
+          peerslave.c:475: warning: implicit declaration of function ‘engGetVariable’
+          peerslave.c:493: warning: implicit declaration of function ‘engClose’
+          peerslave.c:572: error: expected expression before ‘)’ token
+          peerslave.c:577: error: expected expression before ‘)’ token
+          peerslave.c:592: warning: implicit declaration of function ‘mxGetNumberOfElements’
+          peerslave.c:626: warning: implicit declaration of function ‘mxGetData’
+          make: *** [peerslave.o] Error 1
+      - +@isprivate: "0"
+        commentid: "534"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-02 10:01:38 +0100
+        thetext: compilation of mex files work, the problem with the peerslave command line executable is just one of the Makefile not containing the right path. There is no automatic way of it figuring out where to find the matlab include files, so I cannot fix that in the release code.
+      - +@isprivate: "0"
+        commentid: "539"
+        comment_count: "7"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2010-12-02 18:27:44 +0100
+        thetext: |-
+          (In reply to comment #6)
+          > compilation of mex files work, the problem with the peerslave command line
+          > executable is just one of the Makefile not containing the right path. There is
+          > no automatic way of it figuring out where to find the matlab include files, so
+          > I cannot fix that in the release code.
+
+          Dr. Oostenveld,
+
+          You know much more about the peer toolbox than I do, but I just thought I would add that this resolution seems reasonable to me, and I hope that there are instructions somewhere (the wiki? or maybe fieldtrip/peer/README?) explaining that, for each potential peermaster and peerslave computer, one might need to (1) run peercompile in MATLAB, (2) run make in fieldtrip/peer/src/ after modifying MATLABPATH in the Makefile to correctly reflect where the MATLAB application is located, and (3) similarly modify MATLABPATH in fieldtrip/peer/peerslave so that LD_LIBRARY_PATH gets set properly.
+      - +@isprivate: "0"
+        commentid: "540"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-12-02 21:23:00 +0100
+        thetext: "thanks for the suggestion. I have documented it on \nhttp://fieldtrip.fcdonders.nl/faq/compile\n\nPlease edit that wiki page and improve it if you see opportunities."
+      - +@isprivate: "0"
+        commentid: "828"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 11:57:04 +0100
+        thetext: selected a long list of resolved bugs from roboos and changed the status into "RESOLVED"
+      - +@isprivate: "0"
+        commentid: "907"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 12:01:09 +0100
+        thetext: selected all old bugs from roboos with status RESOLVED and changed it into CLOSED

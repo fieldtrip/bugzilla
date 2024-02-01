@@ -1,0 +1,129 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1948"
+    creation_ts: 2013-01-23 15:05:00 +0100
+    short_desc: ft_datatype cannot detect several vol-structures as volumes
+    delta_ts: 2014-01-29 13:40:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - dlozanosoldevilla
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9122"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-23 15:05:10 +0100
+        thetext: |-
+          This is the case for, and possibly others:
+          - singlespheres
+          - singleshell
+          - localspheres
+          As found under /data/test/vol/*.*.
+
+
+          Currently, the only check performed in ft_datatype to check if input is a volume is:
+          isvolume =  isfield(data, 'transform') && isfield(data, 'dim');
+
+          Which yields a false for the volumes above, and possibly others.
+      - +@isprivate: "0"
+        commentid: "9125"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-23 15:18:06 +0100
+        thetext: As an in between fix, ft_voltype (bug 1940) now checks whether the input explicitly is a grad or sens structure, and skips the first volumness-check. When ft_dataype is updated, an explicit check should be made for volumeminity of the input in ft_voltype (and the isgrad and iselec reference should be removed).
+      - +@isprivate: "0"
+        commentid: "10617"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 12:11:33 +0200
+        thetext: Setting as fixed
+      - +@isprivate: "0"
+        commentid: "10623"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 12:14:50 +0200
+        thetext: Closing time
+      - +@isprivate: "0"
+        commentid: "10631"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-05 13:36:46 +0200
+        thetext: |-
+          1 there is an essential difference between a volume structure and a vol structure.
+          the latter is the volume conduction model, which has a specific type that can be recovered with ft_voltype. The former is a 3D numeric matrix containing data defined in 3D space, always with a dim and transform field.
+
+          2 the original bug probably still is a bug.
+
+          solution: adjust ft_transform_geometry to first check what type of data is in the input, and only call ft_voltype when the input is a vol-structure.
+
+          this is related to bug 1940, reported by Vladimir.
+
+          Also checkrotation was by majority vote considered to not be well-named.
+      - +@isprivate: "0"
+        commentid: "10643"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 17:26:01 +0200
+        thetext: "I changed my changes to ft_voltype to be less confusing. The isgrad/issens check was appropriate there, but the documentation was confusing/confused. \n\nThe original bug (bug 1940, error when rescaling a sens) was (indirectly) fixed by my previous changes. I think. The confusing bit is that in the doc of ft_transform_geometry it is stated that an electrode structure (e.g. 'sens') should not be rescaled. Yet, inside, only a check for ft_senstype(input,'meg') is done. So, which is it? \nAre electrode arrays allowed to be rescaled? Ft_transform_sens also says, only MEG should be rigid body, EEG is fine. If yes, than the original bug was fixed. \n\nIf the answer to the above is yes, I propose to change the check in ft_transform_geometry to the following:\n************\n% flg rescaling check\nallowscaling = ~ft_senstype(input, 'meg'); \n\n...\n\nif ~allowscaling\n  if abs(det(rotation)-1)>100*eps  % allow for some numerical imprecision\n    error('only a rigid body transformation without rescaling is allowed');\n  end\nend\n\nif allowscaling\n  % FIXME build in a check for uniform rescaling probably do svd or so\n  % FIXME insert check for nonuniform scaling, should give an error\nend \n************\n\nConfusingly, the current code states\n~strcmp(ft_voltype(input),'unknown')) ---> don't allow rescaling\nIf I understand it correctly, volume conductor models should be rescalable (last sentence of documentation)..."
+      - +@isprivate: "0"
+        commentid: "11396"
+        comment_count: "6"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-09-24 13:37:49 +0200
+        thetext: JM approved, change commited.
+      - +@isprivate: "0"
+        commentid: "12709"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-01-29 13:40:33 +0100
+        thetext: |-
+          Closing time
+
+          http://www.youtube.com/watch?v=7-0lV5qs1Qw

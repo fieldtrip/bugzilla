@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "678"
+    creation_ts: 2011-05-19 20:22:00 +0200
+    short_desc: volume conductor doesn't look good
+    delta_ts: 2011-06-01 13:40:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2154"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2011-05-19 20:22:35 +0200
+        thetext: |-
+          Hi,
+
+          I have discovered that the problem that is shown in the tutorial page:
+
+          http://fieldtrip.fcdonders.nl/development/minimum_norm_estimate_in_fieldtrip
+
+          at Figure 5. is probably due to the problem with the volume conductor. On the figure, the sourcespace looks to be larger than the volume conductor.
+
+          I looked at the volume conductor that I used for creating the figure and I have discovered that there parts at the top of the head that are missing. You can check this with the roboos/data/lilmag/tutorial vol7 structure. Other version of the volume conductor (vol6) looks to be ok (no parts are missing).
+
+          I  made a test. When I used the following script to do the segmentation:
+
+          cfg = [];
+          cfg.coordsys = 'ctf';
+          cfg.smooth    = 5;
+          cfg.threshold = 0.5;
+          seg7 = ft_volumesegment(cfg, mrirs5);
+
+          cfg = [];
+          vol7 = ft_prepare_singleshell(cfg, seg7);
+
+          I got the bad volume conductor, but when I did the following:
+
+          cfg = [];
+          cfg.coordsys = 'ctf';
+          %cfg.smooth    = 5;
+          %cfg.threshold = 0.5;
+          seg6 = ft_volumesegment(cfg, mrirs5);
+
+
+          save seg6 seg6
+
+          cfg = [];
+          vol6 = ft_prepare_singleshell(cfg, seg6);
+
+          The vol6 was OK. The difference is that I haven't used the smooth and threshold parameters for the segmentation.
+
+          The question is if there is way to do the segmentation that I get a brainmask but I also can create the volume conductor out of the same variable.
+
+          You can find all these variables in the mentioned directory.
+
+          thanks for help.
+
+          Lilla
+      - +@isprivate: "0"
+        commentid: "2157"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-20 08:59:33 +0200
+        thetext: |-
+          Hi Lilla,
+
+          Good detective work. I think I will ensure/enforce sensible options in ft_volumesegment to prevent people from specifying nonsense cfg's ( ;o) ). It seems the function just needs to allow/disallow certain cfg-options.
+
+          BW,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "2178"
+        comment_count: "2"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2011-05-25 11:46:58 +0200
+        thetext: "(In reply to comment #1)\n> Hi Lilla,\n> \n> Good detective work. I think I will ensure/enforce sensible options in\n> ft_volumesegment to prevent people from specifying nonsense cfg's ( ;o) ). It\n> seems the function just needs to allow/disallow certain cfg-options.\n> \n> BW,\n> \n> JM\n\nhi JM,\n\nI have looked at the new form of the function and it looks good. But I still have to the question if I have to run two times ft_volumesegment if I want to have a skull stripped anatomy and also a structure that I can input to ft_prepare_singleshell?\n\nlilla"
+      - +@isprivate: "0"
+        commentid: "2179"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-25 12:00:18 +0200
+        thetext: |-
+          can't you do something like
+
+          cfg.output = {'skullstrip' 'brain'}
+
+          prior to calling ft_volumesegment?
+
+          I thought this gives you the skullstripped anatomy, as well as the brain mask
+      - +@isprivate: "0"
+        commentid: "2187"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-25 15:09:49 +0200
+        thetext: fixed by upgrading ft_volumesegment

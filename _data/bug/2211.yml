@@ -1,0 +1,75 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2211"
+    creation_ts: 2013-06-25 17:34:00 +0200
+    short_desc: data.trial contains only NaN after preprocessing on neuroscan cnt files in a newer version of fieldtrip
+    delta_ts: 2014-01-29 13:39:20 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: blocker
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: c.kung
+      +@name: Carmen Kung
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - r.oostenveld
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10817"
+        comment_count: "0"
+        who:
+          +content: c.kung
+          +@name: Carmen Kung
+        bug_when: 2013-06-25 17:34:58 +0200
+        thetext: "I used to be able to run preprocessing successfully on the same cnt file using an older version of fieldtrip (fieldtrip-20120120). However after installing a newer version (fieldtrip-20130610), I have problems with the running preprocessing on the same cnt file. \n\nSeveral things did not look right. For instance, this error message ('Warning: events imported with a time shift might be innacurate') keeps coming back throughout the preprocessing. It also takes way longer to run. What is worse is that I only got NaNs in data.trial. \n\nI checked the script again and it looked fine (especially the header setting where several problems have been reported. Also, I found an older version of fieldtrip?(fieldtrip-20111231) and try it out again. The preprocessing went well and . So I wonder what could go wrong with this newer version?\n\nThank you very much in advance!\n\nFYI, I have attached the link to the cnt file and the script. This is the link of the cnt file (https://www.dropbox.com/sh/od62sgjzvm8j9m2/go7LNwPZOK) and Below is the script till end of preprocessing:\n\n\n% ensure that we don't mix up subjectsclear all\nclear all\nclear subjectdata\naddpath('C:\\Users\\u488137\\Documents\\MATLAB\\fieldtrip-20130610');\n\n%define the filenames, parameters and other information that is subject\n%specific\nsubjectdata = [];\nsubjectdata.initial = 'HKH';\nsubjectdata.subjectnr = 'SS35M';\nsubjectdata.date = '07042012';\nsubjectdata.listnr = '02';\nsubjectdata.group = 'merger';\nsubjectdata.dir = 'C:\\Users\\u488137\\Documents\\';\nsubjectdata.subjectdir = [subjectdata.dir, subjectdata.subjectnr, '\\'];\nsubjectdata.cntdir = [subjectdata.subjectdir, 'cnt\\'];\n\nmkdir([subjectdata.subjectdir, 'rawdata']);\nmkdir([subjectdata.subjectdir, 'preproc']);\nmkdir([subjectdata.subjectdir, 'figures']);\nmkdir([subjectdata.subjectdir, 'seg']);\nmkdir([subjectdata.subjectdir, 'timelock']);\nmkdir([subjectdata.subjectdir, 'permutation']);\n\nsubjectdata.rawdatadir = [subjectdata.subjectdir, 'rawdata\\'];\nsubjectdata.preprocdir = [subjectdata.subjectdir, 'preproc\\'];\nsubjectdata.segdir = [subjectdata.subjectdir, 'seg\\'];\nsubjectdata.timelockdir = [subjectdata.subjectdir, 'timelock\\'];\nsubjectdata.permtdir = [subjectdata.subjectdir, 'permutation\\'];\nsubjectdata.figdir = [subjectdata.subjectdir, 'figures\\'];\n\naddpath (subjectdata.subjectdir);\naddpath (subjectdata.cntdir);\naddpath (subjectdata.rawdatadir);\naddpath (subjectdata.segdir);\naddpath (subjectdata.timelockdir); \n\n%% Epoching\ncfg  = [];\ncfg.dataset = [subjectdata.cntdir, 'MMN-', subjectdata.subjectnr, '-', subjectdata.initial, '-', subjectdata.date, '.cnt'];\ncfg.trialdef.eventtype = 'stimtype';\ncfg.trialdef.prestim = 0.8;\ncfg.trialdef.poststim = 1;\ncfg.dataformat = 'ns_cnt32';\ncfg.eventformat = 'ns_cnt32';\ncfg.headerformat = 'ns_cnt32';\ncfg.outputfile = [subjectdata.preprocdir, subjectdata.subjectnr, '_E.mat'];\n%cfg(cond).trialdef.eventvalue = triggercode(cond);\ncfg = ft_definetrial(cfg);\n\ncfg.bpfilter = 'yes';\ncfg.bpfiltdir = 'twopass';\ncfg.bpfreq = [1 20];\ncfg.bpfilttype = 'but';\ncfg.channel =  {'EEG','-CB1','-CB2'};\nft_preprocessing(cfg);"
+      - +@isprivate: "0"
+        commentid: "10818"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-25 19:01:53 +0200
+        thetext: "This is really odd.\n\nEverything works fine if the data is read in first, and then filtered. When going through the code, it is actually matlab's filter.m that gives back NaNs. Up until then everything's fine. Filter.m get's the same input if you read the data and filter it in 1 step, or if you read the data in first, and then filter it separately. Filter coefficients and all, the same. \n\n\n\nSo what fails (gives back only NaNs is this):\n***************\ncfg  = [];\n---definetrial---\ncfg.bpfilter = 'yes';\ncfg.bpfiltdir = 'twopass';\ncfg.bpfreq = [1 20];\ncfg.bpfilttype = 'but';\ncfg.channel =  {'EEG','-CB1','-CB2'};\nft_preprocessing(cfg);\n***************\n\n\n\nBut what works (no NaNs) is this:\n***************\ncfg  = [];\n---definetrial---\ndata = ft_preprocessing(cfg);\ncfg.bpfilter = 'yes';\ncfg.bpfiltdir = 'twopass';\ncfg.bpfreq = [1 20];\ncfg.bpfilttype = 'but';\ncfg.channel =  {'EEG','-CB1','-CB2'};\ndata = ft_preprocessing(cfg,data)\n***************\n\n\nRight now I do not see where this is coming from."
+      - +@isprivate: "0"
+        commentid: "10823"
+        comment_count: "2"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-26 16:25:54 +0200
+        thetext: "Alright, I've pinpointed the cause of the error. The data becomes NaNs because it is single precision, when it is double precision it is all fine.\n\nThe cause lies in loadcnt.m, which contains the code below. This bit was more or less added in r5278, when we updated to EEGLABs most recent version: https://code.google.com/p/fieldtrip/source/detail?r=5278&path=/trunk/fileio/private/loadcnt.m\t\n*************************\n    if h.channeloffset <= 1\n      dat=fread(fid, [h.nchannels Inf], r.dataformat);\n      if size(dat,2) < r.ldnsamples\n        dat=single(dat);\n        r.ldnsamples = size(dat,2);\n      else\n        dat=single(dat(:,1:r.ldnsamples));\n      end;\n    else\n      h.channeloffset = h.channeloffset/2;\n      % reading data in blocks\n      dat = zeros( h.nchannels, r.ldnsamples, 'single');\n      dat(:, 1:h.channeloffset) = fread(fid, [h.channeloffset h.nchannels], r.dataformat)';\n      \n      counter = 1;\n      while counter*h.channeloffset < r.ldnsamples\n        dat(:, counter*h.channeloffset+1:counter*h.channeloffset+h.channeloffset) = ...\n          fread(fid, [h.channeloffset h.nchannels], r.dataformat)';\n        counter = counter + 1;\n      end;\n    end ;\n*************************\n\n\nAs far as I can see, the data is always set to single precision. Also, we do not currently enforce cfg.precision (default = double) in ft_read_data, ft_preprocessing, or preproc (preproc does it after all preproccing). As far as I can see, this means that all neuroscan data that was being read in was set to single precision since Feb. 2012. If an ordinary Butterworth band-pass already gives these serious errors (output is all NaN), then I wonder why we haven't noticed this before.\nRobert, I added you as a CC because this had to do with loadcnt.m, and because of the possibly large consequences.\n\nAs a fix/feature, I now made sure that cfg.precision is used immediately after the call to ft_read_data in ft_preprocessing. Which is something we wanted to do anyway. See bug 26 (automatically set to won't fix after inactivity). \n\nIt is fixed in r8281, which will be on the ftp server tonight."
+      - +@isprivate: "0"
+        commentid: "12705"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-01-29 13:39:20 +0100
+        thetext: |-
+          Closing time
+
+          http://www.youtube.com/watch?v=7-0lV5qs1Qw

@@ -1,0 +1,78 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1294"
+    creation_ts: 2012-01-29 22:32:00 +0100
+    short_desc: ft_redefinetrial.m rare channel label output
+    delta_ts: 2013-10-26 18:13:51 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - b.reuderink
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4996"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2012-01-29 22:32:59 +0100
+        thetext: "Hi,\n\nI want to make a trial selection after TF analysis but using ft_redefinetrial, I get a rare label output that mess all MEG channel data\n\ncfg              = [];\ncfg.trials       = wmtrl;%vector of 1x45 elements\nmeg2             = ft_redefinetrial(cfg,meg);\nthe input is freq data with 273 channels, 29 frequencybins and 103 timebins\nselecting 45 trials\nselecting 45 trials\nthe call to \"ft_redefinetrial\" took 2 seconds and an estimated 0 MB\n>> meg2\n\nmeg2 = \n\n        label: {1x7917 cell}\n         time: {1x45 cell}\n        trial: {1x45 cell}\n      fsample: 20.0000\n    trialinfo: [45x5 double]\n          cfg: [1x1 struct]\n\nmeg2.label{1,1}\n\nans =\n\nMLC11@1.960784e+00Hz\n\nft_redefinetrial calls ft_checkdata and the former uses freq2raw subfunction that creates this channel structure (see lines 1603-10 of ft_checkdata.m):\n\n% create the channel labels like \"MLP11@12Hz\"\"\nk = 0;\nfor i=1:nfreq\n  for j=1:nchan\n    k = k+1;\n    data.label{k} = sprintf('%s@%dHz', freq.label{j}, freq.freq(i));\n  end\nend\n\nWhat's the porpuse of this labeling? I tryed to use ft_selecdata_new but it needs to be fixed:\nmeg2             = ft_selectdata_new(cfg,meg);\n??? Error using ==> ft_selectdata_new at 84\nFIXME\n\nBest,\n\nDiego"
+      - +@isprivate: "0"
+        commentid: "5034"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-01 13:38:32 +0100
+        thetext: |-
+          Hi Diego,
+
+          ft_redefinetrial is a function that just works on 'raw', i.e. time-domain data. Therefore, when you give frequency domain data in the input, FT tries to convert this to time domain data again.
+          This means that for each channel and frequency, a time course of power is created. The corresponding label is then 'MLC11' at frequency 'Y'.
+
+          As such, this is not what you want, because you indeed want to use ft_selectdata. As of yet this functionality is not implemented, but we hope to be working on this soon.
+      - +@isprivate: "0"
+        commentid: "5132"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-02-03 12:06:47 +0100
+        thetext: JM, could you resolve this bug (probably RESOLVED:INVALID), and create a new issue for the enhancement you propose? I have trouble describing it accurately, otherwise I would have done so.
+      - +@isprivate: "0"
+        commentid: "5139"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-03 16:43:34 +0100
+        thetext: The requested functionality is related to bug 1021. As such this one is invalid because ft_redinetrial behaves consistently. Set this one to invalid.

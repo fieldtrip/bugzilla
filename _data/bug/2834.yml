@@ -1,0 +1,115 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2834"
+    creation_ts: 2015-02-10 18:16:00 +0100
+    short_desc: ft_selectdata/ft_sourceanalysis handling of .crsspctrm when channels have been subselected
+    delta_ts: 2016-01-15 09:37:58 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15203"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2015-02-10 18:16:38 +0100
+        thetext: "If ft_selectdata is used on frequency-domain data that include a cross-spectral density matrix (data.crsspctrm), a selection of a subset of channels (cfg.channel) will not touch data.crsspctrm.\n\nThis can lead to problems later eg. if the resulting data is passed to ft_sourceanalysis which does not check for the consistency of channels and data.crsspctrm.\n\n\nExample Code:\n% Lets say 'tfr' has 275 channels but from looking at the data I \n% realize that two channels are broken and i want to continue without them.\ncfg                         = [];\ncfg.channel                 = {'MEG', '-MLF21','-MRO52'};\ntfr_sel                     = ft_selectdata(cfg,tfr);\n\ncfg                         = [];\ncfg.frequency               = 14;\ncfg.channel                 = {'MEG', '-MLF21','-MRO52'};\ncfg.method                  = 'dics';       \ncfg.vol                     = headmodel;\ncfg.grid.resolution         = 1;\nsource                      = ft_sourceanalysis(cfg, tfr_sel);\n\nThis will lead to the following error:\nError using svd\nInput to SVD must not contain NaN or Inf.\nError in rank (line 15)\ns = svd(A);\nError in beamformer_dics (line 193)\nisrankdeficient = (rank(Cf)<size(Cf,1));\nError in ft_sourceanalysis (line 615)\ndip(i) = beamformer_dics(grid, sens, vol, [],  squeeze(Cf(i,:,:)), optarg{:}); \n\nThe reason is that in ft_sourceanalysis, the function 'prepare_freq_matrices' is called on the data (eg. in line 464) and will return 'Cf' that will include NaNs. The subsequent SVD cannot be performed on data containing NaNs. \n\nThis could be fixed in ft_selectdata by deleting all rows in data.crsspctrm that relate to removed channels (= rows in data.labelcmb that contain these channel names). Additionally one could check in ft_sourceanalysis whether the number of channels is consistent with the field .crsspctrm. That field should have (numel(tfr.label)^2-numel(tfr.label))/2 columns.\n\nThe problem should occur on every system but here I used a Linux 64-bit system running Matlab 2013b and today's fieldtrip version."
+      - +@isprivate: "0"
+        commentid: "15322"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 16:39:14 +0100
+        thetext: |-
+          Hi Jens,
+          Thanks for the report.
+          I will look into it.
+      - +@isprivate: "0"
+        commentid: "15327"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 17:03:28 +0100
+        thetext: |-
+          OK, intermediate update:
+
+          ft_selectdata supports cfg.channelcmb, so if you're capable to generate the appropriate list, you should be on track :-).
+
+          However, I can imagine that this is kind of to be expected behavior, in that ft_selectdata with a cfg.channel and with input data that contains both powspctrm and crsspctrm it should also give back a subset of the channelcombinations.
+
+          So this should work:
+
+          cfg.channel = ft_channelselection(cfg.channel, freq.label);
+          tmp = repmat(cfg.channel,[1 numel(cfg.channel)]);
+          tmp2 = tmp2';
+          cfg.channelcmb = [tmp(tril(ones(numel(cfg.channel),1),-1)>0) tmp2(tril(ones(numel(cfg.channel),1),-1)>0)];
+
+          freq2 = ft_selectdata(cfg, freq);
+
+          I will think of a way to implement this more elegantly into ft_selectdata
+      - +@isprivate: "0"
+        commentid: "15329"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-02-11 17:28:16 +0100
+        thetext: |-
+          [jansch@mentat003 utilities]$ svn diff ft_selectdata.m
+          Index: ft_selectdata.m
+          ===================================================================
+          --- ft_selectdata.m	(revision 10210)
+          +++ ft_selectdata.m	(working copy)
+          @@ -597,7 +597,7 @@
+             % str2 = sprintf('mean(%s)', str2);
+             data.label = {str1, str2};
+           elseif all(isfinite(selchancmb))
+          -  data.labelcmb = data.labelcmb(selchancmb);
+          +  data.labelcmb = data.labelcmb(selchancmb,:);
+           elseif numel(selchancmb)==1 && any(~isfinite(selchancmb))
+             % do nothing
+           elseif numel(selchancmb)>1  && any(~isfinite(selchancmb))
+          [jansch@mentat003 utilities]$ svn commit -m "bugfix - corrected issue with selection of channelcmb" ft_selectdata.m
+          Sending        ft_selectdata.m
+          Transmitting file data .
+          Committed revision 10211.
+      - +@isprivate: "0"
+        commentid: "16106"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-15 16:03:36 +0200
+        thetext: 'I have changed the handling of the data within ft_sourceanalysis (using a revamped version of prepare_freq_matrices): I am not sure whether this would solve the problem, but I suggest to close this one for now, with the option to re-open if the need arises.'

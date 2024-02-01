@@ -1,0 +1,173 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1558"
+    creation_ts: 2012-06-26 10:02:00 +0200
+    short_desc: trialinfo lost after artifact rejection
+    delta_ts: 2012-08-23 10:48:11 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1564"
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - imenelk
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6563"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 10:02:12 +0200
+        thetext: |-
+          Attached data and cfg. After the following call I lost my trialinfo. I first thought that might be the case with only partial rejection but it also happens with complete rejection. Bug can't be more than about a month old as my script used to work but now stopped working because of this.
+
+          dataclean = ft_rejectartifact(cfg,data);
+      - +@isprivate: "0"
+        commentid: "6564"
+        comment_count: "1"
+        attachid: "286"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 10:05:54 +0200
+        thetext: |-
+          Created attachment 286
+          data + cfg
+      - +@isprivate: "0"
+        commentid: "6565"
+        comment_count: "2"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 10:06:34 +0200
+        thetext: '''data_small'' instead of ''data'' because of size for upload.'
+      - +@isprivate: "0"
+        commentid: "6566"
+        comment_count: "3"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 10:14:13 +0200
+        thetext: ofcourse, i might be wrong and trialinfo was always lost after artifact_rejection. then i would be doubting my own sanity though, which i, ofcourse, by default do.
+      - +@isprivate: "0"
+        commentid: "6569"
+        comment_count: "4"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 15:21:02 +0200
+        thetext: |-
+          ah, it was caused by some dependance on a personal workaround - removing my own scripts from the path fixed it.
+
+          cheers!
+      - +@isprivate: "0"
+        commentid: "6572"
+        comment_count: "5"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 17:53:20 +0200
+        thetext: |-
+          No! Its still doesn't work!
+
+          Could anyone please load the data and type:
+
+          test = ft_rejectartifact([],data_small)
+
+          and see if they can replicate the loss of the trialinfo?
+
+          I'll be here all night! :-)
+      - +@isprivate: "0"
+        commentid: "6573"
+        comment_count: "6"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-26 18:06:26 +0200
+        thetext: Ok, ft_redefinetrial removes trialinfo at line 483 of ft_rejectartifact
+      - +@isprivate: "0"
+        commentid: "6576"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-06-27 11:41:48 +0200
+        thetext: So, it is removed in ft_redefinetrial?
+      - +@isprivate: "0"
+        commentid: "6587"
+        comment_count: "8"
+        who:
+          +content: imenelk
+          +@name: ""
+        bug_when: 2012-06-27 18:38:29 +0200
+        thetext: "(In reply to comment #7)\n\nActually, I had a similar bug. \n\nft_redefinetrial delete the trialinfo field.\nApparently at line 250, it decides to remove the trialinfo field if there is a trialinfo field and that there are more than 1 trial in the data. So it probably remove the trialinfo field after the call of ft_rejectartifact.\n\nIn my case, I also noticed that even if the initial data did not have trialinfo and the input trl matrix has more than 3 columns, these data were not added to a trialinfo field whan I called ft_redefinetrial. So I added these lines to my code : \nif ~remove &&  ~isfield(data, 'trialinfo') && size(trl,2)>3\n    data.trialinfo   = trl(:,4:end);\nend"
+      - +@isprivate: "0"
+        commentid: "6589"
+        comment_count: "9"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2012-06-27 19:19:10 +0200
+        thetext: |-
+          Hi there!
+
+          Yes I traced the problem to a similar statement but instead of needing 1 trail in total, i think it checkes if that is is only 1 original trial on the inverval of interest that fits the new trial, if you see what i mean (its in a loop going through all the trials it needs to adjust). So if there is more than one its not smart enough to copy the trialinfo into both (or more).
+
+          In my case this was caused because my script creating trials with overlapping samplenumbers. Removing those then worked.
+
+          I am pretty sure it didn't behave like this a month or two ago though.
+
+          Thanks for the patch! Much appreciated,
+
+          Stephen
+      - +@isprivate: "0"
+        commentid: "6759"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-08 12:06:42 +0200
+        thetext: indeed when the sampleinfo contains overlapping samples in consecutive trials, the trialinfo is thrown out. In the example data, the first two trials have the same sampleinfo, causing this conflict. (I did not check for the rest of the trials though). Although I don't know whether past versions of ft_redefinetrial were more lenient, I think the current behavior is correct.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "286"
+      date: 2012-06-26 10:05:00 +0200
+      delta_ts: 2012-06-26 10:05:54 +0200
+      desc: data + cfg
+      filename: bugdata.mat
+      type: application/octet-stream
+      size: "30029587"
+      attacher:
+        +content: stephen.whitmarsh
+        +@name: Stephen Whitmarsh
+      data: REMOVED

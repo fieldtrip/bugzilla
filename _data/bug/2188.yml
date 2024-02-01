@@ -1,0 +1,246 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2188"
+    creation_ts: 2013-06-05 10:20:00 +0200
+    short_desc: 'enhancement: implement support for Localite marker positions (eeg-electrodes and tms-coil location)'
+    delta_ts: 2013-06-13 10:07:29 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10606"
+        comment_count: "0"
+        attachid: "482"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-05 10:20:40 +0200
+        thetext: |-
+          Created attachment 482
+          example: Localite EEG markers
+
+          Localite marker positions are stored in an XML file where the important information is the electrode's label (description), XYZ-coordinates in RAS (dataX), and whether the position is set, or not (set).
+
+          <?xml version="1.0" encoding="UTF-8"?>
+          <EEGMarkerList coordinateSpace="RAS">
+              <Marker color="#808080" description="Ch01" drawAura="false"
+                  radius="4.0" set="true">
+                  <ColVec3D data0="-6.09052189897649" data1="-28.605404973018075" data2="79.09197070193801"/>
+              </Marker>
+
+          In this case data0, data1, and data3 represent respectively the X, Y, and Z coordinates.
+
+          For the instrument markers (e.g. TMS coil position) it is a bit more complicated as instrument markers are stored in 4D matrices in LPS space.
+
+          For example:
+          <InstrumentMarkerList coordinateSpace="LPS">
+              <InstrumentMarker alwaysVisible="false" index="0" selected="true">
+                  <Marker additionalInformation="" color="#0000ff"
+                      description="phosphene hot spot" set="true">
+                      <Matrix4D data00="-0.36950043976849806"
+                          data01="-0.005490270614113446"
+                          data02="-0.9291473688898781" data03="42.877972432586255"
+                          data10="-0.9240593574201287"
+                          data11="0.10683650892729991" data12="0.3668457652747794"
+                          data13="84.78817125970272" data20="0.09725883070805597"
+                          data21="0.994198857605622" data22="-0.04455224529124241"
+                          data23="-14.074342918323168" data30="0.0" data31="0.0"
+                          data32="0.0" data33="1.0"/>
+                  </Marker>
+
+          As far as I can tell the dataX3 variables roughly correspond with the center of the coil position but I've sent an e-mail to Localite to ask what all the fields in the matrix represent.
+
+          I'll attach an example of both position files.
+
+          What should should be updated is:
+          ft_read_sens
+          ft_filetype
+
+          any others?
+
+          Is it preferred to create a function to read the marker positions (e.g. read_localite_pos)?
+      - +@isprivate: "0"
+        commentid: "10607"
+        comment_count: "1"
+        attachid: "483"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-05 10:21:26 +0200
+        thetext: |-
+          Created attachment 483
+          example: Localite TMS marker
+      - +@isprivate: "0"
+        commentid: "10610"
+        comment_count: "2"
+        attachid: "484"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-05 10:42:58 +0200
+        thetext: |-
+          Created attachment 484
+          Instrument-Marker information sheet
+      - +@isprivate: "0"
+        commentid: "10611"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-05 10:44:38 +0200
+        thetext: Localite sent a PDF explaining the 4D matrix, I've attached it.
+      - +@isprivate: "0"
+        commentid: "10662"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-06 16:37:35 +0200
+        thetext: |-
+          I suggest using native MATLAB xmlread for parsing the file. There are other solutions (also in use in fieldtrip) such as xml2struct, but they have some issues with it (incompatibility with certain xml files, conflicting versions).
+
+          see help xmlread
+
+          It is to be implemented in ft_read_sens and I suggest to make a read_localite_markers function in fileio/private.
+      - +@isprivate: "0"
+        commentid: "10663"
+        comment_count: "5"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-06 17:38:49 +0200
+        thetext: "Hi Robert,\n\nI had a meeting on this bug with J-M today. I had already made an implementation with xml2struct and an alternative if java is not available. I've modified ft_filetype and ft_read_sens to add support for Localite EEG marker positions. I haven't committed it to the official Fieldtrip distribution but created a branch in my Fieldtrip for on Github: https://github.com/jimher/fieldtrip/tree/localite\n\nI've made ft_filetype to look for the .xml extension and to check for '<EEGMarkerlist>'.\n\nft_read_sens uses xml2struct to convert the xml file into a structure, the function then loops through the Marker fields to check for channels that are set (Not all channels have to be recorded, those that are not recorded have default  and stores their coordinates and labels into the sens structure.\n\nIf Java is not available I wrote an alternative (perhaps a bit messy) that stores all the text of the .xml file into cells and searches the cells for coordinate and label information, which is then stored into the sens structure. \n\nI did not (yet) create an extra low-level function to read the markers but put everything under 'case ''localite_pos''' in ft_read_sens. J-M was fine with the implementation but if you disagree I will gladly put everything into read_localite_markers.\n\nBest,\n\nJim"
+      - +@isprivate: "0"
+        commentid: "10716"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-06-11 16:19:26 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+          sound ok to me. Can you put the data in home/common/fieldtrip/data/test/bug2188, make a test_bug2188 script (and ensure it runs) and then send a pull request to fieldtrip/fieldtrip?
+      - +@isprivate: "0"
+        commentid: "10717"
+        comment_count: "7"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-11 16:45:07 +0200
+        thetext: |-
+          I've saved you the trouble of handling the pull request and just committed through SVN:
+
+          Sending        fileio/ft_filetype.m
+          Sending        fileio/ft_read_sens.m
+          Adding         test/test_bug2188.m
+          Transmitting file data ...
+          Committed revision 8237.
+      - +@isprivate: "0"
+        commentid: "10731"
+        comment_count: "8"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-13 09:30:03 +0200
+        thetext: |-
+          Dashboard fails although the test script works when I run it myself.
+
+          According to the dashboard log-file the .xml file cannot be opened:
+
+          "Starting test run with 1 test case.
+          {Warning: could not open
+          /home/common/matlab/fieldtrip/data/test/bug2188/EEG_Markers.xml}"
+
+          Am I missing something?
+      - +@isprivate: "0"
+        commentid: "10732"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2013-06-13 09:31:29 +0200
+        thetext: did you do a ft_hastoolbox('gifti', 1) in the testscript?
+      - +@isprivate: "0"
+        commentid: "10733"
+        comment_count: "10"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-06-13 10:07:29 +0200
+        thetext: I indeed missed something, forgot to set permissions correctly. Should be fixed now.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "482"
+        date: 2013-06-05 10:20:00 +0200
+        delta_ts: 2013-06-05 10:20:40 +0200
+        desc: 'example: Localite EEG markers'
+        filename: EEGMarkers20130203153459920.xml
+        type: text/xml
+        size: "13677"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "483"
+        date: 2013-06-05 10:21:00 +0200
+        delta_ts: 2013-06-05 10:21:26 +0200
+        desc: 'example: Localite TMS marker'
+        filename: InstrumentMarker20130203170957733.xml
+        type: text/xml
+        size: "885"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "484"
+        date: 2013-06-05 10:42:00 +0200
+        delta_ts: 2013-06-05 10:42:58 +0200
+        desc: Instrument-Marker information sheet
+        filename: Infosheet_Instrumentmarker_Triggermarker_from_2 0_EN.pdf
+        type: application/pdf
+        size: "71436"
+        attacher:
+          +content: j.herring
+          +@name: Jim Herring
+        data: REMOVED

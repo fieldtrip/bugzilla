@@ -1,0 +1,101 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3240"
+    creation_ts: 2017-02-01 16:23:00 +0100
+    short_desc: Please clarify openmeeg opening web browser behaviour
+    delta_ts: 2019-08-10 12:41:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.n.oosterhof
+      +@name: nno
+    assigned_to: fieldtriptoolbox
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18353"
+        comment_count: "0"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-01 16:23:31 +0100
+        thetext: "Following PR #310 on GitHub (https://github.com/fieldtrip/fieldtrip/pull/310), I proposed some changes to external/openmeeg/om_checkombin.m. These concern the features that a webpage is opened and execution delayed for 4 s when running this function. As explained below I find both features invasive and distracting and proposed them to be removed. Summary of the argument:\n\n- the license does not require these features.\n- openmeeg itself does not do it - it just includes and refers to the license in the documentation.\n- it does not scale - what if every function or toolbox would do this?\n\nIn the discussion, Robert Oostenveld wrote: \n\n> removing web('http://openmeeg.gforge.inria.fr') from om_checkombin is not OK. The website opening explicitly (and only once per session) is part of the agreement for including openmeeg in the FT release. I would be fine with adding a try-catch around it, so that it does not interfere with octave.\n> \n> also the pause in openmeeg_license should stay.\n\nI don't understand the reasoning here; I'm filing the issue so that others who may run into this issue as well may find the thread here. \n\nUnless there is a special agreement with the openmeeg authors, I don't see how removing the 'web' and 'pause' statements are not OK. I read the license carefully (http://www.cecill.info/licences/Licence_CeCILL-B_V1-en.html). First, it seems not a Free Software license because it requires (not asks friendly to) citing their work (https://people.debian.org/~bap/dfsg-faq.html point 12g), unlike what is claimed in the license. (If it was Free Software there would not be an issue. ) \n\nHowever, the license only requires that the citation is properly documented. The full text of the relevant section is:\n\n    \"5.3.4 CREDITS\n\n    Any Licensee who may distribute a Modified Software hereby expressly agrees to:\n\n    indicate in the related documentation that it is based on the Software licensed hereunder, and reproduce the intellectual property notice for the Software,\n\n    ensure that written indications of the Software intended use, intellectual property notice and license hereunder are included in easily accessible format from the Modified Software interface,\n\n    mention, on a freely accessible website describing the Modified Software, at least throughout the distribution term thereof, that it is based on the Software licensed hereunder, and reproduce the Software intellectual property notice,\n\n    where it is distributed to a third party that may distribute a Modified Software without having to make its source code available, make its best efforts to ensure that said third party agrees to comply with the obligations set forth in this Article .\"\n\nI do not see anywhere that it requires that the program pauses execution for a certain amount of time, or that it opens a web page. Indeed I find both actions very invasive, in particular when testing code - for example when running a suite in the background while doing other things and then suddenly a browser window opens... Also, imagine if every toolbox or function took the liberty of suspending execution for a couple of seconds and open a browser window! \n\nAlso, please consider that not even the original openmeeg code opens a webpage or delays execution (see https://github.com/openmeeg/openmeeg/tree/master/OpenMEEG/tools/matlab; the command \"find . -iname '*.m' | xargs grep web\" there gives an empty result). Instead, openmeeg includes the license in its source repository and that's it. \n\nIt seems to me that all license requirements are fulfilled as long as the license is properly included and mentioned/referenced in the documentation, possibly together with showing the license or website link. Therefore I would appreciate it the option would be considered for FieldTrip to use  openmeeg does not open a web browser or delays code execution. Thanks for your consideration."
+      - +@isprivate: "0"
+        commentid: "18354"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-01 17:02:06 +0100
+        thetext: "I agreed with the openmeeg developers that they would include their software as module under the hood of FieldTrip, thereby also making it accessible in eeglab and spm (which use the FT forward module). This required a substantial investment from their side, not at least in the original software , but also in writing the specific glue between openmeeg and fieldtrip and writing openmeeg specific documentation on the FieldTrip website. That investment would go largely unnoticed, and fieldtrip would receive the credits in scientific publications. \n\nIn return we agreed that their contribution would not go unnoticed. The specific implementation (opening a web-page an sprinting something on the matlab console) was their choice. \n\nI agree that both technically and legally it _could_ go unnoticed, but that is not the agreement that I made with them, when convincing them to invest their time in writing the glue.\n\nGetting people to contribute to fieldtrip requires more consideration from my side than only legal compliance and technical efficiency. Besides legal compliance (for which there is nothing special in place in law that protects scientists), there are also ethical policies which are specific for science. Referring to scientific work of others in a publication is not a legal requirement either. Still, it is an ethical requirement. This is for example reflected in http://www.sfn.org/Member-Center/Professional-Conduct/Guidelines-for-Responsible-Conduct-Regarding-Scientific-Communication item 1.3.2, 1.10.1 and 1.10.2.\n\nThe web pop-up and text printed in the console serves the purpose that researchers that interact with the fieldtrip command-line user interface or the spm or eeglab graphical user interfaces. It should not be technically hindering research. Hence they only show once and for a very short time (given the duration of a BEM computation). \n\nNote that a similar one-time license (not the web-pup-up) is shown for the artinis code. \n\nOn a very different track: all code (not only openmeeg) that is in external falls under the responsibility of an external group or person (hence the name). For various reason we want to avoid taking over the responsibility for that code. Hence, for most practical considerations that section of the code is limited to contributions only from the original authors/contributors. That means that you can ask the openmeeg team to remove the web-popup from the fieldtrip/external/openmeeg code. I would personally not mind if it were to go, as I also find it annoying."
+      - +@isprivate: "0"
+        commentid: "18359"
+        comment_count: "2"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-02 15:05:17 +0100
+        thetext: "Thanks Robert Oostenveld for the clarification.\n\n(In reply to Robert Oostenveld from comment #1)\n\n> In return we agreed that their contribution would not go unnoticed. The specific implementation (opening a web-page an sprinting something on the matlab console) was their choice. \n\nThanks for the explanation, it makes more sense now. It may be good to add a comment to the openmeeg code explaining this agreement.\n\n> Referring to scientific work of others in a publication is not a legal requirement either. Still, it is an ethical requirement. This is for example reflected in http://www.sfn.org/Member-Center/Professional-Conduct/Guidelines-for-Responsible-Conduct-Regarding-Scientific-Communication item 1.3.2, 1.10.1 and 1.10.2.\n\nI absolutely agree; indeed, it seems quite essential that useful software gets properly cited if used in scientific publications. This is also reflected in the Debian Free Software Guidelines FAQ (https://people.debian.org/~bap/dfsg-faq.html):\n\n  Q: I'm a working scientist, and would like to release code implementing my work. However I want to make sure that people using the software mention its use, and cite my papers, in papers they write. Should I include this in the license?\n  A: You have a valid concern. Computer scientists often receive inadequate credit for their scientific contributions. But putting such a clause in the license would render your software non-free. Instead we suggest a note, not part of the license itself, reminding users of the rules of scientific propriety. Eg:\n\n  SCIENTISTS: please be aware that the fact that this program is released as Free Software does not excuse you from scientific propriety, which obligates you to give appropriate credit! If you write a scientific paper describing research that made substantive use of this program, it is your obligation as a scientist to (a) mention the fashion in which this software was used, including the version number, with a citation to the literature, in the Methods section, to allow replication; (b) mention this software in the Acknowledgements section. The appropriate citation is: Robert B. Laub (2003) BLOBBER: A program that blobs, Blobbing Bulletins 12(34):567-89. Moreover, as a personal note, I would appreciate it if you would email bobblaub@ubl.edu with citations of papers referencing this work so I can mention them to my funding agent and tenure committee.\n\nAs a side note: \"duecredit\" (https://github.com/duecredit/duecredit) is a project that tries to address this issue. We've had some discussion how to make such functionality available in Matlab / Octave (https://github.com/duecredit/duecredit/issues/20) but there is no implementation in there yet. \n\n> you can ask the openmeeg team to remove the web-popup from the fieldtrip/external/openmeeg code. I would personally not mind if it were to go, as I also find it annoying.\n\nAll right, I will try to contact them.\nThanks."
+      - +@isprivate: "0"
+        commentid: "18360"
+        comment_count: "3"
+        who:
+          +content: n.n.oosterhof
+          +@name: nno
+        bug_when: 2017-02-02 15:18:32 +0100
+        thetext: |-
+          (In reply to nno from comment #2)
+
+          >> you can ask the openmeeg team to remove the web-popup from the fieldtrip/external/openmeeg code. I would personally not mind if it were to go, as I also find it annoying.
+
+          > All right, I will try to contact them.
+
+          Since the openmeeg website suggests to open an issue on the github page in order to contact the authors, that's what I did:
+
+          https://github.com/openmeeg/openmeeg/issues/145
+      - +@isprivate: "0"
+        commentid: "18361"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-02 22:52:25 +0100
+        thetext: "@Nic: thanks for following this up. \n\n@my future self: for reference, this is resolved at https://github.com/fieldtrip/fieldtrip/pull/316"
+      - +@isprivate: "0"
+        commentid: "20269"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:09 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20468"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:20 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

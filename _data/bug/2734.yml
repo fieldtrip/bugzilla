@@ -1,0 +1,182 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2734"
+    creation_ts: 2014-10-15 11:40:00 +0200
+    short_desc: initial CIFTI io tests fail
+    delta_ts: 2015-06-11 23:19:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: REOPENED
+    resolution:
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2096
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: a.f.marquand
+      +@name: Andre Marquand
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14631"
+        comment_count: "0"
+        attachid: "665"
+        who:
+          +content: a.f.marquand
+          +@name: Andre Marquand
+        bug_when: 2014-10-15 11:40:49 +0200
+        thetext: |-
+          Created attachment 665
+          debug.xml file
+
+          On one of the smaller machines (mentat206) I ran out of memory:
+
+          x = ft_read_cifti('tstat1.dtseries.nii')
+          Error using nan
+          Out of memory. Type HELP MEMORY for your options.
+          Error in ft_read_cifti (line 681)
+               dat = nan(Ngreynodes,Ntime);
+
+          And on one of the other machines (dccn-c011), I encountered the following error.
+          x = ft_read_cifti('tstat1.dtseries.nii')
+          Subscripted assignment dimension mismatch.
+          Error in ft_read_cifti (line 682)
+               dat(greynodeIndex(dataIndex),:) = transpose(data);
+
+          The data I am trying to load are one of the t-statistic images from one of the tfMRI contrasts, which you can (for example) find in:
+
+          /home/mrstats/andmar/data/hcp/data_unpacked/100307/MNINonLinear/Results/tfMRI_LANGUAGE/tfMRI_LANGUAGE_hp200_s8_level2.feat/GrayordinatesStats/cope5.feat
+
+          These are not overly large files and I am currently manipulating many of them simultaneously in memory using my current routines (SPM gifti + nifti routines).
+
+          I have also attached a debug.xml file which was generated as a part of this process. I hope that helps and of course I am happy to run additional tests to help streamline the code.
+      - +@isprivate: "0"
+        commentid: "14632"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-15 11:45:42 +0200
+        thetext: I have copied tstat1.dtseries.nii to /home/common/matlab/fieldtrip/data/test/bug2734 and will test it out.
+      - +@isprivate: "0"
+        commentid: "14633"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-15 12:01:15 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          with 16gb requested it gets killed
+          with 32gb requested it gets killed
+
+          but in both cases I was (just) able to see the error. I'll move to a 64gb session for diagnosis.
+      - +@isprivate: "0"
+        commentid: "14637"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-15 15:04:25 +0200
+        thetext: "I found and fixed the problem. It was due to an incorrect reshape, causing the number of time points to become equal to the number of brainordinates. Subsequently it was trying to allocate a 96854*96854 matrix, which is a 70GB matrix.\n\n\nmac011> svn commit \nSending        fileio/ft_read_cifti.m\nAdding         test/test_bug2734.m\nTransmitting file data ..\nCommitted revision 9902."
+      - +@isprivate: "0"
+        commentid: "15242"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:38 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+      - +@isprivate: "0"
+        commentid: "15283"
+        comment_count: "5"
+        who:
+          +content: a.f.marquand
+          +@name: Andre Marquand
+        bug_when: 2015-02-11 13:34:06 +0100
+        thetext: I'm afraid the cifti routines still do not work with MRI data. The subcortical data are not recognised by connectome workbench after writing
+      - +@isprivate: "0"
+        commentid: "15345"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 10:32:48 +0100
+        thetext: |-
+          (In reply to Andre Marquand from comment #5)
+
+          Hi Andre,
+
+          for MEG we don't look at subcortical structures that often, so we don't have combined data. Could you provide an example dataset/file, or an example script that allows us to reproduce? That will save us quite some time.
+
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "15378"
+        comment_count: "7"
+        who:
+          +content: a.f.marquand
+          +@name: Andre Marquand
+        bug_when: 2015-02-16 14:07:06 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          Hi Robert,
+
+          You can use this file:
+
+          /home/mrstats/andmar/data/hcp/data_unpacked/100307/MNINonLinear/Results/tfMRI_GAMBLING/tfMRI_GAMBLING_hp200_s8_level2.feat/GrayordinatesStats/cope1.feat/cope1.dtseries.nii
+
+          if you load the image then save it out (without modifying anything), then try to view the volumetric components in workbench, you should be able to recreate the problem.
+
+          Thanks,
+
+          Andre.
+      - +@isprivate: "0"
+        commentid: "15468"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-26 13:09:27 +0100
+        thetext: |-
+          (In reply to Andre Marquand from comment #7)
+
+          I copied the additional data file to /home/common/matlab/fieldtrip/data/test/bug2734
+           for future reference. I hope that I'll soon find the time to look at it.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "665"
+      date: 2014-10-15 11:40:00 +0200
+      delta_ts: 2014-10-15 11:40:49 +0200
+      desc: debug.xml file
+      filename: debug.xml
+      type: text/xml
+      size: "632596"
+      attacher:
+        +content: a.f.marquand
+        +@name: Andre Marquand
+      data: REMOVED

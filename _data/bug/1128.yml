@@ -1,0 +1,156 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1128"
+    creation_ts: 2011-11-09 10:40:00 +0100
+    short_desc: collapse multiple calls of ft_checkconfig into one
+    delta_ts: 2012-08-23 14:02:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - a.stolk8
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3842"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-09 10:40:21 +0100
+        thetext: |-
+          improves readability&cleanness
+          see e.g ft_freqstatistics:
+          % check if the input cfg is valid for this function
+          cfg = ft_checkconfig(cfg, 'renamed',     {'approach',   'method'});
+          cfg = ft_checkconfig(cfg, 'required',    {'method'});
+          cfg = ft_checkconfig(cfg, 'forbidden',   {'transform'});
+
+          this can be replaced by only one call
+
+          % check if the input cfg is valid for this function
+          cfg = ft_checkconfig(cfg, 'renamed',     {'approach',   'method'}, 'required',    {'method'}, 'forbidden',   {'transform'});
+      - +@isprivate: "0"
+        commentid: "3850"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-09 12:44:56 +0100
+        thetext: "but multiple renames don't work like this. \n\nI prefer the \"one at a time check\", but let's vote at the FT meeting"
+      - +@isprivate: "0"
+        commentid: "4064"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:45 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4097"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 13:47:19 +0100
+        thetext: |-
+          I remember that we agreed on something.. but I forgot what it actually was. Jörn, could you formulate what we agreed on?
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4108"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-17 14:13:19 +0100
+        thetext: we agreed to keep the multiple 'renamed' and 'renamedval' calls separate. The multiple 'required'  calls should be merged, just like the multiple 'forbidden' calls.
+      - +@isprivate: "0"
+        commentid: "4116"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-17 15:03:44 +0100
+        thetext: |-
+          Afair, we agreed to collapse all calls that can be collapsed per type.
+          i.e. per function only once these calls:
+          cfg = ft_checkconfig(cfg, 'required', {aaa,bbb,ccc,...})
+          cfg = ft_checkconfig(cfg, 'forbidden', {ddd,eee,fff,...})
+
+          However, for 'renamed, one call per renamed field needs to be made,  because you cannot collapse this into one call:
+          cfg = ft_checkconfig(cfg, 'renamed', {xxx, zzz});
+          cfg = ft_checkconfig(cfg, 'renamed', {vvv, www});
+          cfg = ft_checkconfig(cfg, 'renamed', {..., ...});
+
+          One of the plotting function (multi- or topoplot) is an excellent function where this should be changed ;)
+      - +@isprivate: "0"
+        commentid: "4117"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-17 15:04:25 +0100
+        thetext: I should read all my mails+scroll down before answering ;)
+      - +@isprivate: "0"
+        commentid: "4119"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-17 16:05:36 +0100
+        thetext: but your description still beats mine ;-)
+      - +@isprivate: "0"
+        commentid: "5529"
+        comment_count: "8"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-03-13 14:07:17 +0100
+        thetext: "I am currently changing some function calls, and saw that in ft_volumelookup, there is such a call:\n    ft_checkconfig(cfg, 'forbidden', {'sphere' 'box'}, ...\n                        'required',  {'atlas' 'inputcoord'});\n\nStill sure that we don't want all calls to be more like this? :) It may be microtuning, but it would remove unnecessary double checks, and I would volunteer to do that. \n\nFor now, I just committed what we agreed upon:\n\n svn ci -m \"enhancement-#1128-collapsed multiple ft_checkconfig calls to one\"\nSending        ft_clusterplot.m\nSending        ft_multiplotER.m\nSending        ft_multiplotTFR.m\nSending        ft_prepare_mesh.m\nSending        ft_prepare_mesh_new.m\nSending        ft_singleplotER.m\nSending        ft_singleplotTFR.m\nSending        ft_spikesorting.m\nSending        ft_spiketriggeredaverage.m\nSending        ft_spiketriggeredinterpolation.m\nSending        ft_spiketriggeredspectrum.m\nSending        ft_topoplotTFR.m\nSending        ft_volumelookup.m\nSending        statistics_montecarlo.m\nSending        test/test_ft_megplanar.m\nTransmitting file data ...............\nCommitted revision 5449."
+      - +@isprivate: "0"
+        commentid: "5531"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-13 14:23:17 +0100
+        thetext: "(In reply to comment #8)\n\nfor some options it would remain readable, for some others it would not. E.g. I would not know how to do two times \"renamedvalue\" in a single call. \n\nIn the example you give it is indeed appropriate to combine them in one call.\n\nYou may want to look at\n\nroboos@mentat001> for file in ft_*m ; do echo `grep ft_checkconfig $file | wc -l` $file ; done\nor\nroboos@mentat001> for file in ft_*m ; do echo `grep ft_checkconfig $file | wc -l` $file ; done | sort -n\n\nto find the ones that have most calls to ft_checkconfig. Note the 36 in ft_topoplotTFR!"
+      - +@isprivate: "0"
+        commentid: "7201"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:08 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

@@ -1,0 +1,84 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1849"
+    creation_ts: 2012-11-26 11:44:00 +0100
+    short_desc: second output argument not initialized for read_ctf_cls
+    delta_ts: 2014-03-12 12:21:44 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8403"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 11:44:29 +0100
+        thetext: |-
+          Error in ==> fileio\private\read_ctf_cls at 25
+          condNumbers = [];
+
+          ??? Output argument "condLabels" (and maybe others) not assigned during call to
+          "M:\FieldTrip\trunk\fileio\private\read_ctf_cls.m>read_ctf_cls".
+
+          Error in ==> ft_read_event at 489
+              [condNumbers,condLabels] = read_ctf_cls(classfile);
+
+          Independently of the question why the hell I suddenly get this error, I realized that this is causing ft_trialfin_general to return an empty matrix, because ft_read_event fails (and there is a try catch surrounding the ft_read_event_call)
+
+          Simple solution: init the output arguments in read_ctf_cls as empty. This was done once but then commented out - any reason why?
+
+
+          I wonder though why it all worked on Friday and today it does not (I am working using my local repository and did not update today).
+      - +@isprivate: "0"
+        commentid: "8412"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 15:12:26 +0100
+        thetext: |-
+          I see why it was uncommented - because it does lead to some other errors. condLabels needs to be initialized as an empty cell matrix {} not as an empty array [], then it works fine.
+
+          The initial error occurs when the ClassFile.cls of a dataset is empty. Initializing with {} seems to work fine in both cases, when the cls-file is empty and when it has regular content.
+      - +@isprivate: "0"
+        commentid: "8474"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-28 17:51:07 +0100
+        thetext: |-
+          svn ci fileio/private/read_ctf_cls.m -m "bugfix-#1849-second output argument initialized if not before returning"
+          Sending        fileio/private/read_ctf_cls.m
+          Transmitting file data .
+          Committed revision 7047.

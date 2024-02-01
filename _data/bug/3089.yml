@@ -1,0 +1,117 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3089"
+    creation_ts: 2016-03-07 11:09:00 +0100
+    short_desc: implement dipole fitting for combined magnetometer and planar gradiometer data
+    delta_ts: 2016-03-08 15:44:19 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - l.garcia.d
+      - lau.moller.andersen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17091"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 11:09:49 +0100
+        thetext: as discussed with Lau, it should be based on https://en.wikipedia.org/wiki/Whitening_transformation implemented at the level of the ft_dipolefitting code (since both for scanning and for the nonlinear part).
+      - +@isprivate: "0"
+        commentid: "17092"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 11:13:28 +0100
+        thetext: |-
+          And here are some details about the alternative suggested by Luis (CC):
+
+          ----
+
+          On 01 Mar 2016, at 20:34, Luis Garcia Dominguez wrote:
+
+          I am working on dipole mapping of epileptic spikes using an Elekta
+          Neuromag 306-Channel Meg system.
+          The ft_dipolefiting function works great only when gradiometers or
+          magnetometers are specified but not when both are pooled together. See
+          the file “uncorrected.txt” attached. This file shows that the residual
+          variance for pooled channels is very high and also the distance
+          between the this condition and the MEG only or GRAD only is relatively
+          high, between 1 to 3 cm, when the distance between MEG and GRAD is
+          about 0.3 cm. I also added the correlation between the dipole
+          orientations to show how similar they are.
+          Inspecting the code in “dipole_fit.m” I found out that the problem was
+          due to the large difference in variances between magnetometers and
+          gradiometers, which is not compensated by the computed leadfield. In
+          order to solve this problem I introduced an additional parameter that
+          is passed during the optimization procedure. That is, the function
+          “dipole_fit” passes an extra number to “dipfit_error” using the
+          “param” variable (which by default contain only the dipole position).
+          This extra number is used as a coefficient to scale the magnetometers,
+          when both magnetometers and gradiometers are present. This parameter
+          is also optimized along with the dipole position adjusting the
+          relative amplitude of mag and grads to best fit the data. After
+          introducing this correction the result seems pretty accurate for the
+          pooled condition and in agreement with the MAG and GRAD. See the
+          “corrected.txt” file.
+          I think that this solution of mine is probably not that elegant since
+          the actual coefficient should be independent of the subject but, on
+          the other hand it is more flexible.
+      - +@isprivate: "0"
+        commentid: "17093"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-07 11:15:14 +0100
+        thetext: |-
+          The best matching example dataset that can be used for testing is the one described here http://www.fieldtriptoolbox.org/tutorial/natmeg/dipolefitting#fit_a_dipole_model_to_the_meg_data
+
+          It could be used to test magnetometer+planar, but also meg+eeg.
+      - +@isprivate: "0"
+        commentid: "17104"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-08 14:47:00 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #2)\n\nI am visiting Stockholm at the moment, and worked on it with Lau this morning. Using the MEG-audodd dataset we made a test script and added the sphering to ft_dipolefitting. \n\nIt works both with the gridsearch and the nonlinear part.\n\nSee https://github.com/fieldtrip/fieldtrip/pull/118\n\nIt is to be considered whether it should be made available in a more user-friendly manner (e.g. cfg.prewhiten=yes/no) also considering channel-selection. I will discuss this with Jan-Mathijs (CC) when back in Nijmegen, since he implemented very similar stuff in minimumnormestimate.\n\nThe combination MEGMAG+MEGPLANAR now work, but MEG+EEG not yet. That is only due to the handling of grad and elec structures, which are now mutually exclusive. The test script can easily be extended to also deal with this case, as the EEG dipole fit is also quite nice in this data.\n\n@Luis, could you review the test_bug3089 script? You will see the cfg.accuracy option in ft_preprocessing, which ensures that the units of the forward model are consistent with the units of the data. Also, all computations must be done in SI units (meter, Tesla, Volt)."
+      - +@isprivate: "0"
+        commentid: "17106"
+        comment_count: "4"
+        who:
+          +content: l.garcia.d
+          +@name: Luis
+        bug_when: 2016-03-08 15:44:19 +0100
+        thetext: 'Yes, I will test it with my own data first (MEGMAG/MEGGRAD). (In reply to Robert Oostenveld from comment #3)'

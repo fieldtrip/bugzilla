@@ -1,0 +1,137 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1901"
+    creation_ts: 2012-12-18 10:05:00 +0100
+    short_desc: changes in units seems to affect SPM
+    delta_ts: 2012-12-31 11:46:28 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - g.barnes
+      - litvak.vladimir
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8745"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 10:05:21 +0100
+        thetext: |-
+          On Wed, Dec 12, 2012 at 3:57 PM, Thomas FitzGerald wrote:
+
+          HI Vladimir
+          Gareth writing from Tom#s machine.
+          Tom is using the custom head model.
+
+          So starting with
+          cfg =
+
+              reducerank: 2
+                    grad: [1x1 struct]
+                 channel: {274x1 cell}
+                     vol: [1x1 struct]
+                    grid: [1x1 struct]
+                feedback: 'off'
+             inwardshift: 0
+
+          where
+          cfg.grid.resolution=5
+          cfg.vol=
+              bnd: [1x1 struct]
+             type: 'nolte'
+             unit: 'mm'
+
+          grid  = ft_prepare_leadfield(cfg);
+
+          we get only 10 dipoles in the grid.
+          Changing gridstep to .05 (instead of 5) however and we get 9980.
+          Is it possible that the units on the input to ft_prepare_leadfield have
+          changed since the last release ?
+      - +@isprivate: "0"
+        commentid: "8746"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 10:05:29 +0100
+        thetext: |-
+          On 12 Dec 2012, at 20:58, Vladimir Litvak wrote:
+
+          Yes, that sounds like something that has to do with changes in units.
+          I'm CCing Robert as in principle he's aiming to maintain backward
+          compatibility and prevent this kind of things from happening so the
+          exact reason is worth investigating. I hope there are no related
+          problems for MSP and VB-ECD
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "8747"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 10:20:08 +0100
+        thetext: "I made a test script (which I'll add to SVN later) and used it for debugging. I found the following piece of code (old already) in private/prepare_headmodel\n\n% ensure that the units are the same, if not, use cm as the default\nif ~strcmp(vol.unit, sens.unit) || ~strcmp(vol.unit, cfg.sourceunits)\n  if isempty(cfg.sourceunits)\n    cfg.sourceunits = 'cm';\n  end\n  vol  = ft_convert_units(vol, cfg.sourceunits);\n  sens = ft_convert_units(sens, cfg.sourceunits);\nend \n\nSee also http://code.google.com/p/fieldtrip/source/browse/trunk/private/prepare_headmodel.m#56\n\nHere the code fails, because vol and sens both have mm, and still it converts to cm.\nThat is due to cfg.sourceunits being initialized as empty (as default) and thereby the second strcmp failing."
+      - +@isprivate: "0"
+        commentid: "8748"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 10:21:21 +0100
+        thetext: "I am to blame for the bug, see \nhttp://code.google.com/p/fieldtrip/source/diff?spec=svn6678&r=6678&format=side&path=/trunk/private/prepare_headmodel.m&old_path=/trunk/private/prepare_headmodel.m&old=5174"
+      - +@isprivate: "0"
+        commentid: "8750"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-18 10:42:07 +0100
+        thetext: |-
+          mac001> svn commit ../private/prepare_headmodel.m ./test_bug1901.m
+          Sending        private/prepare_headmodel.m
+          Adding         test/test_bug1901.m
+          Transmitting file data ..
+          Committed revision 7223.
+
+          ------------------------------------------------------------------------
+          r7223 | roboos | 2012-12-18 10:41:37 +0100 (Tue, 18 Dec 2012) | 3 lines
+
+          bugfix - the sourcemodel units were always converted to cm, also if the vol and grad input were in mm and cfg.sourceunits was not specified. This caused a problem for spm, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=1901. Fixed and made a test script.
+      - +@isprivate: "0"
+        commentid: "8860"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-12-31 11:46:28 +0100
+        thetext: closed several bugs that have been resolved for some time. Feel free to reopen the bug if you disagree.

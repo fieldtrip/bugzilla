@@ -1,0 +1,88 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2736"
+    creation_ts: 2014-10-15 14:40:00 +0200
+    short_desc: ft_trialfun_general crashes after reading EDF+ file
+    delta_ts: 2015-05-01 10:03:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: m.dirkx
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14635"
+        comment_count: "0"
+        who:
+          +content: m.dirkx
+          +@name: ""
+        bug_when: 2014-10-15 14:40:21 +0200
+        thetext: "I'm currently working with Poly-Myography data (PMG; consisting of EMG and Accelerometry recordings) of tremulous Parkinson patients. For this, I used the clinical software StudyRoom, which lets you save your files in EDF+ format. However I have some trouble defining the trials in these EDF+ files. In short: ft_read_events reads a lot of empty string event.values (for a reason I do not understand), which results in ft_trialfun_general to crash when trying to reach the first index of those empty strings. \n\nAs you may know, EDF+ stores an additional annotation channel, which FieldTrip uses for defining the events. During measurements, I coded my tasks (i.e. annotation events) with the following codes:\n    'Rest1'    \n    'RestCOG1' \n    'RestmoM1' \n    'RestmoL1' \n    'POST1'    \n    'POSH1'    \n    'POSW1'    \n    'IntentM'  \n    'IntentL'  \n    'EntrM'    \n    'EntrL'    \n    'Rest2'    \n    'RestCOG2' \n    'RestmoM2' \n    'RestmoL2' \n    'POST2'    \n    'POSH2'    \n    'POSW2'    \n    'Rest3'    \n    'RestCOG3' \n    'RestmoM3' \n    'RestmoL3' \n    'Weight'\nThus, every code represents the time period where subjects performed these tasks and I would like to define every task as a trial. Note that some codes are the same, but end with an ascending number, indicating this is a repeated measurement of that task. If I load this file with a simple EDF+ reader (like ReadEDF.m), all these annotations are correctly displayed as a different annotation, with the correct start, stop and duration of the annotation.\n\nHowever, when I use ft_trialfun_general.m to define my trials, the code will crash at line 243. Specifically, it will try to read the events from my EDF+ file using ft_read_event. In my case, the following course of events happen which will make the script (ft_trialfun_general) crash:\n(1) It reads 4303 events containing two event types: 'annotation' and 'trial'. All 'trial' events are empty doubles. Furthermore, most of the 'annotation' events are empty strings, except for the last ~25, which are the annotations I recognize (i.e. the ones I stated above + some technical onces like impedance check etc). I don't quite understand why it reads all those empty events, and why there is a event type named 'trial'? Moreover, as I will explain in point 3, these empty strings are what causes my script to crash.\n(2) Lets say I use the cfg.event.type = 'gui' option to select eventtype 'annotation' and eventvalue 'POSH1'. If I'm correct, in ft_trialfun_general it will first select the indices of the corresponding returned events; in line 139-143 it will select all the event types named 'annotation', I believe this is done succesfully. In line 145-182 it wants to select all the event types named 'POSH1', I believe this is not done correctly, because the selection of the events after line 182 contains the indices of all the empty-strings as well. \n(3) After these events are detected and the \"right\" ones are selected, it will then add the beginsample, endsample and offset of every trial to the list (line 209-250). This is where the actual crash happens. It will loop through every selected event, also the \"Empty string: 1-by-0\" ones. When it comes to line 243, it will try to get to the first index of this empty string:\n\n243 - elseif ischar(event(i).value) && (event(i).value(1)=='S'|| event(i).value(1)=='R')\n\nSince event(i).value is an empty string, the code will crash with error message \"Index exceeds matrix dimensions\". \n\nSo, in conclusion, because ft_read_events reads all those empty string event.values (for a reason I do not understand), ft_trialfun_general will crash when trying to reach the first index of those empty strings. \n\nI hope you can help me out with this problem! I attached the EDF+ file I am currently using, the basic script for my configuration structure is as follows:\n\n% --- Initiate CFG -- %\n\ncfg             =   [];\ncfg.dataset     = '/home/action/micdir/data/PMG/p12/ON/p12_L-PMG_SESS2_ON_CurMont.edf';\n\n% --- Define pre- and post window of condition --- %\n\ncfg.trialdef.prestim    =   0.5;\ncfg.trialdef.poststim   =   2;\n\n% --- Specify the conditions in your dataset --- %\n\ncfg.trialdef.eventtype    =   'gui';\n% cfg.trialdef.eventvalue =    'POSH1';\n                             \n%% Run - Define Trials                            \n                            \ncfg =   ft_definetrial(cfg);"
+      - +@isprivate: "0"
+        commentid: "14636"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-15 14:59:57 +0200
+        thetext: "Hi Michiel\n\nI guess I am the only one in the FT team that has some (albeit limited) experience with the EDF and EDF+ formats.\n\nI think the trials in ft_read_event are mapped onto the data segments. Although convention is to have 1-second blocks in the EDF file, is not 100% clear from the specification whether those blocks are always to be interpreted as segments in a continuous stream, or whether they can also be longer than 1 second and represent an experimental \"trial\" (as some other file formats allow). Hence I don't think you should care about the trial events (unless the code is faulty in this respect).\n\nThe annotation channel however should be represented as events. The handling of the S and R events is to deal with BrainVision Analyser convention. This should not interfere with EDF+ annotations. \n\nI suspect the cause of the error to be at a lower level of the code. It would help to have the dataset that is causing you problems. Can you put it on /home/common/temporary?"
+      - +@isprivate: "0"
+        commentid: "14638"
+        comment_count: "2"
+        who:
+          +content: m.dirkx
+          +@name: ""
+        bug_when: 2014-10-15 15:07:17 +0200
+        thetext: |-
+          Dear dr. Oostenveld,
+
+          Thank you for your quick reply! I copied one of my EDF+ files to /home/common/temporary/4Oostenveld. Please let me know if you need additional info.
+      - +@isprivate: "0"
+        commentid: "15613"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-04-25 12:31:40 +0200
+        thetext: |-
+          (In reply to m.dirkx from comment #2)
+
+          I got a test file and enhanced the code for edf+.
+
+          mac011> svn commit fileio/
+          Sending        fileio/ft_read_event.m
+          Sending        fileio/private/read_edf.m
+          Transmitting file data ..
+          Committed revision 10347.
+      - +@isprivate: "0"
+        commentid: "15637"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-01 10:03:55 +0200
+        thetext: I copied two test data files to /home/common/matlab/fieldtrip/data/test/bug2736 and should make a test script.

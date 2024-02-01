@@ -1,0 +1,313 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1756"
+    creation_ts: 2012-10-01 12:46:00 +0200
+    short_desc: ft_voltype not work with bem, or 'bnd' field not detected correctly
+    delta_ts: 2014-02-24 10:56:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "937"
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7677"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-01 12:46:35 +0200
+        thetext: |-
+          since r5287, bug was introduced with variable 'type' being probed but without existing, on line 105.
+
+          elseif isfield(vol, 'bnd') && strcmp(type, {'dipoli', 'asa', 'bemcp', 'openmeeg'})
+            type = any(strcmp(type, {'dipoli', 'asa', 'bemcp', 'openmeeg'}));
+
+          how should in fact a vol of type BEM(subtype one of 4 bems) be established?  Not all vol with .bnd are BEM.
+      - +@isprivate: "0"
+        commentid: "7744"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 11:52:42 +0200
+        thetext: "I made a test script\n\nmanzana> svn commit test_bug1756.m\nAdding         test_bug1756.m\nTransmitting file data .\nCommitted revision 6629.\n\nBut I don't understand the problem. If you want to know that it is a subtype, you ask for the specific subtype. \n\nCan you explain once more what is bugging you?"
+      - +@isprivate: "0"
+        commentid: "7750"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-02 13:49:24 +0200
+        thetext: "There is no problem if vol.type exists. And it does in the bemcp and dipoli created in the test_bug1756.m\n\nBut try \n>> bemcp1=bemcp;\n>> bemcp1=rmfield(bemcp1,'type')\nand then\n>> ft_voltype(bemcp1)\nwill now crash on the 'elseif' line mentioned in initial bug Description, since that line is currently illogical.\n\nDo all 'bem' types have both a .bnd and .mat?  Can that be used as a check if a BEM?\n(I initially stumbled on this bug with a vol that had .bnd field but was not a BEM)."
+      - +@isprivate: "0"
+        commentid: "7751"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-02 13:51:35 +0200
+        thetext: |-
+          Related question: is it ok/intended that in the output of the test function:
+
+          >> size(bemcp.bnd(1).pnt)
+          ans =
+             900     3
+          >> size(bemcp.bnd(2).pnt)
+          ans =
+             600     3
+          >> size(bemcp.bnd(3).pnt)
+          ans =
+             300     3
+
+          and
+
+          >> size(dipoli.bnd(1).pnt)
+          ans =
+             300     3
+          >> size(dipoli.bnd(2).pnt)
+          ans =
+             600     3
+          >> size(dipoli.bnd(3).pnt)
+          ans =
+             900     3
+
+          In other words, the order of the number of points in the bnd is swapped between dipoli and bemcp.
+      - +@isprivate: "0"
+        commentid: "7752"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 14:52:33 +0200
+        thetext: "I just committed the change that I also mentioned to you in person:\n\n if ~isempty(unit)\n   % use the user-specified units for the output\n-  vol.unit = geometry.unit;\n+  vol.unit = unit;\n elseif isfield(geometry, 'unit')\n   % copy the geometrical units into he volume conductor\n-  vol.unit = geometry.unit;\n+  % assume that in case of multiple meshes that they have the same units\n+  vol.unit = geometry(1).unit; \n end\n\n\nSending        forward/ft_headmodel_concentricspheres.m\nTransmitting file data .\nCommitted revision 6631."
+      - +@isprivate: "0"
+        commentid: "7753"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 14:53:30 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          that is allowed if you ask me: dipoli has its own preferred order, whereas ft_prepare_mesh resurns them according to the users request.
+      - +@isprivate: "0"
+        commentid: "7757"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 18:08:42 +0200
+        thetext: |-
+          manzana> svn commit test/test_bug1756.m forward/ft_voltype.m
+          Sending        forward/ft_voltype.m
+          Sending        test/test_bug1756.m
+          Transmitting file data ..
+          Committed revision 6635.
+      - +@isprivate: "0"
+        commentid: "7764"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-03 09:18:55 +0200
+        thetext: "Hi Robert,\nI'm reopening as I don't think your change [&& isfield(vol,'type')] fixed the problem.\n\nIf isfield(vol,'type'), then that is already taken care of on line 85, so this line on 105 will never be reached.\nAlso, 'type' still doesn't exist on line 105; perhaps you meant to change it to && strcmp(vol.type,....)? \n\nBut still my question is: what should be done with a \n1) vol that has no .type and no .mat but does have .bnd?\n2) vol that has no .type but does have both .bnd and .mat?\n(sorry I didn't make this clear in the first description of the bug)."
+      - +@isprivate: "0"
+        commentid: "7766"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 10:05:40 +0200
+        thetext: "(In reply to comment #7)\n\nI indeed misread/misunderstood the code. \n\nSo line 108 should deal with\n- it does not contain a type\n- based on the structure content, what does it look like?\n\nWe could do\nelseif isfield(vol, 'bnd') && isfield(vol, 'mat')\n  type = 'bem'; % it could be dipoli, asa, bemcp or openmeeg\n\nand then change around line 120\n\n  switch desired\n    case 'bem'\n      type = any(strcmp(type, {'dipoli', 'asa', 'bemcp', 'openmeeg'}));\ninto\n      type = any(strcmp(type, {'bem', 'dipoli', 'asa', 'bemcp', 'openmeeg'}));\n\nHowever, not that \n\n>> t_bemcp\nt_bemcp = \n             bnd: [1x3 struct]\n            cond: [0.3300 0.0041 0.3300]\n    skin_surface: 3\n          source: 1\n             mat: [300x1800 double]\n            unit: 'mm'\n             cfg: [1x1 struct]\n\n>> t_dipoli\nt_dipoli = \n     bnd: [1x3 struct]\n    cond: [0.3300 0.0041 0.3300]\n     mat: [1800x1800 double]\n    unit: 'mm'\n     cfg: [1x1 struct]\n\n\nthe structures are different. The respective vol.mat should only be used with the corresponding code in th_compute_leadfield->eeg_leadfieldb. So the bemcp \"mat\" should not be used with the \"openmeeg\" code.\n\nThat means that the bem type should not get lost. If it gets lost, there is a problem that cannot be fixed. The only that can be said after the vol.type got lost is that it is a bem model, but forward computations are impossibile."
+      - +@isprivate: "0"
+        commentid: "7767"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 10:07:05 +0200
+        thetext: "the relevant section in the test code then becomes \n\nassert(ft_voltype(t_bemcp, 'bem'));\nassert(ft_voltype(t_dipoli, 'bem'));\nassert(~ft_voltype(t_singleshell, 'bem'));"
+      - +@isprivate: "0"
+        commentid: "7768"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 10:09:19 +0200
+        thetext: |-
+          (In reply to comment #9)
+
+          manzana> svn commit test/test_bug1756.m forward/ft_voltype.m  forward/ft_compute_leadfield.m
+          Sending        forward/ft_compute_leadfield.m
+          Sending        forward/ft_voltype.m
+          Sending        test/test_bug1756.m
+          Transmitting file data ...
+          Committed revision 6642.
+
+          --------
+
+          Are you satisfied with this solution? If not, drop me a call.
+      - +@isprivate: "0"
+        commentid: "7775"
+        comment_count: "11"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-03 16:42:29 +0200
+        thetext: "I will commit the change we discussed regarding if isfield(vol,'forwpar').\n\nNow however, ft_voltype still cannot solve the artifical situation suggested at the beginning of test_bug937 (which itself had bugs in, but after fixing and simplification, still reduces to):\n\n[pnt, tri] = icosahedron162;\nssvol.bnd(1).pnt = 10*pnt;\nssvol.bnd(1).tri = tri;\nssvol.bnd(2).pnt = 50*pnt;\nssvol.bnd(2).tri = tri;\nssvol.bnd(3).pnt = 60*pnt;\nssvol.bnd(3).tri = tri;\n\nthen ft_voltype(ssvol) will give 'unknown'.\n\nBut of course \n\ntcfg=[];\ntcfg.headshape=ssvol.bnd;\nssvolcs=ft_prepare_concentricspheres(tcfg)\n\nresults in ft_voltype(ssvolsc) with correct output 'concentricspheres'.\n\nQuestion:\n1) Should a 'multishell' description exist from ft_voltype to name the 'ssvol'?  This example is a weird hybrid between BEM (3 shells contained within each other) and concentricspheres (except defined by .pnt rather than .r/.o)."
+      - +@isprivate: "0"
+        commentid: "7776"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-03 16:49:57 +0200
+        thetext: |-
+          (In reply to comment #11)
+
+          no, such a multishell should not exist. The ssvol is a structure that contains a struct-array with three meshes. The bnd field is a geometry, but not yet a volume conduction model. For it to become a volume conduction model, more information/data needs to be added, such as tissue conductivities and potentially other numerical parameters.
+      - +@isprivate: "0"
+        commentid: "7790"
+        comment_count: "13"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-04 09:53:45 +0200
+        thetext: "Now committing to ft_voltype and updated the test script here to reflect.  \nsvn commit 6671.\n\nelseif isfield(vol, 'bnd') && isfield(vol, 'forwpar')\n  type = 'singleshell';\n  \nelseif isfield(vol, 'bnd') && numel(vol.bnd)==1\n  type = 'singleshell'; \n  \nI close this bug."
+      - +@isprivate: "0"
+        commentid: "7815"
+        comment_count: "14"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-05 09:04:55 +0200
+        thetext: reopened test_bug1756 fails now.
+      - +@isprivate: "0"
+        commentid: "7817"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-05 10:04:52 +0200
+        thetext: |-
+          (In reply to comment #14)
+
+          ah, this is because I removed the default conductivity values yesterday. What do you think about having default values? For 3-shell bem and 3-sphere they are doable perhaps, because the skin and brain are equal and hence reordering the meshes (inside/outside ot the other way around) does not affect the outcome.
+      - +@isprivate: "0"
+        commentid: "7839"
+        comment_count: "16"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-05 18:15:19 +0200
+        thetext: |-
+          (In reply to comment #15)
+          Yes, I think default conductivity values for 3shell (BEM or concentric spheres, and where the order can safely be reversed) is not a problem/confound, and is in fact welcome for those researchers who forget exactly what those default values from the literature should be.  (e.g. I remember the ratio of 1/80 but not the actual values).
+          I guess then for 4shell that cfg.conductivity should be required so as to ensure the order is correct.  But perhaps a useful error message could be given, suggesting values to be used if the order is 'scalp, skull, csf, brain' for example.
+      - +@isprivate: "0"
+        commentid: "7842"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-07 11:34:33 +0200
+        thetext: "(In reply to comment #16)\n\nWe should check whether the order has the expected consequences in the code. I see a potential problem with the user giving bnd(1) to bnd(4) as input and cond=1x4, but not knowing about the explicit order of the surfaces.\n\nExplicit feedback would be useful, e.g. \ncreated sphere 1 (radius = xxx) with conductivity c1 (innermost, i.e. brain)\ncreated sphere 2 (radius = xxx) with conductivity c2\ncreated sphere 3 (radius = xxx) with conductivity c3\ncreated sphere 4 (radius = xxx) with conductivity c4 (outermost, i.e. scalp)\n\nthis calls for a test script with all possible permutations of the surfaces ...."
+      - +@isprivate: "0"
+        commentid: "7843"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-07 11:37:40 +0200
+        thetext: "(In reply to comment #17)\n\nregarding default values there is now\n\nmbp> grep 'conductivity.*\\[' ft_prepare_*\nft_prepare_bemmodel.m:%   cfg.conductivity   = [Cskin_surface Couter_skull_surface Cinner_skull_surface]\nft_prepare_concentricspheres.m:%   cfg.conductivity  = conductivity values for the model (default = [0.3300 1 0.0042 0.3300])\nft_prepare_concentricspheres.m:%   cfg.conductivity = [0.3300 1 0.0042 0.3300]\nft_prepare_concentricspheres.m:if ~isfield(cfg, 'conductivity'),  cfg.conductivity = [];          end % this should be specified by the user\nft_prepare_headmodel.m:    cfg.conductivity = ft_getopt(cfg, 'conductivity',   []);\nft_prepare_headmodel.m:    cfg.conductivity   = ft_getopt(cfg, 'conductivity',   []);\n\nand\n\nmbp> grep 'conductivity.*\\[' forward/ft_headmodel_*\nforward/ft_headmodel_bemcp.m:    conductivity = [1 1/80 1] * 0.33;\nforward/ft_headmodel_bemcp.m:    conductivity = [1 1/80 1 1] * 0.33;    \nforward/ft_headmodel_dipoli.m:    conductivity = [1 1/80 1] * 0.33;\nforward/ft_headmodel_dipoli.m:    conductivity = [1 1/80 1 1] * 0.33;    \nforward/ft_headmodel_fns.m:%   conductivity     = matrix C [9XN tissue types]\nforward/ft_headmodel_openmeeg.m:    conductivity = [1 1/80 1] * 0.33;\nforward/ft_headmodel_openmeeg.m:    conductivity = [1 1/80 1 1] * 0.33;    \n\nwhich is clearly not consistent with the desired behavior."
+      - +@isprivate: "0"
+        commentid: "7940"
+        comment_count: "19"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 14:04:12 +0200
+        thetext: "Hi Robert,\nI'm working now on the updates to ft_prepare_headmodel (bug 1745), and in the case of concentric spheres, if the user gives 3 boundaries but no conductivity values, then as we discussed previously, it should be ok to assume default values of conductivity = [1 1/80 1] * 0.33;   \nWhere should this default be placed?  Within the top of ft_headmodel_concentricspheres.m, or in the higher function ft_prepare_headmodel that calls it?"
+      - +@isprivate: "0"
+        commentid: "7955"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-20 08:39:16 +0200
+        thetext: "(In reply to comment #19)\n\nI suggest to put it in ft_headmodel_concentricspheres, and in the respective BEM versions. \n\nIn those functions the rationale can be explained (with one sentence of comments). And in the high-level function it would have be be conditional on a variety of characteristics, whereas in the low-level function it is much easier to check that numel(conductivity) is consistent with the number of compartments. \n\nE.g. for concentric spheres set teh default at line 29 and then around line 90\n\nif numel(conductivity)~=length(vol.r)\n  give an error\nend"
+      - +@isprivate: "0"
+        commentid: "7998"
+        comment_count: "21"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-26 11:15:53 +0200
+        thetext: "Hi Robert,\nI'm working on this change now (defaults for 3 boundaries) but have noticed another thing: an inconsistency in naming of the conductivity subfield name in the vol: concentricspheres uses vol.c but the BEM use vol.cond.  (Old versions of concentricspheres used vol.cond but this was changed at some point).\nThe low-level code (ft_compute_leadfield or eeg_leadfieldb.m) know the correct name for a given method, thus it runs correctly, but \n1) should we make it consistent over all methods?  (I vote yes.)\n2) If yes, which should it be? .c or .cond?  (I actually like .cond better as it's more descriptive, but .c is more consistent with the short .r and .o subfields)."
+      - +@isprivate: "0"
+        commentid: "12250"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-05 09:43:57 +0100
+        thetext: |-
+          (In reply to comment #21)
+
+          I believe that all voltype detection issues are resolved. That leaves this thread with a one request, which is to use vol.cond instead of vol.cI agree that it is better for consistency.
+
+          I have changed vol.c into vol.cond. I have also fixed a minor bug in ft_datatype_headmodel (it had strcmp, whereas it should be isfield) and added '2013' as the latest version. If all goes well, the user specified cfg.vol.c is now automatically upgraded to cfg.vol.cond.
+
+          I tried to find all code that uses it (including test code) and updated it.
+
+          mac001> svn commit
+          Sending        forward/ft_compute_leadfield.m
+          Sending        forward/ft_headmodel_concentricspheres.m
+          Sending        forward/ft_headmodel_singlesphere.m
+          Sending        forward/private/eeg_leadfield1.m
+          Sending        forward/private/eeg_leadfield4.m
+          Sending        forward/private/eeg_leadfield4_prepare.m
+          Sending        ft_prepare_concentricspheres.m
+          Sending        test/test_bug1042.m
+          Sending        test/test_bug1988.m
+          Sending        test/test_bug2148.m
+          Sending        utilities/ft_datatype_headmodel.m
+          Transmitting file data ...........
+          Committed revision 8963.
+      - +@isprivate: "0"
+        commentid: "12938"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:34 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.

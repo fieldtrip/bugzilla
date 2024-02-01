@@ -1,0 +1,154 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "719"
+    creation_ts: 2011-05-31 18:44:00 +0200
+    short_desc: MEGrealign misplaces sensor
+    delta_ts: 2011-07-13 14:22:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jstout211
+      +@name: Jeff Stout
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2253"
+        comment_count: "0"
+        attachid: "61"
+        who:
+          +content: jstout211
+          +@name: Jeff Stout
+        bug_when: 2011-05-31 18:44:00 +0200
+        thetext: "Created attachment 61\nMEG sensors with misplaced channel A229 after using megrealign\n\nThis error is twofold, but I think that they are independent.  I am using fieldtrip 20110507 with a 248 channel magnetometer Magnes 3600.\n\nISSUE1:  I had to modify one line on the ft_megrealign command for the command to run.  On line 245 of ft_megrealign, the code calls ft_prepare_sourcemodel with one input - tmpcfg.  \n\ntmpcfg.vol  = volold;\n[grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg);\n\nIn line 132 of ft_prepare_sourcemodel, the command requires nargin to be greater than 1 in order to select basedonvol.  Since the input has the volume as a part of the tempcfg file, nargin=1, so basedonvol is not set equal to 1, so it causes an error.\n\nif ~any([basedonauto basedongrid basedonpos basedonshape basedonmri basedoncortex]) && nargin>1 && ~isempty(cfg.vol)\n  % fall back to default behaviour, which is to create a surface grid (e.g. used in MEGRELIGN)\n  basedonvol = 1;\nend\n\nI changed line 245 of ft_megrealign to be [grid, tmpcfg] = ft_prepare_sourcemodel(tmpcfg,volold) and the code will run.\n\n\nISSUE2:  I have a preprocessed dataset with channels A6 and A246 removed. I am trying to use ft_megrealign to interpolate the channel information.  After performing megrealign, channel A229 is located about 10 cm above the top of the sensor (see attached). In the dataset A229 has not been labelled as a bad channel, nor any of its neighboring channels. The location of A229 is significant in that it is the most inferior/anterior channel on the left side.\n\n\ntemp = ft_read_sens(subjectdata.FA_dataset);\ntemp.pnt = temp.pnt*100;\ntemp.unit  = 'cm';\n\ncfg = [];\ncfg.inwardshift = 1;\ncfg.vol=vol;\ncfg.template{1}= temp;\ncfg.channel={'MEG'};\ncon.grad.pnt = con.grad.pnt*100;\ncon.grad.unit = 'cm';\ncon = ft_megrealign(cfg, con)\n\n--- output ---\n.....\ncomputing surface normals\nmean distance towards template gradiometers is 0.00 cm\ncreating dipole grid based on inward-shifted brain surface from volume conductor model\nWarning: the normals of the surface triangulation are inward oriented \n> In fieldtrip-20110507/private/headsurface at 211\n  In ft_prepare_sourcemodel at 492\n  In ft_megrealign at 245\n642 dipoles inside, 0 dipoles outside brain\ncomputing forward model for 642 dipoles\npruning 122 from 246, i.e. removing the 122 smallest spatial components\ncomputing interpolation matrix #1\ncomputing interpolation matrix #2\ncomputing interpolation matrix #3\npruning 124 from 248, i.e. removing the 124 smallest spatial components\nrealigning trial 1\noriginal -> template             RV 14.42 %\noriginal             -> original RV 14.42 %\noriginal -> template -> original RV 14.44 % ...................."
+      - +@isprivate: "0"
+        commentid: "2255"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-31 19:48:04 +0200
+        thetext: '*** Bug 716 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "2256"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-31 19:53:56 +0200
+        thetext: |-
+          Dear Jeff,
+
+          Thanks for the detective work.
+          I would have a preference for changing the last && in line 132 into a ||, and adding the appropriate brackets. This can leave the higher level code (i.e. ft_megrealign) unchanged. Would you agree?
+          Rather than having  ... && nargin>1 && ~isempty(cfg.vol), make it ... && (nargin>1 || ~isempty(cfg.vol))
+
+
+          Now I think of it: in line 88 the vol (in case nargin>1) is already added to the cfg, so I guess that the conditional nargin>1 can disappear altogether. Even better.
+      - +@isprivate: "0"
+        commentid: "2257"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-31 20:19:25 +0200
+        thetext: The evil happens in ft_prepare_vol_sens, line 135. In short, this line assumes that the sens.tra is an 'unbalanced' one, i.e. each row only containing either a single 1 (and for the rest 0's), for a magnetometer channel, or 2 1's (for a gradiometer channel). When the sens.tra contains additional weights, e.g. with digital weights applied for the bti system, this line will produce bogus results.
+      - +@isprivate: "0"
+        commentid: "2258"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-31 20:42:37 +0200
+        thetext: I take back my previous statement. There's no evil going in the line I reported. This should be perfectly normal behavior.
+      - +@isprivate: "0"
+        commentid: "2259"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-05-31 21:25:03 +0200
+        thetext: I think the second problem is a plotting issue. Something goes wrong in ft_apply_montage (called by channelposition), when the montage is unbalanced in order to get the channel positions.
+      - +@isprivate: "0"
+        commentid: "2265"
+        comment_count: "6"
+        who:
+          +content: jstout211
+          +@name: Jeff Stout
+        bug_when: 2011-06-01 17:17:08 +0200
+        thetext: "(In reply to comment #5)\n> I think the second problem is a plotting issue. Something goes wrong in\n> ft_apply_montage (called by channelposition), when the montage is unbalanced in\n> order to get the channel positions.\n\nHi Jan-Mathijs,\n\nI agree with you that it is not a position error, but there is still something odd happening.  During megplanar (shown at bottom), an extra channel appears in the dataset.  Below is my test for locations on adjacent sensors (A229 and A230)in a pre-realign (con) and post-realign (con2) \n\ncon.label(sel)\nans = \n    'A230'\n    'A229'\n>> con2.label(sel)\nans = \n    'A230'\n    'A229'\n>> con.grad.pnt(sel,:)\nans =\n    0.0312    0.0984   -0.0382  *********These are in 'm' *********\n    0.0522    0.0960   -0.0364\n>> con2.grad.pnt(sel,:)\nans =\n    3.1182    9.8428   -3.8175  **********These are in 'cm' ***********\n    5.2243    9.5982   -3.6447\n\nThe locations are equivalent except for the position scaling that I implemented and the adjacent channels stay adjacent.\n\nWhen I perform a megplanar calculation on the realigned dataset, an odd thing happens.\ncon2 is a megrealigned dataset with appropriate number of channels.\ncon2 = \n         label: {248x1 cell}\n          grad: [1x1 struct]\n         trial: {1x112 cell}\n       fsample: 678.1700\n          time: {1x112 cell}\n           cfg: [1x1 struct]\n    sampleinfo: [112x2 double]\n\n---cfg.method='sincos' and cfg.neighbourdist=4;\n\ntest=ft_megplanar(cfg,con2)\nthe input is raw data with 248 channels and 112 trials\nundoing the Supine balancing\nminimum distance between gradiometers is   1.85 cm\nmaximum distance between gradiometers is  29.74 cm\naverage number of neighbours is 7.887097\nprocessing trials\nprocessing trial 1 from 112\nprocessing trial 2 from 112 ..............\n\ntest = \n         label: {497x1 cell}\n          grad: [1x1 struct]\n         trial: {1x112 cell}\n       fsample: 678.1700\n          time: {1x112 cell}\n           cfg: [1x1 struct]\n    sampleinfo: [112x2 double]\n\nNo errors are thrown, but an additional channel is produced. 248*2=496, test has 497 channels.  The extra channel is A229.\n\n   'A229_dH'\n    'A229_dV'\n    'A229'\n\n\nAlso, I have emailed you back responding to your email on the email discussion list, but it was sent back to my spam folder twice.  Not sure if this has happened to others. \n\nThanks for you help\n-Jeff Stout"
+      - +@isprivate: "0"
+        commentid: "2268"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-02 10:25:36 +0200
+        thetext: |-
+          -Just to clarify: when applying ft_megrealign to the pre-aligned set, does it work correctly?
+          -@bounced e-mails: I did not get any. Be sure that your outgoing e-mail address is exactly the same as the one with which you are known by the list
+          -Could you also check the following -> it should be possible to realign to a planar gradient sensor array in one step using ft_megrealign (rather than  going first through megrealign and then through megplanar). I never tried it myself, but the idea would be to provide as a cfg.template gradiometer-array, a structure which has been created by the function megplanar_sincos (which is in fieldtrip/private).
+      - +@isprivate: "0"
+        commentid: "2276"
+        comment_count: "8"
+        who:
+          +content: jstout211
+          +@name: Jeff Stout
+        bug_when: 2011-06-02 17:27:18 +0200
+        thetext: "(In reply to comment #7)\n\nI am not entirely sure that this is what you are asking:  If I perform ft_megrealign on a dataset, it completes without error, but it does give a warning about the normals of the surface triangulation are inward shifted.\n\nIf I perform megrealign on that realigned dataset, it will complete without error.  The residual variance is very low for each trial, like .05%.  I checked the locations of sensors for both realigned datasets and they are the same.\n\nI will try to realign the planar data later today.\n\n\n\n\n> -Just to clarify: when applying ft_megrealign to the pre-aligned set, does it\n> work correctly?\n> -@bounced e-mails: I did not get any. Be sure that your outgoing e-mail address\n> is exactly the same as the one with which you are known by the list\n> -Could you also check the following -> it should be possible to realign to a\n> planar gradient sensor array in one step using ft_megrealign (rather than \n> going first through megrealign and then through megplanar). I never tried it\n> myself, but the idea would be to provide as a cfg.template gradiometer-array, a\n> structure which has been created by the function megplanar_sincos (which is in\n> fieldtrip/private)."
+      - +@isprivate: "0"
+        commentid: "2534"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-07-06 22:01:51 +0200
+        thetext: |-
+          Hi Jeff,
+
+          I think I fixed the issue of the misplaced sensor after applying megplanar to a dataset containing only 246 channels. It is now committed to the svn-repository and can be checked out from googlecode, or it will be available on the public release on our ftp-server as of tonight (European time).
+
+          Could you at some point check whether it also works for you, and if so close this bug?
+
+          Thanks, and sorry for the delayed fix.
+
+          JM
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "61"
+      date: 2011-05-31 18:44:00 +0200
+      delta_ts: 2011-05-31 18:44:00 +0200
+      desc: MEG sensors with misplaced channel A229 after using megrealign
+      filename: AfterMegRealign.jpg
+      type: image/jpeg
+      size: "22533"
+      attacher:
+        +content: jstout211
+        +@name: Jeff Stout
+      data: REMOVED

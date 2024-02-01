@@ -1,0 +1,382 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1315"
+    creation_ts: 2012-02-08 10:43:00 +0100
+    short_desc: '*something* in convert2raw or raw2timelock or timelock2raw ruins time-axis'
+    delta_ts: 2014-01-29 13:28:44 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - johanna.zumer
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5200"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 10:43:17 +0100
+        thetext: "Found by Ana:\n\n>> erf_planar\n\nerf_planar = \n\n          time: [1x1800 double]\n         label: {548x1 cell}\n          grad: [1x1 struct]\n     trialinfo: [148x5 double]\n           cfg: [1x1 struct]\n         trial: [148x548x1801 double]\n    sampleinfo: [148x2 double]\n        dimord: 'rpt_chan_time'\n\n\nI got her data and will try to figure out why .time has different dimension that the last dim of .trial"
+      - +@isprivate: "0"
+        commentid: "5204"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-02-08 10:51:09 +0100
+        thetext: is it related to bug 498?
+      - +@isprivate: "0"
+        commentid: "5206"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 12:49:53 +0100
+        thetext: |-
+          A little bit, yes. The problem is caused by ft_checkdata, line 1711, where the sampling frequency is estimated using:
+              data.fsample = 1/(data.time{seln}(2)-data.time{seln}(1));
+
+          As Roemer earlier said, the sampling frequency could be better approximated by mean(diff(data.time{seln})), which seems to be numerical more precise.
+
+
+          However, due to the double conversion when calling ft_megplanar and ft_combineplanar with timelock data (actually it's two times timnelock2raw and raw2timelock), the numerical accuracy get's reduced even more, and after ft_combineplanar, fsample is not 1200 but:
+
+          K>> fprintf('%.16f\n', data.fsample)
+          1199.9999999999745000
+
+
+           - hacky solution: round fsample to using the last, say, 8 digits
+
+           - work intense solution: re-add fsample
+
+          more to be discussed in 11 minutes
+      - +@isprivate: "0"
+        commentid: "5207"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 12:53:18 +0100
+        thetext: |-
+          oh, just to add to this:
+
+          ft_checkdata is calling raw2timelock and reconstructs the time-axis in line 1658:
+
+            tmptime  = min(begtime):(1/data.fsample):max(endtime);
+
+          try yourself at home:
+          -0.5:1/1200:1 gives 1801 points
+          -0.5:1/1199.9999999999745000:1 gives 1800 points
+
+          adding to more nines solves the problem, btw ^^
+      - +@isprivate: "0"
+        commentid: "5224"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 15:58:41 +0100
+        thetext: "spike2raw actually uses fsample, but requires fsample as an extra input:\n\n% SPIKE2RAW converts a point representation SPIKE\n% structure to a continuous representation DATA structure.\n%\n% Use as\n%   [data] = ft_spike2raw(spike,fsample)\n%\n% Inputs:\n%   Data is a standard RAW structure. \n%\n%   fsample is the sampling rate for the continuous representation in RAW\n\n\nI think it should be made consistent, or should I not care about this?"
+      - +@isprivate: "0"
+        commentid: "5225"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 15:59:18 +0100
+        thetext: Hi JM, please see my previous question
+      - +@isprivate: "0"
+        commentid: "5228"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-08 16:38:05 +0100
+        thetext: hmmm, perhaps leave this as is for the time being. I am not familiar with the spike datatype, and I always thought that this one is a tricky one and may not be forced into a fieldtrip straightjacket.
+      - +@isprivate: "0"
+        commentid: "5229"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-08 16:59:04 +0100
+        thetext: "I try to be short and concise, but this is a lot of info:\n\n\nThe old way of defining time-axis was by computing begin- and endsample:\n  begsmp   = round((begtime - min(begtime)) * data.fsample) + 1;\n  endsmp   = round((endtime - min(begtime)) * data.fsample) + 1;\n\nWithout .fsample, this is not possible. Instead, we need to rely on the time-axis of the data, solely. Due to possible rounding error on the time-axis, I came up with this, for computing a common time-axis:\n\n  tmptime = unique(round(10^9*cell2mat(data.time)));  \n\nThis rounds to up to 9 digits. The individual time-axis can then be recreated by doing similar:\n\n  % concatenate all trials\n  tmptrial = zeros(ntrial, nchan, length(tmptime)) + nan;\n  \n  for i=1:ntrial\n    begsmp = find(round(10^9*data.time{i}(1)) == tmptime);\n    endsmp = find(round(10^9*data.time{i}(end)) == tmptime);\n    tmptrial(i,:,begsmp:endsmp) = data.trial{i};\n  end\n\n\nGood?\n\nAll isequal matching suffer from numerical inaccuracies, so I think we need some kind of rounding as proposed here."
+      - +@isprivate: "0"
+        commentid: "5230"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-09 09:18:49 +0100
+        thetext: "In the whole numerical accuracy discussion that pops up now and then, a function which is always mentioned in the end is nearest (which is a private function). Although the rounding may solve it for the time being, there is no guarantee that in the future someone will sample at the < nanosecond scale, and then using 10^e breaks down. \nRegarding nearest: it returns the index to the entry in an array, that is closest to the specified value. I think a principled solution would be to use nearest, to determine the offset, i.e.\n\nfor i = 1:numtrl\n  ix(i) = nearest(data.time{i}, 0); % number of samples pre-zero\n  iy(i) = numel(data.time{i}) - ix(i); % number of samples post-zero (FIXME give or take 1 sample, not thought through yet)\nend\n\n  % now we need to sort out what is to be done when all(ix==1) or all(iy==1), meaning that the 0 time point occurs outside all time axes\n\n  % but if the above issue is ironed out, we can determine the required length of the time axis as:\n\n[mx,ix2] = max(ix);\n[my,iy2] = max(iy);\nnsmp = mx+my; %FIXME again give or take 1 sample,\n\nand tlck.time = nsmp.*(-mx:my)./(data.time{iy2}(my)-data.time{ix2}(mx));\n\n\nBottom line: could we use the nearest function to determine begsmp and endsmp?"
+      - +@isprivate: "0"
+        commentid: "5231"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-09 10:12:15 +0100
+        thetext: yep, I also thought about this - I'm gonna this and compare the two different approaches (and prefer the latter if both work out equally well)
+      - +@isprivate: "0"
+        commentid: "5234"
+        comment_count: "10"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-09 15:35:39 +0100
+        thetext: "I am not sure how nearest is implemented, but I guess it substracts the scalar from the vector and takes the minimum, right? I wondered a bit that it works with inf, but since it does, that should do it:\n\n  for i = 1:ntrial\n    ix(i) = nearest(data.time{i}, -inf); % most negative sample\n    iy(i) = nearest(data.time{i}, inf); % most positive\n  end\n  \n  [mx,ix2] = min(ix); %most negative sample\n  [my,iy2] = max(iy); %most positive sample\n  nsmp = mx+my-1; \n  % prob:\n  tmptime = linspace(data.time{ix2}(mx), data.time{iy2}(my), nsmp);\n\n\nThen we don't have to think about how to account for zeros outside the interval.\n\nUsing 'nearest' we can also solve finding the corresponding beg- and endsamples:\n\n% concatenate all trials\n  tmptrial = zeros(ntrial, nchan, length(tmptime)) + nan;\n  \n  for i=1:ntrial\n    begsmp(i) = nearest(tmptime, data.time{i}(1));\n    endsmp(i) = nearest(tmptime, data.time{i}(end));\n    tmptrial(i,:,begsmp(i):endsmp(i)) = data.trial{i};\n  end  \n\n\nAdditionally, I'm gonna make a testscript."
+      - +@isprivate: "0"
+        commentid: "5242"
+        comment_count: "11"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 09:05:44 +0100
+        thetext: |-
+          190 $ svn ci utilities/ft_checkdata.m -m "bugfix-#1315- fsample is deprecated and not needed anymore when transforming from and to raw data"
+          Sending        utilities/ft_checkdata.m
+          Transmitting file data .
+          Committed revision 5265.
+
+
+          192 $ svn add test_bug1315.mat test_bug1315.m test_ft_checkdata.m
+          A  (bin)  test_bug1315.mat
+          A         test_bug1315.m
+          A         test_ft_checkdata.m
+          jorhor@mentat312:~/FieldTrip/trunk/test
+          193 $ svn ci -m "added testscript and -data for bug1315 and a more general testscript for ft_checkdata - over&out"
+          Adding         test/test_bug1315.m
+          Adding  (bin)  test/test_bug1315.mat
+          Adding         test/test_ft_checkdata.m
+          Transmitting file data ...
+          Committed revision 5267.
+      - +@isprivate: "0"
+        commentid: "5243"
+        comment_count: "12"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 09:55:58 +0100
+        thetext: |-
+          ah, damn it... the whole thing breaks with pretty strange time-axis like:
+          data.time{1} = [-2, -1]
+          data.time{2} = [3, 4]
+
+
+          Unfortunately, I see no way to solve this without computing some kind of fsample...
+      - +@isprivate: "0"
+        commentid: "5244"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-10 09:59:49 +0100
+        thetext: I was afraid indeed that this would happen. Should we consider enforcing the time axes to have some minimal overlap?
+      - +@isprivate: "0"
+        commentid: "5247"
+        comment_count: "14"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 11:33:08 +0100
+        thetext: How to? And does it make sense for all analysis?
+      - +@isprivate: "0"
+        commentid: "5248"
+        comment_count: "15"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-10 11:43:10 +0100
+        thetext: "I guess this is not really a good option. \nCould we think of enhancing the functionality of nearest() so that it optionally outputs index values that are outside the scope of the input vector? (i.e. negative numbers, or numbers>numel(inputvector)?"
+      - +@isprivate: "0"
+        commentid: "5249"
+        comment_count: "16"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 12:04:17 +0100
+        thetext: |-
+          you mean some function that 'interpolates' up/down to 0 (or whatever scalar) and returning the theoretical distance in samples?
+          I think this should be different from 'nearest', but could be done. In essence, it would also need to estimate sampling frequency somehow
+      - +@isprivate: "0"
+        commentid: "5250"
+        comment_count: "17"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 12:04:36 +0100
+        thetext: uh, extrapolate I mean
+      - +@isprivate: "0"
+        commentid: "5252"
+        comment_count: "18"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 13:59:02 +0100
+        thetext: "okay, this is a bit hacky, but on the one hand the best I could come up with the last two hours and on the other hand I couldn't find a way to break it:\n\n  begtime = cellfun(@min,data.time);\n  endtime = cellfun(@max,data.time);\n  \n  for i = 1:ntrial\n    mint    = min(eps, begtime(i));\n    maxt    = max(eps, endtime(i));\n    time = data.time{i};\n    % extrapolate so that we get near 0\n    time =  interp1(time, time, mint:mean(diff(time)):maxt, 'linear', 'extrap');\n    ix(i) = sum(time<0); % number of samples pre-zero\n    iy(i) = sum(time>=0); % number of samples post-zer\n  end\n\n\nrest see above. Further, I extended the test-scrpt\nis that FieldTrip appropriate? (I'm comitting this anyway for now, since it is more stable than the current version)\n\nWhile working on this, I also found something other odd, so there might (again) be slight numerical issues:\n  x = -1.5:0.22:3;\n  y = linspace(min(x), max(x), numel(x));\n  sum(x==y) / numel(x)\n   ans =\n    0.5714\n\nMatlab rocks ;)"
+      - +@isprivate: "0"
+        commentid: "5254"
+        comment_count: "19"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-10 15:46:17 +0100
+        thetext: |-
+          funny things indeed. I guess this is a good fix, albeit hacky ;-). Does the interpolation affect the outcome if 0 is contained within the time axis? (I guess not).
+
+          Which test script are you referring to?
+      - +@isprivate: "0"
+        commentid: "5255"
+        comment_count: "20"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 16:15:39 +0100
+        thetext: |-
+          I made test_ft_checkdata.
+
+          Things that are tested:
+          % make some raw data with unequal time-axis, including 0 implicitly
+          data.time{1} = [-2 -1];
+          data.time{2} = [3 4];
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          % make some raw data with unequal time-axis, excluding 0
+
+          data.time{1} = [-1.5 -1.28];
+          data.time{2} = [2.68 2.9];
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          % make some raw data with unequal time-axis, including 0
+          data.time{1} = -.5:.25:1;
+          data.time{2} = -.25:.25:.25;
+          data.time{3} = .25:.25:1;
+          data.time{4} = -.5:.25:-.25;
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          %% shift time axis to be strictly positive
+          for i=1:numel(data.time)
+            data.time{i} = data.time{i} + 0.6;
+          end
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          %% shift time axis to be strictly negative
+          for i=1:numel(data.time)
+            data.time{i} = data.time{i} - .6 - 1.1;
+          end
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          %% make time-axis incredibly small
+
+          for i=1:numel(data.time)
+            data.time{i} = (data.time{i}) ./ (10^-12);
+          end
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+          %% make time-axis awesomly huge
+          for i=1:numel(data.time)
+            data.time{i} = data.time{i} .* (10^12);
+          end
+          tmp = ft_checkdata(data, 'datatype', 'timelock');
+
+
+          I think this should cover all basic things that might go wrong
+      - +@isprivate: "0"
+        commentid: "5256"
+        comment_count: "21"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-10 16:16:51 +0100
+        thetext: oh, and there is test_bug1315 with Ana's data now
+      - +@isprivate: "0"
+        commentid: "5269"
+        comment_count: "22"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-02-13 14:08:18 +0100
+        thetext: no complaints so far, so I assume it's running smoothly
+      - +@isprivate: "0"
+        commentid: "5270"
+        comment_count: "23"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-02-13 14:08:46 +0100
+        thetext: hurrah
+      - +@isprivate: "0"
+        commentid: "7219"
+        comment_count: "24"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:12 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)
+      - +@isprivate: "0"
+        commentid: "7939"
+        comment_count: "25"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-10-19 13:21:54 +0200
+        thetext: test_bug1315 crashes.  error occurs in call to ft_checkdata.
+      - +@isprivate: "0"
+        commentid: "7942"
+        comment_count: "26"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-10-19 14:44:23 +0200
+        thetext: |-
+          Afair, JM encountered this one in the bug bings. The reason is that megplanar adds channellabels not present in the data but in the grad. ft_senstype then determines the sensor type based on the relative number of the channel labels (>80%). If combineplanar is called with a subset <20%, then >80% of 'wrong' channel labels are added.
+
+          So, the first question to ask is whether megplanar should add channel labels of not present channels?
+          that's line 284 in ft_megplanar:
+            interp  = ft_apply_montage(data, planarmontage, 'keepunused', 'yes', 'feedback', cfg.feedback);
+      - +@isprivate: "0"
+        commentid: "8451"
+        comment_count: "27"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2012-11-28 14:24:31 +0100
+        thetext: see bug 1858 for the 'new' issue of incorrectly identifying planar gradient data
+      - +@isprivate: "0"
+        commentid: "12689"
+        comment_count: "28"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-01-29 13:28:44 +0100
+        thetext: changing lots of bugs from resolved to closed.

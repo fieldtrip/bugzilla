@@ -1,0 +1,126 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1336"
+    creation_ts: 2012-02-21 17:04:00 +0100
+    short_desc: StopOnError=false does not work with exceeded walltime errors
+    delta_ts: 2014-07-15 17:25:10 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marcel.zwiers
+      +@name: Marcel Zwiers
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5321"
+        comment_count: "0"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2012-02-21 17:04:30 +0100
+        thetext: "qsubcellfun(@pause, {0,240,0}, 'timreq',1,'memreq',1024^2, 'StopOnError',false, 'Stack',1)\nsubmitting job marzwi_mentat304_p19124_b22_j001... qstat job id 390837.dccn-l014.dccn.nl\nsubmitting job marzwi_mentat304_p19124_b22_j002... qstat job id 390838.dccn-l014.dccn.nl\nsubmitting job marzwi_mentat304_p19124_b22_j003... qstat job id 390839.dccn-l014.dccn.nl\njob marzwi_mentat304_p19124_b22_j003 returned, it required 0 seconds and 5.3 MB\njob marzwi_mentat304_p19124_b22_j001 returned, it required 0 seconds and 4.8 MB\n\n=>> PBS: job killed: walltime 188 exceeded limit 181\n\nWarning: cleaning up all scheduled and running jobs, don't worry if you see warnings from \"qdel\" \n> In qsublist at 111\n  In qsubcellfun>cleanupfun at 429\n  In onCleanup>onCleanup.delete at 61\nqdel: Request invalid for state of job MSG=invalid state for job - COMPLETE 390838.dccn-l014.dccn.nl\nqdel 390838.dccn-l014.dccn.nl: Signal 42\n??? Error using ==> qsubget at 75\nthe batch queue system returned an error for job marzwi_mentat304_p19124_b22_j002, now aborting\n\nError in ==> qsubcellfun at 321\n    [argout, options] = qsubget(jobid{collect}, 'output', 'cell', 'diary', diary,\n    'StopOnError', StopOnError);"
+      - +@isprivate: "0"
+        commentid: "5373"
+        comment_count: "1"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2012-02-28 21:07:27 +0100
+        thetext: |-
+          I think that embedding the while (~all(collected)) .. end block (line 315-343 in qsubcellfun) in a try-catch statement, such as:
+
+          try
+             while (~all(collected))
+                ..
+             end
+          catch Exception
+             if ~StopOnError
+                rethrow Exception
+             else
+                % Notify the user and let qsubcellfun finish normally with the already collected output only
+             end
+          end
+
+          would be a quick solution that would take away the main problem that all the already collected results are discarded after unexpected matlab-crashes / walltime errors. This could be an intermediate easy patch that would make qsubcellfun behave much more as expected when setting StopOnError=false (though I also see it is not the ultimate/ideal solution because it does stop -- just not with an error).
+      - +@isprivate: "0"
+        commentid: "5374"
+        comment_count: "2"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2012-02-28 21:11:58 +0100
+        thetext: Ahum, the ~ in the if ~StopOnError statement should of course not be there :-)
+      - +@isprivate: "0"
+        commentid: "5376"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-28 23:11:52 +0100
+        thetext: "StopOnError is functionality implemented in qsubget, not qsubcellfun. The error should be dealt with in qsubget in a similar fashion as the errors that are caught by the remote matlab. \n\nMy idea is that the queue error (which is detected in the \"master\") is representded as error just like the error that is sent along by the remote matlab. The following section from line 154 onward in qsubget\n\n    if StopOnError\n      if ischar(err)\n        error(err);\n      else\n        rethrow(err);\n      end\n    else\n      warning('error during remote execution: %s', errmsg);\n    end\n  end % ~isempty(err)\n\ncan then stay the same. The section to be changed is from line 70 onward, which states\n\n  % the STDERR output log file should be empty, otherwise it indicates an error\n  tmp = dir(logerr);\n  if ~isempty(tmp) && tmp.bytes>0\n    % show the error that was printed on STDERR\n    type(fullfile(curPwd, tmp.name));\n    error('the batch queue system returned an error for job %s, now aborting', jobid);\n  end\n\nInstead of trowing the error at that location, it should result in \n\n  err         = ft_getopt(options, 'lasterr');\n  diarystring = ft_getopt(options, 'diary');\n\non line 108 and 109 to represent the oXXX and eXXX file contents in the err and diarystring."
+      - +@isprivate: "0"
+        commentid: "13362"
+        comment_count: "4"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2014-04-16 16:33:17 +0200
+        thetext: I'm reviving this report as it would be a great feature to have (as discussed with Robert).
+      - +@isprivate: "0"
+        commentid: "13652"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 23:13:05 +0200
+        thetext: |-
+          I have implemented consistent parsing of MATLAB and torque errors. This allows custom error handling in case torque jobs get killed. I tested it with this
+
+          a = qsubcellfun(@myexit, {1, 0, 0}, 'memreq', 1e8, 'timreq', 300, 'StopOnError', 0)
+
+          where myexit is a function that will exit MATLAB if the input is 1 and will continue if the input is 0.
+
+          I also tested some other cases. I have not yet tested walltime/mem violations, but those should behave similarly as the test above.
+
+
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubget.m
+          Sending        qsub/qsublist.m
+          Transmitting file data ...
+          Committed revision 9531.
+
+          @Marcel, please test and reopen if it does not work as expected.
+      - +@isprivate: "0"
+        commentid: "14131"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:10 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.

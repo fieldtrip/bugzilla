@@ -1,0 +1,181 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2968"
+    creation_ts: 2015-09-25 12:01:00 +0200
+    short_desc: document the interpolation of an atlas onto a MNI-coregistered source model grid
+    delta_ts: 2016-10-24 17:13:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: documentation
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    blocked:
+      - "2967"
+      - "3190"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: hanneke.p.van.dijk
+      +@name: Hanneke van Dijk
+    cc:
+      - j.schoffelen
+      - tzvetan.popov
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16135"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-25 12:01:57 +0200
+        thetext: "There are  two ways, using ft_sourceinterpolate and using ft_volumelookup.\n\nIn case of ft_sourceinterpolate, it is relevant to interpolate the binary (0/1) volumes and not the indexed ones. See ft_datatype_segmentation.\n\nTODO, starting with Subject01.mri, align with MNI, get atlas from somewhere (e.g. fieldtrip/template/atlas) and implement the two approaches in a test script. The test script is the basis for a (short) tutorial, that can be linked to the existing tutorials (c.f. the MEG head model tutorial).\n \n\nAlong the way in writing the text script, I expect that we will encounter some issues that need to be resolved in the FT code itself."
+      - +@isprivate: "0"
+        commentid: "16146"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-28 13:44:52 +0200
+        thetext: jan-mathijs just mentioned that interpmethod=nearest should do the trick
+      - +@isprivate: "0"
+        commentid: "16147"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-28 13:52:43 +0200
+        thetext: we should also get the freesurfer representation of Subject0x (with x=1,2,3,4)
+      - +@isprivate: "0"
+        commentid: "16148"
+        comment_count: "3"
+        attachid: "741"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2015-09-28 15:06:57 +0200
+        thetext: |-
+          Created attachment 741
+          AAL interpolated on T1.nii normalized mri
+      - +@isprivate: "0"
+        commentid: "16149"
+        comment_count: "4"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2015-09-28 15:18:30 +0200
+        thetext: "I somehow need to avoid the problem of different voxel resolutions/coordinate systems between all needed head models (MRI/Atlas/volume/grid).\n\n* So would this do the trick?\n\ncfg              = []\ncfg.interpmethod = 'nearest';\ncfg.parameter    = 'tissue';\ntemplate_atlas   = ft_sourceinterpolate(cfg,atlas,template_mni_grid);\n\nUp till now I did this and then used the template_atlas' labels to index the gridpoints that belong to a certain ROI and look those up in each individuals' mni normalized grid. Then I would do further analysis on those.\n\n* Or should we do the following? \n1. Interpolate the segmented mri onto the atlas.\n2. Create mni_normalized volume and -grid using this interpolated version.\n3. Interpolate atlas onto grid and use this as to lookup the gridpoints belonging to a ROI.\n\nDid I get this correctly? Not sure if the rationale is correct...\n\n* Would this work for other then MNI coordinate atlasses? \n\n* Not happy with the result of the AAL-atlas interpolated on the template_mni_grid and then interpolated onto the spm template T1.nii MRI see attachment. What is wrong here?"
+      - +@isprivate: "0"
+        commentid: "16150"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-28 15:37:33 +0200
+        thetext: "@attachment: I don't know what I should interpret as 'wrong'. I don't understand the image.\n\n@your recipe 1: \n\nI think conceptually we could get away with this recipe, if all we are after is to anatomically label the grid points using a not-subject-specific atlas:\n\n- interpolate the atlas (after ensuring that it has the same coordsys as the template MRI onto a 'grid', i.e. use one of the templates that are in fieldtrip/template/sourcemodel, or come up with one of your own.\n- use the labeled template grid as the template for ft_prepare_sourcemodel using the volumetric normalization. As long as the template that is used for the normalization is the same as the template that has been used for the atlas interpolation it is pretty correct. In the ideal case ft_prepare_sourcemodel nicely passes on the segmentation information to the single-subject warped grids (probably not), but that can be easily resolved. Otherwise, since the subject-specific grid positions are equivalent to the template grid positions in normalized space, the anatomical labeling of the template applies one-to-one to the subject-specific grids as well.\n- the story will be different once you want to use a subject-specific anatomical labeling, e.g. one that has been derived from freesurfer\n\nThe next question then is, what to do with the anatomical labels. You could indeed use them as simple lookup information to classify the grid points, as it seems that you have been using it, or alternatively incorporate this information to post-hoc 'parcellate' the source-level data, or even more fancily, compute parcel-based spatial filters."
+      - +@isprivate: "0"
+        commentid: "16154"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-09-28 18:44:50 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #5)
+
+          regarding "wrong" and the image that Hanneke attached: in the indexed representation (i.e. using 1,2,3...N) there is also a 0, which on the banks of the gyri seems to be closest to the vertices of the mesh. Or possibly the "inside/outside" field is messing things up.
+
+          But I feel that at this moment we are mixing various (related) topics: coordinate systems, data representations (3-D grid or surface) and the atlas interpolation. I suggest we deal with one at a time.
+
+          It would be good to have a better way of sharing (small) files. Let me invite both of you to a shared dropbox folder where we can share some scripts and small mat files for discussion.
+      - +@isprivate: "0"
+        commentid: "16213"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-10-19 18:09:09 +0200
+        thetext: "Tzvetan pointed me this one out.\n\nhttp://www.fieldtriptoolbox.org/faq/how_can_i_map_source_locations_between_two_different_representations\n\nIt uses interpmethod=nearest, so would technically work fine. And it works with an MNI grid, so in principle this bug can be closed. \n\nBut the documentation needs to be structured differently. It is now so scattered that we don't even know ourselves what is where."
+      - +@isprivate: "0"
+        commentid: "16278"
+        comment_count: "8"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2015-11-03 12:59:58 +0100
+        thetext: |-
+          General question:
+
+          I think that keeping the data in virtual channels (albeit at arbitrary positions) could have some added value when compared with a mean -or one of the other options- over virtual channels by means of sourceparcellation. Does this also fly with you guys? Would it be sensible to also keep this option open? Or is spatial smearing such a problem that it doesn't make sense, or maybe only from a thresholded distance between the channels, which would then at some point be the same as parcellations....
+
+          Looking forward to hearing your ideas about this!
+      - +@isprivate: "0"
+        commentid: "16280"
+        comment_count: "9"
+        who:
+          +content: hanneke.p.van.dijk
+          +@name: Hanneke van Dijk
+        bug_when: 2015-11-03 13:08:00 +0100
+        thetext: Another point, as was pointed out to me by Tzvetan, 'my' virtual channels don't necessarily appear symmetric over both hemispheres. Now I don't expect the brain to be symmetric, but is this a problem in your eyes?
+      - +@isprivate: "0"
+        commentid: "16281"
+        comment_count: "10"
+        who:
+          +content: tzvetan.popov
+          +@name: Tzvetan Popov
+        bug_when: 2015-11-04 11:47:45 +0100
+        thetext: |-
+          (In reply to Hanneke van Dijk from comment #8)
+          Yes I agree it has some additive or actually real value since some of the parcels are quite big. Yet the reconstructed sources can be sometimes very focal. It depends I think on the research question too. If this pertains to the as accurate as possible source location then smearing over dipole locations isn't appropriate. However if the time course of activity representing a cortical parcel is desired then it could be a way to go. I'm actually writing up a tutorial for Salzburg where this is illustrated in more detail. It starts right from the beginning with warped and atlas based grid etc. I let you know when ready.
+      - +@isprivate: "0"
+        commentid: "16282"
+        comment_count: "11"
+        who:
+          +content: tzvetan.popov
+          +@name: Tzvetan Popov
+        bug_when: 2015-11-04 11:50:31 +0100
+        thetext: |-
+          (In reply to Hanneke van Dijk from comment #9)
+          Afaik no. In fact the right hemisphere is more anterior with respect to the left such that asymmetry is actually rather likely. I don't recall the particular context of my comment though :-), sorry if it was misleading.
+      - +@isprivate: "0"
+        commentid: "16283"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-11-04 12:37:53 +0100
+        thetext: "(In reply to Hanneke van Dijk from comment #8 and #9)\n\nThe goal is to make documentation. There are multiple ways of ding it, and in some cases some might be better than others. However, that does not mean that we should only mention some, rather we should motivate and therefore contrast the methods against each other. \n\nSo I propose to write it like\n\nmethod 1: ...\nmethod 2: ...\n\nand then in method 2 mention that the reason for this being more appropriate (or not) than method 1."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "741"
+      date: 2015-09-28 15:06:00 +0200
+      delta_ts: 2015-09-28 15:06:57 +0200
+      desc: AAL interpolated on T1.nii normalized mri
+      filename: sourcemodel.png
+      type: image/png
+      size: "170072"
+      attacher:
+        +content: hanneke.p.van.dijk
+        +@name: Hanneke van Dijk
+      data: REMOVED

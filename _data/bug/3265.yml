@@ -1,0 +1,114 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3265"
+    creation_ts: 2017-03-09 17:18:00 +0100
+    short_desc: support FT buffer on win64
+    delta_ts: 2017-05-19 14:47:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: realtime
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - ayour.elamri
+      - jorn
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18474"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-09 17:18:32 +0100
+        thetext: "Right now the build scripts for the realtime components are only for win32, not for win64. \n\nWe should upgrade the development environment for windows and make sure that both win32 and win64 work. \n\nThis probably involves https://mingw-w64.org, as we have previously worked with http://mingw.org.\n\nFor mex files we have these guidelines http://www.fieldtriptoolbox.org/development/guidelines/code?s[]=win64#compiling_mex_files\n\nFor the realtime stuff there is also this documentation http://www.fieldtriptoolbox.org/development/realtime/reference_implementation\n\nI think the main difficulty is with pthreads support. I recall (from 8 years back) that there was some confusion as to the http://sourceware.org/pthreads-win32/ support for win64. A quick google just now did not resolve that confusion. \n\nI suggest we just get working on it, one step at a time. Important to know are: \n- what is the exact OS platform. \n- what is the toolchain (GNU make, MSVC IDE)\n- what is the compiler\n- what are the crucial libraries\n\nThe latter parts are relevant to know which dlls need to be redistributed to have an executable run on another (clean, not development) computer."
+      - +@isprivate: "0"
+        commentid: "18491"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-12 10:14:54 +0100
+        thetext: |-
+          I got myself a windows laptop (windows 10, 64 bit) and installed mingw-w64 both in the 32 bit and 64 bit version. Subsequently I started recompiling libbuffer, and the test applications.
+
+          Especially the platform.h and the compiler.h needed updates. I made a separate branch at https://github.com/robertoostenveld/fieldtrip/tree/bug3265-win64
+
+          It now compiles, but I still need to look into the dependencies.
+      - +@isprivate: "0"
+        commentid: "18492"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-12 10:51:45 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #1)
+
+          The executables did run, but only in the corresponding (32 or 64 bit) mingw-w64 environment. Dependencywalker showed a dependency on libwinpthread-1.dll. That dll is a different one for either 32/64 bit environments. I would rather not have to redistribute it along, although it could go in the realtime/bin/win32 and realtime/bin/win64 folder.
+
+          The solution described at http://stackoverflow.com/questions/13768515/how-to-do-static-linking-of-libwinpthread-1-dll-in-mingw to link them statically works, and now the execulables (both 32 and 64 bit) work when double-clicking from the windows explorer, i.e. outside of the mingw-w64 environment. Dependencywalker shows no dependency on the pthread dll any more.
+      - +@isprivate: "0"
+        commentid: "18493"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-12 19:04:33 +0100
+        thetext: "I have validated the changes on OSX and made some fixes to the Makefiles and headers. \n\nThe code is on\nhttps://github.com/robertoostenveld/fieldtrip/tree/bug3265-win64\n\nStill to do are to update the Makefiles in src/utilities (except for buffer, which is ready) and in src/acquisition.\n\nThe documentation on the wiki at http://www.fieldtriptoolbox.org/development/realtime/reference_implementation should also be updated."
+      - +@isprivate: "0"
+        commentid: "18507"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-22 11:06:16 +0100
+        thetext: "I have been cross-validating, making sure that the build process works on osx 32/64, linux 32/64 on intel, linux on ARM, windows 32/64 with mingw. \n\nI still have to complete the build process for windows 32/64 using cygwin. There is now also a 64 bit version of cygwin (did not exist when we wrote the initial code). The 32 and 64 bit version co-exist without problems on my temporary Windows10 64-bit laptop. Updating the cygwin build process for the buffer (src, cpp and test) posed no big problems. I'll continue with updating the Makefiles to deal with cygwin also for the utilities and for the acquisition software (i.e. the xxx2ft.exe applications). \n\nThe changes can be followed on https://github.com/robertoostenveld/fieldtrip/commits/bug3265-win64\n\nI expect to merge them in the master in a few days (i.e. few evenings)."
+      - +@isprivate: "0"
+        commentid: "18511"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-23 22:51:13 +0100
+        thetext: see https://github.com/fieldtrip/fieldtrip/pull/384
+      - +@isprivate: "0"
+        commentid: "18512"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-03-23 22:55:37 +0100
+        thetext: I have merged all changes, further development will entail only small changes and compilation, and can be done on the master branch or on fresh/new feature branches.
+      - +@isprivate: "0"
+        commentid: "18679"
+        comment_count: "7"
+        who:
+          +content: ayour.elamri
+          +@name: el amri
+        bug_when: 2017-05-19 14:47:09 +0200
+        thetext: "Hi,\n\nMy name is EL AMRI Badrayour. I am working on a project at the Neurosciences of Systems Institute of Marseille.\nI am using the Fieldtrip toolbox to make a neurofeedback system.\nI have encountered some problems using the buffer with the lab computer (windows 7 x64 on MATLAB R2017a).\nThe system wasn't working due to a mex crash.\nI have found the problem and if it can help you in your work. You need to upgrade the TCP/UDP/IP toolbox mex files to Use 64-Bit API. \nThere is no way I can share my changes here but there is the link explaining how to do it.\nhttps://fr.mathworks.com/help/matlab/matlab_external/upgrading-mex-files-to-use-64-bit-api.html"

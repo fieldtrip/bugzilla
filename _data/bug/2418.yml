@@ -1,0 +1,240 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2418"
+    creation_ts: 2013-12-10 14:25:00 +0100
+    short_desc: ft_senstype does not return neuromag306alt
+    delta_ts: 2014-02-24 10:56:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: gianpaolo.demarchi
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12299"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 14:25:10 +0100
+        thetext: |-
+          On 9 Dec 2013, at 19:59, Raghavan Gopalakrishnan wrote:
+
+          There seems to be a bug in ft_senstype.
+          Even if my data.label has names without spaces, it always returns 'neuromag306', instead of 'neuromag306alt'. Because of that line 103 and 104 in ft_combineplanar returns empty matrices.
+
+          Thanks,
+          Raghavan
+      - +@isprivate: "0"
+        commentid: "12300"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 15:05:37 +0100
+        thetext: |-
+          it can be reproduced with
+
+          lab = ft_senslabel('neuromag306alt')
+          lab = lab(:);
+          ft_senstype(lab)
+
+          which returns "neuromag306".
+      - +@isprivate: "0"
+        commentid: "12301"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-12-10 15:32:42 +0100
+        thetext: "I made a test script that checks ft_senstype versus ft_senslabel. The neuromag306alt not being detected was due to a simple type. It also applied to neuromag122. \n\nI also fixed yokogawa9, and made some changes to eeg1005, eeg1010, eeg1020 and ext1020.\n\nmac001> svn commit \nSending        forward/ft_senslabel.m\nSending        forward/ft_senstype.m\nAdding         test/test_bug2418.m\nTransmitting file data ...\nCommitted revision 9009."
+      - +@isprivate: "0"
+        commentid: "12405"
+        comment_count: "3"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2014-01-03 15:28:47 +0100
+        thetext: "Hi, \ndespite running your example returns correctly now 'neuromag306alt', when I apply to my data (see attachment), I get wrong results (I've labels without spaces, i.e. 'alt').\nNamely,\n\n>> ft_senstype(testdata.label)\n\nans =\n\nneuromag306alt\n\n*but*\n\n>> ft_senstype(testdata)\n\nans =\n\nneuromag306\n\nand in ft_combineplanar you pass the data, not the label ...\nSorry for reopening a bug, I should have noticed it before replying to the mailing list though ...\nBest,\nGP"
+      - +@isprivate: "0"
+        commentid: "12406"
+        comment_count: "4"
+        attachid: "578"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2014-01-03 15:37:33 +0100
+        thetext: |-
+          Created attachment 578
+          Some data to show the weird behavior of ft_senstype
+
+          Shortened version of testdata, still shows the same ft_senstype behavior
+      - +@isprivate: "0"
+        commentid: "12418"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-07 10:57:51 +0100
+        thetext: |-
+          (In reply to Gianpaolo Demarchi from comment #4)
+
+          thanks for the test data. I can confirm your report with
+
+          >> ft_senstype(testdata_short)
+          ans =
+          neuromag306
+
+          >> ft_senstype(testdata_short.label)
+          ans =
+          neuromag306alt
+
+          >> ft_senstype(testdata_short.grad)
+          ans =
+          neuromag306
+
+          >> ft_senstype(testdata_short.grad.label)
+          ans =
+          neuromag306alt
+
+          Case 1 and 3 are explained by testdata_short.grad having the type specified as neuromag306 (that was added incorrectly when it was created by you with the previous incorrect FT version).
+
+          If I do
+
+          >> testdata_short.grad = rmfield(testdata_short.grad, 'type');
+
+          then
+
+          >> ft_senstype(testdata_short)
+          ans =
+          neuromag306alt
+
+          >> ft_senstype(testdata_short.label)
+          ans =
+          neuromag306alt
+
+          >> ft_senstype(testdata_short.grad)
+          ans =
+          neuromag306alt
+
+          >> ft_senstype(testdata_short.grad.label)
+          ans =
+          neuromag306alt
+
+          all types are correct. So the error is in the data structure (because FT was wrong when the data structure was made) and not in the present code any more.
+      - +@isprivate: "0"
+        commentid: "12419"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-07 11:04:21 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #5)
+
+          I added this section to the test script.
+
+          mac001> svn commit test_bug2418.m
+          Sending        test_bug2418.m
+          Transmitting file data .
+          Committed revision 9073.
+      - +@isprivate: "0"
+        commentid: "12421"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-07 17:53:30 +0100
+        thetext: I am presently processing a neuromag dataset and am running into the same inconsistency. So the present FT code apparently still is not internally consistent.
+      - +@isprivate: "0"
+        commentid: "12422"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-07 18:07:56 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #7)
+
+          ohh... this neuromag306 versus neuromag306alt is a mess. Why do we have the two types in the code? I can understand that we need it for the template files (layout and neighbours), but the code would be much cleaner without it.
+      - +@isprivate: "0"
+        commentid: "12424"
+        comment_count: "9"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2014-01-07 23:03:07 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #8)\n\nHi Robert,\nI didn't have the time to tinker with that stuff today, but as you said it's still weird. Namely, with a fresh fif file&fieldtrip:\n\nhdr = ft_read_header('19880122_CISN_131128_DHNETWORK_R01.fif')\n\n>> hdr.grad.label\n\nans = \n\n    'MEG0113'\n    'MEG0112'\n...\n\n\nso far so good, but\n\n>> ft_senstype(hdr)\n\nans =\n\nneuromag306\n\nmmmh .. this should be 'alt'\n\n>> ft_senstype(hdr.grad)\n\nans =\n\nneuromag306\n\n\nagain ...\n\n\n>> ft_senstype(hdr.grad.label)\n\nans =\n\nneuromag306alt\n\n\nThis is finally right ...\n\nThe question is from where the hell are we, uselessly, inheriting the two different styles ... Is it from the MNE toolbox?\n\n>> Mhdr= fiff_read_meas_info('19880122_CISN_131128_DHNETWORK_R01.fif');\n\n>> Mhdr.ch_names\n\nans = \n\n  Columns 1 through 6\n\n    'MEG0113'    'MEG0112'    'MEG0111'    'MEG0122'    'MEG0123'    'MEG0121'\n\netc ...\n\n \n>> Mhdr.chs(1,1).ch_name\n\nans =\n\nMEG0113\n\nCan't we just strip the spaces out, if found in the fiff file info (old filetype?!), and keep only one version, imho the one without spaces?!\nI know it's an arbitrary choice, and the good place to do it could be already when opening the file with ft_read_header, but with ft we/you take arbitrary choices everyday anyway ... What's the real need of having the two versions, even if present in the fiff pipeline, since also the combined channels are the same, spaces apart ... ?!"
+      - +@isprivate: "0"
+        commentid: "12426"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 09:01:56 +0100
+        thetext: "(In reply to Gianpaolo Demarchi from comment #9)\n\nfileio/private/mne2grad has at the end\n\n% determine the type of acquisition system\nif nAxGrad>0\n  grad.type = 'babysquid74';\nelseif nPlaGrad>122 && nMag~=0\n  grad.type = 'neuromag306';\nelseif nPlaGrad<=122 && nMag==0\n  grad.type = 'neuromag122';\nelse\n  % do not specify type of acquisition system\nend\n\nwhich I added in revision 7435 (not too long ago).\n\nSo irrespective of channel labels, there is the field \"type=neuromag306\". Subsequently, if FT looks at the grad, it sees type=neuromag306. If FT looks at only the labels, it decides it is neuromag306alt.\n\nThroughout the code I don't see any important use of neuromag306alt, it is only there to allow the channel list from ft_senslabel to have the space or not. I think that there should only be one type, and that it should work with or without spaces. \n\nNote about stripping the spaces: the spaces are there (or not) in the fif file. Some neuromag systems have been configured to have spaces, some do not have spaces. FT should not change the channel names, so stripping the spaces is not a good idea. But FT should simply not care whether there is a space or not."
+      - +@isprivate: "0"
+        commentid: "12448"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-08 17:18:18 +0100
+        thetext: "I made some changes, it should now consistently be without the alt. Even if type=neuromag306alt is present in the data, it will be identified as neuromag306. \n\n\nmac001> svn commit forward/ test/\nSending        forward/ft_senslabel.m\nSending        forward/ft_senstype.m\nSending        test/test_bug2418.m\nTransmitting file data ...\nCommitted revision 9083."
+      - +@isprivate: "0"
+        commentid: "12462"
+        comment_count: "12"
+        who:
+          +content: gianpaolo.demarchi
+          +@name: Gianpaolo Demarchi
+        bug_when: 2014-01-09 22:38:20 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #11)\n\n\nGreat! \nTested and works flawlessly now!\nSorry for the late reply, uni email was kaputt ...\nThanks again,\nG."
+      - +@isprivate: "0"
+        commentid: "12929"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:31 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "578"
+      date: 2014-01-03 15:37:00 +0100
+      delta_ts: 2014-01-03 15:37:33 +0100
+      desc: Some data to show the weird behavior of ft_senstype
+      filename: testdata_short.mat
+      type: application/x-matlab-workspace
+      size: "158152"
+      attacher:
+        +content: gianpaolo.demarchi
+        +@name: Gianpaolo Demarchi
+      data: REMOVED

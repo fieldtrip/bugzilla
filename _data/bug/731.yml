@@ -1,0 +1,281 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "731"
+    creation_ts: 2011-06-06 12:27:00 +0200
+    short_desc: read digital trigger on neuromag system
+    delta_ts: 2012-07-07 20:25:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: siptha65
+      +@name: Ralph Huonker
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - alexandre.gramfort
+      - b.reuderink
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2312"
+        comment_count: "0"
+        attachid: "65"
+        who:
+          +content: siptha65
+          +@name: Ralph Huonker
+        bug_when: 2011-06-06 12:27:41 +0200
+        thetext: "Created attachment 65\nmy patched version of the read_trigger function\n\nDear all,\n\nwe encountered a problem with reading the triggers coming from the neuromag (Vectorview 306) system.\nThe (digital) trigger is a 16 bit (unsigned) trigger, but it is read as int16. That turns all values >=2^15 into negative values and, thus, it detects the rear slope (which is the positive slope) and takes the value after the jump as trigger value, which is not correct.\nThe detection of the negative slope \"ft_read_event(filename,'detectflank','down')\" does not work either as it \"remembers\" the value before the jump, which is incorrect (in this case), too.\n\nI propose to fix the int16 vs. uint16 problem in the private function read_trigger, but for digital channels only. I found the following variables known to the read_trigger function useful:\n\"dataformat\" that seems to be either \"neuromag_fif\" or \"neuromag_mne\"\nand\n\"fixneuromag\" (that is set to 1 for analogue trigger channels) to avoid patching the analogue values of these trigger line.\n\nI propose to insert something like (e.g. before \"if fixneuromag\" (after line 123)):\n\n> % to fix the uint16 problem if value >= 2^15              % added RH\n> if strncmpi(dataformat,'neuromag',8) && ~fixneuromag      % added RH\n>     dattmp = typecast(int16(dat),'uint16');               % added RH\n>     dat = double(dattmp);                                 % added RH\n> end                                                       % added RH\n\nYou might feel it would be better to introduce another variable to mark this case. This would preserve the convention. But this yields the necessity to change all functions that call the read_trigger function. \n\nPlease \"fix\" the read_trigger function to correctly read the unsigned 16bit trigger values of the digital trigger channels.\n\nI append my changed function (from the fieldtrip-20110602 release).\n\nIf you wish, I can send a test file. The test file contains 306 MEG-channels (empty room), STI009 .. STI016 (which are interpreted as analogue trigger channels and have values 0 for Low and 5 for High) and the channels STI101 (which is the digital (composite) trigger) and the channels STI201 and STI301.\nSTI101 contains 7 different triggers (1024  16384  32512  32768  33792  49152  65280). The trigger occur every second, beginning from sample 4001. This sequence is repeated 5 times.\n\nIf you have questions don't hesitate asking me.\n\nBest regards\nRalph"
+      - +@isprivate: "0"
+        commentid: "4062"
+        comment_count: "1"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-11-17 10:46:44 +0100
+        thetext: |-
+          Changed the status of bugs without a specific owner to UNCONFIRMED. I'll try to replicate these bugs (potentially involving the submitter), and change confirmed bugs to NEW.
+
+          Boris
+      - +@isprivate: "0"
+        commentid: "4779"
+        comment_count: "2"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2012-01-12 15:12:34 +0100
+        thetext: Seems like a clear bug report. Changed status to new (not much to confirm).
+      - +@isprivate: "0"
+        commentid: "4964"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-01-27 08:36:02 +0100
+        thetext: assigned bug to get all bugs lined up before the grand bug binge
+      - +@isprivate: "0"
+        commentid: "5621"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-21 15:36:59 +0100
+        thetext: "Hi Ralph, \nSorry to not have addressed this issue for so long; we would like to follow up on this. Could you please upload a small text file that we can use for testing? We then can incorporate your proposed patch into the release version of fieldtrip.\n\nBest,\n\nJan-Mathijs"
+      - +@isprivate: "0"
+        commentid: "5644"
+        comment_count: "5"
+        attachid: "239"
+        who:
+          +content: siptha65
+          +@name: Ralph Huonker
+        bug_when: 2012-03-22 10:18:07 +0100
+        thetext: "Created attachment 239\ntestfile to confirm the bug (as requested)\n\nnewly made testfile:\nThe test file contains 306 MEG-channels (empty room), STI009 .. STI016 (which are interpreted as analogue trigger channels and have values 0 for Low and 5 for High) and the channels STI101 (which is the digital (composite) trigger) and the channels STI201 and STI301.\nSTI101 contains 7 different triggers (1024  16384  32512  32768  33792  49152 \n65280). The trigger occur every second, beginning from sample 4360. This\nsequence is repeated 5 times."
+      - +@isprivate: "0"
+        commentid: "5661"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-25 20:28:15 +0200
+        thetext: |-
+          Thanks, we'll look into it.
+
+          JM
+      - +@isprivate: "0"
+        commentid: "5664"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-26 12:13:54 +0200
+        thetext: "Hi guys (adding Alexandre to CC list of this bug),\n\nRalph, thanks for the patch, it looks sensible, but ideally I'd like to solve this at the lowest level possible, i.e. the reading functions themselves (hence the inclusion of Alexandre). \n\nApparently, in the example data provided by Ralph, the fiff_read_tag function treats the data as signed integer (because the function is told to do so by the data file, it seems). Is this a general issue, or just present on the machine that Ralph records data from?It seems to me that a patch can be constructed that will not cause problems when the input data was actually correct, probably in if statement like\n\nif any(dat)>2^16\n  % skip\nelse\n  % patch\nend\n\nbut I would like to have Alex' opinion on this."
+      - +@isprivate: "0"
+        commentid: "5668"
+        comment_count: "8"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2012-03-26 14:44:09 +0200
+        thetext: |-
+          indeed it really seems like a bug and it should be fixed at the lowest level.
+
+          I'd be happy to fix the problem upstream [1]
+
+          I suggest you send me a patch or send me a fif file with a test script that shows the problem so I can test locally.
+
+          Alex
+
+          [1] https://github.com/mne-tools/mne-matlab
+      - +@isprivate: "0"
+        commentid: "5669"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-26 14:45:06 +0200
+        thetext: |-
+          Hi Alex,
+
+          Great! for a patch and some test data, see the attachments to this bug.
+
+          Cheers,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "5673"
+        comment_count: "10"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2012-03-27 09:11:00 +0200
+        thetext: |-
+          I did a check yesterday and my conclusion is that it's more a problem when writting the fif file. How did you write it?
+
+          why :
+
+          when you do with MNE:
+
+          mne_show_fiff --in ft_test2_raw.fif --tag 300 --verbose
+
+          you get:
+
+          ? 300 = data buffer       	317000 ints
+           300 = data buffer       	317000 ints
+           300 = data buffer       	317000 ints
+           300 = data buffer       	317000 ints
+           300 = data buffer       	317000 ints
+          ...
+
+          so the data buffers are stored as integers according to the fif tag header.
+
+          And the mne-matlab toolbox can read uint32 buffers :
+
+          https://github.com/mne-tools/mne-matlab/blob/master/matlab/fiff_read_tag.m#L250
+
+          let me know what else I can do to help
+
+          Alex
+      - +@isprivate: "0"
+        commentid: "5674"
+        comment_count: "11"
+        who:
+          +content: siptha65
+          +@name: Ralph Huonker
+        bug_when: 2012-03-27 10:00:01 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          Hello Alex,
+
+          in our case, the fiff-file is written by the Neuromag system software itself, either by the data acquisition software (DANA rel. 3) or the maxfilter software provided by Elekta-Neuromag. There are no settings to change. Thus, it would be very helpful to have the read function handling this issue.
+
+          Best regards
+          Ralph
+      - +@isprivate: "0"
+        commentid: "5675"
+        comment_count: "12"
+        who:
+          +content: alexandre.gramfort
+          +@name: Alexandre Gramfort
+        bug_when: 2012-03-27 10:43:12 +0200
+        thetext: |-
+          if it's a file provided by neuromag then the bug should be reported to them and fixed on their side as if I modify the mne-matlab code I will break other things.
+          I tend to think that the hot fix should be in fieldtrip only for now.
+
+          Jan-Mathijs are you ok with this?
+
+          Alex
+      - +@isprivate: "0"
+        commentid: "5682"
+        comment_count: "13"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-27 12:11:12 +0200
+        thetext: 'Yes, I agree: I''ll build it in.'
+      - +@isprivate: "0"
+        commentid: "5806"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-04-05 09:59:17 +0200
+        thetext: |-
+          Hi guys,
+
+          Sorry for my slow action on this, I am about to commit the change to the code. Could you confirm for me that a digital trigger channel should never have a value < 0? In this case I could build in a check that if a <0 value is detected the data are typecasted.
+
+          Cheers,
+
+          JM
+      - +@isprivate: "0"
+        commentid: "5807"
+        comment_count: "15"
+        who:
+          +content: siptha65
+          +@name: Ralph Huonker
+        bug_when: 2012-04-05 10:36:44 +0200
+        thetext: |-
+          (In reply to comment #14)
+
+          Yes, you are right. We expect trigger values between 0 and 0xFFFF in the digital channel.
+      - +@isprivate: "0"
+        commentid: "5808"
+        comment_count: "16"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-04-05 10:49:58 +0200
+        thetext: committed into fieldtrip release with svn revision 5596
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "65"
+        date: 2011-06-06 12:27:00 +0200
+        delta_ts: 2011-06-06 12:27:41 +0200
+        desc: my patched version of the read_trigger function
+        filename: read_trigger.m
+        type: text/x-objcsrc
+        size: "8122"
+        attacher:
+          +content: siptha65
+          +@name: Ralph Huonker
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "239"
+        date: 2012-03-22 10:18:00 +0100
+        delta_ts: 2012-03-22 10:18:07 +0100
+        desc: testfile to confirm the bug (as requested)
+        filename: ft_test2_raw.fif.tgz
+        type: application/x-compressed-tar
+        size: "29457415"
+        attacher:
+          +content: siptha65
+          +@name: Ralph Huonker
+        data: REMOVED

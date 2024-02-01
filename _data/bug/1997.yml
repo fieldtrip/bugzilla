@@ -1,0 +1,119 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1997"
+    creation_ts: 2013-02-19 20:01:00 +0100
+    short_desc: Java out of memory error
+    delta_ts: 2013-04-23 12:06:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: marcel.zwiers
+      +@name: Marcel Zwiers
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: marcel.zwiers
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9472"
+        comment_count: "0"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2013-02-19 20:01:29 +0100
+        thetext: "It is not really a qsubcellfun bug but maybe a work-around can be created. The following out of memory error occurs when running a lengthy qsubcellfun job from the matlab-desktop:\n\nError using ==> pause\nJava exception occurred: \njava.lang.OutOfMemoryError: Java heap space\n\nError in ==> qsubcellfun at 381\n  pause(0.1);\n\n[...]\n\nInterestingly (and maybe something that can be mentioned in the qsubcellfun-help), this does not happen when the same qsubcellfun job is started from the bash terminal (e.g. when using Matlab's -nodesktop startup option)."
+      - +@isprivate: "0"
+        commentid: "9474"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 08:41:25 +0100
+        thetext: "I have no idea what causes this problem. The qsub functions don't explicitly use java and also work with nojvm. In absence of further clues on the cause, I don't see how it can be fixed. \n\nPerhaps it is a printing-to-desktop problem. The desktop is implemented with java, and qsub prints some progress information occasionally. I suggest you make a local copy of the qsub directory, and therein search and replace fprintf by %fprintf, i.e. disable all printing to screen in all functions. If that solves the java heap error and demonstrates that the issue is related to printing, I will implement a 'feedback' option that can be set to 'no'."
+      - +@isprivate: "0"
+        commentid: "9580"
+        comment_count: "2"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2013-02-28 09:56:04 +0100
+        thetext: |-
+          Now, I have been using R2010b, but it turns out that pause has a known memory leak in R2011b and R2012a (whenever pause is called, the graphics event queue (EDT) is flushed, thereby updating all Matlab figure windows) that is probably the same one I encountered:
+
+          http://undocumentedmatlab.com/blog/pause-for-the-better/
+
+          The advice is to replace pause() with a direct call to the java Thread.sleep() function, e.g. implemented like this:
+
+          function pauseJava(tPauseSec)
+          	th = java.lang.Thread.currentThread();  %Get current Thread
+          	th.sleep(1000*tPauseSec)                %Pause thread, conversion to milliseconds
+      - +@isprivate: "0"
+        commentid: "9584"
+        comment_count: "3"
+        who:
+          +content: marcel.zwiers
+          +@name: Marcel Zwiers
+        bug_when: 2013-02-28 11:27:28 +0100
+        thetext: |-
+          To account for -nojvm cases a usejava switch can be used:
+
+
+          function pauseJava(tPauseSec)
+
+          if usejava('jvm')
+              th = java.lang.Thread.currentThread();  %Get current Thread
+              th.sleep(1000*tPauseSec)                %Pause thread, conversion to milliseconds
+          else
+              pause(tPauseSec)
+          end
+      - +@isprivate: "0"
+        commentid: "9817"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-14 14:40:35 +0100
+        thetext: |-
+          r7665 | roboos | 2013-03-14 14:37:25 +0100 (Thu, 14 Mar 2013) | 2 lines
+
+          enhancement - use pausejava instead of pause to work around a MATLAB memory leak, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=1997. Wait up to 60 seconds for the job input file to arrive, this might help for slow NFS systems.
+
+          deze log message is trouwens niet helemaal correct, ik heb de functie pausejava genoemd, niet javapause.
+      - +@isprivate: "0"
+        commentid: "10222"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:05:55 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10247"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:30 +0200
+        thetext: closed various bugs

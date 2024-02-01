@@ -1,0 +1,108 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3097"
+    creation_ts: 2016-03-16 10:23:00 +0100
+    short_desc: create a figure handle output in ft_plot_dipole
+    delta_ts: 2019-08-10 12:33:06 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    assigned_to:
+      +content: dlozanosoldevilla
+      +@name: Diego Lozano Soldevilla
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17156"
+        comment_count: "0"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-16 10:23:28 +0100
+        thetext: |-
+          ft_plot_dipole doesn't give any output, no figure handle. I want to plot a movie to show how a dipole changes both position and moment as a function of time. The problem consists that without a figure handle, all dipoles appear on the mri (using ft_plot_slice)
+
+          Potential solution:
+          In ft_plot_dipole, within lines 158-159 allow figure handles:
+          h1=ft_plot_mesh(sphere, 'vertexcolor', 'none', 'edgecolor', false, 'facecolor', color);
+          h2=ft_plot_mesh(stick,  'vertexcolor', 'none', 'edgecolor', false, 'facecolor', color);
+
+          Problem:
+          Do you know how to merge two figure handles?
+      - +@isprivate: "0"
+        commentid: "17161"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 12:39:37 +0100
+        thetext: "without giving it a lot of thought, I would initially say that the ft_plot_xxx functions should not output a figure handle. Rather, they might have to output the handle (or handles) of the objects that they create. Those objects will have a parent, which has a parent, ... , which will lead to the axis and finally figure handle.\n\nIf ft_plot_dipole were to output a list of handles of the objects it creates, you could delete them (keeping the rest of the figure intact) and replace them with the dipole a fraction of a second later. \n\nI am just working on bug 3096, where I needed to plot the layout in two different styles (selected versus non-selected channels), and where I had to update the figure without clf or cla. If you look at \n\nhttps://github.com/robertoostenveld/fieldtrip/blob/bug3096/plotting/ft_plot_lay.m\n\nyou will see that it now outputs \"h\" which is a list (vector) of all handles. That includes the symbols/points, boxes, and text. Getting all of those handles organized required the same solution that you seem to be looking for.\n\nfor ft_plot_dipole that would correspond to returning the handles of the sphere and cylinder.\n\nit might be that\nh(1) = ft_plot_mesh(sphere,..)\nh(2) = ft_plot_mesh(cylinder,..)\nwould work, but more robust would be\n\nh1 = ft_plot_mesh(sphere,..)\nh2 = ft_plot_mesh(cylinder,..)\nh = cat(2, h1(:)', h2(:)');\n\nwhere it would also work if either one of the objects were to return multiple handles."
+      - +@isprivate: "0"
+        commentid: "17164"
+        comment_count: "2"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-16 13:54:38 +0100
+        thetext: "(In reply to Robert Oostenveld from comment #1)\nthanks Robert! I didn't know it was as easy as concatenate the handles... I tried copyobj.m and other more complicated stuff. \nYou can find my changes in my github branch\nhttps://github.com/dieloz/fieldtrip/blob/bug3097/plotting/ft_plot_dipole.m\n\nIf you download the example data (https://www.dropbox.com/s/n9z8j9iclprf9yg/dipolet1m.mat?dl=0) and you run the code below you'll see a beautiful dipole that rotates through the parietal cortex several alpha cycles ;)\n\n\nload dipolet1m.mat \nnumcol = size(dipolet1m.dip,2);\ncol1 = winter(numcol)';\ncol2 = hot(numcol)';\n\nfigure;\nft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [0.9381   -5.0290    2], 'orientation', [0 0 1], 'resolution', 0.1);\nft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [0.9381   -5.0290    2], 'orientation', [0 1 0], 'resolution', 0.1);\nft_plot_slice(mris.anatomy, 'transform', mris.transform, 'location',  [5   -5.0290    2], 'orientation', [1 0 0], 'resolution', 0.1);\nview([-27 78]);\naxis tight\naxis off\nfor frame=1:numcol;\n  h1 = ft_plot_dipole(dipolet1m.dip(:,frame).pos, dipolet1m.dip(:,frame).mom,'color',col1(:,frame));\n  axis tight;\n  axis off;\n  pause(0.05);\n  set(h1,'Visible','off');\nend\n\n\nIf you agree with my changes, I ask the pull request"
+      - +@isprivate: "0"
+        commentid: "17165"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 14:11:20 +0100
+        thetext: |-
+          Looks good!
+
+          Please do a PR.
+      - +@isprivate: "0"
+        commentid: "17168"
+        comment_count: "4"
+        who:
+          +content: dlozanosoldevilla
+          +@name: Diego Lozano Soldevilla
+        bug_when: 2016-03-16 15:11:15 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #3)
+          pull request made!
+      - +@isprivate: "0"
+        commentid: "17169"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-03-16 15:37:20 +0100
+        thetext: I just merged https://github.com/fieldtrip/fieldtrip/pull/127
+      - +@isprivate: "0"
+        commentid: "20171"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:06 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

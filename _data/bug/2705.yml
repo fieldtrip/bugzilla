@@ -1,0 +1,109 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2705"
+    creation_ts: 2014-09-25 12:35:00 +0200
+    short_desc: ft_rejectvisual does not keep channels with cfg.keepchannel='yes'
+    delta_ts: 2015-02-11 10:40:25 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.herring
+      +@name: Jim Herring
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - stephen.whitmarsh
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14488"
+        comment_count: "0"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-25 12:35:44 +0200
+        thetext: When ft_rejectvisual is called using cfg.keepchannel = 'yes' and cfg.channel is not 'all', it is supposed to keep all channels but only use those channels that were selected for plotting. Unfortunately, only those channels that were selected are kept and the others removed.
+      - +@isprivate: "0"
+        commentid: "14492"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-25 13:47:32 +0200
+        thetext: "After a discussion with Stephen we agreed that cfg.channel is to indicate which channels are used in the summary view. All channels in the input should be available in the output. \n\nAt this point cfg.keepchannel is used in the code to decide what to do with the channels that are marked as bad. If we wish this option to reflect what to do with channels that are not selected by cfg.channel, then we need to add another function that reflects what to do with marked channels as two decisions need to be made: what to do with unselected input channels and what to do with channels marked as 'bad'."
+      - +@isprivate: "0"
+        commentid: "14505"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-26 13:17:36 +0200
+        thetext: "I've changed the code so that cfg.keepchannel pertains to the input channels. I've added cfg.reject to specify what to do with the channels and trials marked for rejection (keep/remove/fill with nans). I've also updated the documentation. \n\nThe behaviour of the function has not changed if the default configuration options are used. By default, input channels not selected with cfg.channel are not kept. \n\nSending        ft_rejectvisual.m\nTransmitting file data .\nCommitted revision 9845."
+      - +@isprivate: "0"
+        commentid: "14508"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-27 11:33:24 +0200
+        thetext: "I reviewed \n\nhttps://code.google.com/p/fieldtrip/source/diff?spec=svn9845&r=9845&format=side&path=/trunk/ft_rejectvisual.m\n\nbut don't understand why the solution needs to be so difficult and requires another cfg option (cfg.reject). While working on the plane I also had to solve this, and  this was enough\n\nmac011> diff ft_rejectvisual.m.mine ft_rejectvisual.m.r9840\n166,167c166,168\n< orgcfg = cfg;\n< tmpcfg = keepfields(cfg, {'trials'});\n---\n> orgcfg.latency = cfg.latency;\n> tmpcfg = [];\n> tmpcfg = keepfields(cfg, {'trials','channel'});\n171,175c172\n< cfg = copyfields(orgcfg, cfg, {'channel', 'latency'});\n< \n< % restore the original latency, it should not be 'all'\n< % restore the original channel selection, it is dealt with below\n< cfg.channel = orgcfg.channel;\n---\n> cfg.latency = orgcfg.latency;% restore the original latency, it should not be 'all'\n\nThe support was already there, it was just that the call to ft_selectdata made the channels disappear. I guess that ft_selectdata was added without thinking about the consequence here (in this function cfg.channel had a different meaning than in general)\n\nI have reverted to the original and used my solution instead. \n\n\nmac011> svn commit ft_rejectvisual.m \nSending        ft_rejectvisual.m\nTransmitting file data .\nCommitted revision 9847.\n\n\nJim and Stephen: please test whether my code works as you would expect. I looked at the preprocessing tutorial and there did not see cfg.reject being used."
+      - +@isprivate: "0"
+        commentid: "14521"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-09-28 19:43:40 +0200
+        thetext: |-
+          Hi Robert,
+
+          The reason I added cfg.reject is because cfg.keepchannel also decided what would happen with channels that you actually want to remove (line 326 onwards). In your current implementation, if you have cfg.keepchannel ='yes', you cannot remove channels anymore, even if you mark them for rejection in the summary view. This is because input channels that are not selected with cfg.channel are treated as channels that are marked in the summary view. I do not believe this is what we want.
+
+          Naturally I thought it should be possible to keep the input channels that were not specified with cfg.channel and still be able to reject channels. I therefore implemented cfg.reject to deal with the marked channels and have cfg.keepchannel only handle the input channels.
+      - +@isprivate: "0"
+        commentid: "14522"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-09-28 23:19:46 +0200
+        thetext: "as discussed with Stephen on skype:\n\nft_selectdata should be done at th eend of the function, cfg.keeptrials should be added, cfg.trials/cfg.channel and cfg.keeptrials/keepchannels should behave consistently\n \nI will implement this, but only after the natmeg workshop"
+      - +@isprivate: "0"
+        commentid: "14565"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-07 11:13:09 +0200
+        thetext: "this has been addressed in the following commits:\n\nmac011> svn commit private/rejectvisual_*.m ft_rejectvisual.m \nSending        ft_rejectvisual.m\nSending        private/rejectvisual_channel.m\nSending        private/rejectvisual_summary.m\nSending        private/rejectvisual_trial.m\nTransmitting file data ....\nCommitted revision 9879.\n\nmac011> svn commit ft_rejectartifact.m \nSending        ft_rejectartifact.m\nTransmitting file data .\nCommitted revision 9880.\n\nmac011> svn commit ft_rejectvisual.m \nSending        ft_rejectvisual.m\nTransmitting file data .\nCommitted revision 9881."
+      - +@isprivate: "0"
+        commentid: "15232"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:25 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

@@ -1,0 +1,187 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1078"
+    creation_ts: 2011-10-26 15:41:00 +0200
+    short_desc: all functions that use cfg.elec, cfg.elecfile or get it out out of the data should be consistent
+    delta_ts: 2012-08-23 14:02:01 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3725"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-26 15:41:23 +0200
+        thetext: "They should all do something like \n\n% get the gradiometer or electrode definition\nif isfield(cfg, 'gradfile')\n  fprintf('reading gradiometers from file ''%s''\\n', cfg.gradfile);\n  sens = read_sens(cfg.gradfile);\nelseif isfield(cfg, 'grad')\n  fprintf('using gradiometers specified in the configuration\\n');\n  sens = cfg.grad;\nelseif isfield(data, 'grad')\n  fprintf('using gradiometers specified in the data\\n');\n  sens = data.grad;\nelseif isfield(cfg, 'elecfile')\n  fprintf('reading electrodes from file ''%s''\\n', cfg.elecfile);\n  sens = read_sens(cfg.elecfile);\nelseif isfield(cfg, 'elec')\n  fprintf('using electrodes specified in the configuration\\n');\n  sens = cfg.elec;\nelseif isfield(data, 'elec')\n  fprintf('using electrodes specified in the data\\n');\n  sens = data.elec;\nelse\n  error('no electrodes or gradiometers specified');\nend\n\nand they should check for potential confusion of the user in case multiple elecs or grads are available"
+      - +@isprivate: "0"
+        commentid: "3726"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-26 15:44:53 +0200
+        thetext: "I suggest that if there is no confusion, a fprintf is used, and if there is potentially a confusion that a warning is used instead of the fprintf. It is not needed to be specific in the warning.\n\nPerhaps something like this would work\n\nnum = 0;\nnum = num +  isfield(cfg, 'gradfile');\nnum = num +  isfield(cfg, 'elecfile');\n...\n\nand then\n\nif num>1\n  display = @warning\nelse\n  display = @fprintf;\nend\n\nand then use \n\ndisplay('reading gradiometers from file ''%s''\\n', cfg.gradfile);"
+      - +@isprivate: "0"
+        commentid: "3852"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-09 14:53:45 +0100
+        thetext: prepare_headmodel is doing the same - should I put these if-clauses in a new (private) function? That way, we have one central location at which we can implement new changes, and the handling will be consistent across fieldtrip
+      - +@isprivate: "0"
+        commentid: "3857"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-09 17:10:46 +0100
+        thetext: |-
+          (In reply to comment #2)
+          > prepare_headmodel is doing the same - should I put these if-clauses in a new
+          > (private) function? That way, we have one central location at which we can
+          > implement new changes, and the handling will be consistent across fieldtrip
+
+          like a elec = get_electrode(cfg, data)? and similar for grad? Sounds like a plan.
+      - +@isprivate: "0"
+        commentid: "4163"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-22 13:45:36 +0100
+        thetext: |-
+          How about something similar to ft_read_sens just for (cfg, data)? The function would try to retrieve the sens-structure based on if-else, and could then consistently this function to obtain sens in all functions that need one from (cfg, data)?
+
+          Another remark to this bug:
+          ft_channelrepair is doing strange stuff to obtain sens (if iseeg, sens=data.elec, elseif ismeg, sens=data.grad, else error)
+      - +@isprivate: "0"
+        commentid: "4225"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-23 13:45:35 +0100
+        thetext: "(In reply to comment #4)\n\nGood idea to make an ft_fetch_sens, just like ft_fetch_header and ft_fetch_data. It would be slightly different to those two, because ft_fetch_sens can also get it from the cfg, whereas the other two cannot. \n\nNote that this function should not be exposed to regular users."
+      - +@isprivate: "0"
+        commentid: "4405"
+        comment_count: "6"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-12-02 10:50:49 +0100
+        thetext: |-
+          sanity checks:
+
+           - when input data iseeg, only allow elec definitions
+
+           - when input data ismeg, only allow grad definitions
+
+           - when grad and elec are defined in some way simultaneously and it's unclear whether data ismeg or iseeg, throw an error
+
+           - when grads (or elecs) can be defined in various ways, throw a warning
+
+           - when the input contains .pnt or .chanpos, consider that it is already a sens (issens, see ft_prepare_neighbours)
+
+          prioritization:
+
+          grad-/elecfile > cfg > data > layout > issens
+
+
+          function comitted, but not used, yet.
+          Adding         ft_fetch_sens.m
+          Transmitting file data .
+          Committed revision 4889.
+      - +@isprivate: "0"
+        commentid: "4941"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-01-25 12:44:39 +0100
+        thetext: |-
+          I did a similar thing for headmodel, ft_fetch_vol, see bug 1285
+
+          116 $ svn ci -m "bugfix-#1078 #1090- implemented consistent ways to retrieve sens definitions, see ft_fetch_sens"
+          Sending        compat/ft_headmodelplot.m
+          Sending        compat/ft_prepare_bemmodel.m
+          Sending        ft_dipolefitting.m
+          Sending        ft_dipolesimulation.m
+          Sending        ft_electroderealign.m
+          Sending        ft_headmodelplot.m
+          Sending        ft_megplanar.m
+          Sending        ft_megrealign.m
+          Sending        ft_neighbourplot.m
+          Sending        ft_prepare_bemmodel.m
+          Sending        ft_prepare_headmodel.m
+          Sending        ft_prepare_leadfield.m
+          Sending        ft_prepare_neighbours.m
+          Sending        ft_scalpcurrentdensity.m
+          Sending        ft_sensorrealign.m
+          Sending        ft_sourceanalysis.m
+          Sending        private/prepare_headmodel.m
+          Sending        test/test_ft_megplanar.m
+          Sending        utilities/ft_fetch_sens.m
+          Transmitting file data ...................
+          Committed revision 5174.
+      - +@isprivate: "0"
+        commentid: "6654"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-02 22:53:01 +0200
+        thetext: |-
+          I have just updated all high-level fieldtrip function documentation. It had gotten unclear to the users hjow to specify electrode positions, gradiometer definitions and volume conduction models. Rather than explaining the options, the documentation pointed to cfg-parsing-helper functions which are in fieldtrip/private and hence not accessible to the end-user.
+
+          The documentation that is now present for the end-user states
+
+          % The volume conduction model of the head should be specified as
+          %   cfg.vol           = structure with volume conduction model, see FT_PREPARE_HEADMODEL
+          %   cfg.hdmfile       = name of file containing the volume conduction model, see FT_READ_VOL
+
+          and
+
+          % The EEG or MEG sensor positions can be present in the data or can be specified as
+          %   cfg.elec          = structure with electrode positions, see FT_DATATYPE_SENS
+          %   cfg.grad          = structure with gradiometer definition, see FT_DATATYPE_SENS
+          %   cfg.elecfile      = name of file containing the electrode positions, see FT_READ_SENS
+          %   cfg.gradfile      = name of file containing the gradiometer definition, see FT_READ_SENS
+      - +@isprivate: "0"
+        commentid: "7175"
+        comment_count: "9"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:01 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

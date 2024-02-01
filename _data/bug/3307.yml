@@ -1,0 +1,128 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3307"
+    creation_ts: 2017-06-12 14:38:00 +0200
+    short_desc: bitcmp error in read_trigger (Matlab 2014b)
+    delta_ts: 2019-08-10 12:41:59 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: k.dijkstra
+      +@name: Karen Dijkstra
+    assigned_to: fieldtriptoolbox
+    cc:
+      - J.Farquhar
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18720"
+        comment_count: "0"
+        who:
+          +content: k.dijkstra
+          +@name: Karen Dijkstra
+        bug_when: 2017-06-12 14:38:05 +0200
+        thetext: "When attempting to slice biosemi data, there is a call to bitcmp in fieldtrip/fileio/private/read_trigger, line 97, that fails from (at least) Matlab 2014b onwards.\n\nReplacing\n    dat(signbit) = bitcmp(abs(dat(signbit))-1,32);\nwith \n    dat(signbit) = bitcmp(abs(dat(signbit))-1,'uint32');\nsolves the issue for me locally. \n\n\nNote: A similar issue has apparently been solved elsewhere: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2409\n\n\nError trace:\nError using bitcmp\nASSUMEDTYPE must be an integer type name.\nError in read_trigger (line 97)\n  dat(signbit) = bitcmp(abs(dat(signbit))-1,32);\nError in ft_read_event (line 422)\n      event = read_trigger(filename, 'header', hdr, 'dataformat', dataformat,\n      'begsample', flt_minsample, 'endsample', flt_maxsample, 'chanindx', statusindx,\n      'detectflank', 'up', 'trigshift', trigshift, 'fixbiosemi', true);\nError in N400_trialfun (line 5)\nevent = ft_read_event(cfg.dataset);\nError in ft_definetrial (line 178)\n    [trl, event] = feval(cfg.trialfun, cfg);\nError in preprocessing (line 35)\n        cfg = ft_definetrial(cfg);"
+      - +@isprivate: "0"
+        commentid: "18721"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-13 07:43:31 +0200
+        thetext: I am not sure why the current solution in the two pieces of code looks so different, probably because they were implemented by different people at different times. Could you try whether the same code as used in ft_read_event can be applied here?
+      - +@isprivate: "0"
+        commentid: "18725"
+        comment_count: "2"
+        who:
+          +content: k.dijkstra
+          +@name: Karen Dijkstra
+        bug_when: 2017-06-13 14:14:49 +0200
+        thetext: "If I apply the code from ft_read_events, the \n\nline 349 \nsdata = bitand(int32(sdata), 2^24-1);\n\ndoes not give the same result as:\n\nread_trigger line 93-103\nsignbit = find(dat < 0);\n  % change type to double (otherwise bitcmp will fail)\ndat = double(dat);\n  % make number positive and preserve bits 0-22\ndat(signbit) = bitcmp(abs(dat(signbit))-1,'uint32');% bitcmp(abs(dat(signbit))-1,32);\n  % apparently the 24 bits are still shifted by one byte\ndat(signbit) = bitshift(dat(signbit),-8);\n  % re-insert the sign bit on its original location, i.e. bit24\ndat(signbit) = dat(signbit)+(2^(24-1));\n  % typecast the data to ensure that the status channel is represented in 32 bits\ndat = uint32(dat);\n\nAnd therefore the triggers that are computed in line 366 of ft_read_events are then incorrect.\n\n\nThe bitcmp in the else portion of ft_read_events (line 354): \n\nbitcmp(abs(sdata(bit24i))-1,24);\n\nis called with 24, rather than 32 used to call bitcmp in read_trigger line 97, so I suppose this might reflect a difference between biosemi .gdf and .bdf files?"
+      - +@isprivate: "0"
+        commentid: "18729"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-13 18:31:46 +0200
+        thetext: "I don't think that gdf is a biosemi format, it is a generic format. The code that is in ft_read_event is only there to support the specific case that biosemi data (which is 24 bit by default) gets stored in a gdf file. Of those 24 bits, the upper (most significant) bits are used for battery status and such, and not for triggers. Only the lower 16 bits correspond to triggers. \n\nHow many bits do you have in the Status channel in the GDF file?"
+      - +@isprivate: "0"
+        commentid: "18745"
+        comment_count: "4"
+        who:
+          +content: k.dijkstra
+          +@name: Karen Dijkstra
+        bug_when: 2017-06-16 10:50:36 +0200
+        thetext: |-
+          I'm not sure how I would tell.
+
+          For context, I'm in the BCI group at the DCC. We use biosemi hardware and I think in the past experiments used to be saved to .bdf files, but nowadays it's all .gdf.
+
+          I've uploaded a .mat file with the status_channel and correct trigger information for both a .gdf file from my current experiment and a .bdf from an older experiment in our group. For both, it contains the header information, the 'raw' status channel as read by fieldtrip and a trigger channel computed with either the method in read_trigger (for the .gdf; lines 93-110), or ft_read_events (for the .bdf; lines 347-366). This results in the correct triggers for both cases, as far as I can tell.
+
+          You can find it here:
+          https://surfdrive.surf.nl/files/index.php/s/IXMAr3Am4Dc8faB
+
+          I talked to Jason to see if he knows why it is implemented differently for biosemi .gdf files, but it was also not clear to him.
+      - +@isprivate: "0"
+        commentid: "18755"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-19 09:20:18 +0200
+        thetext: "Hi Karen,\n\nI think the DCC is the only one storing Biosemi data in the GDF format. \n\nI suggest you follow the instructions here http://www.fieldtriptoolbox.org/development/git and implement the required changes yourself. You can then send these changes as a \"pull request\".\n\nbest\nRobert"
+      - +@isprivate: "0"
+        commentid: "18769"
+        comment_count: "6"
+        who:
+          +content: k.dijkstra
+          +@name: Karen Dijkstra
+        bug_when: 2017-06-26 11:12:44 +0200
+        thetext: "Thanks Robert, \n\nI've addressed the issue and created a pull-request.\n\nBest, \n\nKaren"
+      - +@isprivate: "0"
+        commentid: "18779"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-06-27 16:34:12 +0200
+        thetext: I merged https://github.com/fieldtrip/fieldtrip/pull/467
+      - +@isprivate: "0"
+        commentid: "20312"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:44 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20512"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:59 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

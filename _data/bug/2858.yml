@@ -1,0 +1,95 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2858"
+    creation_ts: 2015-02-24 19:15:00 +0100
+    short_desc: ft_sourcegrandaverage error due to .pos field
+    delta_ts: 2016-06-14 16:18:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.solisvivanco
+      +@name: Rodolfo
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - r.solisvivanco
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15462"
+        comment_count: "0"
+        who:
+          +content: r.solisvivanco
+          +@name: Rodolfo
+        bug_when: 2015-02-24 19:15:02 +0100
+        thetext: |-
+          Hi everyone,
+
+          I´m trying to do the grand average of two source files, but I receive the following error:
+
+          the input sources vary in the field pos
+
+          I´m pretty sure I assigned the same .pos structure to both files from a template grid, I checked and they are identical. Below is the code, and the link for the cell array with the two source structures and the template grid is here:
+
+          https://www.dropbox.com/sh/3ckvvwommnsznl7/AABHeddj6Nv4hmV0g03RTRI6a?dl=0
+
+          cfg                 = [];
+          cfg.keepindividual  = 'no';
+          for ifq             = 1%:numel(freq)
+             for icontr       = 1%:numel(contrast_name)
+                grandsource   = ft_sourcegrandaverage(cfg,grand{:,ifq,icontr});
+             end
+          end
+
+          Thanks!
+          Rodolfo
+      - +@isprivate: "0"
+        commentid: "15469"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-26 13:24:02 +0100
+        thetext: |-
+          I have downloaded the data to /home/common/matlab/fieldtrip/data/test/bug2858 and can confirm the problem. Inside ft_sourcegrandaverage after ft_checkdata the grid positions somehow seem to have changed from the regular (integer) values to the warped-to-individual slightly irregular values. The latter are (of course) different between the subjects.
+
+          But it remains a mystery sofa where and why the conversions happens.
+      - +@isprivate: "0"
+        commentid: "15470"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-26 13:42:55 +0100
+        thetext: "ah, found it.\n\nIf I do\n\nload grand\nsource  = grand{1};\nchanged = ft_checkdata(source);\n\nit passes through ft_datatype_source. So in \n\nchanged = ft_datatype_source(source);\n\nthe output pos is already changed.\n\nin lines 135-... in ft_datatype_source there is\n\n     for i=1:length(fn)\n        dat = source.avg.(fn{i});\n        if isequal(size(dat), [1 size(source.pos,1)])\n          source.(fn{i}) = dat';\n        else\n          source.(fn{i}) = dat;\n        end\n        clear dat\n      end % j\n\nwhich copies all fields over from source.avg. Now note that \n\n>> source\nsource = \n      freq: 9.9448\n       dim: [17 20 17]\n    filter: {1x5780 cell}\n    inside: [5780x1 logical]\n       pos: [5780x3 double]\n    method: 'average'\n       avg: [1x1 struct]\n       cfg: [1x1 struct]\n\n>> source.avg\nans = \n       pow: [1x5780 double]\n     noise: [1x5780 double]\n    filter: {1x5780 cell}\n    inside: [5780x1 logical]\n       pos: [5780x3 double]\n\nso source.avg.pos contains positions which are copied OVER source.pos. The source.avg.pos positions are the individualised ones, whereas source.pos is the regular grid in MNI space.\n\nNow the question is: how did source.avg.pos get there in the first place? FieldTrip should not put it there, but recent changes to the handing of source data may have caused this to happen for a short window of time. \n\nRight now I cannot reproduce ft_sourceanalysis resulting in source.avg.pos any more, so to me it seems that it has been resolved already.\n\nI recommend you rerun your source analysis, or that you remove source.avg.pos from your existing data structures."
+      - +@isprivate: "0"
+        commentid: "17524"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:18:22 +0200
+        thetext: Hereby I am closing several bugs that have been resolved for some time (WONTFIX, WORKSFORME, etc.). If you disagree, please reopen and explain.

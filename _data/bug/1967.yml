@@ -1,0 +1,343 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1967"
+    creation_ts: 2013-02-01 17:03:00 +0100
+    short_desc: ft_prepare_vol_sens needs to be updated for simbio
+    delta_ts: 2021-10-29 12:38:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.vorwerk
+      - lilla.magyari
+      - s.homolle
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9302"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-02-01 17:03:32 +0100
+        thetext: What is happening in ft_prepare_vol_sens in case 'simbio'? The code also contains reference to 'bnd' and 'tri' but the simbio headmodel is not triangulated.
+      - +@isprivate: "0"
+        commentid: "10020"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-06 16:30:58 +0200
+        thetext: "I have made a test script and resolved the issue. The skin surface is now extracted (either from the tet or hex) and for each electrode the distance to all vertices is determined. The electrode is then replaced by the vertex that is nearest. This is consistent with how it is done in the lower level simbio code, exept that there no outer surface assumption is made.\n\nI have just committed the code through github.\n\nStill to be done is to give some information about the projection, e.g. \"the electrode were shifted to the skin surface average displacement %d mm\". This should also be added to the BEM methods. \n\nFurthermore it might be desireable to allow the surfaceprojection to be switched on/off, i.e. make it optional (and default=yes)"
+      - +@isprivate: "0"
+        commentid: "10513"
+        comment_count: "2"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-05-22 15:58:12 +0200
+        thetext: |-
+          (In reply to comment #1)
+          Should a call to ft_prepare_vols_sens be included somewhere in the test_headmodel_simbio script since the electrode positions are created outside the mesh? I couldn't find a call to this.
+      - +@isprivate: "0"
+        commentid: "10519"
+        comment_count: "3"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-05-23 12:18:49 +0200
+        thetext: |-
+          (In reply to comment #2)
+          Ok, just missed it. Forget about my comment...
+      - +@isprivate: "0"
+        commentid: "11024"
+        comment_count: "4"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 10:50:01 +0200
+        thetext: "I think it would be reasonable to include a check whether an eeg transfer matrix is already computed in ft_prepare_vol_sens, my idea would be something like\n\n@@ -502,7 +502,12 @@\n         sens = rmfield(sens, 'chanpos');\n       end\n       \n-      vol.transfer = sb_transfer(vol,sens);\n+      if ~(isfield(vol, 'transfer') && isfield(vol, 'elecpos') && (sens.elecpos == vol.elecpos))      \n+          vol.transfer = sb_transfer(vol,sens);\n+          vol.elecpos = sens.elecpos;\n+      else\n+          fprintf('using precomputed transfer matrix\\n');\n+      end\n       \n     case 'interpolate'\n\nThis would also ensure that the transfer matrix fits to the electrode positions given to ft_prepare_vol_sens, even though i am not sure if sens.elecpos == vol.elecpos works or if one should check whether the distance between the two sets is below a certain limit?"
+      - +@isprivate: "0"
+        commentid: "11026"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 11:26:11 +0200
+        thetext: "(In reply to comment #4)\n\nso you are suggesting that ft_prepare_vol_sens should behave differently if you call it the second time compared to the first time. Right now I think that the behaviour of the function is not defined when you call it a second time, i.e. in the way that the function is documented and used in fieldtrip, spm and eeglab it is never called twice. \n\nNote that it supports ~10 headmodels, and the behaviour of the function should remain consistent for all.\n\nIn the simbio case: where does the transfer matrix come from? Ah, I see line 505:\n      vol.transfer = sb_transfer(vol,sens);\nso that means that the transfer depends on the sens. What should happen if you call it like\n\n[vol1, sens1a] = ft_prepare_vol_sens(vol, sens1)\n[vol2, sens2a] = ft_prepare_vol_sens(vol1, sens2)\n\nwhere sens1 is completely different from sens2?"
+      - +@isprivate: "0"
+        commentid: "11027"
+        comment_count: "6"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 11:37:57 +0200
+        thetext: |-
+          (In reply to comment #5)
+          my idea is not to recompute things that are already included in the headmodel. if the sensors do not change (assured by sens.elecpos == vol.elecpos, possibly a different way to check this would be more optimal), the transfer matrix stays the same so that it would be an unnecessary and long (setting up the transfer matrix is the most time consuming part!) recomputation.
+          note that this change is in a part that is only used for a simbio calculation and that the output of the routine remains unchanged.
+      - +@isprivate: "0"
+        commentid: "11028"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 11:52:16 +0200
+        thetext: |-
+          (In reply to comment #6)
+
+          > note that this change is in a part that is only used for a simbio calculation
+          > and that the output of the routine remains unchanged.
+
+          Allowing the function to be called twice is a change that also affects other headmodels, as it would have to be reflected in higher level code (e.g. SPM). So the considerations not only apply to simbio, but also openmeeg, dipoli and other models. If higher level code change and the user is able to make a choice, then the behaviour for the second call has to be defined for all user-choices, hence also for all other head models. Right now that behaviour is not defined.
+
+          But it does make sense to consider how to avoid the lengthy computation from happening twice. An alternative place to implement in the overall structure this is one level up, i.e. not in the forward functions. I do suspect that to be more problematic, though.
+      - +@isprivate: "0"
+        commentid: "11029"
+        comment_count: "8"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 12:29:11 +0200
+        thetext: |-
+          (In reply to comment #7)
+          i don't really get why it should not be possible to call the routine a second time for other dipole models? it will just overwrite the previous output. the point is that it will usually not happen, since the computational effort is very low for these approaches, while in the fem case it might be reasonable to call ft_prepare_vol_sens already prior to ft_prepare_leadfield to be able to easily save the result.
+      - +@isprivate: "0"
+        commentid: "11030"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 12:37:37 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          "dipole models" -> head models.
+
+          The function has not been written with calling it twice in mind. Hence the behaviour is undefined. I expect for example the bookkeeping for multisphere MEG models with a mixture of magnetometers and gradiometers in the sens structure to get confused if you call it twice. The expected behaviour there is that it gets as input one channel per channel, and outputs one channel per coil (two coils per channel). Also for the EEG BEM methods there is some channel specific handling (computing of an surface interpolation matrix) that I expect to be problematic if you were to call it twice.
+
+          The function behaviour being "undefined" does not mean that it will always fail if you call it twice. It just means that there are cases where it might fail. And if I change the high level code allowing the function to be called twice, then those cases would surface as bugs.
+
+          If you want to work on it, I suggest that you go through the list
+
+          ft_headmodel_asa.m
+          ft_headmodel_bemcp.m
+          ft_headmodel_concentricspheres.m
+          ft_headmodel_dipoli.m
+          ft_headmodel_fns.m
+          ft_headmodel_halfspace.m
+          ft_headmodel_infinite.m
+          ft_headmodel_interpolate.m
+          ft_headmodel_localspheres.m
+          ft_headmodel_openmeeg.m
+          ft_headmodel_simbio.m
+          ft_headmodel_singleshell.m
+          ft_headmodel_singlesphere.m
+          ft_headmodel_slab.m
+
+          and for each one check whether the function behaves on the second call as you would expect it. Or as alternative you might look at the higher level code and try to find a solution there.
+      - +@isprivate: "0"
+        commentid: "11031"
+        comment_count: "10"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 12:45:22 +0200
+        thetext: |-
+          (In reply to comment #9)
+          my plan was not to change anything in the higher level code. as i wrote my plan was to change one part in ft_prepare_vol_sens. afterwards, one could tell (fem) users that they have the possibility to call ft_prepare_vol_sens prior to calling ft_prepare_leadfield to be able to store the result of the transfer matrix computation.
+          of course, this advice would have to be marked as experimental/not recommended and fem only.
+      - +@isprivate: "0"
+        commentid: "11032"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 13:07:31 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          at this moment ft_prepare_vol_sens will not and cannot be called twice from software such as fieldtrip, eeglab and spm, so it would not make sense to only change the section of code for simbio. Either the function always works as expected, and the code that makes use of it is updated to reflect this, or the code stays as it is (i.e. not supporting two calls).
+      - +@isprivate: "0"
+        commentid: "11035"
+        comment_count: "12"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 13:18:40 +0200
+        thetext: i don't see why it cannot be called twice? right now it can be called twice by any user willing to check the construction of the sensors. it is a seperate (not private!) function which the user can call anytime he/she wants to and it would offer a very simple opportunity to make the fem-pipeline more convenient without affecting any of the other pipelines.
+      - +@isprivate: "0"
+        commentid: "11037"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 14:01:05 +0200
+        thetext: "(In reply to comment #12)\n\n> i don't see why it cannot be called twice\n\nBecause the functions have a stable API and that API does not specify calling the function twice. \n\nPlease read the design documents at http://fieldtrip.fcdonders.nl/development/forward\n\nIf you want to change or extend the API (i.,e. the way that other code calls the functions from the forward toolbox, such as high-level fieldtrip, eeglab or spm makes use of it), then the consequences need to be thought through. Right now one consequence would be that bugs might be introduced if high level code calls the function twice with a localspheres or openmeeg vol as input.\n\nAn API is the consequence of an agreement on how functions should behave, not a consequence of what technically is possible. Technically it is indeed possible to change how functions behave, but it being possible does not make it automatically desirable to make ad-hoc changes.\n\nIn which end-user scenario would presently ft_prepare_vol_sens be called twice? Would changing the ft_prepare_vol_sens behaviour be an improvement for that specific scenario? If at this moment it is never called twice, then changing the function behaviour would not make a difference."
+      - +@isprivate: "0"
+        commentid: "11039"
+        comment_count: "14"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 14:42:53 +0200
+        thetext: |-
+          (In reply to comment #13)
+          scenario: user calls ft_prepare_vol_sens to check meg sensor arrangement / channel deselection / eeg electrode projection manually. afterwards user applies ft_prepare_leadfield.
+      - +@isprivate: "0"
+        commentid: "11040"
+        comment_count: "15"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 14:46:02 +0200
+        thetext: |-
+          (In reply to comment #9)
+          there will be no second call to ft_prepare_vol_sens in these scenarios, thus the function will behave as is.
+
+          the only scenario i am thinking of is a user that wants to use the same transfer matrix several times (which is very probable) and wants to store it therefore. this has no effect at the moment, since a new one will be computed regardless of one being already present or not.
+      - +@isprivate: "0"
+        commentid: "11041"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 15:21:49 +0200
+        thetext: |-
+          (In reply to comment #14)
+
+          > scenario: user calls ft_prepare_vol_sens to ...
+
+          the user does never call ft_prepare_vol_sens, as that is low-level code (like all other code in fieldtrip/forward). The user calls ft_prepare_mesh, ft_prepare_headmodel, ft_prepare_leadfield, ft_sourceanalysis. These functions have a non-graphical user interface (UI), whereas forward has an application programming interface (API).
+
+          Did you try out the http://fieldtrip.fcdonders.nl/development/simbio tutorial? it might help to get to the end-user perspective.
+      - +@isprivate: "0"
+        commentid: "11042"
+        comment_count: "17"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 15:33:29 +0200
+        thetext: |-
+          (In reply to comment #16)
+          that may be true for the absolute beginner that follows the tutorial, when i use fieldtrip, i nearly exclusively used low-level functions. also i am surely aware of the "regular" pipeline. nevertheless, i spoke to some people that would be interested to use this pipeline and are clearly above beginner level. none of those would be interested to use it if they are not able to store the transfer matrix. since this is nearly impossible to include in the current high level functions, i would like to introduce a workaround for these users and possibly shortly mention it in the tutorial. as i said previously, this will not change any of the high level functions, the regular workflow will just stay the same. BUT: we will offer the more experience user a convenient way to save a lot of time, surely at his own risk.
+          an alternative would be, to create an additional function that has to be called prior to ft_prepare_leadfield for fem-users, where the transfer matrix is calculated.
+      - +@isprivate: "0"
+        commentid: "11043"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-06 16:09:17 +0200
+        thetext: "(In reply to comment #17)\n\nPeople that want to follow the pipeline still should use the documentation. Or they can hack their own version of the code together, as it is all open source. If you want to continue working towards integrating simbio with fieldtrip and spm and not just cobble some code together, then please consider that there structure in the code that extends beyond your own needs. \n\nI am not opposing the idea of improving this code, I just mentioned that you have to keep in mind that other pieces of the code should not break as a consequence thereof.\n\nRather than providing workarounds, why don't we just finish this project? If finishing it requires that ft_prepare_vol_sens can be called twice, then that is fine with me. As long as it does not introduce bugs elsewhere. However the suggested change to the code seems to introduce bugs, therefore it qualifies as a hack rather than a work-around."
+      - +@isprivate: "0"
+        commentid: "11045"
+        comment_count: "19"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-06 21:09:35 +0200
+        thetext: |-
+          (In reply to comment #18)
+          ok, probably my thinking this afternoon was a bit too complicated.
+
+          my goal was mainly to give the user an easy option not to compute the transfer matrix over and over again, which seemed to be just to let him call ft_prepare_vol_sens by hand previously to ft_prepare_leadfield in the fem case and save the result.
+
+          to prevent confusion for users that might accidentally do this in other (not tested) cases, how about introducing a function that mainly mimics the behaviour of ft_prepare_vol_sens, but works only for the fem part. the user can then optionally precompile a transfer matrix and save the result. additionally we add the above code, to check whether a transfer matrix was previously calculated for the fitting set of sensors.
+
+          an alternative might be to add an option in ft_prepare_leadfield to save the result of the transfer matrix calculation, but this seems to be more complicated to me.
+      - +@isprivate: "0"
+        commentid: "11047"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-07 09:22:53 +0200
+        thetext: "(In reply to comment #19)\n\nI think that we should look at what is presently preventing people from saving it.\n\nif I do \n[vol2, sens2] = ft_prepare_vol_sens(vol1, sens1)\nthen I can simply save vol2 to disk and reuse it the next day (not putting it through ft_prepare_vol_sens again) and pass it onto ft_compute_leadfield.\n\nBut if I do the high-level approach\n1 ft_prepare_mesh\n2 ft_prepare_headmodel\n3 ft_compute_leadfield\n4 ft_sourceanalysis\nI can save the output of each step. However, after 2 the output does not have the transfer matrix, and in step 3 it is computed on the fly, but the output also does not contain the transfer matrix. \n\nConsequently If I want to redo step 3 multiple times (on the same day or one week later), it presently has to recompute the transfer. Furthermore, in step 4 there is also an (unneeded) recomputation of the transfer (due to historical reasons). I believe that to be the actual annoyance that we want to address here. \n\nBeing able to call ft_prepare_vol_sens multiple times would not help in the call-sequence above. It would help if the user were to mix and match low- and high-level code and insert a separate call to ft_prepare_vol_sens in between 2 and 3. But I don't like the mix-and-match approach. \n\nSo low-level-only there is not a problem, but high-level-only there is, and it has to be addressed in multiple locations (among others 3 and 4, but also ft_dipolefitting and others)."
+      - +@isprivate: "0"
+        commentid: "11048"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-07 09:23:33 +0200
+        thetext: |-
+          (In reply to comment #20)
+
+          now that I think of it, it is probably due to the way that the high-level functions call prepare_headmodel, which in turn calls ft_prepare_vol_sens. I.e. it affects
+
+          roboos@mentat001> grep -l prepare_headmodel *.m
+          ft_dipolefitting.m
+          ft_dipolesimulation.m
+          ft_megplanar.m
+          ft_megrealign.m
+          ft_prepare_headmodel.m
+          ft_prepare_leadfield.m
+          ft_sourceanalysis.m
+          ft_volumerealign.m
+      - +@isprivate: "0"
+        commentid: "11049"
+        comment_count: "22"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-07 09:24:31 +0200
+        thetext: "(In reply to comment #21)\n\noh, not ft_prepare_headmodel. \n\nAnd do note that ft_prepare_headmodel.m and private/prepare_headmodel,m are different!"
+      - +@isprivate: "0"
+        commentid: "11052"
+        comment_count: "23"
+        who:
+          +content: j.vorwerk
+          +@name: Johannes Vorwerk
+        bug_when: 2013-08-07 12:14:37 +0200
+        thetext: |-
+          (In reply to comment #20)
+          Right, that is exactly what I wanted to improve. Unfortunately at the moment I only see two options to solve this:
+
+          a) add the output of the vol struct to the high level routines so that it can be stored afterwards -> a lot of code changes, but (hopefully) nice result
+
+          b) add a seperate function for calculating the transfer matrix in between 2 and 3 for those users that want to store it -> little code changes
+
+          in both cases a check whether a transfer matrix is already present in the vol struct inside ft_prepare_vol_sens would be necessary
+      - +@isprivate: "0"
+        commentid: "20597"
+        comment_count: "24"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-10-29 12:17:31 +0200
+        thetext: "This issue is from 2013. I don't think there is still work to be done, or if so, someone should pick it up again. \n\nI will close this for now."
+      - +@isprivate: "0"
+        commentid: "20600"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-10-29 12:38:34 +0200
+        thetext: Let me close these bugs, now that they have been resolved.

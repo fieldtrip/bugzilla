@@ -1,0 +1,122 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2890"
+    creation_ts: 2015-05-05 18:33:00 +0200
+    short_desc: 'ft_artifact_tms: redundant but potentially confusing field in cfg.artfctdef.tms.method'
+    delta_ts: 2015-05-07 14:05:12 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: trivial
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lennart.verhagen
+      +@name: Lennart Verhagen
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15657"
+        comment_count: "0"
+        who:
+          +content: lennart.verhagen
+          +@name: Lennart Verhagen
+        bug_when: 2015-05-05 18:33:52 +0200
+        thetext: |-
+          ft_artifact_tms sets the field cfg.artfctdef.tms.method to 'zvalue' is found empty. It seems this field is not used, not in ft_artifact_tms for that matter. The relevant field is cfg.method. In fact, even if cfg.method is set to 'marker' (as is done in the TMS-EEG tutorial), the cfg.artfctdef.tms.method is still set to 'zvalue'. 'zvalue' seems to be appropriate only when strcmpi(cfg.method,'detect'). Anyhow, this is the most trivial of matters, but I felt this field setting could potentially confuse others.
+
+          This 'bug' can be replicated using the TMS-EEG tutorial (or any other data for that matter).
+
+          % Ringing/Step Response artifact
+          cfg                         = [];
+          cfg.method                  = 'marker'; % The alternative is 'detect' to detect the onset of pulses
+          cfg.dataset                 = 'jimher_toolkit_demo_dataset_.eeg';
+          cfg.prestim                 = 0.001;     % First time-point of range to exclude
+          cfg.poststim                = 0.006;     % Last time-point of range to exclude
+          cfg.trialdef.eventtype      = 'Stimulus';
+          cfg.trialdef.eventvalue     = {'S  1', 'S  3'};
+          cfg_ringing = ft_artifact_tms(cfg);     % Detect TMS artifacts
+      - +@isprivate: "0"
+        commentid: "15659"
+        comment_count: "1"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-05-06 09:20:30 +0200
+        thetext: "Hey Lennart,\n\nIf I remember correctly cfg.artfctdef.tms.method is a non-documented option that should not be touched by the user. It is set to 'zvalue' in the case that cfg.method = 'detect', as it is simply a wrapper around ft_artifact_zvalue. However, I see no reason in moving this check to the 'cfg.method' switch a few lines down. \n\nI'll update the code accordingly."
+      - +@isprivate: "0"
+        commentid: "15660"
+        comment_count: "2"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-05-06 09:39:49 +0200
+        thetext: Committed revision 10368
+      - +@isprivate: "0"
+        commentid: "15663"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-06 11:19:18 +0200
+        thetext: |-
+          (In reply to Jim Herring from comment #2)
+
+          The option used to be consistent with the other artefact detection functions.
+
+          mac011> grep if.*cfg.artfctdef.*method.*zvalue *.m
+          ft_artifact_ecg.m:if ~isfield(cfg.artfctdef.ecg,'method'),   cfg.artfctdef.ecg.method    = 'zvalue';      end
+          ft_artifact_ecg.m:if ~strcmp(cfg.artfctdef.ecg.method, 'zvalue'),
+          ft_artifact_eog.m:if ~isfield(cfg.artfctdef.eog,'method'),       cfg.artfctdef.eog.method      = 'zvalue'; end
+          ft_artifact_eog.m:if ~strcmp(cfg.artfctdef.eog.method, 'zvalue')
+          ft_artifact_jump.m:if ~isfield(cfg.artfctdef.jump,'method'),          cfg.artfctdef.jump.method     = 'zvalue';        end
+          ft_artifact_jump.m:if ~strcmp(cfg.artfctdef.jump.method, 'zvalue')
+          ft_artifact_muscle.m:if ~isfield(cfg.artfctdef.muscle,'method'),       cfg.artfctdef.muscle.method      = 'zvalue';  end
+          ft_artifact_muscle.m:if ~strcmp(cfg.artfctdef.muscle.method, 'zvalue')
+          ft_artifact_tms.m:if ~isfield(cfg.artfctdef.tms,'method'),            cfg.artfctdef.tms.method        = 'zvalue';  end
+
+          Although I did not look into the various uses, I do think there is a reason for that consistency and that making the tms implementation inconsistent with the others might lead to problems in the future.
+
+          Could you check the others and see whether the same change that you made for tms also applies there?
+      - +@isprivate: "0"
+        commentid: "15682"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2015-05-07 09:30:16 +0200
+        thetext: "The reason why all the other ft_artifact_XXX functions have cfg.artfctdef.XXX.method set to 'zvalue' is because all are solely wrappers around ft_artifact_zvalue, which requires that configuration option. ft_artifact_tms, however, either uses ft_definetrial and the TMS markers in the data, or ft_artifact_zvalue to create an artifact matrix with the samples that should be dealt with. Only in the later case, when ft_artifact_tms behaves the same as the other ft_artifact_XXX functions, is cfg.artfctdef.tms.method required. \n\nTo sum up, as soon as ft_artifact_tms is used as any other ft_artifact_xxx function (i.e. if cfg.method='detect'), then cfg.artfctdef.tms.method is set to 'zvalue' and is consistent with the other ft_artifact_XXX functions."
+      - +@isprivate: "0"
+        commentid: "15703"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-05-07 14:05:12 +0200
+        thetext: |-
+          (In reply to Jim Herring from comment #4)
+
+          all clear, thanks

@@ -1,0 +1,107 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1585"
+    creation_ts: 2012-07-03 01:23:00 +0200
+    short_desc: cell cfg.statistic field with multiple strings crashes ft_freqstatistics
+    delta_ts: 2019-08-10 11:56:41 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: matt.mollison
+      +@name: Matt Mollison
+    assigned_to: fieldtriptoolbox
+    cc:
+      - isheftel
+      - m.vangerven
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6660"
+        comment_count: "0"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2012-07-03 01:23:15 +0200
+        thetext: |-
+          I'm using fieldtrip-20120619.
+
+          I'm trying out some multivariate analyses with tfr data. If I define cfg.statistic = {'accuracy' 'binomial' 'contingency'}; as it gives as an option on the tutorial page (for ft_timelockstatistics: <http://fieldtrip.fcdonders.nl/tutorial/multivariateanalysis>) then ft_freqstatistics crashes at the "hack" implemented at line 341 (specifically for the strcmp argument). Might be better to use ismember instead of strcmp: ismember('indepsamplesZcoh', cfg.statistic).
+
+          From my initial glances at this stuff it seems like the multivariate analysis implementation through fieldtrip might currently be pretty limited compared to using the DMLT on its own <https://github.com/distrep/DMLT>. By that, I mean that it can only do a crossvalidation and doesn't seem to allow grid searches, permutation tests, bootstraps, among other things like getting out other parameters. I would be happy to be wrong about this, but the tutorial page doesn't explain much and actually points to using the DMLT on its own. Anyway, that's all to say that this would only be a bug for someone who only wants to try a crossvalidation.
+      - +@isprivate: "0"
+        commentid: "6661"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-03 09:19:04 +0200
+        thetext: "Hi Matt\n\nRegarding your first remark: \n\nwith the option \ncfg.statistic = {'accuracy' 'binomial' 'contingency'}\nit is actually not clear to me what the function should be doing. The purpose of ft_xxxstatistics  is to compute an inferential statistic, i.e. a p-value for a null-hypothesis. There are different methods (analytic, montecarlo, crossvalidate) and different descriptive statistics can be used in either method. But one cannot use multiple statistics at the same time for computing the probability. \n\nIt is possible for a statfun to return multiple values (e.g. the t-score and the raw group-mean difference), which will all be returned in the output structure. But that does not require the user to specify that he wants to have them.\n\nThe hack on line 341 has to do with a statfun returning results that cannot be reshaped into the original massive-univariate data representation. The purpose is to compute stats on coherence (i.e. a bivariate output value that originates from two channels) with fourier data as input. This has nothing in particular to do with multivariate statistics with multivariate input (see http://en.wikipedia.org/wiki/Multivariate_statistics), which is about using all variables at once but not about computing multivariate output values.\n\nRegarding to the second comment, Marcel (CC) has indeed made only limited functionality of DMLT available in high-level fieldtrip functions. The only available function presently is ft_statistics_crossvalidate, which is called with cfg.method=crossvalidate. It would indeed be nice to also have searchlight and other approaches implemented that make use of multivariate methods. Note that bootstrapping is already available in ft_statistics_montecarlo.\n\nThe action point that I see at the moment is to clarify the multiple statistics as input and ensure that implemented code and documentation (on the wiki) are again consistent. Do you agree?"
+      - +@isprivate: "0"
+        commentid: "6662"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-03 09:32:08 +0200
+        thetext: |-
+          I have added a test script for the multivariate analysis tutorial, see trunk/test/test_tutorial_multivariateanalysis.m in your SVN copy or http://code.google.com/p/fieldtrip/source/browse/trunk/test/test_tutorial_multivariateanalysis.m
+
+          manzana> svn commit test_tutorial_multivariateanalysis.m
+          Adding         test_tutorial_multivariateanalysis.m
+          Transmitting file data .
+          Committed revision 6206.
+      - +@isprivate: "0"
+        commentid: "6673"
+        comment_count: "3"
+        who:
+          +content: matt.mollison
+          +@name: Matt Mollison
+        bug_when: 2012-07-03 17:47:41 +0200
+        thetext: |-
+          Hi Robert,
+
+          I want to make sure you know I'm talking about ft_freqstatistics and not ft_timelockstatistics, because the test script you made is running only the latter with cfg.statistic = {'accuracy' 'binomial' 'contingency'}. The cfg gets reset before running former (meaning there is no more statistic field), and that's the one with the bug (because of the hack "if" statement in ft_freqstatistics, which is not present in ft_timelockstatistics).
+
+          Just to be clear, ft_statistics_crossvalidate expects that cfg.statistic is "a cell-array of statistics to report". This is incompatible with ft_freqstatistics, as the hack "if" statement expects cfg.statistic to be a string (not a cell array), I expect for use with the other ft_statistics_xxx functions (e.g., cfg.statistic='indepsamplesT' with cfg.method = 'analytic').
+
+          It's clear to me that cfg.statistic is not consistently defined across the ft_statistics_xxx functions. I'm not totally sure what your intended action is regarding clarification because ft_freqstatistics will always crash when cfg.statistic is a cell array (for cross validation), but I hope that the issue is clearer now and I'd be happy to reassess a fix.
+
+          Matt
+      - +@isprivate: "0"
+        commentid: "6674"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-03 21:53:42 +0200
+        thetext: "(In reply to comment #3)\n\nThe difference between ft_timelock-, ft_freq- and ft_sourcestatistics is only in data handling. They are not supposed to do anything computationally different. The computations should be done in ft_statistics_xxx where method=xxx. So far there had not been a need for bivariate statistics for source or timelock represented data, that is why freqstatistics deviates a little bit in the \"hack\" lines that touch upon cfg.statistic whereas the others don't deal with cfg.statistic yet.\n\nAs I see it, crossvalidate deviates from analytic and montecarlo in that you cannot specify your own statistical function to evaluate, but that you have to specify methods from the DMLT toolbox. There it indeed makes sense to pass them as cell array.\n\nI have just changed the strcmp into isequal, that should do it.\n\n-if isfield(cfg,'statistic') && strcmp(cfg.statistic, 'indepsamplesZcoh') && isfield(stat, 'label')\n+if isfield(cfg,'statistic') && isequal(cfg.statistic, 'indepsamplesZcoh') && isfield(stat, 'label')\n\nmbp> svn commit ft_freqstatistics.m \nSending        ft_freqstatistics.m\nTransmitting file data .\nCommitted revision 6213."
+      - +@isprivate: "0"
+        commentid: "19843"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:56:41 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

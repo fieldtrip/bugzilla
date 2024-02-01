@@ -1,0 +1,174 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3416"
+    creation_ts: 2018-03-02 15:42:00 +0100
+    short_desc: problem in ft_channelcombination
+    delta_ts: 2018-03-22 08:01:27 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: heidi.solberg-okland
+      +@name: Heidi Solberg Økland
+    assigned_to:
+      +content: heidi.solberg-okland
+      +@name: Heidi Solberg Økland
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19291"
+        comment_count: "0"
+        attachid: "859"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-02 15:42:04 +0100
+        thetext: |-
+          Created attachment 859
+          An example dataset and a script to go with it that shows the problem.
+
+          Hello there.
+
+          I'm working on an analysis pipeline for brain-speech coherence, and I've run into a problem that I can't seem to solve.. Bacially, I want my coherence spectrum to only contain gradiometer data, but when I try and select MEGGRAD for the channel combination I get an empty coherence spectrum... And when I try to select MEGGRAD for the FFT and either MEG or MEGGRAD for the coherence, I get the following error:
+
+          Index exceeds matrix dimensions.
+
+          Error in ft_channelcombination (line 173)
+            collect = [datachannel(indx(:,1)) datachannel(indx(:,2))];
+
+          Error in ft_connectivityanalysis (line 174)
+              cfg.channelcmb = ft_channelcombination(cfg.channelcmb, tmpchan, 1);
+
+          Error in coherence_channelcmb_problem (line 68)
+          AudCoh = ft_connectivityanalysis(cfg, FreqFourier_Aud);
+
+          Help?
+
+          I've attached a script with an example dataset that replicates the problems.
+      - +@isprivate: "0"
+        commentid: "19292"
+        comment_count: "1"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-02 15:56:00 +0100
+        thetext: |-
+          Sorry, seems I didn't attach the dataset. I've tried to add it but when I try to upload it I get an error ...
+
+          This site can’t be reached
+          The web page at http://bugzilla.fieldtriptoolbox.org/attachment.cgi might be temporarily down or it may have moved permanently to a new web address.
+          ERR_CONNECTION_ABORTED
+      - +@isprivate: "0"
+        commentid: "19293"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-03 13:18:26 +0100
+        thetext: please try and upload a small dataset, that at least consists of a data.label field. Otherwise, try a bit more yourself in terms of debuggin, e.g. type dbstop if error on the command line, or put a breakpoint in ft_channelcombination at line 173, and inspect  the variables 'datachannel', and 'indx'. These apparently do not match matlab's expectations.
+      - +@isprivate: "0"
+        commentid: "19316"
+        comment_count: "3"
+        attachid: "863"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-16 15:20:03 +0100
+        thetext: |-
+          Created attachment 863
+          Script that reproduces the error
+      - +@isprivate: "0"
+        commentid: "19317"
+        comment_count: "4"
+        attachid: "863"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-16 15:31:22 +0100
+        thetext: |-
+          Comment on attachment 863
+          Script that reproduces the error
+
+          Just found out it doesn't run properly, will upload a new one..
+      - +@isprivate: "0"
+        commentid: "19319"
+        comment_count: "5"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-21 13:32:32 +0100
+        thetext: "I've tried to troubleshoot this a bit more, but am completely stuck. I've tried going back a few steps in my pipeline so as to do the splitting up into trials, trial rejection etc with gradiometer data only, but I'm still having problems.\n\nHere's an example data structure:\n\n>> Data\n\nData = \n\n           hdr: [1x1 struct]\n       fsample: 250\n          grad: [1x1 struct]\n          elec: [1x1 struct]\n           cfg: [1x1 struct]\n         label: {206x1 cell}\n         trial: {1x275 cell}\n     trialinfo: [275x1 double]\n          time: {1x275 cell}\n    sampleinfo: [275x2 double]\n\nHere's how my code goes:\n\nfreqMin = 0.1; % Minimum frequency in Hz\nfreqMax = 20; % Maximum frequency in Hz\nfreqStep = 0.1; % Frequency steps in Hz\nPadding = 10; % Total length of signal wanted in seconds\nSmoothing = 0.6; % Spectral smoothing in Hz\n\n    cfg = [];\n    cfg.output     = 'fourier'; % use Fourier analysis\n    cfg.method     = 'mtmfft'; % spectral smoothing using multitapers\n    cfg.foi        = freqMin:freqStep:freqMax; % from x to y Hz in steps of \n    cfg.pad        = Padding;\n    cfg.tapsmofrq  = Smoothing; % Hz - determines degree of smoothing\n    cfg.taper      = 'hanning';\n    cfg.keeptrials = 'yes';\n    cfg.trials     = AudTrl'; % use auditory trials\n%     cfg.channel    = {'MEG' 'AudEnv' 'LipEnv'};\n\nFreqFourier_Aud    = ft_freqanalysis(cfg, Data); \n\n>> FreqFourier_Aud\n\nFreqFourier_Aud = \n\n            label: {206x1 cell}\n           dimord: 'rpttap_chan_freq'\n             freq: [1x200 double]\n    fourierspctrm: [220x206x200 double]\n        cumsumcnt: [220x1 double]\n        cumtapcnt: [220x1 double]\n             elec: [1x1 struct]\n             grad: [1x1 struct]\n        trialinfo: [220x1 double]\n              cfg: [1x1 struct]\n\nIf don't comment out channel selection for the FFT something goes awry:\n\n>> FreqFourier_Aud\n\nFreqFourier_Aud = \n\n            label: {2x1 cell}\n           dimord: 'rpttap_chan_freq'\n             freq: [1x200 double]\n    fourierspctrm: [220x2x200 double]\n        cumsumcnt: [220x1 double]\n        cumtapcnt: [220x1 double]\n             elec: [1x1 struct]\n             grad: [1x1 struct]\n        trialinfo: [220x1 double]\n              cfg: [1x1 struct]\n\nNow it has only selected the AudEnv and LipEnv channels ... even when I asked it to do MEGGRAD as well. Very strange.\n\nThe coherence code is simple:\n\n    cfg            = [];\n    cfg.method        = 'coh';\n    cfg.channelcmb    = {'MEG' 'AudEnv'};\n\nAudCoh = ft_connectivityanalysis(cfg, FreqFourier_Aud);\n\nThis attempt produces the error:\n\nAttempted to access indx(:,1); index out of bounds because\nsize(indx)=[0,0].\n\nError in ft_channelcombination (line 173)\n  collect = [datachannel(indx(:,1)) datachannel(indx(:,2))];\n\nError in ft_connectivityanalysis (line 174)\n    cfg.channelcmb = ft_channelcombination(cfg.channelcmb, tmpchan, 1);\n\nError in coh_sensors_audvis_AVspeech (line 194)\n    AudCoh = ft_connectivityanalysis(cfg, FreqFourier_Aud);\n\nIf I change 'MEG' to 'MEGGRAD' I still get the same error.\n\nI've used this code previously to compute coherence, but then on data where all channels (gradiometers and magnetometers) were present. Selecting 'MEG' all the way when the data contains all the channels doesn't cause me trouble.\n\n>> AudCoh\n\nAudCoh = \n\n     labelcmb: {306x2 cell}\n       dimord: 'chancmb_freq'\n    cohspctrm: [306x40 double]\n         freq: [1x40 double]\n         grad: [1x1 struct]\n         elec: [1x1 struct]\n          dof: 270\n          cfg: [1x1 struct]\n\nHelp?"
+      - +@isprivate: "0"
+        commentid: "19320"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-21 14:06:40 +0100
+        thetext: Have you checked with your supervisor and local colleagues?
+      - +@isprivate: "0"
+        commentid: "19321"
+        comment_count: "7"
+        who:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        bug_when: 2018-03-21 17:01:47 +0100
+        thetext: "I've just come out of a meeting with my supervisor where we discussed this. What we found out was that selecting a subset of channels for the frequency analysis causes trouble, both for that and the subsequent coherence computation.\n    \nIf I take my dataset with all MEG channels in it (both magnetometers and gradiometers, plus the two extra ones called AudEnv and LipEnv), and try to analyse only gradiometers, then:\n\n% FFT settings\nfreqMin = 1; % Minimum frequency in Hz\nfreqMax = 20; % Maximum frequency in Hz\nfreqStep = 0.5; % Frequency steps in Hz\nPadding = 10; % Total length of signal wanted in seconds\nSmoothing = 0.6; % Spectral smoothing in Hz\n\n    cfg = [];\n    cfg.output     = 'fourier'; % use Fourier analysis\n    cfg.method     = 'mtmfft'; % spectral smoothing using multitapers\n    cfg.foi        = freqMin:freqStep:freqMax; % from x to y Hz in steps of \n    cfg.pad        = Padding;\n    cfg.tapsmofrq  = Smoothing; % Hz - determines degree of smoothing\n    cfg.taper      = 'hanning';\n    cfg.keeptrials = 'yes';\n%    cfg.channel    = {'MEGGRAD''AudEnv' 'LipEnv'};\n    cfg.channelcmb    = {'MEGGRAD' 'AudEnv'\n                         'MEGGRAD''LipEnv'\n                            };\n    cfg.trials     = AudTrl'; % use auditory trials\n\nFreqFourier_Aud    = ft_freqanalysis(cfg, Data); \n\n>> FreqFourier_Aud\n\nFreqFourier_Aud = \n\n            label: {308x1 cell}\n           dimord: 'rpttap_chan_freq'\n             freq: [1x39 double]\n    fourierspctrm: [220x308x39 double]\n        cumsumcnt: [220x1 double]\n        cumtapcnt: [220x1 double]\n             elec: [1x1 struct]\n             grad: [1x1 struct]\n        trialinfo: [220x1 double]\n              cfg: [1x1 struct]\n\n.. so here, the structure still has all the original 308 channels, even if I asked for gradiometers only. And if we continue:\n\ncfg            = [];\ncfg.method        = 'coh';\ncfg.channelcmb    = {'MEGGRAD' 'AudEnv'};\nAudCoh = ft_connectivityanalysis(cfg, FreqFourier_Aud);\n\n>> AudCoh\n\nAudCoh = \n\n     labelcmb: {0x2 cell}\n       dimord: 'chancmb_freq'\n    cohspctrm: [0x39 double]\n         freq: [1x39 double]\n         grad: [1x1 struct]\n         elec: [1x1 struct]\n          dof: 220\n          cfg: [1x1 struct]\n\n.. empty coherence output.\n\nIf I change 'MEGGRAD' to 'MEG', the output is fine."
+      - +@isprivate: "0"
+        commentid: "19322"
+        comment_count: "8"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2018-03-22 08:01:27 +0100
+        thetext: "The reason I asked about your supervisor / on site help is \n\n\n1) that it's much easier to solve stuff while sitting together\n2) local people know much more about the data you acquire \n3) it's their job\n4) there is no real incentive for me to help out, because I don't get money for it, nor a co-authorship and nor a future job.\n\nThis being said, it's still not clear to me what the exact problem is, but my implicit suggestion to break it down in parts did not help, so let's make it explicit.\n\nIn order to nail this you should zoom in at how ft_channelcombination/ft_channelselection behaves, not how freqanalysis or connectivityanalysis behave at a higher level. This suggests that there is a problem (at least with the fieldtrip version you are using: have you checked that you are using the latest version of the code? The reason I ask is because I have not been able to reproduce your problem on my end) with how the 'wildcard' syntax tries to extract the relevant channels from the datastructure at hand.\n\nAll this said:\nPlease first ensure that you have the latest version of the code, and if the problem persists, try to break it down to the lowest level at which the problem can be identified."
+    attachment:
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "859"
+        date: 2018-03-02 15:42:00 +0100
+        delta_ts: 2018-03-16 15:23:25 +0100
+        desc: An example dataset and a script to go with it that shows the problem.
+        filename: coherence_channelcmb_problem.m
+        type: text/plain
+        size: "3170"
+        attacher:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        data: REMOVED
+      - +@isobsolete: "1"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "863"
+        date: 2018-03-16 15:20:00 +0100
+        delta_ts: 2018-03-16 15:31:22 +0100
+        desc: Script that reproduces the error
+        filename: coherence_channelcmb_problem.m
+        type: text/plain
+        size: "3170"
+        attacher:
+          +content: heidi.solberg-okland
+          +@name: Heidi Solberg Økland
+        data: REMOVED

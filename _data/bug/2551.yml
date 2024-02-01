@@ -1,0 +1,227 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2551"
+    creation_ts: 2014-04-30 11:19:00 +0200
+    short_desc: sourcemodel from disk contains many dipoles outside of brain (singleshell)
+    delta_ts: 2015-10-06 01:22:55 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13420"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:19:40 +0200
+        thetext: "Perhaps I'm missing something obvious, but when plotting the headmodel and the sourcemodel's dipoles there shouldn't be any dipoles outside of the headmodel (I understood it this way from the example script, FAQ and an answer from Robert on the mailing list).\n\nAttached are 4 figures. All display sourcemodels at 10mm resolution and a headmodel. \n1) sourcemodel from disk and headmodel from disk (cfg.inwardshift=0)\n2) sourcemodel from disk and generated headmodel (cfg.inwardshift=0)\n3) generated sourcemodel and generated headmodel (cfg.inwardshift=0)\n3) generated sourcemodel and generated headmodel (cfg.inwardshift=-1.5)\n\nNumber 1 and 2 show many dipoles outside of the brain (approx. half of them). Number 3 contains the same ingredients, only they were generated anew. All of them have in their cfg an inwardshift of 0. However, the first two look as if they are generated with an inward shift of about -1.5 (outward). Figure 4 is the same as 3, but with an inwardshift = -1.5. \n(I included figure 2 to be sure it was not related to the headmodel on disk being generated in an older version. Note the small difference in headmodels in fig 1 and 2)\n\nI found this while warping an individual's grid in MNI space via ft_prepare_sourcemodel. Below is the code that generates the figures. Am I missing something silly here?\n\n\n\n\n% set path\nfieldtrippath = '~/fieldtrip-dev/';\n\n\n%%%%%% figure 1\n% load headmodel and sourcemodel\ntemplatehdmfn = [fieldtrippath 'template/headmodel/standard_singleshell.mat'];\ntemplatehdm   = load(templatehdmfn);\ntemplatesourcemodel = load('~/fieldtrip-dev/template/sourcemodel/standard_sourcemodel3d10mm.mat');\nfigure\nhold on\nft_plot_vol(templatehdm.vol, 'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; camlight;\nft_plot_mesh(templatesourcemodel.sourcemodel.pos(templatesourcemodel.sourcemodel.inside,:));\n%%%%%%\n\n%%%%%% figure 2\n% generate headmodel and load sourcemodel\ntemplatemrifn  = [fieldtrippath 'external/spm8/templates/T1.nii'];\ntemplatemri = ft_read_mri(templatemrifn);\ntemplatemri.coordsys = 'spm';\ncfg          = [];\ntemplateseg = ft_volumesegment(cfg, templatemri);\ntemplateseg = ft_convert_units(templateseg,'cm');\ncfg          = [];\ncfg.method   = 'singleshell';\ntemplatehdm = ft_prepare_headmodel(cfg, templateseg);\ntemplatehdm = ft_convert_units(templatehdm, 'cm'); % Convert the vol to cm, since the grid will also be expressed in cm\n% load sourcemodel\ntemplatesourcefn = '~/fieldtrip-dev/template/sourcemodel/standard_sourcemodel3d10mm.mat';\ntemplatesourcemodel = load(templatesourcefn);\nfigure\nhold on\nft_plot_vol(templatehdm, 'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; camlight;\nft_plot_mesh(templatesourcemodel.sourcemodel.pos(templatesourcemodel.sourcemodel.inside,:));\n%%%%%%\n\n%%%%%% figure 3\n% generate headmodel and generate sourcemodel\n% templatemrifn  = [fieldtrippath 'external/spm8/templates/T1.nii'];\n% templatemri = ft_read_mri(templatemrifn);\n% templatemri.coordsys = 'spm';\n% cfg          = [];\n% templateseg = ft_volumesegment(cfg, templatemri);\n% templateseg = ft_convert_units(templateseg,'cm');\ncfg          = [];\ncfg.method   = 'singleshell';\ntemplatehdm = ft_prepare_headmodel(cfg, templateseg);\ntemplatehdm = ft_convert_units(templatehdm, 'cm'); % Convert the vol to cm, since the grid will also be expressed in cm\n% construct sourcemodel\ncfg = [];\ncfg.grid.xgrid  = -20:1:20;\ncfg.grid.ygrid  = -20:1:20;\ncfg.grid.zgrid  = -20:1:20;\ncfg.grid.unit   = 'cm';\ncfg.grid.tight  = 'yes';\ncfg.inwardshift = 0;\ncfg.vol         = templatehdm;\ntemplatesourcemodel = ft_prepare_sourcemodel(cfg);\n% make a figure with the template head model and dipole grid\nfigure\nhold on\nft_plot_vol(templatehdm, 'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; camlight;\nft_plot_mesh(templatesourcemodel.pos(templatesourcemodel.inside,:));\n%%%%%%\n\n\n%%%%%% figure 4\n% generate headmodel and generate sourcemodel\n% templatemrifn  = [fieldtrippath 'external/spm8/templates/T1.nii'];\n% templatemri = ft_read_mri(templatemrifn);\n% templatemri.coordsys = 'spm';\n% cfg          = [];\n% templateseg = ft_volumesegment(cfg, templatemri);\n% templateseg = ft_convert_units(templateseg,'cm');\ncfg          = [];\ncfg.method   = 'singleshell';\ntemplatehdm = ft_prepare_headmodel(cfg, templateseg);\ntemplatehdm = ft_convert_units(templatehdm, 'cm'); % Convert the vol to cm, since the grid will also be expressed in cm\n% construct sourcemodel\ncfg = [];\ncfg.grid.xgrid  = -20:1:20;\ncfg.grid.ygrid  = -20:1:20;\ncfg.grid.zgrid  = -20:1:20;\ncfg.grid.unit   = 'cm';\ncfg.grid.tight  = 'yes';\ncfg.inwardshift = -1.5;\ncfg.vol         = templatehdm;\ntemplatesourcemodel = ft_prepare_sourcemodel(cfg);\n% make a figure with the template head model and dipole grid\nfigure\nhold on\nft_plot_vol(templatehdm, 'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; camlight;\nft_plot_mesh(templatesourcemodel.pos(templatesourcemodel.inside,:));\n%%%%%%"
+      - +@isprivate: "0"
+        commentid: "13421"
+        comment_count: "1"
+        attachid: "615"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:20:18 +0200
+        thetext: |-
+          Created attachment 615
+          fig1
+      - +@isprivate: "0"
+        commentid: "13422"
+        comment_count: "2"
+        attachid: "616"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:20:42 +0200
+        thetext: |-
+          Created attachment 616
+          fig2
+      - +@isprivate: "0"
+        commentid: "13423"
+        comment_count: "3"
+        attachid: "617"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:21:04 +0200
+        thetext: |-
+          Created attachment 617
+          fig3
+      - +@isprivate: "0"
+        commentid: "13424"
+        comment_count: "4"
+        attachid: "618"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:21:20 +0200
+        thetext: |-
+          Created attachment 618
+          fig4
+      - +@isprivate: "0"
+        commentid: "13425"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 11:38:51 +0200
+        thetext: "To make it explicit, I could be a total idiot here :). \n\nAs the example script below makes it seem completely normal that there are dipoles outside of the shell:\nhttp://fieldtrip.fcdonders.nl/example/create_single-subject_grids_in_individual_head_space_that_are_all_aligned_in_mni_space\n\nHowever, this other FAQ makes it it seem very abnormal:\nhttp://fieldtrip.fcdonders.nl/faq/why_is_there_a_rim_around_the_brain_for_which_the_source_reconstruction_is_not_computed\n\n\nI created this bug because cfg.inwardshift = 0 in the sourcemodels on disk, but the results suggest an actual cfg.inwardshift = -1.5, and because of the incongruence of the above."
+      - +@isprivate: "0"
+        commentid: "13426"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-30 12:04:04 +0200
+        thetext: "Please try \n\n>> ft_plot_mesh(sourcemodel.pos(sourcemodel.inside,:), 'vertexcolor', 'r')\n>> ft_plot_mesh(sourcemodel.pos(sourcemodel.outside,:), 'vertexcolor', 'b')\n\nand then rotate the figure in 3D\n\nThe source model describes a regular 3-D grid that is 18x21x18. Not all grid points are inside the brain compartment, so for those the lead field and source estimates are not to be computed.\n\nThe inside/outside specification is used to flag grid points that are inside/outside the brain compartment.\n\nI won't judge you along the http://en.wikipedia.org/wiki/DSM-5 scales, but I don't see any issue with it."
+      - +@isprivate: "0"
+        commentid: "13430"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 12:34:10 +0200
+        thetext: "Haha, dear god no, at least judge me by DSM4R! ;)\n\nI understand that the inside/outside fields mark which dipole positions are inside or outside the brain compartment, and is used as a flag to compute leadfields/filters/etc for only those positions that we would want to. I guess there is no harm done if positions are included which accidentally outside? During plotting they are automatically discarded I think, statistics I do not know. \n\nHowever, it still is unnecessary computation if they are mislabeled as 'inside', right? \nOr is the labeling correct and I am still missing something? In the attached figures I only plotted 'inside' grid points. In fig 5 now attached I plot both and mark them as red/blue (inside/outside). \n\nSo this (fig5) really does not reflect a mislabeling?"
+      - +@isprivate: "0"
+        commentid: "13431"
+        comment_count: "8"
+        attachid: "619"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 12:34:44 +0200
+        thetext: |-
+          Created attachment 619
+          fig5
+      - +@isprivate: "0"
+        commentid: "13437"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-30 15:34:01 +0200
+        thetext: we discussed this at the FT meeting. Roemer will make a faq that explains it, using a spherical volume conductor and source points that are inside a proper brain compartment.
+      - +@isprivate: "0"
+        commentid: "13440"
+        comment_count: "10"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2014-04-30 18:42:33 +0200
+        thetext: |-
+          Hey Robert,
+
+          I made a 'opzetje' for a FAQ here:
+          http://fieldtrip.fcdonders.nl/faq/is_it_good_or_bad_to_have_dipole_locations_outside_of_the_brain_for_which_the_source_reconstruction_is_computed
+
+
+          I think it contains most of the elements we talked about? I tried to phrase it as simple as possible. I'm not sure on some details, specifically some of the yes/no statements I make. Could you use your Hammer-of-Purity on this?
+      - +@isprivate: "0"
+        commentid: "16176"
+        comment_count: "11"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2015-10-06 01:22:55 +0200
+        thetext: Closing old resolved bugs
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "615"
+        date: 2014-04-30 11:20:00 +0200
+        delta_ts: 2014-04-30 11:20:18 +0200
+        desc: fig1
+        filename: fig1_sourcemodelfromdisk_and_headmodelfromdisk.png
+        type: image/png
+        size: "50982"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "616"
+        date: 2014-04-30 11:20:00 +0200
+        delta_ts: 2014-04-30 11:20:42 +0200
+        desc: fig2
+        filename: fig2_sourcemodelfromdisk_and_headmodelgenerated.png
+        type: image/png
+        size: "49253"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "617"
+        date: 2014-04-30 11:21:00 +0200
+        delta_ts: 2014-04-30 11:21:04 +0200
+        desc: fig3
+        filename: fig3_sourcemodelgenerated_and_headmodelgenerated.png
+        type: image/png
+        size: "59224"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "618"
+        date: 2014-04-30 11:21:00 +0200
+        delta_ts: 2014-04-30 11:21:20 +0200
+        desc: fig4
+        filename: fig4_sourcemodelgenerated_with_inwardshift-1.5_and_headmodelgenerated.png
+        type: image/png
+        size: "52779"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "619"
+        date: 2014-04-30 12:34:00 +0200
+        delta_ts: 2014-04-30 12:34:44 +0200
+        desc: fig5
+        filename: fig5_sourcemodelfromdisk_and_headmodelfromdisk_plusinsideposisredoutsideposisblue.png
+        type: image/png
+        size: "54837"
+        attacher:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        data: REMOVED

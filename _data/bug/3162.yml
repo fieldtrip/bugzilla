@@ -1,0 +1,80 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3162"
+    creation_ts: 2016-07-15 15:35:00 +0200
+    short_desc: beamformer noise estimation on rank-deficient covariance
+    delta_ts: 2019-08-10 12:33:01 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sarang
+      +@name: Sarang Dalal
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+      - sarang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17647"
+        comment_count: "0"
+        who:
+          +content: sarang
+          +@name: Sarang Dalal
+        bug_when: 2016-07-15 15:35:58 +0200
+        thetext: "This applies to beamfomer_lcmv and beamformer_dics, which contains the following code:\n\n   if isrankdeficient\n     % estimated noise floor is equal to or higher than lambda\n     noise = lambda;\n   else\n    noise = svd(Cy);\n    noise = noise(end);\n  end\n\nIf lambda is not specified by the user, then it defaults to zero. In the case of a rank-deficient covariance, this then sets noise to zero. (It turns out that even raw Elekta data can be rank-deficient by 1 or 2 components, which is how I ran into it.) \n\nThis is not desirable behavior for my application, and I guess most users who use the noise estimate would not expect it either. It also blocks usage of the \"NAI\" weightnorm option, which relies on the noise estimate.\n\nI've worked around this by disabling the above code, and instead defining noise as:\n    noise = svd(Cy);\n    noise = noise(rank(Cy));\n\nShall I contribute this via Github, or would it risk an unexpected change in behavior for some?"
+      - +@isprivate: "0"
+        commentid: "17650"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-07-18 13:51:48 +0200
+        thetext: "Hi Sarang,\n\nIt sounds like a good change to me. \nMay I suggest something like:\n\nif isrankdeficient && (~isempty(lambda) || lambda>0) % or similar logic\n  noise = lambda;\nelse\n  noise = svd(Cy);\n  noise = noise(rank(Cy));\nend\n\n?"
+      - +@isprivate: "0"
+        commentid: "18019"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-11-29 09:24:54 +0100
+        thetext: "Hi Sarang, \nHave you followed up on this one? If so, could you close this bug? Thanks."
+      - +@isprivate: "0"
+        commentid: "18115"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-12-23 10:42:12 +0100
+        thetext: This has been resolved, with PR 275. Thanks, Sarang!
+      - +@isprivate: "0"
+        commentid: "20165"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:01 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

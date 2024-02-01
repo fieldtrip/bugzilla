@@ -1,0 +1,548 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2452"
+    creation_ts: 2014-01-23 12:57:00 +0100
+    short_desc: mxSerialize/mxDeserialize not available in R2014a
+    delta_ts: 2015-02-11 10:40:19 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    dependson: "2495"
+    everconfirmed: "1"
+    reporter:
+      +content: g.flandin
+      +@name: Guillaume
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - i.andolina
+      - r.oostenveld
+      - ramirez_u
+      - stephen.whitmarsh
+      - xose.lorenzo
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12579"
+        comment_count: "0"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-01-23 12:57:39 +0100
+        thetext: |-
+          fieldtrip/src/mxSerialize.c and fieldtrip/src/mxDeserialize.c use undocumented functions mxSerialize and mxDeserialize which are not available anymore in R2014a (prerelease), such that MEX compilation fails. More details here:
+          http://undocumentedmatlab.com/blog/serializing-deserializing-matlab-data/#MEX
+          An alternative is to use other undocumented functions getByteStreamFromArray and getArrayFromByteStream but they seem to have been introduced in R2010b.
+      - +@isprivate: "0"
+        commentid: "12614"
+        comment_count: "1"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-28 13:09:42 +0100
+        thetext: |-
+          According to that Yair blogpost mx[De]Serialize *is* still available, it is just that it only supports a c++ interface, so you need to rejig oyur .c file to a .cpp and requisite code changes. the bad news is that separate mex files will be needed for <2014a and 2014a...
+
+          "Unfortunately, MathWorks has removed the C interface for these functions from libmx in R2014a, keeping only their C++ interfaces ... Thanks to Bastian Ebeling, we can still use these interfaces in our MEX code by simply renaming the MEX file from .c to .cpp and modifying the code as follows"
+          http://undocumentedmatlab.com/blog/serializing-deserializing-matlab-data/#MEX
+      - +@isprivate: "0"
+        commentid: "12618"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-01-28 15:00:21 +0100
+        thetext: |-
+          thanks for that useful part of information. I think we would be able to wrap around the two versions separately by calling an m-file which switches between the two mex files (i.e. 2*4 mex files, taken all OSes into account).
+
+          How should I go about to resolve this? We don't even have 2013b yet at the Donders. I guess 2014a will only arrive on our computers somewhere around summer.
+
+          Here is a suggestion: I could already put the code in place: the m-file which switches between the old and new version, rename the old version mex files, and add the new version c-code to fieldtrip. That would then (eventually) cause an error (mex not present), which I could catch in certain use scenarios (specifically for provenance, i.e. bookkeeping of md5 hashes of data objects).
+      - +@isprivate: "0"
+        commentid: "12626"
+        comment_count: "3"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-01-29 10:38:41 +0100
+        thetext: I'm happy to compile and test for 2014a for OS X at least...
+      - +@isprivate: "0"
+        commentid: "13044"
+        comment_count: "4"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-03-11 12:18:12 +0100
+        thetext: 2014a has been released...
+      - +@isprivate: "0"
+        commentid: "13045"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-11 13:03:50 +0100
+        thetext: "(In reply to Ian Andolina from comment #4)\n\nI renamed the original mex file to mxSerialize_c/mxDeserialize_c. Subsequently I made m-file wrappers for mxSerialize and mxDeserialize. The wrapper now selects the c or the cpp version, depending on the matlab version.\n\nI have not yet looked into the new mex files mxSerialize_cpp and mxDeserialize_cpp \n\nI have also not yet updated the compile script.\n\nroboos@mentat001> svn commit\nAdding         fileio/private/mxDeserialize.m\nDeleting       fileio/private/mxDeserialize.mexa64\nDeleting       fileio/private/mxDeserialize.mexglx\nDeleting       fileio/private/mxDeserialize.mexmac\nDeleting       fileio/private/mxDeserialize.mexmaci\nDeleting       fileio/private/mxDeserialize.mexmaci64\nDeleting       fileio/private/mxDeserialize.mexw32\nDeleting       fileio/private/mxDeserialize.mexw64\nAdding  (bin)  fileio/private/mxDeserialize_c.mexa64\n...\nAdding  (bin)  utilities/private/mxSerialize_c.mexw32\nAdding  (bin)  utilities/private/mxSerialize_c.mexw64\nTransmitting file data ......\nCommitted revision 9275."
+      - +@isprivate: "0"
+        commentid: "13046"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-11 13:05:26 +0100
+        thetext: "roboos@mentat001> svn commit \nSending        ft_compile_mex.m\nTransmitting file data .\nCommitted revision 9276.\n\nfixed the compile script"
+      - +@isprivate: "0"
+        commentid: "13047"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-11 13:14:54 +0100
+        thetext: |-
+          I added the two cpp versions.
+
+          roboos@mentat001> svn commit
+          Adding         src/mxDeserialize_cpp.cpp
+          Adding         src/mxSerialize_cpp.cpp
+          Transmitting file data ..
+          Committed revision 9278.
+
+          @Ian, could you give it a try, i.e. compile the cpp files and see whether mxSerialize (the wrapper) works as expected?
+      - +@isprivate: "0"
+        commentid: "13048"
+        comment_count: "8"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-03-11 14:06:26 +0100
+        thetext: |-
+          Both mexes compile (with warnings):
+
+          >> mex mxDeserialize_cpp.cpp
+          Building with 'Xcode Clang++'.
+          /Users/ian/Code/fieldtrip/src/mxDeserialize_cpp.cpp:6:13: warning: 'EXTERN_C' macro redefined
+              #define EXTERN_C extern
+                      ^
+          /Applications/MATLAB_R2014a.app/extern/include/mex.h:42:11: note: previous definition is here
+            #define EXTERN_C extern "C"
+                    ^
+          1 warning generated.
+
+          MEX completed successfully.
+          >> mex mxSerialize_cpp.cpp
+          Building with 'Xcode Clang++'.
+          /Users/ian/Code/fieldtrip/src/mxSerialize_cpp.cpp:6:13: warning: 'EXTERN_C' macro redefined
+              #define EXTERN_C extern
+                      ^
+          /Applications/MATLAB_R2014a.app/extern/include/mex.h:42:11: note: previous definition is here
+            #define EXTERN_C extern "C"
+                    ^
+          1 warning generated.
+
+          MEX completed successfully.
+
+          I then tested serialising and deserialising an object without problems using your wrapper functions. All works. I don't have a windows machine to hand but imagine this should all work cross-platform...
+      - +@isprivate: "0"
+        commentid: "13050"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-11 15:22:49 +0100
+        thetext: |-
+          (In reply to Ian Andolina from comment #8)
+
+          thanks, good to know. Could you send me (in a separate mail or attached here) your mex files? I don't have access to a OS X 10.8 or 10.9 computer yet, which will be required for 2014a according to http://www.mathworks.nl/support/sysreq/roadmap.html
+
+          I have ordered 2014a from our IT department and hope that we'll soon get it on our computers here.
+      - +@isprivate: "0"
+        commentid: "13052"
+        comment_count: "10"
+        attachid: "599"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-03-11 15:40:20 +0100
+        thetext: |-
+          Created attachment 599
+          mx[de]Serialize_cpp.mexmaci64
+
+          Both mexes zipped up...
+      - +@isprivate: "0"
+        commentid: "13053"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-03-11 15:48:28 +0100
+        thetext: "(In reply to Ian Andolina from comment #10)\n\nI added your compiled version to the fieldtrip release. I hope that I'll soon also get hold of the linux and windows versions. \n\nmac001> svn commit \nAdding  (bin)  fileio/private/mxDeserialize_cpp.mexmaci64\nAdding  (bin)  fileio/private/mxSerialize_cpp.mexmaci64\nAdding  (bin)  private/mxDeserialize_cpp.mexmaci64\nAdding  (bin)  private/mxSerialize_cpp.mexmaci64\nAdding  (bin)  src/mxDeserialize_cpp.mexmaci64\nAdding  (bin)  src/mxSerialize_cpp.mexmaci64\nAdding  (bin)  utilities/private/mxDeserialize_cpp.mexmaci64\nAdding  (bin)  utilities/private/mxSerialize_cpp.mexmaci64\nTransmitting file data ........\nCommitted revision 9283."
+      - +@isprivate: "0"
+        commentid: "13054"
+        comment_count: "12"
+        who:
+          +content: i.andolina
+          +@name: Ian Andolina
+        bug_when: 2014-03-11 15:53:11 +0100
+        thetext: Thanks for the speedy update!!! I'm using FT+2014a already, no other problems so far...
+      - +@isprivate: "0"
+        commentid: "13648"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-14 20:11:25 +0200
+        thetext: 'reminder to self: mxSerialize_cpp and mxDeserialize_cpp still have to be compiled for matlab2014a on windows 32 and 64 bit.'
+      - +@isprivate: "0"
+        commentid: "13736"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 13:18:56 +0200
+        thetext: "This issue touches on the difficulty of maintaining all compiled versions. \nPerhaps start with documenting (for the team) where for different platforms stuff can be re-compiled.\nAction points: Joern will make the *.m file robust against non-existing compiled code. Robert will do the rest."
+      - +@isprivate: "0"
+        commentid: "13952"
+        comment_count: "15"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-06-26 09:47:01 +0200
+        thetext: |-
+          Hi there,
+
+          I'm working with Daniel here, and his code crashes on ft_timlockanalsyis because it can't find mxSerialize_cpp. We are working on Windows 7, 64 bit.
+
+          Anything we can do?
+
+          Best wishes from Stockholm,
+          Stephen
+
+          ------------
+
+          Undefined function 'mxSerialize_cpp' for input arguments of type 'struct'.
+
+          Error in mxSerialize (line 35)
+            argout = mxSerialize_cpp(argin);
+
+          Error in ft_preamble_provenance (line 74)
+              cfg.callinfo.inputhash{iargin} = CalcMD5(mxSerialize(tmparg));
+
+          Error in ft_preamble (line 54)
+            evalin('caller', ['ft_preamble_' cmd]);
+
+          Error in ft_timelockanalysis (line 95)
+          ft_preamble provenance data
+      - +@isprivate: "0"
+        commentid: "13953"
+        comment_count: "16"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2014-06-26 09:54:37 +0200
+        thetext: "----------------------------------------------------------------------------------------------------\nMATLAB Version: 8.3.0.532 (R2014a)\nMATLAB License Number: 863535\nOperating System: Microsoft Windows 7 Enterprise  Version 6.1 (Build 7601: Service Pack 1)\nJava Version: Java 1.7.0_11-b21 with Oracle Corporation Java HotSpot(TM) 64-Bit Server VM mixed mode\n----------------------------------------------------------------------------------------------------\nMATLAB                                                Version 8.3        (R2014a)            \nFieldTrip                                             Version unknown    fieldtriptoolbox.org\nImage Processing Toolbox                              Version 9.0        (R2014a)            \nOptimization Toolbox                                  Version 7.0        (R2014a)            \nSignal Processing Toolbox                             Version 6.21       (R2014a)            \nStatistics Toolbox                                    Version 9.0        (R2014a)"
+      - +@isprivate: "0"
+        commentid: "13955"
+        comment_count: "17"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-06-26 12:35:09 +0200
+        thetext: The mxSerialize_cpp is specific to matlab2014, which I do not yet have on a windows computer. I have just requested the TG to install it on my win64 virtual box.
+      - +@isprivate: "0"
+        commentid: "14119"
+        comment_count: "18"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:10:29 +0200
+        thetext: "(In reply to Robert Oostenveld from comment #17)\n\nI compiled and added them for windows 64 bit.\n\nroboos@mentat001> svn commit src/\nAdding  (bin)  src/mxDeserialize_cpp.mexw64\nAdding  (bin)  src/mxSerialize_cpp.mexw64\nTransmitting file data ..\nCommitted revision 9728.\n\nThey now exist for 64 bit versions of matlab2014a on linux, osx and windows, which I consider enough to close this issue. \n\nroboos@mentat001> ls mxSe*cpp.mex*\nmxSerialize_cpp.mexa64  mxSerialize_cpp.mexmaci64  mxSerialize_cpp.mexw64\n\nroboos@mentat001> ls mxDe*cpp.mex*\nmxDeserialize_cpp.mexa64  mxDeserialize_cpp.mexmaci64  mxDeserialize_cpp.mexw64"
+      - +@isprivate: "0"
+        commentid: "14133"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-15 17:25:10 +0200
+        thetext: Closed several bugs that were recently resolved. If it is closed in error, please reopen.
+      - +@isprivate: "0"
+        commentid: "14278"
+        comment_count: "20"
+        who:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        bug_when: 2014-08-27 12:37:00 +0200
+        thetext: |-
+          Hi,
+          I am using now R2014 for 32-bit platform and getting the same error.
+
+          It seems that the mxSerialize.cpp has not yet been compiled and added to the release for 32-bits.
+
+          Is that the case? or am I doing something wrong?
+
+          Thanks,
+
+          Xose
+      - +@isprivate: "0"
+        commentid: "14279"
+        comment_count: "21"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-08-27 13:41:12 +0200
+        thetext: |-
+          (In reply to Xose Lorenzo from comment #20)
+
+          correct, it is not yet compiled for your configuration If you look in fildtrip/src, there is now
+
+          mxSerialize.m
+          mxSerialize_c.c
+          mxSerialize_c.mexa64
+          mxSerialize_c.mexglx
+          mxSerialize_c.mexmac
+          mxSerialize_c.mexmaci
+          mxSerialize_c.mexmaci64
+          mxSerialize_c.mexw32
+          mxSerialize_c.mexw64
+          mxSerialize_cpp.cpp
+          mxSerialize_cpp.mexa64
+          mxSerialize_cpp.mexmaci64
+          mxSerialize_cpp.mexw64
+
+          and mxSerialize_cpp.mexw32 is missing. Are you able to compile the mxSerialize_cpp.cpp into a mex file (idem Deserialize)?
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "14621"
+        comment_count: "22"
+        who:
+          +content: ramirez_u
+          +@name: U. Ramirez
+        bug_when: 2014-10-10 21:21:14 +0200
+        thetext: |-
+          Hi. I'm using SPM12 and matlab 2014a on a 64 bit mac and just downloaded the attachments on this thread. How do you compile the .mexmaci64 files?
+          Thanks,
+          U. Ramirez
+      - +@isprivate: "0"
+        commentid: "14623"
+        comment_count: "23"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-13 10:24:28 +0200
+        thetext: |-
+          (In reply to U. Ramirez from comment #22)
+
+          the mexmaci64 files are part of the standard release. There should not be a reason to recompile them. But if you wish, you can use http://fieldtrip.fcdonders.nl/reference/ft_compile_mex.
+      - +@isprivate: "0"
+        commentid: "14624"
+        comment_count: "24"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-10-13 12:55:27 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #23)
+          mx[De]Serialize are not compiled with the SPM12 release (which contains a subset of the FieldTrip toolbox) as SPM should not make use of them (let me know otherwise). If you want to use more FieldTrip functionalities, you should install a full copy of it.
+      - +@isprivate: "0"
+        commentid: "14625"
+        comment_count: "25"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-13 17:08:20 +0200
+        thetext: "(In reply to Guillaume from comment #24)\n\nmxSerialize are used for provenance tracking and therefore called by all high-level FT functions. This is done in \n\nfieldtrip/utilities/private/ft_preamble_provenance.m and\nfieldtrip/utilities/private/ft_postamble_provenance.m\n\nwhich call the mxSerialize.m file.\n\nThis detailed aspect of the provenance tracking is actually not so important to have FT/SPM break on the occasional computer. I will adapt the code so that it does not error if the mex files are missing.  \n\nmac011> svn commit \nSending        private/ft_postamble_provenance.m\nSending        private/ft_preamble_provenance.m\nTransmitting file data ..\nCommitted revision 9900.\n\nI am working on getting a virtual machine with win32 and matlab2014a on which I should be able to compile the mex files."
+      - +@isprivate: "0"
+        commentid: "14626"
+        comment_count: "26"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-13 17:10:09 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #25)
+
+          oh, to debug you can simply do
+
+           ft_timelockanalysis([], ft_freqsimulation([]))
+
+          which would error in case the mex file was missing. With the latest version of FT it does not error any more.
+      - +@isprivate: "0"
+        commentid: "14627"
+        comment_count: "27"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-10-13 18:25:18 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #25)
+          SPM initialises FieldTrip this way:
+            ft_defaults;
+            global ft_default
+            ft_default.trackcallinfo = 'no';
+            ft_default.showcallinfo = 'no';
+          That's why I'm not expecting mx[De]Serialize to be ever called. I'd be interested to hear if there are situations where it might still happen.
+      - +@isprivate: "0"
+        commentid: "14628"
+        comment_count: "28"
+        who:
+          +content: ramirez_u
+          +@name: U. Ramirez
+        bug_when: 2014-10-14 15:58:50 +0200
+        thetext: "(In reply to Guillaume from comment #27)\n\nWhen I run spm_eeg_ft_multitaper_powermap through the GUI, I get the following error (with or without adding the mx(de)serialize_cpp.mexmaci64 to the wpm/external/fieldtrip/fileio/private folder): \n\nUndefined function 'mxSerialize_cpp' for input arguments of\ntype 'struct'.\n\nError in mxSerialize (line 35)\n  argout = mxSerialize_cpp(argin);\n\nError in ft_preamble_provenance (line 74)\n    cfg.callinfo.inputhash{iargin} =\n    CalcMD5(mxSerialize(tmparg));\n\nError in ft_preamble (line 54)\n  evalin('caller', ['ft_preamble_' cmd]);\n\nError in ft_timelockanalysis (line 96)\nft_preamble provenance data\n\nError in spm_eeg_ft_multitaper_powermap (line 89)\ndata = ft_timelockanalysis(cfg, data);\n\nError in spm_MEEGtools (line 39)\neval(fun);\n\nError in spm (line 1002)\n    evalin('base',xTB(i).prog);\n \nError while evaluating uicontrol Callback"
+      - +@isprivate: "0"
+        commentid: "14629"
+        comment_count: "29"
+        who:
+          +content: g.flandin
+          +@name: Guillaume
+        bug_when: 2014-10-14 17:59:06 +0200
+        thetext: |-
+          (In reply to U. Ramirez from comment #28)
+          Thanks for this.
+          The error should disappear if you make sure to run the following beforehand:
+          >> spm('defaults','eeg');
+          Robert's change in FieldTrip r9900 should also make it easier for SPM functions to call FieldTrip functions without requiring compiled mx[De]Serialize.
+      - +@isprivate: "0"
+        commentid: "14630"
+        comment_count: "30"
+        who:
+          +content: ramirez_u
+          +@name: U. Ramirez
+        bug_when: 2014-10-15 11:09:31 +0200
+        thetext: "(In reply to Guillaume from comment #29)\n\nThnks for your help, but I'm afraid typing \n>>spm('defaults','eeg'); \nisn't making a difference."
+      - +@isprivate: "0"
+        commentid: "14680"
+        comment_count: "31"
+        attachid: "671"
+        who:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        bug_when: 2014-10-21 16:40:10 +0200
+        thetext: |-
+          Created attachment 671
+          mxSerialize compiled for 32-bit windows in Matlab R2014a
+      - +@isprivate: "0"
+        commentid: "14681"
+        comment_count: "32"
+        attachid: "672"
+        who:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        bug_when: 2014-10-21 16:40:59 +0200
+        thetext: |-
+          Created attachment 672
+          mxDeserialize.cpp compiled for Matlab R2014a
+      - +@isprivate: "0"
+        commentid: "14682"
+        comment_count: "33"
+        who:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        bug_when: 2014-10-21 16:41:42 +0200
+        thetext: "(In reply to Xose Lorenzo from comment #20)\nDear Robert,\nsorry for the late response. \n\nI am not sure if it is useful anymore, but I did compile the mxSerialize_cpp for 32-bit windows.\n\nI attach them in case. They worked fine for me in Matlab R2014a.\n\nRegards,\n\nJose"
+      - +@isprivate: "0"
+        commentid: "14683"
+        comment_count: "34"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-21 17:59:24 +0200
+        thetext: |-
+          (In reply to Xose Lorenzo from comment #33)
+
+          thanks, certainly useful! I am still awaiting my 32 bit windows installation.
+
+          I have added them to the FT release.
+
+          mac011> svn commit
+          Adding  (bin)  fileio/private/mxDeserialize_cpp.mexw32
+          Adding  (bin)  fileio/private/mxSerialize_cpp.mexw32
+          Adding  (bin)  private/mxDeserialize_cpp.mexw32
+          Adding  (bin)  private/mxSerialize_cpp.mexw32
+          Adding  (bin)  src/mxDeserialize_cpp.mexw32
+          Adding  (bin)  src/mxSerialize_cpp.mexw32
+          Adding  (bin)  utilities/private/mxDeserialize_cpp.mexw32
+          Adding  (bin)  utilities/private/mxSerialize_cpp.mexw32
+          Transmitting file data ........
+          Committed revision 9921.
+      - +@isprivate: "0"
+        commentid: "14850"
+        comment_count: "35"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-11-13 17:01:34 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #34)
+
+          Time to close: I believe that the required mex files now exist for the desired platforms.
+      - +@isprivate: "0"
+        commentid: "15231"
+        comment_count: "36"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:19 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "599"
+        date: 2014-03-11 15:40:00 +0100
+        delta_ts: 2014-03-11 15:40:20 +0100
+        desc: mx[de]Serialize_cpp.mexmaci64
+        filename: mxSerializeCPP.zip
+        type: application/octet-stream
+        size: "2041"
+        attacher:
+          +content: i.andolina
+          +@name: Ian Andolina
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "671"
+        date: 2014-10-21 16:40:00 +0200
+        delta_ts: 2014-10-21 16:40:10 +0200
+        desc: mxSerialize compiled for 32-bit windows in Matlab R2014a
+        filename: mxSerialize_cpp.mexw32
+        type: application/x-ms-dos-executable
+        size: "6656"
+        attacher:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "672"
+        date: 2014-10-21 16:40:00 +0200
+        delta_ts: 2014-10-21 16:40:59 +0200
+        desc: mxDeserialize.cpp compiled for Matlab R2014a
+        filename: mxDeserialize_cpp.mexw32
+        type: application/x-ms-dos-executable
+        size: "6656"
+        attacher:
+          +content: xose.lorenzo
+          +@name: Xose Lorenzo
+        data: REMOVED

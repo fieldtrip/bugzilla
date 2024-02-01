@@ -1,0 +1,205 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3048"
+    creation_ts: 2016-01-18 18:03:00 +0100
+    short_desc: randomseed functionality was removed from ft_statistics_montecarlo in 2013. why?
+    delta_ts: 2019-08-10 12:32:21 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16639"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-18 18:03:18 +0100
+        thetext: "Hello,\n\n(I think this is addressed initially to JM as he made the changes in 2013 that I'm questioning):\n\nOn Nov 7, 2013 I see this change on github:\nhttps://github.com/fieldtrip/fieldtrip/commit/322a457727062b33e461ab41eb1e278e94c8ebc4\n\nin particular, the old-line 186 the lines were commented out of actually taking the value from the cfg.randomseed and resetting the seed if/as requested.   The new lines were added near the top (around line 100) to set the value of cfg.randomseed (but nothing is done with that).\n\nThen on Nov 14, 2013 I see this change: \nhttps://github.com/fieldtrip/fieldtrip/commit/9162e2e53b48804d6594b5150543fd33ec3475a6 \n(but I don't think this affects things too much).\n\nThen on Oct 2, 2014, the getopt line is removed (fair enough, as cfg.randomseed is now obsolete):\nhttps://github.com/fieldtrip/fieldtrip/commit/50238a3f4127d41d37de03d95e2f152e024937bf\n\nMy question is: why was the resetting of the seed and use of cfg.randomseed for this function removed?   It has just caused a problem for me that I ran the same analysis 6 times expecting a difference and didn't get it, but only just realised that it was due to running it on 6 brand-newly-opened Matlab sessions each time (in which case the seed is always reset the same).\n\nShouldn't the seed be randomly reset by default, even if the cfg.randomseed option is removed?   If not, why not?\n\nThank you,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "16640"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-19 09:08:22 +0100
+        thetext: |-
+          Hmmm, those are all valid questions indeed. Of which I don't know the answer :o).
+          It could be that your diagnosis is not the whole historical story. I vaguely remember that at some point in time the random seed handling was taken care of by ft_preamble_randomseed. Yet I don't see a trace of this in the current code. Perhaps in previous versions on github.
+          In general I'd say that the option should be configureable by the user, and that it should have an effect. It would indeed have most sense to handle this at the level of ft_statistics_montecarlo instead of e.g. at the level of ft_freqstatistics/timelockstatistics
+      - +@isprivate: "0"
+        commentid: "16641"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 09:13:29 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+
+          I see that it appears to be used in two high-level functions, but inconsistent:
+
+          mac011> grep randomseed *.m
+          ft_componentanalysis.m:%   cfg.randomseed   = integer seed value of user's choice
+          ft_componentanalysis.m:%   cfg.randomseed   = comp.cfg.callinfo.randomseed (from previous call)
+          ft_componentanalysis.m:ft_preamble randomseed
+          ft_componentanalysis.m:ft_postamble randomseed
+          ft_statistics_montecarlo.m:%   cfg.randomseed       = string, 'yes', 'no' or a number (default = 'yes')
+          ft_statistics_montecarlo.m:%cfg.randomseed   = ft_getopt(cfg, 'randomseed',   'yes');
+          ft_statistics_montecarlo.m:% if strcmp(cfg.randomseed, 'no')
+          ft_statistics_montecarlo.m:% elseif strcmp(cfg.randomseed, 'yes')
+          ft_statistics_montecarlo.m:%   rand('state',cfg.randomseed);
+
+          there is the utilities/private/ft_preamble_randomseed script, and the corresponding ft_postamble_randomseed script, which picks up (at the end) the seed that was used at the beginning.
+
+          I think that ft_statistics_montecarlo should also be calling the pre and postamble and should not be doing it in its own code.
+      - +@isprivate: "0"
+        commentid: "16642"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 09:15:46 +0100
+        thetext: 'While considering this: it would be good to check which other high-level functions might benefit from consistent random seeds. I think those are ft_connectivitysimulation, ft_dipolesimulation, ft_freqsimulation.'
+      - +@isprivate: "0"
+        commentid: "16643"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-19 09:32:45 +0100
+        thetext: |-
+          it seems that ft_componentanalysis already uses ft_preamble randomseed.
+          (my local version is not in sync with the repo, but that relates to the dealing with the random number generator in runica. I'll commit this shortly.
+
+          @Robert: do you see a problem in ft_statistics_montecarlo calling pre and postambles?
+          Currently, it does not seem to do so.
+
+          I guess the cleanest way would be to include this pre/postamble pair in the relevant high level functions:
+          -ft_componentanalysis
+          -ft_dipolesimulation
+          -ft_connectivitysimulation
+          =ft_statistics_montecarlo
+          -ft_freqsimulation
+
+          The only thing left to consider (but I don't know whether this would be a problem) is that the preamble is typically called prior to the cfg handling, or does the preamble script also allow for some default settings?
+      - +@isprivate: "0"
+        commentid: "16644"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 09:34:31 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          don't see a problem for statistics_montecarlo doing the p-ambles. You should check however that the low-level cfg options are passed properly in to the high level output with the provenance rollback.
+
+          I am right now working on the three simulation functions and a test script.
+      - +@isprivate: "0"
+        commentid: "16645"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 09:39:43 +0100
+        thetext: "mac011> svn commit test/test_bug3048.m ft_*simulation*m \nSending        ft_connectivitysimulation.m\nSending        ft_dipolesimulation.m\nSending        ft_freqsimulation.m\nAdding         test/test_bug3048.m\nTransmitting file data ....\nCommitted revision 11080."
+      - +@isprivate: "0"
+        commentid: "16650"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-19 10:28:07 +0100
+        thetext: |-
+          [jansch@mentat001 fieldtrip]$ svn commit -m "enhancement - use pre/postamble randomseed for proper randomseed management" ft_statistics_montecarlo.m ft_timelockstatistics.m ft_freqstatistics.m ft_sourcestatistics.m test/test_bug3048.m
+          Sending        ft_freqstatistics.m
+          Sending        ft_sourcestatistics.m
+          Sending        ft_statistics_montecarlo.m
+          Sending        ft_timelockstatistics.m
+          Sending        test/test_bug3048.m
+          Transmitting file data .....
+          Committed revision 11081.
+
+          Hatsikedee!
+
+          Good to close?
+      - +@isprivate: "0"
+        commentid: "16651"
+        comment_count: "8"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-19 11:03:33 +0100
+        thetext: Thank you so much, both JM and Robert!  The addition of p-ambles will fix it for me.  Good to close, so long as Robert's point in comment 5 about the provenance rollback is taken care of?
+      - +@isprivate: "0"
+        commentid: "16652"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-19 11:10:03 +0100
+        thetext: |-
+          Yes, rollback_provenance is called within the ft_xxxstatistics functions to get the callinfo.randomseed at the right level in the cfg.
+
+          Happy to help!
+      - +@isprivate: "0"
+        commentid: "16653"
+        comment_count: "10"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2016-01-19 11:13:48 +0100
+        thetext: '''resolved''.  thanks again also for thinking outside this request for relevance to other functions as well!'
+      - +@isprivate: "0"
+        commentid: "16654"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 11:55:16 +0100
+        thetext: "I had a quick look at the test script, thanks @JM for adding the stats tests there as well!\n\nI made some small cleanups to the comments in that test file.\n\nmac011> svn commit test/test_bug3048.m \nSending        test/test_bug3048.m\nTransmitting file data .\nCommitted revision 11082."
+      - +@isprivate: "0"
+        commentid: "16656"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-19 12:12:59 +0100
+        thetext: "cfg.randomseed='yes' should be treated just like []\n\nmac011> svn commit utilities/private/randomseed.m \nSending        utilities/private/randomseed.m\nTransmitting file data .\nCommitted revision 11083."
+      - +@isprivate: "0"
+        commentid: "20124"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:32:21 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

@@ -1,0 +1,193 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2822"
+    creation_ts: 2015-02-02 14:32:00 +0100
+    short_desc: implement frequency domain MNE
+    delta_ts: 2019-08-10 12:31:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2851
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: luca.ambrogioni
+      +@name: Luca Ambrogioni
+    cc:
+      - eelke.spaak
+      - j.schoffelen
+      - tzvetan.popov
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15125"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-02 14:32:23 +0100
+        thetext: "This should basically extend the current implementation in (underneath) ft_sourceanalysis with the source estimation approach outlined in\n\nFa-Hsuan Lin, Thomas Witzel, Matti S. Hämäläinen, Anders M. Dale, John W. Belliveau, and Steven M. Stufflebeam. Spectral spatiotemporal imaging of cortical oscillations and interactions in the human brain. Neuroimage. 2004 October ; 23(2): 582–595. doi:10.1016/j.neuroimage.2004.04.027.\n\nIn first attempt it should remain consistent with the data handling for lcmv and disc and therefore not \n1) loop over frequencies\n2) loop over time\nbut those can be considered for later extensions.\n\nFurthermore, the connectivity part in the paper is not part of ft_sourceanalysis, but follows later in the pipeline with ft_connectivityanalysis. You should check that the output of the frequency domain MNE is suitable as input in ft_connectivityanalysis. If not, that requires another but to be opened."
+      - +@isprivate: "0"
+        commentid: "15379"
+        comment_count: "1"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-02-16 15:49:19 +0100
+        thetext: |-
+          2/16/2015
+
+          The current implementation of MNE (actually the ft_sourceanalysis function) can deal with the combination freq data/mne method by calling the function freq2timelock that converts the data structure in a (fake) timelock structure.
+
+          The all procedure doesn't give errors but the output should be transformed back to a freq structure (through timelock2freq), currently it doesn't and therefore the output of the all analysis doesn't make any sense.
+      - +@isprivate: "0"
+        commentid: "15380"
+        comment_count: "2"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-02-16 15:54:30 +0100
+        thetext: |-
+          From some comments in the documentation of timelock2freq ( "% hmmm... I have no idea whether this is correct", "% reconstruct something that spans the same space as the fft of the data, hmmm...") it seems that the author didn't have a completely clear idea of what he/she was doing :p
+
+          Anyway I think that we could avoid this hack altogether and write down a more elegant implementation, what do you think Robert?
+      - +@isprivate: "0"
+        commentid: "15382"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-16 20:56:19 +0100
+        thetext: |-
+          (In reply to Luca Ambrogioni from comment #1)
+
+          freq2timelock should not be used, that is a last resort for converting freq into timelock in cases where it is unexpected. It completely messes up the channel structure, since frequencies are mapped along channels, e.g.
+
+          {
+          'Cz@10Hz'
+          'Cz@11Hz'
+          'Cz@12Hz'
+          'Cz@13Hz'
+          'Cz@14Hz'
+          'Pz@10Hz'
+          'Pz@11Hz'
+          'Pz@12Hz'
+          'Pz@13Hz'
+          'Pz@14Hz'
+           ...
+          }
+
+          The data should be handled properly as freq throughout.
+      - +@isprivate: "0"
+        commentid: "15511"
+        comment_count: "4"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-03-09 14:33:03 +0100
+        thetext: |-
+          bash-4.1$ svn commit test/test_bug*m
+          Adding         test/test_bug2822.m
+          Transmitting file data .
+          Committed revision 10271.
+      - +@isprivate: "0"
+        commentid: "15583"
+        comment_count: "5"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-04-02 10:09:18 +0200
+        thetext: |-
+          I finished to update the MNE code for the freq input (I will submit it soon). Now the high level function "ft_sourceanalysis" should be updated accordingly:
+
+          -the Fourier spectrum input should be fed to "minimumnormestimate" as a channel times trials (or tapers) complex matrix
+
+          -the cross-spectral density input should be fed as a CSD matrix.
+
+          The code can automatically detect whether the input is a timeseries (real), fourier coefficients (complex) or a CSD (square, Hermitian and complex).
+
+          The freq2timelock function should not be called anymore. For now, a single frequency should be selected.
+      - +@isprivate: "0"
+        commentid: "15595"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-04-09 09:19:33 +0200
+        thetext: |-
+          /home/language/jansch/matlab/fieldtrip
+          [jansch@mentat002 fieldtrip]$ svn commit -m "enhancement - changes in bookkeeping and clean up of code to facilitate frequency domain data input to some methods" ft_sourceanalysis.m
+          Sending        ft_sourceanalysis.m
+          Transmitting file data .
+          Committed revision 10330.
+
+          I have made some updates to ft_sourceanalysis, which hopefully don't break the rest of the functionality. Right now, it should pass on the fourierspctrm to minimumnormestimate. I did not change minimumnormestimate because Luca has a version of his lined up to be committed. Could you pass that to me for a quick quality check so that we can commit, and continue working on it?
+
+          Note: the other methods 'rv' and 'music' need to be addressed as well.
+      - +@isprivate: "0"
+        commentid: "15596"
+        comment_count: "7"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-04-09 11:06:15 +0200
+        thetext: I just sent you the cose
+      - +@isprivate: "0"
+        commentid: "15960"
+        comment_count: "8"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-07-20 11:50:44 +0200
+        thetext: |-
+          Now all the source reconstruction methods (except for music) are implemented for frequency domain data.Right now they need a single frequency as input, therefore do not output the ful soure-level spectrum.
+
+          I think that this "bug" is ready to be closed.
+      - +@isprivate: "0"
+        commentid: "16009"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-19 15:33:23 +0200
+        thetext: |-
+          (In reply to Luca Ambrogioni from comment #8)
+
+          Could you update the test script to demonstrate that the time-domain and the frequency domain reconstructions are identical (up to a scaling constant) in case you generate time-series data that consists of a sine-wave modulated scalp topography?
+      - +@isprivate: "0"
+        commentid: "16366"
+        comment_count: "10"
+        who:
+          +content: luca.ambrogioni
+          +@name: Luca Ambrogioni
+        bug_when: 2015-11-16 11:17:03 +0100
+        thetext: The methods have been implemented
+      - +@isprivate: "0"
+        commentid: "20092"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:31:08 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."

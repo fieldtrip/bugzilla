@@ -1,0 +1,460 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1998"
+    creation_ts: 2013-02-20 12:19:00 +0100
+    short_desc: neuralynx CSC problem due to gaps in the acquisition
+    delta_ts: 2013-04-01 19:22:26 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to: fieldtriptoolbox
+    cc:
+      - g.dimitriadis
+      - martinvinck
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9475"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 12:19:56 +0100
+        thetext: "Martin Vinck reported:\n\nIn een klein % van CSC kom ik soms jumps in de tijdsas tegen. Dit kan met hunt errors te maken hebben bijv, of crashes in de neuralynx cheetah software waarna mensen als het ware weer appenden.\n\nEchter, onze huidige read_neuralynx_ lees functies zouden deze data verkeerd verwerken, en verkeerde relaties tussen spikes en LFPs afleiden.\n\nVolgens mij is het iets wat we moeten oplossen, bijv. door automatisch te detecteren of deze jumps in de data zitten.\nOf, misschien zelfs te overwegen om voor de Fieldtrip raw data structuur in het geval van neuralynx data ook een data.timestamp{iTrial} in te voeren\nwaarin timestamp informatie nog behouden wordt zodat we in alle functies waar we andere data in timestamps meten, het probleem goed op kunnen lossen \n(ik zou zelf een voorstander zijn van deze oplossing, maar vereist waarschijnlijk aanpassingen op vele niveaus bij ft_redefinetrial, ft_checkdata etc. dus niet triviaal)."
+      - +@isprivate: "0"
+        commentid: "9476"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-20 12:21:39 +0100
+        thetext: |-
+          I copied an example file from martin to
+
+          /home/common/matlab/fieldtrip/data/test/bug1998/CSC1.Ncs
+      - +@isprivate: "0"
+        commentid: "9509"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-21 23:49:41 +0100
+        thetext: Perhaps we should just detect the gaps and fill the missing data with NaNs, thereby solving the problem in the low-level functions instead the high-level ones?
+      - +@isprivate: "0"
+        commentid: "9510"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-22 10:43:44 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          The nan-filling has my preference.
+
+          Looking at the organization/nesting of the code:
+
+          read_neuralynx_ncs reads a single file and represents it as struct
+          read_neuralynx_ds reads a collection of ncs files and represents it as Nchan*Nsample matrix
+
+          1) if you read one channel/file with ft_read_data, read_neuralynx_ncs will be called.
+          2) if you read all channels in a directory with ft_read_data, read_neuralynx_ds will be called.
+
+          Easiest would therefore be to extend read_neuralynx_ncs such that it detects missing packets (of 512 samples each) and inserts a nan packet. That would work for situation 1 and 2.
+      - +@isprivate: "0"
+        commentid: "9516"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-23 09:15:25 +0100
+        thetext: It should then also check for the different chans if there are missing packets at the beginning or end and put NaN packets there whenever necessary.
+      - +@isprivate: "0"
+        commentid: "9528"
+        comment_count: "5"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-24 10:31:12 +0100
+        thetext: "It can actually occur that there's not an integer multiple of 512 missing (or integer multiple) but that the missing data is a non-integer number of sample. For example in the test file \n\nout = read_neuralynx_ncs('CSC1.Ncs');    \n[A,B,C]=unique(diff(double(out.TimeStamp)));\nA(2)/(528*512) = 108.5 [blocks]\n\nIf one rounds of this number then the whole LFP would be shifted 0.5 a second. So solving the problem by extending the 512 x nBlocks matrix column-wise could result in errors.\n\nAnother problem is the sampling frequency of the neuralynx system. The Fs in the header is rounded off. For example, in the test file, the exact number of timestamps per second is 528 as it is very regular across blocks. The only way to reconstruct this number 528 is by examining the typical size of the blocks. That works for this example because we can see what's typical.\nHowever, this is not the case in all NCS files, where sometimes the number of timestamps per block is varying with one block size being one timestamp longer than the others."
+      - +@isprivate: "0"
+        commentid: "9529"
+        comment_count: "6"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-24 10:50:39 +0100
+        thetext: ft_read_header should also be adjusted as it does not correctly compute the number of timestamps per samples at the moment then.
+      - +@isprivate: "0"
+        commentid: "9530"
+        comment_count: "7"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-24 11:05:22 +0100
+        thetext: Another issue is the fact that ft_read_data selects a certain range of samples. But if we append with NaNs, then how should this input be interpreted? And, how should the user construct the trl matrix? Does it even make sense to make a trl based on samples for neuralynx data when we start interpolating based on the true clocking information (timestamps) and when the events have also been measured in timestamps.
+      - +@isprivate: "0"
+        commentid: "9531"
+        comment_count: "8"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-24 11:18:00 +0100
+        thetext: |-
+          The current flow of recording / reading out would be / become:
+
+          1) The user records data in timestamp units (events, LFP, spikes).
+          2) It then has to construct, based on the header, which samples to select for the LFP, based on events measured in timestamp units.
+          3) The header information itself does not inform us about the conversion of timestamps to samples, as there can be missing data and since the TimeStampsPerSample can not be gauged from the header itself. So, to allow the user to construct a correct cfg.trl we would have to read in the complete data first to see which missing data there is and get the TimeStampsPerSample.
+
+          Seems unnecessarily complicated to me.
+      - +@isprivate: "0"
+        commentid: "9533"
+        comment_count: "9"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-24 17:43:12 +0100
+        thetext: "I made some script (should go in read_neuralynx_ncs) that does the filling of the gaps.\n\nFor the test file, the filling in the end causes an error of 150 Timestamps (0.15 millisecond) because there's a gap in the data that's not 512 x k samples.\n\nAnother question is how to detect the gaps automatically.\nIn this case, I detected a gap based on rounding the sampling frequency 1 Hz downwards, and then overestimating the number of timestamps per samples, and multiplying by 512 to get the max size of a block. I guess, if there are gaps, they will exceed this number anyway, but the actual gaps should never exceed this number, as the size of a block in TimeStamps would be (10^6./Fs)*512.\nThat is, assuming that there can be no smaller, irregular jumps between blocks (with neuralynx we have to consider any possibility).\n\nNow, one would need this code actually to get the appropriate header information. For example, on the test file, one would obtain \n5.280000092487168e+02 empirically, while 528 would be the correct number of timestamps per sample. The error in that case would be acceptable.\nWe should probably feed back some warning message to the user if the number of timestamps per sample has been changed because of gaps in the recording.\n\n------\nThe code:\n\n% automatically detect the gaps; there's a gap if no round off error of the sampling frequency could explain the jump (which is always > one block)\nFs     = unique(SampFreq);\nif length(Fs)>1, \n  error('there is more than one unique sampling frequency in the data, FieldTrip cannot handle this'); \nend\nd        = [diff(double(TimeStamp))];\nmaxJump  = ceil(10^6./(Fs-1))*512;\nhasJump  = (d>=maxJump);\n\n% determine the number of timestamps per sample based on the regular jumps\nmeanJump = nanmean(d(~hasJump));\n\n% determine the number of timestamps per sample\nTimeStampsPerSample = meanJump/512;\n\n% make the data long and continuous\ngapIndx = find(hasJump);\nnGaps   = length(gapIndx);\ndatAll  = [];\nlastGap = 1;\nfor iGap = 1:nGaps  \n  gapInd = gapIndx(iGap);\n  datBeforeGap = Samp(:,lastGap:gapInd);\n  \n  % construct the data after the gap\n  nBlocks  = (d(gapInd)/TimeStampsPerSample/512);\n  if nBlocks~=round(nBlocks)\n    warning('gaps in %s are not an integer multiple of 512 (block size)', filename);\n  end\n  nSamples = round(-512 + d(gapInd)/TimeStampsPerSample);\n  datAfterGap = NaN(1,nSamples);\n  \n  datAll  = [datAll;datBeforeGap(:);datAfterGap(:)];\n  lastGap = gapInd+1; \nend\ndatBeforeGap = Samp(:,lastGap:end);\ndatAll  = [datAll;datBeforeGap(:)];"
+      - +@isprivate: "0"
+        commentid: "9534"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-24 21:26:20 +0100
+        thetext: "(In reply to comment #5)\n\n> Another problem is the sampling frequency of the neuralynx system. The Fs in\n> the header is rounded off. For example, in the test file, the exact number of\n> timestamps per second is 528 as it is very regular across blocks. \n\nHow do you know that the 1893 Hz is rounded off?\n\nThe Nijmegen system has approx 30.8 timestamps per sample, when sampling at 32566 Hz. If you look at the *.nrd file (the dma log file), you can see the TS increasing with 31 most of the time, and 30 occasionally. \n\nThe timestamps are the ticks of an internal clock at approximately 1 MHz. \n1MHz/528 = 1.8939e+06 (rounded it is 1894).\nI don't know whether it is a 1,000,000 Hz clock with a smaller-than 1Hz accuracy, or a  1000 KHz clock with a smaller-than 1KHz accuracy, or (theoretical) a clock that is somewhere between 0.51 and 1.49 MHz.\nFrom the numbers it seems that the timestamp clock runs at 1893*528=1000032 ticks per second, which is very close to the 1MHz that I expect.\n\nOr do you have more precise information as to the clock?"
+      - +@isprivate: "0"
+        commentid: "9535"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-24 21:52:15 +0100
+        thetext: "(In reply to comment #6)\n\nSince a single file can have non-512 sample gaps, and multiple files go together, the files can all have different random gaps. That is not something that I consider wise to fix in the low-level code.\n\nA completely different strategy is to consider\n\nhdr = ft_read_header('CSC1.Ncs')\nwith\nhdr.nChans = 2\nhdr.label = {'data', 'timestamp'}\n\nand \ndat = ft_read_data('CSC1.Ncs');\ndat = 2*hdr.nSamples which is a multiple of 512.\n\nOr perhaps not with 2 channels, but rather something like\n\ndat = ft_read_data('CSC1.Ncs', 'timestamp', true|false);\n\nto read a 1*hdr.nSamples vector with timestamps.\n\nThen you can do \nVq = interp1(X,V,Xq)\nwith X+V the timestamps and data, and Xq+Vq the desired timestamps and data.\n\nrepeat over all channels, keep the same Xq for all. Look up the timestamps from the events in Vq for the sample. Then you can represent all continuously interpolated channels in a raw data structure, and use ft_redefinetrial to segment the desired pieces. So rather than representing continuous samples on disk, they get represented in the raw data structure.\n\n...\n\nI implemented it in the 2nd approach, i.e. you can request timestamps instead of data. Have a look at the code in this commit:\n\nroboos@mentat001> svn commit ft_read_data.m \nSending        ft_read_data.m\nTransmitting file data .\nCommitted revision 7539."
+      - +@isprivate: "0"
+        commentid: "9536"
+        comment_count: "12"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 06:50:52 +0100
+        thetext: "(In reply to comment #10)\n\nI was saying there's a round-off in the sense that \na) Neuralynx claims timestamps correspond to microseconds\nb) The sampling frequency is in Hz\nc) Fs * TimeStampsPerSecond can differ quite strongly from the 10^6, e.g. for this test file, 1893*528 = 999504. That's quite a big difference, in fact the Fs should have been 1894 to match. \n\nImplications:\ni)  Either statement (a) or (b) is wrong. I've asked Neuralynx several times, and even they don't seem to know which one is more true.\nii) There's no a-priori way to determine the number of timestamps per sample, unfortunately. This means we must determine it from the data (as it is currently done in FieldTrip)."
+      - +@isprivate: "0"
+        commentid: "9537"
+        comment_count: "13"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 07:06:16 +0100
+        thetext: "(In reply to comment #11)\n\nOk, but where does that bring us?\n\nIf the user calls ft_preprocessing for an Ncs file, then the time axis is wrong in some cases.\n\nIf the user calls it and there are no gaps, we can proceed as usual.\n\nIf the user calls it and there are gaps, then we should fix this issue at the level of ft_preprocessing, right?\nAre you suggesting we do that using interpolation at the level of ft_read_data / ft_preprocessing? \nSo you would designate a continuous axis of timestamps at the same number of timestamps per second, running from the first possible to the last possible timestamp? \n\nThe other issue, as I said, is that the user enters cfg.trl based on some supposed conversion of timestamps to samples. It needs to have the right header info to do that (currently it might have the wrong one, as with the test file).\n\nSo what we would have to do, I think, is:\n\ni) It would be a neat option to allow the user to enter the cfg.trl field in timestamps as well at the level of ft_preprocessing, and we take care of the conversion to samples, especially considering most people working with plx / nlx files have their trial information in timestamps. I have the idea this would help people a lot.\n\nii) If the user does select the trials in samples and there are gaps, we should at least issue a warning.\n\niii) We should fix the ft_read_header function (as the TimeStampsPerSample field is wrong, currently)."
+      - +@isprivate: "0"
+        commentid: "9538"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-25 09:55:05 +0100
+        thetext: "(In reply to comment #13)\n\n> Ok, but where does that bring us?\n> ...\n> Are you suggesting we do that using interpolation at the level of ft_read_data/ft_preprocessing? \n\nI am suggesting that certain problems are not easy to solve in the fieldtrip low-level code, but can more easily be solved by the user himself. In this case there is an ambiguity between samples (what FT uses) and timestamps (that need to be correct in this case).\n\nIn this case I can imagine an example script on the wiki that explains how to do the preprocessing.\n\nfilename = '/home/common/matlab/fieldtrip/data/test/bug1998/CSC1.Ncs'\nhdr = ft_read_header(filename);\ndat = ft_read_data(filename);\nts = ft_read_data(filename, 'timestamp', 1)\ndts = ts(2)-ts(1)\ntsq = ts(1):dts:ts(end);\ndatq = interp1(ts, dat, tsq);\ndata = [];\ndata.time{1} = (tsq-ts(1))/(tsq*hdr.Fs);\ndata.trial{1} = datq;\ndata.label = {'CSC1'}\ndata = ft_checkdata(data);\n\nrepeat for all channels and call ft_appenddata to combine them. Then use ft_definetrial and ft_redefinetrial to segment the data.\n\nThe reason for me not being convinced to solve it in the low-level code is that it affects the neuralynx_ncs, the neuralynx_ds and the neuralynx_cds representations. If fieldtrip tries to be smart, it might get more confusing for the reared. So rather than the code being smart, we can explain it and have the user understand+solve it. Fieldtrip then remains consistent in using samples, not timestamps. If the user needs the timestamps to be correct and not the samples, he has to work around this part.\n\nPlease have a look at \nmac001> svn commit read_neuralynx_ncs.m\nSending        read_neuralynx_ncs.m\nTransmitting file data .\nCommitted revision 7541."
+      - +@isprivate: "0"
+        commentid: "9539"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-25 09:57:52 +0100
+        thetext: "(In reply to comment #13)\n\n> If the user calls ft_preprocessing for an Ncs file, then the time axis is wrong\n> in some cases.\n\nIn FT, time is always expressed as reflecting samples on disk relative to the start of the recording. The same \"incorrect\" representation in the time axis after ft_preprocessing happens for all other formats that allow for the recording to be paused. \n\nThe thing is that normally people understand that a pause in acquisition means that some data will not be represented on disk, whereas with the neuralyx system it is a glitch of the system and not something the user wants (or knows about)"
+      - +@isprivate: "0"
+        commentid: "9540"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-25 10:12:26 +0100
+        thetext: "(In reply to comment #12)\n\n> a) Neuralynx claims timestamps correspond to microseconds\n\nAnd what do they claim as accuracy of the timestamps? Is a timestamp\n\n1          microsecond\n1.00     microsecond\n1.0000 microsecond\n\nIn the first case, it might be anything between 0.51 and 1.49\nIn the second case it might be between 0.9951 and 1.0049\netc.\n\nThe problem is not that it is wrong, but that it is expressed with a limited precision. It might well be that a timestamp is 1 us, but if you measure how long 1000000 timestamps take, that it is 1.0005 seconds rather than the 1.0000 seconds you had expected. \n\nIf I buy a liter of milk, I don't expect it to be precisely 1000000 microliter. \n\nIn this case the timestamps in the file suggest that there are 528 per sample. The file also suggests that there are 1893 samples per second. If we stick to these numbers rather than trying to reconcile them with imprecise claims from neuralynx documentation, we do not run into problems with analysis. The only thing is that we might be claiming that gamma is at 40.000 Hz, whereas in reality it happens at 40.020 Hz (or at 39.980 Hz).\n\nThis limited precision thing is something that Thilo and I carefully considered in the past and I still believe that the implementation chosen for fieldtrip is appropriate. It does not fix the problem that neuralynx does not specify the imprecision. But it causes errors not to accumulate. Accumulating errors are a much more serious problem."
+      - +@isprivate: "0"
+        commentid: "9541"
+        comment_count: "17"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 10:40:03 +0100
+        thetext: |-
+          (In reply to comment #16)
+
+          They claim the accuracy of the timestamp is microsecond, and that the inaccuracy may well be in the Fs. You are right, that in terms of interpretation of time, it does not matter so much, as long as the recording is continuous in sampling frequency.
+      - +@isprivate: "0"
+        commentid: "9542"
+        comment_count: "18"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 10:54:49 +0100
+        thetext: "(In reply to comment #15)\n\nThis is indeed an option to leave it to the user, and to issue a warning that the .time information is not correct as it does now. \n\nThe current code in read_neuralynx_ncs will produce errors though, since the number of timestamps per sample block is normally varying already with fluctuations of +1 / -1 or so.\n\nThe code you put here for example to do the interpolation is not correct (as it ignores these fluctuations, one needs a detection of gaps and regular timestamp differences to compute the number of timestamps per second correctly, then in order to link samples to timestamps in putting a cfg.trl one first has to detect the gaps, regular timestamp differences then do the interpolation etc. - I think this is quite complicated and we should ideally not leave it to the user).\n\nIt also leaves the issue that the header information is wrong (as it can really mis-estimate TimeStampsPerSample)."
+      - +@isprivate: "0"
+        commentid: "9548"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-25 16:42:53 +0100
+        thetext: |-
+          (In reply to comment #18)
+
+          > The current code in read_neuralynx_ncs will produce errors though, since the
+          > number of timestamps per sample block is normally varying already with
+          > fluctuations of +1 / -1 or so.
+
+          The code presently allows for a 1% deviation, which is more than 2 per 528. Should we reduce it? To what value?
+      - +@isprivate: "0"
+        commentid: "9549"
+        comment_count: "20"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-25 16:49:57 +0100
+        thetext: "(In reply to comment #18)\n\nThe header is not wrong, but the time-stamp axis is. The header represents the time stamps as a monotonous increasing vector y=a*x+b with parameters a and b, whereas it has jumps in the file. So the timestamps from the neuralynx file cannot be reproduced with the fieldtrip header. \n\nI cannot help it that the neuralynx software is so sh*tty.\n\nI suggest that you write the example page that explains how to do the interpolation, staring from my code in comment 14 and improving it where needed. \n\nThen the only thing that remains to be done is to improve the gap-detection."
+      - +@isprivate: "0"
+        commentid: "9550"
+        comment_count: "21"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 17:54:09 +0100
+        thetext: "Hi Robert, \n\nOK, I will get this done, and document clearly how to handle and check for different problems with Neuralynx Ncs files.\n\nYou see the bigger FieldTrip picture better than me ;), so I'll trust on your instinct to do it this way then."
+      - +@isprivate: "0"
+        commentid: "9553"
+        comment_count: "22"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-02-25 18:54:54 +0100
+        thetext: |-
+          (In reply to comment #19)
+
+          If Fs is around 10000 or so, the current code in ft_read_neuralynx will perhaps fail, as 1% of 100 timestamps per sample = 1 timestamp per sample difference which can occur. Especially since you detect it on ts2-ts1.
+
+          My suggestion would be to detect the gaps based on reading out all the timestamps for the complete recording as in Comment 9 (expect that we don't have to read in the data itself). One can then also return a more informative warning message to the user telling where the suspected gaps are and how large they are.
+
+          Agree?
+      - +@isprivate: "0"
+        commentid: "9612"
+        comment_count: "23"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 14:54:27 +0100
+        thetext: I do not understand why in ft_read_data you currently don't output the raw timestamps. It seems to me that this is required to do any correct interpolation / resampling.
+      - +@isprivate: "0"
+        commentid: "9613"
+        comment_count: "24"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 14:55:58 +0100
+        thetext: |-
+          (In reply to comment #23)
+
+          Forget the last comment; it does construct an axis based on the raw ts which we have 1 for every block. However it seems more appropriate to estimate the number of timestamps not using the median as there can be alternations per block.
+      - +@isprivate: "0"
+        commentid: "9614"
+        comment_count: "25"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 15:26:21 +0100
+        thetext: |-
+          I changed the gap detection and updated the ft_read_data, please have a look at 7563.
+
+          Will put the interpolation in there now based on this.
+      - +@isprivate: "0"
+        commentid: "9615"
+        comment_count: "26"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 16:02:15 +0100
+        thetext: "An interpolation script could be something like this.\nOne can extend this to multiple channels that may have different beginnings or not.\nIt may still be implemented like this in the ft_read_data / read_neuralynx_ncs\n/ read_neuralynx_ds combination.\n\nFor now, where should this be in the wiki?\n\n\n[dat]     = ft_preprocessing(cfg);\nts        = ft_read_data(cfg.datafile, 'timestamp', 'true'); % raw timestamps\n\nd         = diff(double(ts(1,:)));\nmaxJump   = ceil(10^6./(hdr.Fs-1))*512;\ndts       = nanmean(d(d<maxJump))/512;\n\ntinterp   = ts(1):dts:ts(end); \nnchan     = length(dat.label);\ndatinterp = zeros(nchan,length(tinterp));\nfor ichan = 1:nchan\n  datInterp(ichan,:) = interp1(ts, dat.trial{1}(ichan,:), tinterp);    \nend\n\n% make sure to set some subparts of the data to NaNs, in case the timestamps fall between the gaps.\ngaps      = find(diff(ts)>dts);\nfor igap = 1:length(gaps)\n  set_to_NaN = tinterp < ts(gaps(igap)+1) & tinterp > ts(gaps(igap));\n  datInterp(:,set_to_NaN) = NaN;\nend\n  \ndat.trial{1} = datInterp;\ndat.time{1}  = (tinterp - ts(1)) / (hdr.Fs .* dat.hdr.orig.GapCorrectedTimeStampPerSample);"
+      - +@isprivate: "0"
+        commentid: "9616"
+        comment_count: "27"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 16:05:14 +0100
+        thetext: "Here's the corrected version.\nOne is calling the read_neuralynx_ncs in the end now.\nFrom that I'm outputting GapCorrectedTimeStampPerSample\nwhich can be used here immediately to construct the interpolated time-axis.\n\n[dat]     = ft_preprocessing(cfg);\nts        = ft_read_data(cfg.datafile, 'timestamp', 'true'); % raw timestamps\ndts       = dat.hdr.orig.GapCorrectedTimeStampPerSample;\ntinterp   = ts(1):dts:ts(end); \nnchan     = length(dat.label);\ndatinterp = zeros(1,length(tinterp));\nfor ichan = 1:nchan\n  datInterp(1,:) = interp1(ts, dat.trial{1}(1,:), tinterp);    \nend\n\n% make sure to set some subparts of the data to NaNs, in case the timestamps fall between the gaps.\ngaps      = find(diff(ts)>dts);\nfor igap = 1:length(gaps)\n  set_to_NaN = tinterp < ts(gaps(igap)+1) & tinterp > ts(gaps(igap));\n  datInterp(:,set_to_NaN) = NaN;\nend\n\ndat.trial{1} = datInterp;\ndat.time{1}  = (tinterp - ts(1)) / (dat.hdr.Fs .*dts);"
+      - +@isprivate: "0"
+        commentid: "9617"
+        comment_count: "28"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 16:07:09 +0100
+        thetext: Hi Robert, could you upload the test file perhaps such that I can refer to it on the Wiki?
+      - +@isprivate: "0"
+        commentid: "9618"
+        comment_count: "29"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-03 16:17:04 +0100
+        thetext: I've put this on the http://fieldtrip.fcdonders.nl/getting_started/neuralynx site and put also a link on the spike-LFP tutorial to this link.
+      - +@isprivate: "0"
+        commentid: "9653"
+        comment_count: "30"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 13:49:57 +0100
+        thetext: "As reported in Bug 2029, there's a speed decrease after the changes I made (basically because I detect the gaps in the recording explicitly by accessing all the timestamps for all the recorded blocks. \n\nQuestion is whether there's a smarter way to detect the gaps.\n\nProblem:\n\nIf we read out only the timestamp duration of the first block and compare this to the timestamp duration of the complete recording one can have the problem that the first timestamp duration can be off by 1 or 2 (as Neuralynx assigns different # of timestamps per block which can vary - it's basically shitty software/hardware) - there's no clean way of detecting gaps then \n\nPerhaps a better strategy would be to read in e.g. the first 100 blocks or so (for those, we can already detect whether there's a gap or not) and then estimate number of timestamps per block based on that, which can then be compared to the total recording?"
+      - +@isprivate: "0"
+        commentid: "9655"
+        comment_count: "31"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:03:45 +0100
+        thetext: "(In reply to comment #30)\n\nI'm thinking of a code like this for read_neuralynx_ncs, this would only increase the read out speed very little: \n\n    \n  % read out part of the dataset to detect whether there were jumps\n  numrecord    = NRecords;\n  TimeStamp    = zeros(1,numrecord,'uint64');\n  ChanNumber   = zeros(1,numrecord);  \n  SampFreq     = zeros(1,numrecord);\n  NRecords_to_read = max(NRecords, 100); % read out at least 100 blocks of data\n\n  for k=1:NRecords_to_read\n    \n    % set to the correct position    \n    status = fseek(fid, headersize + (k-1)*recordsize, 'bof');        \n    if status~=0\n      error('cannot jump to the requested record');\n    end\n\n    % read a single continuous data record\n    TimeStamp(k)    = fread(fid,   1, 'uint64=>uint64');\n    ChanNumber(k)   = fread(fid,   1, 'int32');\n    SampFreq(k)     = fread(fid,   1, 'int32');    \n  end\n  \n  % for this block of data: automatically detect the gaps; \n  % there's a gap if no round off error of the sampling frequency could\n  % explain the jump (which is always > one block)\n  Fs       = nanmin(SampFreq);\n  if Fs~=hdr.SamplingFrequency\n    warning('the sampling frequency as read out from the header equals %2.2f and differs from the minimum sampling frequency as read out from the data %2.2f\\n', ...\n      hdr.SamplingFrequency, Fs);\n  end\n  \n  d        = diff(double(TimeStamp));\n  maxJump  = ceil(10^6./(Fs-1))*512; % this is the maximum jump in timestamps, otherwise there is a very strong indication there's a gap\n\n  hdr.GapCorrectedTimeStampPerSample =  nanmean(d(d<maxJump))/512;    \n\n  % read the timestamp from the first and last record\n  ts1 = neuralynx_timestamp(filename, 1);\n  tsE = neuralynx_timestamp(filename, inf);  \n  hdr.FirstTimeStamp  = ts1;\n  hdr.LastTimeStamp   = tsE;\n  \n  % compare whether there's at least a block missing\n  minJump = min(d);\n  ts_range_predicted = (NRecords-1)*512*hdr.GapCorrectedTimeStampPerSample;\n  ts_range_observed  = double(tsE-ts1);\n  if abs(ts_range_predicted-ts_range_observed)>minJump\n     warning('discontinuous recording, timestamps and samples will not match');       \n  end"
+      - +@isprivate: "0"
+        commentid: "9656"
+        comment_count: "32"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:04:18 +0100
+        thetext: "(In reply to comment #31)\n\nsorry, should be \n\nNRecords_to_read = min(NRecords, 100); % read out maximum 100 blocks of data"
+      - +@isprivate: "0"
+        commentid: "9657"
+        comment_count: "33"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:10:13 +0100
+        thetext: "(In reply to comment #32)\n\nshould then also be\n\nNRecords_to_read = min(NRecords, 100); % read out maximum 100 blocks of data\n  TimeStamp    = zeros(1,NRecords_to_read,'uint64');\n  ChanNumber   = zeros(1,NRecords_to_read);  \n  SampFreq     = zeros(1,NRecords_to_read);"
+      - +@isprivate: "0"
+        commentid: "9659"
+        comment_count: "34"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:26:53 +0100
+        thetext: |-
+          I've updated both ft_read_data and read_neuralynx_ncs functions...please have a look.
+          Currently we detect whether there's a gap based on reading out only the first 100 block timestamps, this is little load on the speed.
+          The ft_read_data constructs the timestamp axis again based on using the median.
+          This has the disadvantage that the user now has to detect the gaps explicitly himself if there are gaps.
+      - +@isprivate: "0"
+        commentid: "9662"
+        comment_count: "35"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-05 14:33:07 +0100
+        thetext: |-
+          Tested this on bunch of files with and without gaps and works.
+
+          I've also updated the wiki http://fieldtrip.fcdonders.nl/getting_started/neuralynx?&#discontinuous_recordings now where you can see the interpolation based on the median number of timestamps.
+      - +@isprivate: "0"
+        commentid: "9665"
+        comment_count: "36"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-05 15:49:17 +0100
+        thetext: |-
+          mac001> svn commit test_bug1998.m
+          Adding         test_bug1998.m
+          Transmitting file data .
+          Committed revision 7591.
+
+          I added a test script which does exactly what is explained on the wiki.
+
+          I have also updated the explanation on the wiki (mainly rephrasing it). @Martin: Please check.
+      - +@isprivate: "0"
+        commentid: "9783"
+        comment_count: "37"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-12 17:02:36 +0100
+        thetext: |-
+          I'm still pondering upon this processing question here, whether we need some low-level fix of the NeuraLynx issue or whether we hope that the user will notice the warning message and will then be able to use some function that we outline in the help (currently, my feeling is that it's a bit too much plug and play what's done there).
+
+          At the workshop in Toronto, Robert mentioned that we may for example automatically create trials around the gaps.
+
+          Another option would be to take care of the interpolation in the low-level functions - I'd like to implement this actually but it should then be an explicit option in the ft_read_data / ft_preprocessing function to do so.
+
+          A disadvantage is that this would lead to inconsistencies across data-formats, as the option would apply only to the neuralynx data, so something like cfg.interpolate or cfg.fixtimestamps with explanation in the help that it only applies to neuralynx data at the moment.
+      - +@isprivate: "0"
+        commentid: "9813"
+        comment_count: "38"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-13 23:00:53 +0100
+        thetext: |-
+          The wiki script is not correct actually.
+
+          It interpolates while the ts can be uint64.
+
+          The uint64 format poses challenges in fact with the interpolation.
+
+          Robert, do you know a good strategy for interpolation with uint64?
+      - +@isprivate: "0"
+        commentid: "9814"
+        comment_count: "39"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-13 23:16:08 +0100
+        thetext: "(In reply to comment #38)\n\nI can think of an ugly solution: \n- determine the gaps\n- take the edges as double\n- linearly interpolate between the edges\n- convert to uint64 and insert"
+      - +@isprivate: "0"
+        commentid: "9815"
+        comment_count: "40"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-13 23:23:09 +0100
+        thetext: |-
+          (In reply to comment #39)
+
+          The problem is that the first timestamp is large.
+
+          One could subtract the first timestamp from the data and then convert to doubles and then interpolate.
+      - +@isprivate: "0"
+        commentid: "9987"
+        comment_count: "41"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-04-01 19:22:26 +0200
+        thetext: |-
+          http://fieldtrip.fcdonders.nl/faq/discontinuous_neuralynx?&#how_can_i_deal_with_a_discontinuous_neuralynx_recording
+
+          Please see the new implementation of a function performing interpolation etc. for multiple channels.
+          All foreseeable Cheetah / Lynx problems should be accented for by this function.
+
+          Robert, do you see any possibility of integrating this into the FieldTrip functions?

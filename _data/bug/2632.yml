@@ -1,0 +1,159 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2632"
+    creation_ts: 2014-07-03 18:07:00 +0200
+    short_desc: Using simbio to create a volume conduction model and to perform source localisation
+    delta_ts: 2014-08-06 14:53:46 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: wv12
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - wv12
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14012"
+        comment_count: "0"
+        attachid: "649"
+        who:
+          +content: wv12
+          +@name: ""
+        bug_when: 2014-07-03 18:07:15 +0200
+        thetext: "Created attachment 649\nDetailed bug description with samples\n\nDear all,\n\nFirst of all, thank you very much for this toolbox. I started using it a couple of weeks ago and am really enjoying working with it.\n\nI am going to modify head models obtained from MRI scans and it seems to me that volumes created with FEM are more suitable than BEM. That way I ended up using simbio.\n\nI found two bugs/suggestions for improvement as outlined below. Since I think it's easier to read when the text is formatted nicely, I also attached the same as a word document.\n\n\nBest wishes,\n\nWilhelm\n\n\nSystem information:\nWindows 7, 64 bit\nMatlab R2014a\nfieldtrip-20140702\n\nFirst part:\nI ran the following script to create a leadfield from a volume conduction model obtained with ‘simbio’:\nmri                         = ft_read_mri('Subject01.mri'); %from tutorials\ncfg                         = [];\ncfg.dim                     = mri.dim;\nmri_resliced        = ft_volumereslice(cfg,mri);\n\ncfg                         = [];\ncfg.output                  = {'gray','white','csf','skull','scalp'};\nsegmentedmri_hexahedral = ft_volumesegment(cfg, mri);\n\ncfg                         = [];\ncfg.shift                   = 0.3;\ncfg.method                  = 'hexahedral';\nmesh                = ft_prepare_mesh(cfg,segmentedmri_hexahedral);\n\ncfg                         = [];\ncfg.method                  = 'simbio';\ncfg.conductivity            = [0.33 0.14 1.79 0.01 0.43]; \nvol_simbio          = ft_prepare_headmodel(cfg, mesh); \n\ncfg                         = [];\ncfg.elec                    = elec_aligned4_128; % Prepared beforehand\ncfg.channel                 = {'AFz', 'T8'}; % Reduced for demonstration\ncfg.vol                     = vol_simbio;\ncfg.grid.resolution         = 1;       \ncfg.grid.unit               = 'cm';\n[grid]              = ft_prepare_leadfield(cfg);\n\nIt’s working fine until the last line:\n\nError using ft_inside_vol (line 120)\nunrecognized volume conductor model\n\nError in ft_prepare_sourcemodel (line 698)\n  inside = ft_inside_vol(grid.pos, vol, 'grad', sens, 'headshape', cfg.headshape, 'inwardshift', cfg.inwardshift); % this returns a boolean vector\n\nError in ft_prepare_leadfield (line 158)\ngrid = ft_prepare_sourcemodel(tmpcfg);\n\nError in THeadModel_Hexahedral (line 141)\n    [grid]              = ft_prepare_leadfield(cfg);\n\nIf I understand it correctly, only a method to determine the points of the grid that are inside the brain is missing. \nI think a found a way to work around it by creating a grid from the same MRI image using a BEM method, where vol_download is the volume conduction model from the tutorials created with ‘dipoli’:\ncfg                         = [];\ncfg.elec                    = elec_aligned4_128;\ncfg.vol                     = vol_download; \t\t% from tutorials\ncfg.channel                 = {'AFz', 'T8'};\ncfg.grid.resolution         = 1;       \ncfg.grid.unit               = 'cm';\n[grid_BEM]              = ft_prepare_leadfield(cfg);\n\nAnd afterwards run ft_prepare_leadfield(cfg) with cfg.grid = grid_BEM\n\nAlthough it seems to work this way, it would be very nice, if it worked without needing to compute a grid in two ways every time again. ?\nSecond part:\nStill with the model created above, now doing source analysis.\nOne step which takes a long time to compute when the number of channels is large seems to be done multiple times:\nIn ft_prepare_leadfield(cfg) (see above) and again every time (for contrast plots it’s three times for frequency analysis) in ft_sourceanalysis(cfg,freq_sound) even when vol and sens are supplied to the function as cfg.vol and cfg.sens:\ncfg                         = [];\ncfg.method                  = 'mtmfft';\ncfg.output                  = 'powandcsd';\ncfg.tapsmofrq               = 2;\ncfg.foilim                  = [36 36];\nfreq_sound          = ft_freqanalysis(cfg, data_sound_m);\n\n[vol, sens] = ft_prepare_vol_sens(vol_simbio, elecs);\n\ncfg                         = [];\ncfg.method                  = 'dics';\ncfg.frequency               = 36;\ncfg.grid                    = grid;\ncfg.sens                    = sens;\ncfg.vol                     = vol;\ncfg.dics.projectnoise       = 'yes';\ncfg.dics.lambda             = '5%';\ncfg.dics.keepfilter         = 'yes';\ncfg.dics.realfilter         = 'yes';\ncfg.elec                    = elecs;\nsource_sound_nocon  = ft_sourceanalysis(cfg, freq_sound);\n\nThe output is:\n\nconverting units from 'mm' to 'cm'\nconverting units from 'mm' to 'cm'\nFind electrode positions...\nCalculate transfer matrix...\nElectrode 2 of 2\nScaling stiffnes matrix...\nPreconditioning...\nFinding startvector...\nSolving equation system...\n\nComes from:\nsb_transfer (line 32)\nft_prepare_vol_sens (line 500)\nprepare_headmodel (line 94)\nft_prepare_leadfield (line 134)\n\nAnd:\nsb_transfer (line 32)\nft_prepare_vol_sens (line 500)\nprepare_headmodel (line 94)\nft_sourceanalysis (line 291)\n\nCould FieldTrip check, whether the correct vol and sens are already computed and use those instead?"
+      - +@isprivate: "0"
+        commentid: "14033"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-04 14:44:06 +0200
+        thetext: "Hi Wilhelm,\n\nYou are right. \n\n1) the inside/outside grid point detection is not yet in place. Your workaround with the BEM model is just fine regarding what it should achieve. I think you could even replace ft_prepare_leadfield with ft_prepare_sourcemodel, which makes it faster.\n \n2) the inefficiency of the code w.r.t. multiple times setting up the same matrix is something I recently discussed with the simbio team. Your suggestion is also what we had identified as the desired solution. \n\nLet me first devote some time on your issue #1, as that might be relatively simple to solve.\n\nRobert"
+      - +@isprivate: "0"
+        commentid: "14049"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-06 11:19:09 +0200
+        thetext: "Regarding 1: \n\nI made an implementation of the inside/outside detection.\n\nmac011> svn commit\nSending        forward/ft_inside_vol.m\nAdding         test/test_tutorial_fem.m\nTransmitting file data ..\nCommitted revision 9702."
+      - +@isprivate: "0"
+        commentid: "14073"
+        comment_count: "3"
+        who:
+          +content: wv12
+          +@name: ""
+        bug_when: 2014-07-08 18:52:15 +0200
+        thetext: "Hi Robert,\n\nThanks a lot for the quick implementation. I tried the newest version with:\n    cfg                         = [];\n    cfg.elec                    = elecs;\n    cfg.vol                     = vol_simbio;\n    cfg.channel                 = {'AFz', 'T8'};\n    cfg.grid.resolution         = 1;\n    cfg.grid.unit               = 'cm';\n    cfg.sens                    = sens;\n    grid                = ft_prepare_sourcemodel(cfg);\n\nand \n\n    cfg                         = [];\n    cfg.elec                    = elecs;\n    cfg.vol                     = vol_simbio;\n    cfg.channel                 = {'AFz', 'T8'};\n    cfg.grid.resolution         = 1;\n    cfg.grid.unit               = 'cm';\n    [grid]              = ft_prepare_leadfield(cfg);\n\nThe first case works fine, I get a grid and the output: \n\t2081 dipoles inside, 5443 dipoles outside brain\n\tmaking tight grid\n\t2081 dipoles inside, 2099 dipoles outside brain\n\nIn the second case, no points are detected as being inside. grid.inside is empty.\n\nHowever, when I add \n\tcfg.sens = sens3 \t\tand \n\tcfg.vol = vol_simbio3 \twhere sens3 and vol_simbio3 were calculated using\n [vol_simbio2, sens] = ft_prepare_vol_sens(vol_simbio, elecs)\nand vol_simbio3 (sens3) being vol_simbio2 (sens) with coordinates in cm \nand replace in ft_prepare_leadfield (line 134):\n\t[vol, sens, cfg] = prepare_headmodel(cfg, data); \nwith:\n\tvol = cfg.vol;\n\tsens = cfg.sens;\n\nI obtain a grid (2069 inside and 2111 outside) and a leadfield. So I guess there is some problem with prepare_headmodel() being used in ft_prepare_leadfield()?"
+      - +@isprivate: "0"
+        commentid: "14095"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-09 16:47:52 +0200
+        thetext: "(In reply to wv12 from comment #3)\n\nplease do an explicit call to ft_prepare_sourcemodel prior to ft_prepare_leadfield. It will give you better control of the source moddel construction. \n\nAfter \n\ncfg = ...\ngrid_pos = ft_prepare_sourcemodel(cfg)\n\nyou will want to pass it into ft_prepare_leadfield like this\n\n...\ncfg.grid = grid_pos;\ngrid_lf = ft_prepare_leadfield(cfg)\n\n\nIf you only specify cfg.grid.resolution, it will use the span (or range) of the sensor array (electrodes) to make an initial grid with your resolution and will then determine which of those grid points are inside the brain. With 2 electrodes that is likely not to result in a nice grid. You can specify in more detail cfg.grid.xrange etc.\n\nPlease do check with ft_plot_mesh (or plot3) that the grid points make sense and that inside and outside points (give them different colours) make sense."
+      - +@isprivate: "0"
+        commentid: "14104"
+        comment_count: "5"
+        who:
+          +content: wv12
+          +@name: ""
+        bug_when: 2014-07-10 14:29:54 +0200
+        thetext: |-
+          Hi Robert,
+
+          That's very good to know, thanks! I'll do it from now on.
+
+          (Normally I use more than two electrodes, only wanted to keep the computation as short as possible.)
+      - +@isprivate: "0"
+        commentid: "14242"
+        comment_count: "6"
+        attachid: "658"
+        who:
+          +content: wv12
+          +@name: ""
+        bug_when: 2014-08-06 14:52:17 +0200
+        thetext: |-
+          Created attachment 658
+          grids created from dipoli and simbio
+      - +@isprivate: "0"
+        commentid: "14243"
+        comment_count: "7"
+        who:
+          +content: wv12
+          +@name: ""
+        bug_when: 2014-08-06 14:53:46 +0200
+        thetext: |-
+          Hi Robert,
+
+          I am sorry for the delay in following up on this. Unfortunately I was busy with another project.
+
+          Is it possible that there is a bug in the function determining whether points are inside the brain in a volume created with simbio?
+
+          I used the following script:
+
+              cfg                         = [];
+              cfg.elec                    = elec_aligned4_128;
+              cfg.channel                 = 'all';
+              cfg.grid.resolution         = 1;
+              cfg.grid.unit               = 'cm';
+              cfg.vol                     = vol_download; % or: vol_simbio;
+              grid_pos                = ft_prepare_sourcemodel(cfg);
+
+          Where I only changed the line cfg.vol = ...
+          vol_download is the volume downloaded from the website (created with dipoli) and vol_simbio is the volume I created using simbio. The simbio volume seems to be correct which can be seen on the image attached where I plotted one slice of the volume (taking the first points of the hexahedrons). The other two parts of the image show the grids created from the two volumes. It seems fine for dipoli, but not for simbio.
+
+
+          Best regards,
+
+          Wilhelm
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "649"
+        date: 2014-07-03 18:07:00 +0200
+        delta_ts: 2014-07-03 18:07:15 +0200
+        desc: Detailed bug description with samples
+        filename: Simbio for Source localisation.docx
+        type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        size: "19324"
+        attacher: wv12
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "658"
+        date: 2014-08-06 14:52:00 +0200
+        delta_ts: 2014-08-06 14:52:17 +0200
+        desc: grids created from dipoli and simbio
+        filename: Produced grids.png
+        type: image/png
+        size: "98727"
+        attacher: wv12
+        data: REMOVED

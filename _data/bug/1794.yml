@@ -1,0 +1,226 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1794"
+    creation_ts: 2012-10-26 21:44:00 +0200
+    short_desc: ft_prepare_leadfield output discrepancy between cm and mm units for predefined grid
+    delta_ts: 2019-08-10 12:41:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=686
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2817
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: major
+    target_milestone: '---'
+    dependson: "2355"
+    blocked: "2265"
+    everconfirmed: "1"
+    reporter:
+      +content: giorgos.michalareas
+      +@name: Giorgos Michalareas
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - eelke.spaak
+      - johanna.zumer
+      - litvak.vladimir
+      - molaeyar
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8007"
+        comment_count: "0"
+        attachid: "354"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2012-10-26 21:44:06 +0200
+        thetext: "Created attachment 354\nmat file containing the cfg to be input in ft_prepare_leadfield.m\n\nThe main issue is that if a predefined standard grid is used, then if the grid positions are defined in MM, then the output leadfields have huge values. At a first glance it seems that volume and sensor structures are converted to CM units while the precomputed grid units are not and although they are MM they are treated as CM (not sure about this last part).\n\nIf the grid units are converted to CM along with the volume and the sensor and then input to ft_prepare_leadfield, then the leadfields look much more realistic.\n\nSo I guess the first issue is that ft_prepare_leadfield should produce the same leadfields independent of the units in the input grid, volume and sensor information.\n\nThe second issue is that I compared the leadfields produced by the latest version of FT (20121025) with an older version of fieldtrip, namely 20120426.\n\n\nThe only difference in the input was that when using the latest FT the grid,volume and sensor units were CM , while when using the old FT version the units were MM.\n\n%===================================\nload bugcfg cfg; % find attached file bugcfg containing a cfg structure with a precomputed grid,  ready for input in ft_prepare_leadfield\nrestoredefaultpath;\n% Here Add fieltrip-20120426 directory\nft_defaults;\ngridLFold= ft_prepare_leadfield(cfg);\nrestoredefaultpath;\n% Here Add fieltrip-20121025 directory\ngridLFnew= ft_prepare_leadfield(cfg);\n%===================================\n\nBy comparing the leadfields, I observed that the leadfields were differing by 2 orders of magnitude.\n\ngridLFold.leadfield{gridLFold.inside(1)}(1,:)=\n[4.325760634513e-14      4.46333595600794e-13      6.86774945338438e-14];\n\ngridLFnew.leadfield{gridLFnew.inside(1)}(1,:)=\n4.32576063451312e-12      4.46333595600792e-11      6.86774945338437e-12\n\nThis is very strange as the leadfields (and consequently projected signal magnitude and power) should not be affected by the units used.\n\nSo the second issue I guess is if the latest version computes leadfields correctly and if yes then does this mean that the leadfields from older versions were not correct? And if this is the case which fieldtrip versions had this problem? I have already produced results based on leadfields so I d like to know which of my results  I need to recompute.\n\n\nThank you \nBest"
+      - +@isprivate: "0"
+        commentid: "8008"
+        comment_count: "1"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2012-10-26 21:54:46 +0200
+        thetext: |-
+          (In reply to comment #0)
+          I just post here again the code I posted in the initial post, but with the conversion from mm to cm before the use of the latest FT version (forgot to put it in the initial post - sorry).
+
+
+
+          %===================================
+          load bugcfg cfg; % find attached file bugcfg containing a cfg structure with a
+          precomputed grid,  ready for input in ft_prepare_leadfield
+          restoredefaultpath;
+          % Here Add fieltrip-20120426 directory
+          ft_defaults;
+          gridLFold= ft_prepare_leadfield(cfg);
+          restoredefaultpath;
+          % Here Add fieltrip-20121025 directory
+          ft_defaults;
+          cfg.grid=ft_convert_units(cfg.grid,'cm');
+          cfg.vol=ft_convert_units(cfg.vol,'cm');
+          cfg.grad=ft_convert_units(cfg.grad,'cm');
+          gridLFnew= ft_prepare_leadfield(cfg);
+          %===================================
+      - +@isprivate: "0"
+        commentid: "9098"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-23 13:17:12 +0100
+        thetext: I can take a look.
+      - +@isprivate: "0"
+        commentid: "9156"
+        comment_count: "3"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-23 17:35:23 +0100
+        thetext: I have replicated that the results from a cfg with fields in mm gives a different answer than a cfg with fields in cm.  however, the results are the same between a verison 20120630 and current (20130123) as those were two easy versions I had on hand.   I will look further later.
+      - +@isprivate: "0"
+        commentid: "9225"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-01-25 15:27:34 +0100
+        thetext: "Sticking with the current svn version for the moment (see Comment 3 why), it occurs because ft_compute_leadfield only knows about sens.unit and vol.unit  (and does indeed ensure they are the same) but not the units of pos which are entered in as a vector, not as a structure with units. Any attempt to discover their units with \ngrid.pos=pos;\nft_convert_units(grid); \nfails since it doesn't work well on a 1x3 size vector of .pos.  \n\nFurthermore, ft_compute_leadfield seems to assume units for pos. Not clear to me which units, but I suspect 'cm'.\n\nIt gets worse if I try giving mix/match combinations of vol.unit, sens.unit and grid.unit.  Then the grid that gets computed in line 174 of ft_prepare_leadfield by the call to ft_prepare_sourcemodel has units that don't match its .pos, if the units of vol(sens).unit are different.\n\nI commit test_bug1794 which shows these scenarios.\n\nI can think to suggest 3 options:\n1) Force ft_prepare_leadfield to convert grid to units that ft_compute_leadfield assumes prior to calling ft_compute_leadfield.\nIf so, do vol.unit and sens.unit also need to be this same? I think so.\n\n2) Force an obligatory 4th input argument to ft_compute_leadfield with known units of pos. (and then convert within the function, using this info).\n\n3) Force the 1st input argument to ft_compute_leadfield to be a structure with grid.pos (1x3) and with grid.unit.\n\nI feel like the latter two are safer for ensuring that inputs to ft_compute_leadfield are correct irrespective of how this function is called, but are worse in terms of backwards compatibility.\n\nAt a minimum, make explicit in the 'help' of ft_compute_leadfield what the units should be for pos, sens, vol."
+      - +@isprivate: "0"
+        commentid: "9244"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-28 12:14:50 +0100
+        thetext: "There is the (old) option cfg.sourceunits that we used in the past to distinguish between source and mri units. \n\nmac001> grep -l sourceunits *.m\nft_dipolefitting.m\nft_megrealign.m\nft_prepare_headmodel.m\nft_prepare_leadfield.m\nft_prepare_localspheres.m\nft_prepare_mesh.m\nft_prepare_sourcemodel.m\nft_sourceanalysis.m\nft_sourceinterpolate.m\n\nThere also used to be a cfg.mriunits, but that is now forbidden/deprecated because those are always present or can be inferred from the mri.\n\nmac001> grep mriunits *.m\nft_prepare_mesh.m:cfg = ft_checkconfig(cfg, 'forbidden', {'numcompartments', 'outputfile', 'sourceunits', 'mriunits'});\nft_prepare_singleshell.m:cfg = ft_checkconfig(cfg, 'deprecated', 'mriunits');\nft_prepare_sourcemodel.m:cfg = ft_checkconfig(cfg, 'deprecated', 'mriunits');\nft_sourceinterpolate.m:cfg = ft_checkconfig(cfg, 'deprecated', {'sourceunits', 'mriunits'});\n\nI suggest to rethink how cfg.sourceunits is supposed to behave and whether all required high-level ft functions use it accordingly."
+      - +@isprivate: "0"
+        commentid: "9363"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-02-07 13:25:16 +0100
+        thetext: I cc Vladimir, as I saw his comment in another bug on lead field units.
+      - +@isprivate: "0"
+        commentid: "10269"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-04-23 16:35:00 +0200
+        thetext: "Regarding the difference between grid.leadfield on the order of units (meaning, a factor of 10 or 100):   \nIf I fix prepare_headmodel so that cfg.sourceunit = 'cm' is default (rather than only set to 'cm' if vol and sens units are different), then it works that the grid.leadfield will be (*nearly) the same irrespective of units of grid, sens and vol.  So that seems an initial good solution to me.  I will commit this change today.\n\nHowever, I have traced a few problems to vol.forwpar, which is created inside ft_prepare_vol_sens (called by prepare_headmodel, which is called by ft_prepare_leadfield).   \n\nFirstly, vol.forwpar will be in units of vol as it is passed into ft_prepare_vol_sens, but then this later cannot be changed with ft_convert_units (i.e. if a later higher level function receiving this vol wants to change units).  Perhaps this is a bug of ft_convert_units? (not able to convert vol.forwpar ?)\n\nSecondly, the (*nearly) refers to some remaining numerical imprecision (on the order of 10*eps) bewteen grid.leadfield of inputs of different units, which can be traced to imprecision within vol.forwpar. \n\nSuggestions what to do with vol.forwpar, regarding both its instability at the level of eps, and regarding it preventing the units of vol to be changed later on?"
+      - +@isprivate: "0"
+        commentid: "10277"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 17:45:36 +0200
+        thetext: "(In reply to comment #7)\n\nthanks for looking into this. ft_convert_units was only designed to deal with geometrical objects, not with parameters related to the forward model. forwpar is for single shell, and should only be present after ft_prepare_vol_sens. Other cases of forward model parameters are for bem and fem models. I think you have identified an issue with at which moment which conversion can be made. Geometrical conversions are expected to happen prior preparing the model parameters, but now happen after.\n\nWe should rethink as to which conversions can happen when. Some are harmless, like converting T to fT, but some are harmful, such as T/cm to T/mm.\n \nft_compute_leadfield now attempts to convert  with\n%   'unit'            = string, can be 'arbitrary' or 'si' (default = 'arbitrary')"
+      - +@isprivate: "0"
+        commentid: "11827"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-01 14:33:41 +0100
+        thetext: |-
+          I have just now made changes to the code to manage units more consistently, in the future allowing for explicit units throughout all analysis.
+
+          I have seen this bug that seems to be related, and will go through it once to see whether it reproduces and whether it is still an issue. If I cannot reproduce it, I will close it.
+      - +@isprivate: "0"
+        commentid: "11828"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-11-01 14:48:37 +0100
+        thetext: "the initial assumption by Giorgos about the leadfields not changing if you change the units is not fully correct. If the distance between the source and sensor is 10x smaller, the field will be stronger. \n\nOf course if the leadfield is computed with knowledge about the units, and if the leadfield units (T/Am) is considered, then the leadfield should not change, just like 10cm being equal to 100mm. But up to now FT is not so smart that it knows the units throughout the code, hence 10 and 100 are different.  \n\nRight now the existing script fails with\n\nError using test_bug1794 (line 68)\nAssertion failed.\n\non \nassert(isequalwithequalnans(rmfield(gridLFmmcur,'cfg'),rmfield(gridLFcmcur,'cfg')))\n\nwhich is due to \n\n>> gridLFmmcur\ngridLFmmcur = \n          pos: [3094x3 double]\n         unit: 'mm'\n          dim: [17 14 13]\n        xgrid: [-5.5000 -4.5000 -3.5000 -2.5000 -1.5000 -0.5000 0.5000 1.5000 2.5000 3.5000 4.5000 5.5000 6.5000 7.5000 8.5000 9.5000 10.5000]\n        ygrid: [-6.8000 -5.8000 -4.8000 -3.8000 -2.8000 -1.8000 -0.8000 0.2000 1.2000 2.2000 3.2000 4.2000 5.2000 6.2000]\n        zgrid: [-0.6000 0.4000 1.4000 2.4000 3.4000 4.4000 5.4000 6.4000 7.4000 8.4000 9.4000 10.4000 11.4000]\n       inside: [1x1488 double]\n      outside: [1x1606 double]\n          cfg: [1x1 struct]\n    leadfield: {1x3094 cell}\n\n>> gridLFcmcur\ngridLFcmcur = \n          pos: [3094x3 double]\n         unit: 'cm'\n          dim: [17 14 13]\n        xgrid: [-5.5000 -4.5000 -3.5000 -2.5000 -1.5000 -0.5000 0.5000 1.5000 2.5000 3.5000 4.5000 5.5000 6.5000 7.5000 8.5000 9.5000 10.5000]\n        ygrid: [-6.8000 -5.8000 -4.8000 -3.8000 -2.8000 -1.8000 -0.8000 0.2000 1.2000 2.2000 3.2000 4.2000 5.2000 6.2000]\n        zgrid: [-0.6000 0.4000 1.4000 2.4000 3.4000 4.4000 5.4000 6.4000 7.4000 8.4000 9.4000 10.4000 11.4000]\n       inside: [1x1488 double]\n      outside: [1x1606 double]\n          cfg: [1x1 struct]\n    leadfield: {1x3094 cell}\n\nwhich are different because one is in cm and the other in mm. So according to me the assertion should have failed, as it does: If you numerically compare 10cm and 100mm, them 10~=100. \n\nSo this mostly seems to be an inconsistency between the users' (Giorgos') expectation and what fFT does, not a bug in the code.\n\nPlease see  http://code.google.com/p/fieldtrip/source/detail?r=8691 and http://code.google.com/p/fieldtrip/source/detail?r=8695 which are two changes that relate to this.\n\nThe test case implemented in the test_bug1794 script is interesting however, as it goes beyond ft_prepare_headmodel all the way to ft_prepare_leadfield. I will revitis this at a later time, but now have to leave."
+      - +@isprivate: "0"
+        commentid: "15305"
+        comment_count: "11"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2015-02-11 15:41:15 +0100
+        thetext: I ran into this bug's failing test script today at the bug binge. The test script doesn't really makes sense to me, perhaps it should be revisited at some point?
+      - +@isprivate: "0"
+        commentid: "15313"
+        comment_count: "12"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-11 16:11:26 +0100
+        thetext: |-
+          The failure now seems to be something unrelated to the main point of the bug, but with ft_preamble.
+
+          But if you have any questions on the purpose of test_bug1794, maybe I can help...?
+      - +@isprivate: "0"
+        commentid: "15346"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 10:43:23 +0100
+        thetext: "(In reply to Johanna from comment #12)\n\nI just ran the test script, it was failing for me due to the change of the indexed inside representation (1, 2, 3, 4, ...) into the boolean representation, as I announced on the mailing list. \n\nI changed \ngridLFcmcur.inside(1)\ninto\nfind(gridLFcmcur.inside, 1)\nto get the index of first inside source position.\n\nSubsequently it runs further, but fails on\nassert(isequaln(rmfield(gridLFmmcur,'cfg'),rmfield(gridLFcmcur,'cfg')))\nwhere the fro grids are obviously different because one is in mm and the other in cm.\n\nmac011> svn commit\nSending        test/test_bug1794.m\nTransmitting file data .\nCommitted revision 10227."
+      - +@isprivate: "0"
+        commentid: "18143"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-10 15:14:37 +0100
+        thetext: "this is an old issue and can be closed. If the input is according to SI, the output is also according to SI. \n\nThis is being tested with \n- test_meg_leadfield_units.m\n- test_eeg_leadfield_units.m\n- test_neuromag_units.m\n\nSee also http://www.fieldtriptoolbox.org/faq/units\n\nIf there are concerns about automatic conversion between units, please post an example script including ALL input data that demonstrates the problem."
+      - +@isprivate: "0"
+        commentid: "20286"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:35:24 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20485"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:36 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "354"
+      date: 2012-10-26 21:44:00 +0200
+      delta_ts: 2012-10-26 21:44:06 +0200
+      desc: mat file containing the cfg to be input in ft_prepare_leadfield.m
+      filename: bugcfg.mat
+      type: application/octet-stream
+      size: "2973880"
+      attacher:
+        +content: giorgos.michalareas
+        +@name: Giorgos Michalareas
+      data: REMOVED

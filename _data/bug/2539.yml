@@ -1,0 +1,192 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2539"
+    creation_ts: 2014-04-15 21:38:00 +0200
+    short_desc: unnecesary data check ft_topoplotIC
+    delta_ts: 2017-10-05 09:36:40 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also:
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2518
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=2559
+      - http://bugzilla.fcdonders.nl/show_bug.cgi?id=1887
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: rene.scheeringa
+      +@name: rené scheeringa
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - r.oostenveld
+      - rene.scheeringa
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13342"
+        comment_count: "0"
+        who:
+          +content: rene.scheeringa
+          +@name: rené scheeringa
+        bug_when: 2014-04-15 21:38:56 +0200
+        thetext: |-
+          Whenever I use ft_topoplotIC fieldtrip performs a check on the data and checks if the .time field is present. I never save this, because I only need to save the mixing, unmixing and topolabel fields for the rest of my anlyses. Saving all the trial data and the time fields only takes unnecesary disk space. The bug is easy to 'fix' by introducing a fake .time field, but it would be cleaner if the ft_topolotIC only checks for the precense of the mixing weights and the topolabels. More is not needed for plotting the IC topographies.
+
+
+          Error notification:
+
+          ??? Reference to non-existent field 'time'.
+
+          Error in ==> ft_datatype_raw at 143
+                data.fsample = 1/mean(diff(data.time{1}));
+
+          Error in ==> ft_datatype_comp at 122
+          rawdata = ft_datatype_raw(rawdata, 'version', rawversion, 'hassampleinfo', hassampleinfo,
+          'hastrialinfo', hastrialinfo);
+
+          Error in ==> ft_checkdata at 222
+            data = ft_datatype_comp(data, 'hassampleinfo', hassampleinfo);
+
+          Error in ==> topoplot_common at 80
+          data = ft_checkdata(data, 'datatype', {'timelock', 'freq', 'comp'});
+
+          Error in ==> ft_topoplotTFR at 185
+          [cfg] = topoplot_common(cfg, varargin{:});
+
+          Error in ==> ft_topoplotIC at 148
+              ft_topoplotTFR(cfg, varargin{:});
+      - +@isprivate: "0"
+        commentid: "13344"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-15 22:22:54 +0200
+        thetext: "fair point. We discussed this actually 2 weeks ago in our FT meeting. See http://fieldtrip.fcdonders.nl/development/meeting/20140402\n\nHere are the relevant notes. \n\nsupport for component data in source reconstruction functions:\n1. dipolefitting and mne should in principle be doable.\n2. yet, the functions may become confused because of the mixed representation of the component data (in a freq/tlck structure).\n3. identify which functions should support this, but currently don't do it well.\n4. ensure that the data is unambiguous, i.e. only keep topo/topolabel and remove anything else.\n\nMore general: whenever a function needs only the component topographies, it should remove the other fields as soon as possible. \n\nThis is followed up in detail in bug 2518.\n\nHowever, I think that the changes I implemented for bug 2518 might have caused an error to slip in, since datatype=comp in the past always meant raw-comp, whereas it now can also be timelock-comp or freq-comp. The error below suggests that the code expects raw-comp, but that the data is different. \n\nCan you share the data and the cfg you are using?"
+      - +@isprivate: "0"
+        commentid: "13345"
+        comment_count: "2"
+        attachid: "612"
+        who:
+          +content: rene.scheeringa
+          +@name: rené scheeringa
+        bug_when: 2014-04-15 22:56:57 +0200
+        thetext: |-
+          Created attachment 612
+          ICA mixing and unmixing weights for one subject
+
+          Attached are the mixing and unmixing weights for a single subject. They were computed more than two weeks ago, so before the fieldtrip meeting. I ran another ICA today with Floris de Vries and encountered what I think are some other unnesecary dependencies if you run it now. I can look into that tomorrow. Ik commented out the adding of the weigths.time field that 'solves' the problem.
+
+          %weights.time{1}=nan;
+
+          sz=size(weights.topo);
+
+          cfg=[];
+          cfg.component          = 1:16;
+          cfg.layout             = '/home/language/rensch/layers/data/EEG/scripts/MR64.lay';
+          cfg.zlim               = 'maxabs';
+          cfg.marker             = 'on';
+
+          figure(11);ft_topoplotIC(cfg, weights);
+      - +@isprivate: "0"
+        commentid: "13363"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-16 17:05:13 +0200
+        thetext: thanks, I added the data to /home/common/matlab/fieldtrip/data/test/bug2539.mat
+      - +@isprivate: "0"
+        commentid: "13365"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-16 17:23:03 +0200
+        thetext: '*** Bug 2520 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "13366"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-16 17:31:50 +0200
+        thetext: "I was able to reproduce the problem. It was due to \n\nweights = \n         topo: [63x63 double]\n     unmixing: [63x63 double]\n    topolabel: {63x1 cell}\n\nbeing recognised as comp, and subsequently assuming that it was also raw (which it was not). I have changed ft_datatype such that it distinguishes between \n\ncomp\ncomp+raw\ncomp+timelock\ncomp+freq\n\nin line with the requested functionality enhancements for bug 2518.\n\nmac011> svn commit utilities/ft_datatype*m test/test_bug2539.m \nAdding         test/test_bug2539.m\nSending        utilities/ft_datatype.m\nSending        utilities/ft_datatype_comp.m\nTransmitting file data ...\nCommitted revision 9430."
+      - +@isprivate: "0"
+        commentid: "13374"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-17 09:12:11 +0200
+        thetext: there is a regression error in the script test_bug1887. The output on the last line has a topi, whereas it is not supposed to have one.
+      - +@isprivate: "0"
+        commentid: "13375"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-04-17 09:12:22 +0200
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #6)
+
+          topi=topo
+      - +@isprivate: "0"
+        commentid: "14145"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-07-16 12:18:04 +0200
+        thetext: the check on timelock/comp/freq/raw is now implemented correctly
+      - +@isprivate: "0"
+        commentid: "15239"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:40:34 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.
+      - +@isprivate: "0"
+        commentid: "18960"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-10-05 09:36:40 +0200
+        thetext: "the recent update of the plotting functions caused this test script to fail. It was assuming that a \"comp\" structure would also have a label field, which it only has in case it is comp+raw, comp+timelock or comp+freq.\n\nI have updated the code to deal with this. \n\nmac011> git commit -a\n[bug2539 aa87f38] FIX - improve handling of component structure without timeloock/freq/raw data, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2539\n 4 files changed, 23 insertions(+), 33 deletions(-)"
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "612"
+      date: 2014-04-15 22:56:00 +0200
+      delta_ts: 2014-04-15 22:56:57 +0200
+      desc: ICA mixing and unmixing weights for one subject
+      filename: weights_fastICA_bp50-70Hz.mat
+      type: text/plain
+      size: "54889"
+      attacher:
+        +content: rene.scheeringa
+        +@name: rené scheeringa
+      data: REMOVED

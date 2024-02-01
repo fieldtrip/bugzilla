@@ -1,0 +1,80 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "55"
+    creation_ts: 2010-03-17 09:40:00 +0100
+    short_desc: speed up read_event for realtime reading from CTF shm
+    delta_ts: 2011-01-05 12:01:07 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "94"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-03-17 09:40:01 +0100
+        thetext: "reading triggers from shm takes a lot of time in the following section, which can be avoided.\n\n                 26 % generate 'trial' events for each packet\n< 0.01     100   27 if isempty(type) || any(strcmp('trial', type)) \n                 28   % there seems to be a bug in Acq, causing the messageId to wrap around\n                 29   % hence it cannot be used as index into the packets, so construct a new trial numbering vector\n< 0.01     100   30   trlNum = nan(size(msgId)); \n  0.01     100   31   trlNum(msgType==1) = sampleNumber(msgType==1)./numSamples(msgType==1); \n                 32   % make an event for each data packet\n< 0.01     100   33   sel = find(msgType==1); \n< 0.01     100   34   for i=1:length(sel) \n  1.39   56948   35     event(end+1).type = 'trial'; \n  0.79   56948   36     event(end ).value    = []; \n  1.70   56948   37     event(end ).sample   = double(sampleNumber(sel(i))+1);  % offset by one \n  1.29   56948   38     event(end ).duration = double(numSamples(sel(i))); \n  0.78   56948   39     event(end ).offset   = 0; \n  0.05   56948   40   end \n< 0.01     100   41 end"
+      - +@isprivate: "0"
+        commentid: "192"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-07-04 12:11:33 +0200
+        thetext: "This should be solved in more general. All cases where the event structure-array is growing one at a time should be replaced by a preallocation of the event structure, followed by assigning the values.\n\nThis pertains to \n\nMacBook> grep 'event(end+1)' *.m */*.m\n\nft_read_event.m:      event(end+1).type     = 'trial';\nft_read_event.m:            event(end+1).type   = channel;\nft_read_event.m:            event(end+1).type   = channel;\nft_read_event.m:            event(end+1).type   = [channel '_up'];        % distinguish between up and down flank\nft_read_event.m:            event(end+1).type   = [channel '_down'];      % distinguish between up and down flank\nft_read_event.m:    event(end+1).type     = 'average';\nft_read_event.m:      event(end+1).type   = 'STATUS';\nft_read_event.m:      event(end+1).type   = 'Epoch';\nft_read_event.m:      event(end+1).type   = 'CM_in_range';\nft_read_event.m:      event(end+1).type   = 'CM_out_of_range';\nft_read_event.m:      event(end+1).type   = 'Battery_low';\nft_read_event.m:      event(end+1).type   = 'Battery_ok';\nft_read_event.m:            event(end+1).type     = tok{1};\nft_read_event.m:        event(end+1).type   = 'backpanel trigger';\nft_read_event.m:        event(end+1).type   = 'frontpanel trigger';\nft_read_event.m:      event(end+1).type     = 'trial';\nft_read_event.m:          event(end+1).type     = 'classification';\nft_read_event.m:          event(end+1).type    = mrk.marker_names{i};\nft_read_event.m:    event(end+1).type     = 'average';\nft_read_event.m:      event(end+1).type       = 'INPUT';\nft_read_event.m:      event(end+1).type = 'trigger';\nft_read_event.m:          event(end+1).type     = 'trial';\nft_read_event.m:        event(end+1).type     = 'average';\nft_read_event.m:      event(end+1).type     = 'trial';\nft_read_event.m:        event(end+1).type     = 'trigger';\nft_read_event.m:    event(end+1).type     = 'average';\nft_read_event.m:      event(end+1).type     = 'trial';\nft_read_event.m:      event(end+1).type     = 'accept';\n\nprivate/read_eeglabevent.m:    event(end+1).type     = 'trial';\nprivate/read_nexstim_event.m:                event(end+1).type     = 'rising';\nprivate/read_nexstim_event.m:                event(end+1).type     = 'falling';\nprivate/read_shm_event.m:    event(end+1).type = 'trial';\nprivate/read_shm_event.m:      event(end+1).type   = hdr.label{trg(1,i)+1};  % zero-offset\nprivate/read_shm_event.m:        event(end+1).type   = hdr.label{i};\nprivate/read_trigger.m:        event(end+1).type   = channel;\nprivate/read_trigger.m:        event(end+1).type   = channel;\nprivate/read_trigger.m:        event(end+1).type   = [channel '_up'];        % distinguish between up and down flank\nprivate/read_trigger.m:        event(end+1).type   = [channel '_down'];      % distinguish between up and down flank\nprivate/read_yokogawa_event.m:    event(end+1).type     = 'trial';"
+      - +@isprivate: "0"
+        commentid: "310"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2010-09-11 10:53:34 +0200
+        thetext: |-
+          Some improvements have already been implemented >6 months ago.
+
+          This request has been obsoleted by the ctf2ft command-line implementation.
+      - +@isprivate: "0"
+        commentid: "817"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 11:57:02 +0100
+        thetext: selected a long list of resolved bugs from roboos and changed the status into "RESOLVED"
+      - +@isprivate: "0"
+        commentid: "896"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-01-05 12:01:07 +0100
+        thetext: selected all old bugs from roboos with status RESOLVED and changed it into CLOSED

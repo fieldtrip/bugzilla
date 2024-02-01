@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2061"
+    creation_ts: 2013-03-17 13:08:00 +0100
+    short_desc: 'ft_timelockanalysis: variance not computed if any period with dof=1'
+    delta_ts: 2015-02-11 10:39:59 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: joscha.schmiedt
+      +@name: Joscha Schmiedt
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9853"
+        comment_count: "0"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2013-03-17 13:08:38 +0100
+        thetext: "The if clause in line 340 \n\n if (dof > 1)\n   var = (ss - (s.^2)./dof) ./ (dof-1);\n else\n   var = zeros(size(avg));\n end\n\nresults in zero variance across the whole trial if there is any timepoint with only 2 trials, e.g. at the end. The average is computed though, which is inconsistent behavior.\n\nA test like\n\n if any(dof(:) > 1) \n\nwould make more sense in my opinion."
+      - +@isprivate: "0"
+        commentid: "9855"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-17 14:16:27 +0100
+        thetext: agreed. And if the variance is not computed, it should not be returned as zeros.
+      - +@isprivate: "0"
+        commentid: "9856"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-17 14:33:17 +0100
+        thetext: |-
+          I implemented your suggestion, and made a test script.
+
+          http://code.google.com/p/fieldtrip/source/detail?r=7682
+
+          thx,
+          R
+      - +@isprivate: "0"
+        commentid: "10211"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:05:52 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10236"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:29 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "14955"
+        comment_count: "5"
+        who:
+          +content: joscha.schmiedt
+          +@name: Joscha Schmiedt
+        bug_when: 2014-12-16 12:39:13 +0100
+        thetext: |-
+          The current solution doesn't fix the problem if there's more than one channel:
+
+          if any(dof > 1)
+            var = (ss - (s.^2)./dof) ./ (dof-1);
+          else
+            var = nan(size(avg));
+          end
+
+
+          For more than one channel any(dof > 1) returns a vector, which is not handled properly by IF. It should be: any(dof(:) > 1)
+
+          Example:
+
+
+          nTrial = 50;
+
+          data = [];
+          data.label = {'chan1', 'chan2'};
+          data.fsample = 1000;
+          for iTrial = 1:50
+              data.trial{iTrial} = rand(2, 1000);
+              data.time{iTrial} = (0:999)/data.fsample;
+          end
+
+          data.trial{nTrial+1} = rand(2, 1001);
+          data.time{nTrial+1} = (0:1000)/data.fsample;
+
+          tlCfg = [];
+          tlCfg.vartrllength = 2;
+          tl = ft_timelockanalysis(tlCfg, data);
+
+          all(isnan(tl.var(:)))
+      - +@isprivate: "0"
+        commentid: "14956"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-16 12:55:28 +0100
+        thetext: "(In reply to Joscha Schmiedt from comment #5)\n\ndof's remain a puzzle throughout FT. Sometimes it can be a single scalar, sometimes it is a ntime vector, sometimes a nchan, etc...\n\nThis implements your suggestion. \n\nmac011> svn commit ft_timelockanalysis.m \nSending        ft_timelockanalysis.m\nTransmitting file data .\nCommitted revision 10051.\n\n\nmac011> svn commit test/                 \nSending        test/test_bug2061.m\nTransmitting file data .\nCommitted revision 10052."
+      - +@isprivate: "0"
+        commentid: "15216"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-11 10:39:59 +0100
+        thetext: Closed several bugs that were recently resolved. Please reopen if you are not happy with the resolution.

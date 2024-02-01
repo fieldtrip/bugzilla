@@ -1,0 +1,82 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "547"
+    creation_ts: 2011-03-24 22:35:00 +0100
+    short_desc: Neuroscan eeg file downloads problem
+    delta_ts: 2011-05-05 21:24:36 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: olga.v.sysoeva
+      +@name: Olga
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "1686"
+        comment_count: "0"
+        who:
+          +content: olga.v.sysoeva
+          +@name: Olga
+        bug_when: 2011-03-24 22:35:37 +0100
+        thetext: "The problem is really strange, ‘cause it affects only about 10 files out of 100 of the eeg files I have.\nProbably it has something to do with the number of rejected trails…\n\nI think the problem is in the decoding eeg ns system (int32) in the  \nread_ns_eeg.m  line 72\nit is\n elseif (floor(sample_size)==4) \n\nright now, but in some of my files it might be 5, 7 or even 9.\nSo when I changed this line into\n\nelseif (floor(sample_size)>=4)\n\nthe problem disappeared.\n\nI checked how the files look like after such trick, and it seems to me that everything is perfectly fine with such transformation. The data looks identical to what I have in neuroscan.\n\nSo originally the bug appears when I run my script\ninnameend = '.eeg';\npath_input = 'D:\\CONSTANTINO\\With_OAR\\Filter01_55\\EEG\\MMN2\\ARJ\\';\npath_output = 'C:\\Matlab_programs\\Fieldtrip\\My_Fieldtrip\\HindiData\\epoched\\';\n \n%subjects who has problems with standard loading\nsubnames = {\n    '90131'\n\n        };\nfor s = 1:length(subnames(:,1)),\n \n    cfg = [];\n    sbj = char(subnames (s,:));\n    FILENAME_INPUT  = [path_input,  sbj,  '_mmn2_c_bl.eeg']\n    cfg.dataset    = FILENAME_INPUT;\n \n    cfg.trialdef.eventtype  = 'trial';\n \n    [cfg] = ft_definetrial(cfg);\n \n    %%% separate stimuli types\n    for i=1:length(cfg.trl(:,4))\n        if cfg.trl(i,4)==2\n            cfg.trl(i-1,5) = 3; %std before the dvn\n            cfg.trl(i+1,5) = 4; %std after the dvn\n            cfg.trl(i,5)   = 2; \n        else\n            cfg.trl(i,5)   = cfg.trl(i,4) ;\n        end;\n    end;\n \n    cfg.bpfilter   = 'yes';                              % apply lowpass filter\n    cfg.bpfreq     = [1:30];                                 % lowpass at 35 Hz.\n \n    FILENAME_OUTPUT = [path_output, sbj, '.mat'];\n    cfg.outputfile  =  FILENAME_OUTPUT';\n \n    [data] = ft_preprocessing(cfg);\n \nend;\n \n\nAnd it says\n??? Attempt to reference field of non-structure array.\n\nError in ==> trialfun_general at 117\nfor i=find(strcmp(cfg.trialdef.eventtype, {event.type}))\n\nError in ==> ft_definetrial at 128\n    [trl, event] = feval(cfg.trialfun, cfg);\n\nError in ==> S1_loaddata_bugzilla at 21\n    [cfg] = ft_definetrial(cfg);\n\n\nI also attached two eeg files. One problematic and one for which the original scripts works.\n\nBest Regards,\nOlga. \n \nP.S. The problem I could not solve is how to load all the trails, including those, marked rejected in Neuroscan to Fieldtrip. The file I attached should contains both rejected and accccepted trails, but by some reasons only accepted is seen in the loaded variable."
+      - +@isprivate: "0"
+        commentid: "1814"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-04-15 09:46:12 +0200
+        thetext: |-
+          I added the following
+
+          elseif floor(sample_size)>4
+            % although this is not to be expected, it might be due to a very large "footer" compared to the data size
+            % Olga Sysoeva reported that this extention to the datatype detection fixed it for her (see http://bugzilla.fcdonders.nl/show_bug.cgi?id=547)
+            datatype ='int32';
+            epoch_size = eeg.nchan*eeg.npnt*4 + 13;
+          end
+
+          The fixed file will be part of the fieldtrip release this evening
+      - +@isprivate: "0"
+        commentid: "1864"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-04-22 21:07:13 +0200
+        thetext: '*** Bug 514 has been marked as a duplicate of this bug. ***'
+      - +@isprivate: "0"
+        commentid: "2033"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-05-05 21:24:36 +0200
+        thetext: 'bulk action: closed all bugs with status "resolved/fixed"'

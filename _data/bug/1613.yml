@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1613"
+    creation_ts: 2012-07-17 17:18:00 +0200
+    short_desc: Unnecessary Yokogawa warning
+    delta_ts: 2012-11-29 09:13:09 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - Tilmann.Sander-Thoemmes
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6818"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-07-17 17:18:14 +0200
+        thetext: "Hi,\n\nI'm trying to make the changes necessary for upgrading FT in SPM8 to the latest version. When doing ft_prepare_vol_sens on an old style elec struct with .pnt I get the warning:\n\nWarning: could be Yokogawa system \n> In forward\\private\\warning_once at 75\n  In ft_senstype at 291\n  In forward\\private\\channelposition at 46\n  In forward\\private\\ft_datatype_sens at 107\n  In ft_prepare_vol_sens at 67\n\nThis comes down to the way functions are called and particularly that channelposition adds a fake ori field to all sensor structs at line 43 which makes ft_senstype think that it's a grad. This looks benign but SPM users don't like warnings and I had enough headache with that warning that came with the single shell model. Also this doesn't make any principled sense why the code should ever get to that point. Could this warning be suppressed? I don't want to do it myself because I think there should be a principled fix and I'm not sure which one you'd prefer.\n\nBest,\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "6829"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-18 13:42:51 +0200
+        thetext: 'Discussed in FT-meeting (Robert not present): the general consensus seems to be that the warning can be removed without too big consequences.'
+      - +@isprivate: "0"
+        commentid: "6832"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-07-18 15:08:11 +0200
+        thetext: |-
+          If you just remove this warning it'll solve my problem. The question is whether it's a good thing that starting with something that is clearly an EEG sensor description the code gets to a place which is supposed to only handle MEG sensors. This is a kind of thing that at least Robert wouldn't like to have as I know him, but I leave the fix at your discretion.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "6947"
+        comment_count: "3"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2012-08-07 11:12:16 +0200
+        thetext: |-
+          The "Warning: could be Yokogawa system" has rather
+          the meaning: FieldTrip does not know the system.
+          It was only related to Yokogawa as their systems
+          are all different and therefore are not easily
+          detectable. Therefore the warning could be
+          replaced by something generic: Unknown system.
+          Vladimir´s comment needs some attention, it
+          should not happen at all. But if an SPM
+          user tries to load an unknown system she/he
+          should be informed !?
+
+          Till
+      - +@isprivate: "0"
+        commentid: "7637"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2012-09-27 13:08:54 +0200
+        thetext: |-
+          (In reply to comment #3)
+          OK I removed the warnings. I think the warning is not necessary the way the code works now since it will issue the warning every time when checking the lowercase version of the labels. So unless the code is changed in a way that the warning will only appear when something really unexpected happens, it shouldn't appear at all.

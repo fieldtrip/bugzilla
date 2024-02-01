@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1730"
+    creation_ts: 2012-09-20 20:33:00 +0200
+    short_desc: consider making a function private to the preproc module that implements various ways of padding
+    delta_ts: 2014-03-12 12:21:41 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1318"
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc:
+      - johanna.zumer
+      - litvak.vladimir
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7503"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-09-20 20:33:28 +0200
+        thetext: |-
+          We now have the following possibilities here and there:
+
+          - implicit zero - padding
+          - implicit zero - padding after mean subtraction (in several filter functions)
+          - mirror - padding
+          - local mean - padding (ft_preproc_smooth
+      - +@isprivate: "0"
+        commentid: "8167"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-07 13:57:07 +0100
+        thetext: |-
+          Jorn is working on this and is almost done.
+
+          Arjen will provide the necessary documentation on the wiki
+      - +@isprivate: "0"
+        commentid: "8309"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-16 14:15:47 +0100
+        thetext: |-
+          Hey JM,
+
+          I see you are padding with a local mean, not with the global mean. The ft_preproc_padding function currently has only these options:
+          %   padtype     'zero', 'mean', 'edge', 'mirror' or 'remove'
+
+          Does it make sense to include a 'localmean' option? In case padding would be more than N/2, should the local mean then be computed until N/2? So, something like:
+            case 'edge'
+              dat       = [dat(:,1)*ones(1,padlength) dat dat(:,end)*ones(1,padlength)];
+              return;
+            case 'mean'
+              mu        = mean(dat, 2);
+              dat       = [mu*ones(1,padlength) dat mu*ones(1,padlength)];
+            case 'localmean'
+              pad       = min(padlength, floor(size(dat, 1)/2));
+              edgeleft  = mean(dat(:, 1:pad), 2);
+              edgeright = mean(dat(:, 1+end-pad:end), 2);
+              dat       = [edgeleft*ones(1,padlength) dat edgeright*ones(1,padlength)];
+              return;
+            case 'zero'
+              dat       = [zeros(nchans,padlength) dat zeros(nchans,padlength)];
+              return;
+
+          btw, working from home today, so in case you want to hop over, we can discuss it on Wednesday (Mo&Tu: Heidag).
+      - +@isprivate: "0"
+        commentid: "8358"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-21 16:54:51 +0100
+        thetext: "In my working copy, I replaced all padding operations by instead calling ft_preproc_padding, apart from datapadding of course. However, the only functions I could find that use padding were ft_preprocessing and ft_specest_* functions. If I missed anything, just let me know, \n\nSince I won't have time tomorrow to fix any bugs I might introduce, I will commit those changed functions on Friday (this also allows for more testing on my side). Anyways, this is the function:\n\n% FT_PREPROC_PADDING performs padding on the data, i.e. adds or removes \n% samples to/from the data matrix.\n%\n% Use as\n%   [dat] = ft_preproc_padding(dat, padtype, padlength)\n% or as\n%   [dat] = ft_preproc_padding(dat, padtype, prepadlength, postpadlength)\n% where\n%   dat           data matrix (Nchan x Ntime)\n%   padtype       'zero', 'mean', 'localmean', 'edge', 'mirror' or 'remove'\n%   padlength     scalar, number of samples that will be padded \n%   prepadlength  scalar, number of samples that will be padded before the data\n%   postpadlength scalar, number of samples that will be padded after the data\n%\n% If padlength is used instead of prepadlength and postpadlength, padding\n% will be symmetrical (i.e. padlength = prepadlength = postpadlength)\n%\n\nsvn ci ft_preproc_padding.m -m \"enhancement-#1730-padding can be asymmetrical now&added localmean padding\"\nSending        ft_preproc_padding.m\nTransmitting file data .\nCommitted revision 6969."
+      - +@isprivate: "0"
+        commentid: "8381"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-23 10:36:53 +0100
+        thetext: |-
+          CC Vladimir so that he's up to date
+
+          new option cfg.padtype added/key-value pair 'padtype'
+
+          http://code.google.com/p/fieldtrip/source/detail?r=6977
+          and the many commits after that to fix some smaller issues, like typos

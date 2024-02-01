@@ -1,0 +1,225 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2033"
+    creation_ts: 2013-03-07 16:34:00 +0100
+    short_desc: implement replacement for signal processing toolbox
+    delta_ts: 2013-08-21 14:41:34 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=2208
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    blocked: "1981"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - g.flandin
+      - litvak.vladimir
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9702"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 16:34:04 +0100
+        thetext: |-
+          Preparing for the Toronto workshop, we found out that the computer lab here does not have the signal processing toolbox. It is needed for some of the tutorials, so I have to implement a workaround.
+
+          The octave signal package provides a good start: http://octave.sourceforge.net/signal/index.html
+      - +@isprivate: "0"
+        commentid: "9703"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 16:35:56 +0100
+        thetext: "I am aware of porblems due to hanning, window and dpss. \n\nWe have a drop in replacement for hanning (in specest/private) but not for the others.\n\nThe octave signal package contains among others:\nwindow.m\nand\nbarthannwin.m\nblackmanharris.m\nbohmanwin.m\nchebwin.m\nflattopwin.m\ngausswin.m\nhann.m\nkaiser.m\nnuttallwin.m\nparzenwin.m\nrectwin.m\ntriang.m\ntukeywin.m"
+      - +@isprivate: "0"
+        commentid: "9704"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 16:51:02 +0100
+        thetext: |-
+          the octave version is not drop-in compatible with matlab.
+
+          list of required changes
+
+          ## -> %
+          endfunction -> end
+          endswitch -> end
+          endif -> end
+          " -> '
+          ! -> ~
+      - +@isprivate: "0"
+        commentid: "9705"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 16:59:29 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          # -> %
+          print_usage -> help(mfilename)
+
+          default input handling is different
+          indexing cannot be done directly on function output
+      - +@isprivate: "0"
+        commentid: "9706"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 17:00:40 +0100
+        thetext: |-
+          I'll make a test script like this
+
+          type = {
+            'barthannwin'
+            'blackmanharris'
+            'bohmanwin'
+            % 'chebwin' % removed, as it required another function (cheb).
+            'flattopwin'
+            'gausswin'
+            'hann'
+            'kaiser'
+            'nuttallwin'
+            'parzenwin'
+            'rectwin'
+            'triang'
+            'tukeywin'
+            };
+
+          for i=1:length(type)
+            w = window(type{i}, 1000);
+          end
+
+          at this moment (with all modifications) it works.
+      - +@isprivate: "0"
+        commentid: "9707"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 17:05:22 +0100
+        thetext: "ok, now onto the timefrequency tutorial. As expected it fails on \n\nUndefined function 'dpss' for input arguments of type 'double'.\n\nError in ft_specest_mtmconvol>double_dpss (line 392)\ntap = dpss(double(a), double(b), varargin{:});\n\nError in ft_specest_mtmconvol (line 146)\n        tap = double_dpss(timwinsample(ifreqoi), timwinsample(ifreqoi) .* (tapsmofrq(ifreqoi) ./ fsample))';\n\nError in ft_freqanalysis (line 505)\n        [spectrum_mtmconvol,ntaper,foi,toi] = ft_specest_mtmconvol(dat, time, 'timeoi', cfg.toi, 'timwin', cfg.t_ftimwin, 'taper', ...\n\nError in test_tutorial_timefrequencyanalysis (line 284)\nTFRmult = ft_freqanalysis(cfg, dataFIC);"
+      - +@isprivate: "0"
+        commentid: "9710"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-07 17:34:40 +0100
+        thetext: |-
+          there is http://sourceforge.net/projects/dpsseq but that is cpp code, without MATLAB wrapper. It also requires some LAPACK fortran functions. Not something I cat get to work in one hour.
+
+          I'll proceed with a precomputed set of dpss tapers and interpolate based on them.
+      - +@isprivate: "0"
+        commentid: "9716"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-08 03:44:43 +0100
+        thetext: "laptop> git commit \n[bug2033 a179de9] enhancement - added alternative windowing functions for signal processing toolbox, including test script. See http://bugzilla.fcdonders.nl/show_bug.cgi?id=2033\n 19 files changed, 665 insertions(+), 0 deletions(-)\n create mode 100644 external/signal/README\n create mode 100644 external/signal/barthannwin.m\n create mode 100644 external/signal/blackmanharris.m\n create mode 100644 external/signal/bohmanwin.m\n create mode 100644 external/signal/dpss.m\n create mode 100644 external/signal/flattopwin.m\n create mode 100644 external/signal/gausswin.m\n create mode 100644 external/signal/hann.m\n create mode 100644 external/signal/hanning.m\n create mode 100644 external/signal/kaiser.m\n create mode 100644 external/signal/nuttallwin.m\n create mode 100644 external/signal/parzenwin.m\n create mode 100644 external/signal/precompute_dpss.m\n create mode 100644 external/signal/precompute_dpss.mat\n create mode 100644 external/signal/rectwin.m\n create mode 100644 external/signal/triang.m\n create mode 100644 external/signal/tukeywin.m\n create mode 100644 external/signal/window.m\n create mode 100644 test/test_bug2033.m"
+      - +@isprivate: "0"
+        commentid: "9717"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-08 03:58:08 +0100
+        thetext: |-
+          laptop> git commit .
+          [bug2033 3224e02] enhancement - check signal processing toolbox, add the one from external/signal if needed
+           2 files changed, 40 insertions(+), 34 deletions(-)
+      - +@isprivate: "0"
+        commentid: "9732"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-10 11:56:39 +0100
+        thetext: "during the workshop I found out that boxcar is used in ft_databrowser for some fast fft computation. \n\nTODO: add boxcar replacement"
+      - +@isprivate: "0"
+        commentid: "9844"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 10:01:54 +0100
+        thetext: "I made a boxcar implementation. \n\nFurthermore, I have tried collecting all private functions that are replacements for signal toolbox functions in the external/signal directory.\n\nmbp> mv specest/private/hilbert.m external/signal/\nmbp> mv specest/private/hanning.m external/signal/\nmbp> mv specest/private/filtfilt.m external/signal/\nmbp> mv specest/private/bilinear.m external/signal/\nmbp> mv specest/private/butter.m external/signal/"
+      - +@isprivate: "0"
+        commentid: "9845"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 10:07:05 +0100
+        thetext: "also needs this one\nmbp> mv specest/private/sftrans.m external/signal/private/\nmbp> mv specest/private/postpad.m external/signal/private/\n\nremoved them here\nmbp> rm preproc/private/butter.m \nmbp> rm preproc/private/bilinear.m \nmbp> rm preproc/private/filtfilt.m \nmbp> rm preproc/private/sftrans.m  \nmbp> rm preproc/private/postpad.m"
+      - +@isprivate: "0"
+        commentid: "9846"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 10:12:31 +0100
+        thetext: "mbp> rm private/butter.m \nmbp> rm private/postpad.m \nmbp> rm private/bilinear.m \nmbp> rm private/sftrans.m \nmbp> rm private/filtfilt.m \n\nI committed it to git, see oostenveld/fieldtrip/branch2033 \n\n[bug2033 b6cb21d] restructuring - moved all signal processing replacement functions to external/signal, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=2033\n\n 18 files changed, 1 insertions(+), 1257 deletions(-)\n rename {preproc/private => external/signal}/bilinear.m (100%)\n rename {preproc/private => external/signal}/butter.m (100%)\n rename {preproc/private => external/signal}/filtfilt.m (100%)\n rename {specest/private => external/signal}/hilbert.m (100%)\n rename {preproc => external/signal}/private/postpad.m (100%)\n rename {preproc => external/signal}/private/sftrans.m (100%)\n delete mode 100644 private/bilinear.m\n delete mode 100644 private/butter.m\n delete mode 100644 private/filtfilt.m\n delete mode 100644 private/postpad.m\n delete mode 100644 private/sftrans.m\n delete mode 100644 specest/private/bilinear.m\n delete mode 100644 specest/private/butter.m\n delete mode 100644 specest/private/filtfilt.m\n delete mode 100644 specest/private/hanning.m\n delete mode 100644 specest/private/postpad.m\n delete mode 100644 specest/private/sftrans.m"
+      - +@isprivate: "0"
+        commentid: "9847"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-03-16 10:52:09 +0100
+        thetext: |-
+          Hmm, the merge with git did not exactly result in the detailed comments that I had hoped. But the code is correctly merged.
+
+          See http://code.google.com/p/fieldtrip/source/detail?r=7674
+
+          @Vladimir & Guillaume: this means that fieldtrip/preproc and fieldtrip/specest by themselves are not independent of the signal toolbox any more as they do not have the private drop-in replacement functions.  Rather external/signal contains all of them. I believe this makes it easier to manage. If you disagree, please let me know.
+      - +@isprivate: "0"
+        commentid: "10223"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:05:55 +0200
+        thetext: closed various bugs
+      - +@isprivate: "0"
+        commentid: "10248"
+        comment_count: "15"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-04-23 12:06:30 +0200
+        thetext: closed various bugs

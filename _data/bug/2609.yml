@@ -1,0 +1,82 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2609"
+    creation_ts: 2014-06-11 14:49:00 +0200
+    short_desc: ft_sourceplot with cfg.atlas/.roi throws error (line 345)
+    delta_ts: 2014-06-18 12:29:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jens.klinzing
+      +@name: Jens Klinzing
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13826"
+        comment_count: "0"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-06-11 14:49:47 +0200
+        thetext: "When specifying cfg.atlas & cfg.roi when calling ft_sourceplot I get the following error:\n\n-\n\nError using ft_checkconfig (line 150)\n   The field cfg.inputcoord is required\nError in ft_volumelookup (line 125)\n    ft_checkconfig(cfg, 'forbidden', {'sphere' 'box'}, ...\nError in ft_sourceplot (line 345)\n    roi = ft_volumelookup(tmpcfg,data);\n\n-\n\nft_sourceplot does not correctly specify the coordinate system when calling ft_volumelookup. The error occurs because in line 344 it says\ntmpcfg.coordsys = data.coordsys;\n\nHowever, ft_volumelookup expects the coordinate system to be specified in a field 'inputcoord', not 'coordsys'. Hence, to fix the bug line 344 could be changed to:\ntmpcfg.inputcoord = data.coordsys;\n\nSee example code below (works with the suggested fix, does not work without the fix).\n\nCheers,\nJens\n\n-\n\ncfg                    = [];\ncfg.funparameter       = 'avg.pow';\ncfg.opacitymap         = 'rampup'; \ncfg.funcolormap        = 'jet';\ncfg.funcolorlim        = 'zeromax'; % = [0.0 1.2];\ncfg.opacitylim         = 'zeromax'; % = [0.0 1.2];\ncfg.method             = 'slice';\ncfg.roi                = {'Supp_Motor_Area_L','Supp_Motor_Area_R'};\ncfg.atlas              = fullfile(home,'fieldtrip','template','atlas','aal','ROI_MNI_V4.nii');\n\nft_sourceplot(cfg, source)"
+      - +@isprivate: "0"
+        commentid: "13827"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-06-11 15:18:11 +0200
+        thetext: |-
+          Thanks for reporting. I incorporated your suggested fix. Could you check whether it now works?
+
+          bash-4.1$ svn diff ft_sourceplot.m
+          Index: ft_sourceplot.m
+          ===================================================================
+          --- ft_sourceplot.m	(revision 9614)
+          +++ ft_sourceplot.m	(working copy)
+          @@ -341,7 +341,7 @@
+               tmpcfg          = [];
+               tmpcfg.roi      = cfg.roi;
+               tmpcfg.atlas    = cfg.atlas;
+          -    tmpcfg.coordsys = data.coordsys;
+          +    tmpcfg.inputcoord = data.coordsys;
+               roi = ft_volumelookup(tmpcfg,data);
+             end
+           end
+          bash-4.1$ svn commit -m "bugfix - changed coordsys into inputcoord: courtesy of Jens Klinzing (bug 2609)" ft_sourceplot.m
+          Sending        ft_sourceplot.m
+          Transmitting file data .
+          Committed revision 9615.
+      - +@isprivate: "0"
+        commentid: "13828"
+        comment_count: "2"
+        who:
+          +content: jens.klinzing
+          +@name: Jens Klinzing
+        bug_when: 2014-06-11 15:26:11 +0200
+        thetext: "Seems to work just fine! \nThanks!"

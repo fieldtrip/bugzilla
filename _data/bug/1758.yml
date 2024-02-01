@@ -1,0 +1,444 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1758"
+    creation_ts: 2012-10-01 15:23:00 +0200
+    short_desc: ft_freqanalysis does not work on spike structure
+    delta_ts: 2012-11-27 15:23:10 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: NEW
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: bart.gips
+      +@name: Bart Gips
+    assigned_to:
+      +content: bart.gips
+      +@name: Bart Gips
+    cc:
+      - martinvinck
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "7692"
+        comment_count: "0"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-01 15:23:12 +0200
+        thetext: "Description:\n-----------------------\nft_freqanalysis does not work on spike structure, only on spike data transformed to a binary format (i.e. explicit 0's and 1's instead of the time time points at which a spike occured).\n\n-----------------------\nCause:\n-----------------------\nft_freqanalysis calls (line 218):\ndata = ft_checkdata(data, 'datatype', {'raw', 'comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes');\n\nThis will attempt to convert the spike structure to the binary format neccesary for frequency analysis. \nHowever, ft_checkdata will call the subfunction spik2raw (line 310):\ndata = spike2raw(data,fsample);\nwith fsample being empty.\n\nfsample is empty because ft_checkdata uses (line 101):\nfsample              = ft_getopt(varargin, 'fsample');\n\nHowever, varargin (as mentioned above) consists of:\n'datatype', {'raw', 'comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes'\n\nso it contains no information on fsample.\n\n--------------------------------------\nSuggested solutions:\n--------------------------------------\nI can see 2 solutions, but I am not sure which is preferable:\n\n1) edit ft_freqanalysis such that it can use a user determined fsample. as an argument in cfg e.g.:\n\nline 218 becomes:\ndata = ft_checkdata(data, 'datatype', {'raw', 'comp', 'mvar'}, 'feedback', cfg.feedback, 'hassampleinfo', 'yes', 'fsample', cfg.fsample);\n\n(of course, isfield(cfg,'fsample') should then be performed first)\n\n2) edit ft_checkdata such that when it is performed on spike data, it looks for data.fsample\n\ne.g. add a line change line 310:\nfrom: data = spike2raw(data,fsample);\nto:   data = spike2raw(data,data.fsample);\n(one could also change the subfunction spike2raw to uses data.fsample when fsample is empty.)\n\nThis is attractive, because it adds a line of code that is only run when actual spike data is used, however it seems manually adding fields to data structures is not the \"FieldTrip way\"."
+      - +@isprivate: "0"
+        commentid: "7694"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 15:35:02 +0200
+        thetext: "Can the sampling frequency not be determined in another way from the spike structure? \nOr is because there are only spikes?\n\nLet me CC Martin on this one... it resembles a discussion I recall having with him."
+      - +@isprivate: "0"
+        commentid: "7696"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 15:40:50 +0200
+        thetext: "(In reply to comment #1)\n\n@Martin: it pertains to data that is simulated with Neurosim, the software from Jan van der Eerden.\n\nSince the spikes are on a fixed underlying temporal scale (determined by simulation parameters), it is in principle possible to estimate the perfect sampling rate.\n\nImagine having spikes at \nts = [1 2 3 4 6 98 99 1003 1004 1006]\nthen\ndt = min(diff(ts))\n[ts-min(ts)]./dt\nresults in all integer values. Here I am cheating a little bit in determining dt. But in general the optimal choice for dt would be one that is as large as possible, but still small enough that all spikes are perfectly aligned with an integer sample axis.\n\nwould this help?"
+      - +@isprivate: "0"
+        commentid: "7697"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-10-01 15:47:03 +0200
+        thetext: "The choice of a sampling frequency is up to the user (as the data is a point process), and in some way already introduces some (low pass) filtering when applied to the point process (as we convolve the point process with a box car of let's say 1 ms).\n\nTo get a frequency representation of the point process you can indeed first convert to binary (or M-ary).\n\nThe precision of detecting the spike itself is on the order of few hundred microseconds so binarizing won't matter too much for the spectrum when Fs is chosen high enough. \nHowever the precision is not exactly known as it depends on the way the spike is detected using the online/offline procedure. Principally it is bounded from above by 32000/40000 in Neuralynx or plexon systems - this can be read off from the header.\n\nIn ft_spikedensity we had the same issue, there we added a cfg.fsample indeed.\n\nAs it is a configuration, not a property of the data, it should be in the cfg, not as a field in the data."
+      - +@isprivate: "0"
+        commentid: "7699"
+        comment_count: "4"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-10-01 15:50:14 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          intuitively, this makes sense, although it is not entirely clear to me whether there is still not some filtering introduced - however practically, one has many different neurons with different minimal distances between spikes, and would probably want to use one fixed sampling frequency for all neurons.
+      - +@isprivate: "0"
+        commentid: "7700"
+        comment_count: "5"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-10-01 15:55:43 +0200
+        thetext: 'another thing (as mentioned by Robert once): the signals should never be made M-ary before ft_freqanalysis, as this changes the energy of the signal directly (since 2 spikes in a small bin now add 4 to the energy).'
+      - +@isprivate: "0"
+        commentid: "7701"
+        comment_count: "6"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-01 16:04:56 +0200
+        thetext: |-
+          At first I would comment that fsample is indeed a parameter put in by the user, as mentioned in the spike tutorial. Mostly used to downsample a little to save memory.
+          However,
+          (In reply to comment #5)
+          I assume M-ary means that it contains values that are not 0 or 1?
+          If this is a problem then we should perhaps force the sampling rate (i.e. not leave it up to the user) as Robert suggests.
+      - +@isprivate: "0"
+        commentid: "7702"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 16:22:54 +0200
+        thetext: |-
+          we have had a case with data where two spikes (at 40 kHz) ended up in one LFP sample bin (at 1 kHz).
+
+          If we consider this "multiple spikes in one sample bin" as a degenerate case, and decide not to deal with it automatically, would my suggestion in comment #2 allow for an automatic optimal sample rate detection?
+
+          The reason for it being desirable to have this done automatically is that it is rather deep in the code, where normal users would not thread. It would be nice if we can catch 90% of the normal usage with an automatic trick, and then detect (and give instructions to the user, e.g. give an error that cfg.fsample is not specified) how to deal with the remaining 10%.
+      - +@isprivate: "0"
+        commentid: "7706"
+        comment_count: "8"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-01 16:33:03 +0200
+        thetext: |-
+          (In reply to comment #7)
+          Meaning something like this:
+
+          if isempty(fsample)
+              fsample=1/min(abs(diff([spike.time{:}])));
+              warning(['Desired sampling rate for spike data not specified, automatically resampled to: ' num2str(fsample) ' Hz']);
+          end
+
+          This should yield only 1's and 0's in the binary spike arrays.
+          You will, however, lose small temporal differences in spike timing between channels.
+      - +@isprivate: "0"
+        commentid: "7708"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 16:38:49 +0200
+        thetext: |-
+          (In reply to comment #8)
+
+          if we first concatenate all timestamps, then do the min(diff), the differences between channels remain intact. Differences smaller than the simulation step-size (or acquisition ADC sampling speed in real data) cannot be detected.
+      - +@isprivate: "0"
+        commentid: "7711"
+        comment_count: "10"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-01 16:56:46 +0200
+        thetext: |-
+          (In reply to comment #9)
+          As I understand it:
+          diff(X) only gives us X(2)-X(1), X(3)-X(2), and so on.
+
+          However X(48)-X(2) might be smaller (when they are both from different channels). Spike 48 and spike 2 will both be put in the same bin, and the temporal difference between these two spikes will be lost.
+      - +@isprivate: "0"
+        commentid: "7712"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:00:13 +0200
+        thetext: |-
+          (In reply to comment #10)
+
+          Sorry, I meant diff(sort((ts)), and then skip the zero difference.
+
+          So determine the smallest non-zero difference between the collection of timestamps.
+      - +@isprivate: "0"
+        commentid: "7718"
+        comment_count: "12"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-01 17:15:41 +0200
+        thetext: "(In reply to comment #11)\nAh yes, of course.\n\nThis could be added to the subfunction spike2raw (i.e. line ~1900 in ft_checkdata):\n\nif isempty(fsample)\n    timeDiff=abs(diff(sort([spike.time{:}])));\n    fsample=1/min(timeDiff(timeDiff>0));\n    warning(['Desired sampling rate for spike data not specified, automatically resampled to: ' num2str(fsample) ' Hz']);\nend\n\nIt is interesting to note that when I applyed this to a dataset from neurosim it resulted in the temporal resolution of the simulation (10kHz). Meaning that even though this might be the optimal fsample (no loss of temporal order) it will possibly require a large amount of memory. \n\nIf we still change ft_freqanalysis as I mentioned in the description of the bug this would also make manual resampling possible with cfg.fsample."
+      - +@isprivate: "0"
+        commentid: "7719"
+        comment_count: "13"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-10-01 17:22:53 +0200
+        thetext: |-
+          Another thing: it would be possible to perform frequency analysis much faster for a point process actually, by simply using the fact that the fourier representation of the delta is already known (and then using linear addition), so the number of computations required is on the order of the number of spikes, not on the order of the number of bins. So, if the purpose here is to do simulations, I'd recommend using this property. Perhaps, it would be desired to implement such a function for spike data.
+
+          e.g. one can do
+
+          S(f) = sum(exp(i*f*2*pi*ts))
+
+          for any desired range of frequencies, and then convolve S(f) with some smoothing window to deal with spectral leakage issues.
+      - +@isprivate: "0"
+        commentid: "7721"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-01 17:29:57 +0200
+        thetext: "(In reply to comment #12)\n\nas suggested\n\nmanzana> svn commit ft_checkdata.m\nSending        ft_checkdata.m\nTransmitting file data .\nCommitted revision 6614.\n\nNote that if the spikes are like this \n[1 3 5 9 14] \nit still fails, since\n\n>> diff([1 3 5 9 14])\nans =\n     2     2     4     5\n\nThe correct answer here would be 1, not 2.\n\nsee \n>> help gcd\n\n>> gcd(2, 4)\nans =\n     2\n\n>> gcd(2, 5)\nans =\n     1\n\nThe question now is: how to determine the GCD for a long list of numbers? And how to deal with numerical errors?"
+      - +@isprivate: "0"
+        commentid: "7727"
+        comment_count: "15"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-02 09:49:12 +0200
+        thetext: |-
+          (In reply to comment #14)
+          I don't know the solution to this problem.
+          But is it really necessary? Is this not a problem inherent to binning in the first place?
+          Using the 'diff' strategy all spikes already receive their own bin and can be distinguished from all other spike timepoints.
+          If even more precision is required, I think you'll end up back at the sampling frequency of the measurement/simulation.
+          So maybe a flag fsample='max' could be useful (in which it reads out fsample from the data header).
+      - +@isprivate: "0"
+        commentid: "7728"
+        comment_count: "16"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 09:57:00 +0200
+        thetext: "(In reply to comment #15)\n\n> If even more precision is required, I think you'll end up back at the sampling\n> frequency of the measurement/simulation.\n\nWe want to have the lowest precision that is needed to _not_ loose any information.\n\nWith spikes at\n2 4 5 8 11 \nyou would want a binning at 1.\n\nWith spikes at\n2 4 8 11 \ni.e. leaving out the 5, you would still want a binning at 1. The min-diff returns 2 in this case, which will result in the spike at ts=11 to be forced into the 5th or 6th bin.\n\nThe min(diff(ts)) is only a first approximation. It works if the spike timestamps are dense enough. If they are more sparse, it won't work."
+      - +@isprivate: "0"
+        commentid: "7731"
+        comment_count: "17"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-02 10:13:02 +0200
+        thetext: |-
+          (In reply to comment #16)
+          Yes, I understand this. I was just wondering if it would yield much improvement.
+          But I see now that with very sparse spiking the method would indeed fail.
+
+          Maybe something along the lines of checking if every spike is in the centre of it's bin (or start, or end, depending how you define the bins) would work.
+          But I am just thinking 'aloud' here and am not sure how this would be implemented efficiently.
+          I will have to think on it some more.
+      - +@isprivate: "0"
+        commentid: "7738"
+        comment_count: "18"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-02 11:20:36 +0200
+        thetext: |-
+          (In reply to comment #17)
+          We could implement an iterative increase of fsample (up to a certain tolerance level). Something along the lines of:
+
+          tolerance=1e-6;
+
+          tstart=0;
+          ts=[2 4 6 8 11 15 18 20 22.3 24];
+
+          trel=ts-tstart;
+
+          fs=1/min(diff(trel));
+
+          restOrig=rem(trel*fs,1);
+          rest=unique(restOrig);
+
+          idx=find(rest);
+          optfs=isempty(idx);
+          fac=1;
+
+          while optfs==0;
+              rest=unique(rest(idx));
+              fac=fac/rest(1);
+              rest=rest(2:end)/rest(1);
+              rest=round(rem(rest,1)/tolerance)*tolerance;
+              idx=find(rest);
+              optfs=isempty(idx);
+          end
+
+          fs=fs*fac;
+      - +@isprivate: "0"
+        commentid: "7756"
+        comment_count: "19"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-10-02 17:58:31 +0200
+        thetext: |-
+          (In reply to comment #18)
+
+          How about this one?
+
+          function y = gcd_list(x)
+          y = gcd(x(1),x(2));
+          for i=2:(numel(x)-1)
+            y = gcd(gcd(x(i),x(i+1)), y);
+          end
+
+          This was inspired by http://code.activestate.com/recipes/577282-finding-the-gcd-of-a-list-of-numbers-aka-reducing-/
+      - +@isprivate: "0"
+        commentid: "7787"
+        comment_count: "20"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-04 09:49:24 +0200
+        thetext: |-
+          (In reply to comment #19)
+          That works too, but I feel my implementation is a little faster for a large amount of timestamps, since it does not have to loop over every timestamp.
+      - +@isprivate: "0"
+        commentid: "7816"
+        comment_count: "21"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-05 09:57:50 +0200
+        thetext: "(In reply to comment #20)\nI've implemented my version in ft_checkdata (spike2raw). Note that it will check for isempty(fsample) which for now will always be the case, since a manual override has not been implemented yet.\nIt will determine the optimal fsample for every trial. It will generally be faster than the iterative gcd function proposed by Robert, because it will divide the timepoints by a specific number and will throw out all remainders equal to zero (in effect finding all timepoints with the same gcd, and will skip the loop entirely when the first approximation using 'min(diff(sort(timesamples)))' is sufficient.).\nThe only downside to this method seems to be that the rem(x,1) function in matlab is not infinitely accurate. Therefore a 'tolerance' (tol) has been built in that rounds the remainders to a precision of 1e-6 per iteration.\n\nMy version looks like this:\n\nIndex: utilities/ft_checkdata.m\n===================================================================\n--- utilities/ft_checkdata.m    (revision 6487)\n+++ utilities/ft_checkdata.m    (working copy)\n@@ -1898,6 +1898,14 @@\n \n % Copyright (C) 2010, Martin Vinck\n \n+if isempty(fsample)\n+\n+    warning('Desired sampling rate for spike data not specified. Sampling rate will be determined from data.')\n+    autofsample=1;\n+    tol=1e-6;\n+    trialidx=[spike.trial{:}];\n+    timeconc=[spike.time{:}];\n+end\n % get some sizes\n nUnits  = length(spike.label);\n nTrials = size(spike.trialtime,1);\n@@ -1906,6 +1914,28 @@\n data.trial(1:nTrials) = {[]};\n data.time(1:nTrials)  = {[]};\n for iTrial = 1:nTrials\n+    if autofsample\n+        trel=sort(timeconc(trialidx==iTrial)-spike.trialtime(iTrial,1));\n+        timeDiff=diff(trel);\n+        fsample=1/min(timeDiff(timeDiff>0));\n+        remain=rem(trel*fsample,1);\n+        remain=unique(round(remain/tol)*tol);\n+        idx=find(remain);\n+        optfs=isempty(idx);\n+        fac=1;\n+        \n+        while optfs==0;\n+            remain=unique(remain(idx));\n+            fac=fac/remain(1);\n+            remain=remain(2:end)/remain(1);\n+            remain=round(rem(remain,1)/tol)*tol;\n+            idx=find(remain);\n+            optfs=isempty(idx);\n+        end\n+        \n+        fsample=fsample*fac;\n+        disp(['Automatically resampling trial ' num2str(iTrial) ' to ' num2str(fsample) ' Hz.']);\n+    end\n   \n   % make bins: note that the spike.time is already within spike.trialtime\n   x = [spike.trialtime(iTrial,1):(1/fsample):spike.trialtime(iTrial,2)];"
+      - +@isprivate: "0"
+        commentid: "7818"
+        comment_count: "22"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-10-05 10:20:35 +0200
+        thetext: |-
+          (In reply to comment #21)
+          I noticed a bug in my version, it didn't work when fsample was put in manually:
+
+          +if isempty(fsample)
+          +
+          +    warning('Desired sampling rate for spike data not specified. Sampling rate
+          will be determined from data.')
+          +    autofsample=1;
+          +    tol=1e-6;
+          +    trialidx=[spike.trial{:}];
+          +    timeconc=[spike.time{:}];
+          +end
+
+
+          should of course be:
+
+          +if isempty(fsample)
+          +
+          +    warning('Desired sampling rate for spike data not specified. Sampling rate
+          will be determined from data.')
+          +    autofsample=1;
+          +    tol=1e-6;
+          +    trialidx=[spike.trial{:}];
+          +    timeconc=[spike.time{:}];
+          +else autofsample=0;
+          +end
+      - +@isprivate: "0"
+        commentid: "8426"
+        comment_count: "23"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-11-27 14:51:47 +0100
+        thetext: "I think the best solution right now is the following:\n\nEdit ft_freqanalysis to check for a cfg.fsample field and provide this to ft_checkdata.\n\nMake ft_checkdata look for the fsample value and produce an error when no fsample value is found:\n\n     if isempty(fsample)\n     \n     error('No sampling frequency given, spike data cannot be converted to     \t\t     binary spike train. Please provide fsample when calling ft_checkdata.')\n     \n     end\n\nThen, it will use the fsample value for resampling the spike data to the raw \"binary\" format. And compare it to two values calculated from the data:\n\n1) To make sure now that all spikes across all channels in one trial get separate bins (unless two spikes are recorded at exactly the same time, of course)\n\nHowever, the spike2raw subfunction will compare the given fsample to a value fsample_min.\n\nwhere fsample_min is the minimal frequency needed to separate all spikes across all channels for one trial. (determined by using Robert's suggestion):\n\n     % load temporal information for determining fsample_min (minimum resampling\n     % frequency needed to avoid more than one spike per bin)\n     trialidx=[spike.trial{:}];\n     timeconc=[spike.time{:}];\n\nand then, in the loop over trials (for iTrial=1:ntrials):\n\n     % first determine fsample_min\n     trel=sort(timeconc(trialidx==iTrial)-spike.trialtime(iTrial,1));\n     timeDiff=diff(trel);\n     fsample_min=1/min(timeDiff(timeDiff>0)); %first estimate of optimal Fs, smallest difference between sorted timestamps\n    \n      if fsample<fsample_min\n        warning(['Resampling frequency is smaller than minimum sampling frequency. This will yield spike trains that are M-ary. Please increase data.fsample to at least: ' num2str(fsample_min)])\n      end\n\n2) (more important)\nAlso, spike2raw will give a warning when fsample is low enough such that multiple spikes can fall in one bin. In the loop over channels (for iUnit=1:nUnits)\n\n\t% get the timestamps and only select those timestamps that are in the trial\n        ts       = spike.time{iUnit};\n        hasTrial = spike.trial{iUnit}==iTrial;\n        ts       = ts(hasTrial);\n        \n        dts=sort(diff(sort(ts)));\n        fsmary=1/min(dts(dts>0));\n        \n        if fsample<fsmary\n            warning(['Resampling frequency in trial ' num2str(iTrial) ' is smaller than minimum sampling frequency for channel ' num2str(iUnit) '. This will will yield spike trains with multiple spikes per bin. Please increase data.fsample to at least: ' num2str(fsmary)])\n        end\n\nAll this _does_ lead to a lot of warnings being printed to the screen though...\nI will attach a test function together with the altered ft_freqanalysis and ft_checkdata"
+      - +@isprivate: "0"
+        commentid: "8427"
+        comment_count: "24"
+        attachid: "379"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-11-27 15:13:11 +0100
+        thetext: |-
+          Created attachment 379
+          Script to test the edited functions
+      - +@isprivate: "0"
+        commentid: "8428"
+        comment_count: "25"
+        attachid: "380"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-11-27 15:13:54 +0100
+        thetext: |-
+          Created attachment 380
+          ft_freqanalysis
+      - +@isprivate: "0"
+        commentid: "8429"
+        comment_count: "26"
+        attachid: "381"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-11-27 15:14:25 +0100
+        thetext: |-
+          Created attachment 381
+          ft_checkdata
+      - +@isprivate: "0"
+        commentid: "8430"
+        comment_count: "27"
+        who:
+          +content: bart.gips
+          +@name: Bart Gips
+        bug_when: 2012-11-27 15:23:10 +0100
+        thetext: |-
+          (In reply to comment #23)
+
+          Reading back what Martin said in comment 5:
+          Perhaps the second warning should be an error instead...
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "379"
+        date: 2012-11-27 15:13:00 +0100
+        delta_ts: 2012-11-27 15:13:11 +0100
+        desc: Script to test the edited functions
+        filename: test_bug1758.m
+        type: application/octet-stream
+        size: "1000"
+        attacher:
+          +content: bart.gips
+          +@name: Bart Gips
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "380"
+        date: 2012-11-27 15:13:00 +0100
+        delta_ts: 2012-11-27 15:13:54 +0100
+        desc: ft_freqanalysis
+        filename: ft_freqanalysis.m
+        type: application/octet-stream
+        size: "39976"
+        attacher:
+          +content: bart.gips
+          +@name: Bart Gips
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "381"
+        date: 2012-11-27 15:14:00 +0100
+        delta_ts: 2012-11-27 15:14:25 +0100
+        desc: ft_checkdata
+        filename: ft_checkdata.m
+        type: application/octet-stream
+        size: "69751"
+        attacher:
+          +content: bart.gips
+          +@name: Bart Gips
+        data: REMOVED

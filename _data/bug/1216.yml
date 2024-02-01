@@ -1,0 +1,160 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1216"
+    creation_ts: 2011-12-06 06:32:00 +0100
+    short_desc: when calling ft_read_event(), different results from version 20110907 and the beta-test
+    delta_ts: 2019-08-10 11:46:22 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: yokogawa
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: critical
+    target_milestone: '---'
+    everconfirmed: "0"
+    reporter:
+      +content: paul.cmchang
+      +@name: Paul Chang
+    assigned_to:
+      +content: Tilmann.Sander-Thoemmes
+      +@name: Tilmann Sander-Thommes
+    cc:
+      - Masayuki.Mochiduki
+      - paul.cmchang
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4420"
+        comment_count: "0"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2011-12-06 06:32:06 +0100
+        thetext: "dear all,\nWe have a data set that may cause fieldtrip-20110907 and the beta-test code (from Dr. Sander on Nov. 15, 2011) producing different results. They are explained as follows:\n====================================================================\n1. calling ft_read_events()\n\nevt = ft_read_event('20111115_Part1.con')\n\nevt = \n\n1053531x1 struct array with fields:\n    type\n    sample\n    value\n    offset\n    duration\n\nBoth versions (20110907 and the beta-test) generates the same result.\n\n===================== However, when ==================================\n2. calling ft_read_events() with argument \"trigindx\"\n\nevent = ft_read_event('20111115_Part1.con', 'trigindx', 193:200, 'threshold',3e3, 'detectflank', 'up');\n\n#2.1 Version 20110907 will return:\n\nevent =\n414x1 struct array with fields:\n    type\n    sample\n    value\n    offset\n    duration\n\n#2.2 But the beta-test will return:\n\nWarning: no triggers were detected, please specify the \"trigindx\" option \n> In fileio\\private\\read_yokogawa_event at 137\n  In ft_read_event at 1439 \n\nevent =\n\n   Empty matrix: 0-by-1\n\n\nCan you help to explore this problem in the beta-test code?\n\nIn the attachment, we provide this dataset \"20111115_Part1.con\" (sized around 70 MB) for you to explore this problem."
+      - +@isprivate: "0"
+        commentid: "4421"
+        comment_count: "1"
+        attachid: "197"
+        who:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        bug_when: 2011-12-06 06:42:09 +0100
+        thetext: |-
+          Created attachment 197
+          testcase to generate this problem
+      - +@isprivate: "0"
+        commentid: "4426"
+        comment_count: "2"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-12-06 10:49:54 +0100
+        thetext: |-
+          I downloaded the example file and will work on the problem.
+
+          Yours, Till
+      - +@isprivate: "0"
+        commentid: "4495"
+        comment_count: "3"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-12-09 15:51:55 +0100
+        thetext: |-
+          An error in the Yokogawa toolbox selection was removed in ft_read_event.m,
+          but this was not the main cause of the bug:
+          The correct result for your datafile can be obtained using the Yokogawa MEG
+          Reader 1.4 toolbox only by
+
+          evt = ft_read_event('20111115_Part1.con', 'trigindx', 193:200, 'threshold',4, 'detectflank', 'up');
+
+          The crucial point is that you set the threshold to 4. The signals on lines 193-200 are 5 V TTL levels for logic 1. To detect them a threshold of 4 (V)
+          is appropriate. The older toolbox did not read the voltage correctly and you
+          had to set a different threshold.
+
+          With this command I get:
+
+          event =
+          414x1 struct array with fields:
+              type
+              sample
+              value
+              offset
+              duration
+
+          If you do not set 'trigindx', 'threshold', and 'detectflank' the following happens: All triggerchannels are used, which are channels 193-224 (see Edit-> Channel Info in MEG 160 software, note channel index starts at 0 in ET 160 and at 1 in FieldTrip). Any non-zero value is detected as an event without the threshold option and the small noise around zero between the actual triggers leads to the many events detected. 'detectflank' defaults to 'up', so no real problem here. For illustration I attach a screen shot of the trigger signals from your file.
+
+          I consider the bug resolved, but leave it open for furthe replies / changes.
+
+          Yours, Till
+      - +@isprivate: "0"
+        commentid: "4496"
+        comment_count: "4"
+        attachid: "201"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-12-09 15:52:28 +0100
+        thetext: |-
+          Created attachment 201
+          Screen shot of trigger lines
+      - +@isprivate: "0"
+        commentid: "4497"
+        comment_count: "5"
+        who:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        bug_when: 2011-12-09 15:53:42 +0100
+        thetext: status change
+      - +@isprivate: "0"
+        commentid: "19711"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 11:46:22 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "197"
+        date: 2011-12-06 06:42:00 +0100
+        delta_ts: 2011-12-06 06:42:09 +0100
+        desc: testcase to generate this problem
+        filename: 20111115_Part1.zip
+        type: application/x-zip-compressed
+        size: "34216840"
+        attacher:
+          +content: paul.cmchang
+          +@name: Paul Chang
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "201"
+        date: 2011-12-09 15:52:00 +0100
+        delta_ts: 2011-12-09 15:52:28 +0100
+        desc: Screen shot of trigger lines
+        filename: 20111115_Part1_trig_chan.jpg
+        type: image/jpeg
+        size: "233610"
+        attacher:
+          +content: Tilmann.Sander-Thoemmes
+          +@name: Tilmann Sander-Thommes
+        data: REMOVED

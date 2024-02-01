@@ -1,0 +1,143 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2269"
+    creation_ts: 2013-08-29 09:32:00 +0200
+    short_desc: ft_rejectartifact does not work for  trials with overlapping samples
+    delta_ts: 2015-07-15 13:30:47 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: giorgos.michalareas
+      +@name: Giorgos Michalareas
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11228"
+        comment_count: "0"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2013-08-29 09:32:20 +0200
+        thetext: "I have a dataset in which trials are partially overlapping.\n\ni.e.\nthe start and end sample are:\n\n1 1000\n501 1500\n1001 2000 e.t.c\n\nWhen I run the ft_rejectartifact with\n\ncfg.artfctdef.reject='complete'; \n\nThen I get the following error:\n\n%------------------------------------\nError using ft_fetch_data (line 121)\nsome of the requested samples occur twice in the data\n\nError in ft_redefinetrial (line 229)\n    data.trial{iTrl} = ft_fetch_data(dataold, 'header', hdr,\n    'begsample', begsample, 'endsample', endsample,\n    'chanindx', 1:hdr.nChans, 'docheck', 0);\n    %,'allowoverlap',true);\n\nError in ft_rejectartifact (line 498)\n    data       = ft_redefinetrial(tmpcfg, data);\n\n%----------------------------------------\n\nAt this code line the command is\n\ndata.trial{iTrl} = ft_fetch_data(dataold, 'header', hdr, 'begsample', begsample, 'endsample', endsample, 'chanindx', 1:hdr.nChans, 'docheck', 0);\n\nHowever ft_fetch_data has an input argument 'allowoverlap' which set by default to false, as in the case above where this argument is not provided.\n\nBy adding the argument 'allowoverlap',true   the function seems to work.\n\n\nI am not sure if this simple addition will wotk with all the other options though.\n\nCould you please have a look and commit a corrected version?\n\nThank you\nBest \nGiorgos"
+      - +@isprivate: "0"
+        commentid: "11229"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-29 09:43:05 +0200
+        thetext: |-
+          Hi Jim,
+
+          Probably you recall best what this is about, could you have a look at it?
+
+          thanks
+          Robert
+      - +@isprivate: "0"
+        commentid: "11230"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-08-29 10:17:14 +0200
+        thetext: "I was struggling with a samilar problem some weeks ago. I think the reason why no overlap is allowed, because trials might be affected by different filters or were demeand or whatever. If overlao is allowed, ft_fetch_data would always take the first occurence of the sample. So, for a trial with\ntrial1=500   1500\ntrial2=1000  2000\nft_fetchdata would always take sample 1000 to 1500 from trial 1. That is because ft_fetch_data is a low-level function and is ignorant about what trial you are interested in. \nSo, if you demean single trials, sample 1000 of trial 1 would have a different value (because baselined differently) from the corresponding sample of trial 2. Similar problems might arise with filter-artifacts at the edges.\nSo given you did not filter and not demeaned or detrended, what you are proposing is perfectly fine. Otherwise, you will artificially create jump-artifact or the like, because data is taken from different trials (even if not desired)\nThe officially proposed way to deal with these things is to use ft_rejectartifact before having the data in memory, so e.g. after ft_definetrial. On the other hand, if you know that you did not filter or demeaned/detrended or did other fancy stuff on single trial level, I would propose you change the line in your local copy and work with that for now.\n\nGenerally, I think, we could change behaviour such that allowoverlap is either allowed iff the cfg does not contain evidence of filtering or demeaning/-trending, or that ft_fetch_data does a sanity check whether the overlapping segments are equal. If they are equal, then overlapping trials are not a matter of concern."
+      - +@isprivate: "0"
+        commentid: "11231"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-29 10:21:27 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          > Generally, I think, we could change behaviour such that ...
+
+          your option 1 does not appeal to me, option 2 makes perfect sense.
+
+          But I don't know whether Giorgos (FYI: he is working with me on the HCP project) will actually be helped with it, as I suspect that he has overlap of differently filtered/demeaned data.
+      - +@isprivate: "0"
+        commentid: "11232"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2013-08-29 11:05:25 +0200
+        thetext: Actually I think the behaviour of ft_fetch_data should be changed such that it does not assume the sample timeline to correspond with one single dataline. When using ft_rejectartifact it does not make sense to think about how to combine (or choose from) trials that have overlapping sample numbers. Or, perhaps it makes more sense to change the behavior of ft_rejectartifact to operate on a trial-by-trial basis if hasdata = 'yes'.
+      - +@isprivate: "0"
+        commentid: "11233"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-29 11:48:36 +0200
+        thetext: |-
+          I have just implemented the "allow for overlap if identical " option
+
+          mac001> svn commit utilities/ft_fetch_data.m test/test_bug2269.m
+          Adding         test/test_bug2269.m
+          Sending        utilities/ft_fetch_data.m
+          Transmitting file data ..
+          Committed revision 8435.
+      - +@isprivate: "0"
+        commentid: "11234"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-29 11:53:15 +0200
+        thetext: "(In reply to comment #4)\n\nregarding \"assume the sample timeline to correspond with one single dataline...\" \n\npeople are not forced to use ft_preprocessing in combination with ft_redefinetrial. But if they do and use the cfg.trl option, there is a single sample \"axis\" along which the begin and end sample of each trial are expressed. That is not going to change. \n\nBut nowadays people seem to be using ft_appenddata and ft_redefinetrial in ways that we did not anticipate, and also for solving problems that we seemed to have solved differently in the past... I think it would help if we could explain what most suitable strategy is for dealing with certain cases of data representation, rather than constantly trying to adjust the code to the apparent needs of the day (as I just did).\n\nIn this case Giorgos probably could have used (and still might have to use) another strategy for dealing with the data that does not involve ft_fetch_data in any way."
+      - +@isprivate: "0"
+        commentid: "11235"
+        comment_count: "7"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-08-29 12:54:49 +0200
+        thetext: as said, the 'official' solution for Giorgos would be to use ft_rejectartifact before reading the data into memory. I think you, Robert, once told me that this is the way the artifact routines were initially intended to be used
+      - +@isprivate: "0"
+        commentid: "11236"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-29 14:17:31 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          yes.
+      - +@isprivate: "0"
+        commentid: "11237"
+        comment_count: "9"
+        who:
+          +content: giorgos.michalareas
+          +@name: Giorgos Michalareas
+        bug_when: 2013-08-29 15:06:19 +0200
+        thetext: "Ok thank you guys for all these replies.\n\nSo let me summarize the main points:\n\nA- After the latest modification by Jorn, the overlap is allowed but it always selects the common interval from the first trial it occurs (as long as the same exact overlap period is fully contained in other trials).\nSo this means that if you still have a dataset which has been demeaned,detrended or filtered or processed in any way , then you ll end up with a foreign data segment within one or more trials. Is this Correct?\n\nB-  The simple case in which you want to remove the full trials when any of them coincides with a bad segment, and there is an overlap between some trials, is not going be supported any more by ft_rejectartifact. Is this right? So for such cases your advice is to write my own functions for rejection of time segments in an already processed dataset?\n\nC- Could you please put a note about this in the HELP of the ft_rejectartifact function so that other people will be able to know? I am sure there are quite a few people who are working on datasets with some partial overlapping between trials and who might be using ft_rejectartifact to remove trials with some kind of artifact from processed datasets.\n\nThank you \nGiorgos"

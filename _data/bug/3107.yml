@@ -1,0 +1,263 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3107"
+    creation_ts: 2016-04-18 17:59:00 +0200
+    short_desc: ft_volumerealign problem with scalp.pos / scalp.pnt
+    delta_ts: 2019-08-10 12:33:19 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: sanchez.gaetan
+      +@name: Gaetan
+    assigned_to: fieldtriptoolbox
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+      - thomas.hartmann
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17218"
+        comment_count: "0"
+        who:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        bug_when: 2016-04-18 17:59:50 +0200
+        thetext: |-
+          Hi all,
+          there is still some issue (producing error) with the .pos field in this function: ft_volumerealign.m
+          When the "headshape" switch case, starting at line 726:
+
+          fiedltrip expects a field scalp.pos but the output of ft_transform_geometry (line 699) only provide a field scalp.pnt.
+
+          Maybe a "quick and dirty" fix would be to add one line just before line 726:
+
+          scalp.pos = scalp.pnt
+
+          I'm looking forward your advice!
+          Best,
+
+          Gaetan
+      - +@isprivate: "0"
+        commentid: "17225"
+        comment_count: "1"
+        attachid: "789"
+        who:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        bug_when: 2016-04-19 14:57:50 +0200
+        thetext: |-
+          Created attachment 789
+          headshape to reproduce the error
+      - +@isprivate: "0"
+        commentid: "17226"
+        comment_count: "2"
+        attachid: "790"
+        who:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        bug_when: 2016-04-19 14:58:23 +0200
+        thetext: |-
+          Created attachment 790
+          snippet of code to reproduce the error
+      - +@isprivate: "0"
+        commentid: "17227"
+        comment_count: "3"
+        who:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        bug_when: 2016-04-19 15:01:17 +0200
+        thetext: "Hi fieldtrip's expert,\nfollowing my previous bug report, please find some attachments to produce the error:\n\nReference to non-existent field 'pos'.\n\nError in ft_volumerealign (line 726)\n    nrm = normals(scalp.pos, scalp.tri, 'vertex');\n \nI'm looking forward your advice!\nThanks in advance.\nBest,\n\nGaëtan"
+      - +@isprivate: "0"
+        commentid: "17228"
+        comment_count: "4"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-04-19 15:35:48 +0200
+        thetext: |-
+          hi,
+          problem is in prepare_mesh_segmentation. see this pull request for the fix: https://github.com/fieldtrip/fieldtrip/pull/135
+
+          cheers,
+          thomas
+      - +@isprivate: "0"
+        commentid: "17229"
+        comment_count: "5"
+        who:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        bug_when: 2016-04-19 15:49:26 +0200
+        thetext: |-
+          Hi,
+          thanks Thomas.
+          I have found another bug related to ft_volume-realign.
+          Do you think this pull request will get rid of this other error?
+          When I run manual coregistration:
+
+          load('headshape_coreg.mat');
+          load mni_mri
+          cfg = [];
+          cfg.method                = 'headshape';
+          cfg.coordsys              = 'neuromag';
+          cfg.headshape.headshape   = shape;
+          cfg.headshape.interactive = 'yes';
+          cfg.headshape.icp         = 'no';
+
+          mri_out  = ft_volumerealign(cfg,mni_mri);
+
+          You get this:
+
+          Error using cell/ismember (line 34)
+          Input A of class cell and input B of class cell must
+          be cell arrays of strings, unless one is a string.
+
+          Error in ft_senstype (line 303)
+              if     (mean(ismember(ft_senslabel('ant128'),
+              sens.label)) > 0.8)
+
+          Error in ft_datatype_sens (line 138)
+          ismeg = ft_senstype(sens, 'meg');
+
+          Error in ft_checkconfig (line 250)
+            cfg.elec = ft_datatype_sens(cfg.elec);
+
+          Error in ft_interactiverealign (line 71)
+          cfg.template   = ft_checkconfig(cfg.template,
+          'renamed', {'vol', 'headmodel'});
+
+          Error in ft_volumerealign (line 691)
+                tmpcfg = ft_interactiverealign(tmpcfg);
+
+          I don't understand this one... Is it related to pnt/pos?
+          Cheers,
+
+          Gaetan
+      - +@isprivate: "0"
+        commentid: "17230"
+        comment_count: "6"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-04-19 15:59:10 +0200
+        thetext: |-
+          (In reply to Gaetan from comment #5)
+          checking now. but it seems to be unrelated
+      - +@isprivate: "0"
+        commentid: "17231"
+        comment_count: "7"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-04-19 16:47:38 +0200
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #6)
+          ok, the error was unrelated. i created a separate push request.
+      - +@isprivate: "0"
+        commentid: "17232"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-04-19 17:38:06 +0200
+        thetext: |-
+          (In reply to Thomas Hartmann from comment #7)
+
+          https://github.com/fieldtrip/fieldtrip/pull/135 wrote
+
+          there are still some .pnt fields left in prepare_mesh_segmentation. thus pull request fixes this
+
+          You can view, comment on, or merge this pull request online at:
+
+            https://github.com/fieldtrip/fieldtrip/pull/135
+
+          Commit Summary
+
+          FIX - renamed pnt to pos in prepare_mesh_segmentation
+          File Changes
+
+          M private/prepare_mesh_segmentation.m (16)
+          Patch Links:
+
+          https://github.com/fieldtrip/fieldtrip/pull/135.patch
+          https://github.com/fieldtrip/fieldtrip/pull/135.diff
+
+          ---
+
+          I merged it.
+      - +@isprivate: "0"
+        commentid: "17233"
+        comment_count: "9"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-04-20 09:46:06 +0200
+        thetext: change status. OK?
+      - +@isprivate: "0"
+        commentid: "17235"
+        comment_count: "10"
+        who:
+          +content: thomas.hartmann
+          +@name: Thomas Hartmann
+        bug_when: 2016-04-20 09:55:19 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #9)
+          yepp, thanks!
+      - +@isprivate: "0"
+        commentid: "20185"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:33:19 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "789"
+        date: 2016-04-19 14:57:00 +0200
+        delta_ts: 2016-04-19 14:57:50 +0200
+        desc: headshape to reproduce the error
+        filename: headshape_coreg.mat
+        type: application/x-matlab-workspace
+        size: "6021"
+        attacher:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        data: REMOVED
+      - +@isobsolete: "0"
+        +@ispatch: "0"
+        +@isprivate: "0"
+        attachid: "790"
+        date: 2016-04-19 14:58:00 +0200
+        delta_ts: 2016-04-19 14:58:23 +0200
+        desc: snippet of code to reproduce the error
+        filename: test_coreg.m
+        type: text/x-objcsrc
+        size: "282"
+        attacher:
+          +content: sanchez.gaetan
+          +@name: Gaetan
+        data: REMOVED

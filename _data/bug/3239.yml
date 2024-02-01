@@ -1,0 +1,218 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3239"
+    creation_ts: 2017-01-31 18:14:00 +0100
+    short_desc: ft_read_event cannot import from .nex files where any variables have 0 timestamps
+    delta_ts: 2017-02-09 19:17:16 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc: https://www.dropbox.com/s/acfa828vvl109yy/18141_FR1_S2_SPK_sorted.nex?dl=0
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: suzannevdveldt
+      +@name: Suzanne
+    assigned_to:
+      +content: braingirl
+      +@name: Teresa Madsen
+    cc:
+      - braingirl
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18335"
+        comment_count: "0"
+        who:
+          +content: suzannevdveldt
+          +@name: Suzanne
+        bug_when: 2017-01-31 18:14:59 +0100
+        thetext: "ft_read_event returns following warning when using a .nex file consisting of units and events (no continous - LFP - channels). Example file is added. \n\nWarning: No continuous variables found - using hdr.filheader.frequency \n> In read_nex_event (line 47)\n  In ft_read_event (line 1946) \nError using struct\nArray dimensions of input '4' must match those of input '2', or be scalar.\n\nError in read_nex_event (line 145)\n  tmp = struct('sample',num2cell(evt.tim), 'value',cell(Nevent,1), ...\n\nError in ft_read_event (line 1946)\n    event = read_nex_event(filename);"
+      - +@isprivate: "0"
+        commentid: "18336"
+        comment_count: "1"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 19:09:53 +0100
+        thetext: This is due to
+      - +@isprivate: "0"
+        commentid: "18337"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 19:45:38 +0100
+        thetext: |-
+          this is a "feature". Events are expressed in samples relative to the (constant sampling rate) continuous channels. The sample count is consistent with the sampling frequency returned by ft_read_header.
+
+          I realize that this is suboptimal for processing spike-only data. I am welcoming suggestions (that should include not only code, but also documentation) to improve this.
+      - +@isprivate: "0"
+        commentid: "18338"
+        comment_count: "3"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 20:01:07 +0100
+        thetext: "Oops!  Sorry for the useless comment.  I started to explain my hypothesis, but then decided to just assign myself the bug and test it before exploring further.\n\nTurns out I can't replicate your bug with just any old .nex file without continuous variables, as this ran through successfully:\n\n>>  [event] = ft_read_event('S:\\Teresa\\PlexonData Backup\\200\\200_091006_0001_final_spksONLY.nex')\nWarning: No continuous variables found - using hdr.filheader.frequency \n> In read_nex_event (line 47)\n  In ft_read_event (line 1946) \nevent = \n  1917×1 struct array with fields:\n    sample\n    value\n    timestamp\n    type\n    duration\n    offset\n\nYou said \"example file is added\" but I don't see where.  Please run this line before trying again:\n\n>>  dbstop if error\n\nMatlab will drop you into the function where the error occurs, giving you access to the variables involved.  Tell me about all the variables used as inputs to the function struct in read_nex_event (line 145).  For example, here's what shows up if I type:\n\nK>> evt\nevt = \n  struct with fields:\n\n    tim: [1755×1 double]\n\nK>> Nevent\nNevent =\n        1755\n\nK>> whos timestamp\n  Name              Size            Bytes  Class     Attributes\n\n  timestamp      1755x1             14040  double              \n\nK>> hdr.varheader(evtvarnum(ev))\nans = \n  struct with fields:\n\n           typ: 1\n       version: 100\n           nam: 'Event003                                                        '\n        offset: 12964288\n           cnt: 1755\n    wirenumber: 0\n    unitnumber: 0\n          gain: 0\n        filter: 0\n          xpos: 0\n          ypos: 0\n    wfrequency: 0\n        adtomv: 0\n        numsmp: 0\n        nummrk: 0\n        mrklen: 0\n\nIt sounds like your size(evt.tim) ~= [Nevent, 1], and I'm trying to figure out why.  Please send me your smallest file where this happens via a file transfer service (http://www.pcmag.com/article/343582/how-to-send-large-files)."
+      - +@isprivate: "0"
+        commentid: "18339"
+        comment_count: "4"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 20:06:55 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          Robert, it's not just the warning - she's getting an actual error that prevents her from importing events.  She emailed this to me (since I helped her with the previous step) before I suggested she post the bug here:
+
+          "My next step would be to extract also the timestamps of the events recorded in my recordings, which I formatted like this:
+
+          >> [event18141] = ft_read_event('/Users/suzannevdveldt/Documents/export/18141_FR1_S1_SPK_sorted.nex’)
+
+          However, the fr_read_event does not seem to recognize the events in my file, which I do not fully understand, as when I check my plexon recs with NeuroExplorer the events seem to be there."
+      - +@isprivate: "0"
+        commentid: "18340"
+        comment_count: "5"
+        who:
+          +content: suzannevdveldt
+          +@name: Suzanne
+        bug_when: 2017-01-31 20:24:08 +0100
+        thetext: "(In reply to Teresa Madsen from comment #3)\n\n>>  dbstop if error\nDrops me in line 145, checking the following inputs shows that all seem to be empty. \n\nK>> evt\n\nevt = \n\n    tim: []\n\nK>> Nevent\n\nNevent =\n\n     0\n\nK>> whos timestamp \n  Name           Size            Bytes  Class     Attributes\n\n  timestamp      0x0                 0  double              \n\nK>> hdr.varheader(evtvarnum(ev))\n\nans = \n\n           typ: 1\n       version: 100\n           nam: 'KBD1                                                            '\n        offset: 11368\n           cnt: 0\n    wirenumber: 0\n    unitnumber: 0\n          gain: 0\n        filter: 0\n          xpos: 0\n          ypos: 0\n    wfrequency: 0\n        adtomv: 0\n        numsmp: 0\n        nummrk: 0\n        mrklen: 0\n\n\nI will attach the smallest file. Thanks for your help!"
+      - +@isprivate: "0"
+        commentid: "18341"
+        comment_count: "6"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 20:40:32 +0100
+        thetext: |-
+          (In reply to Suzanne from comment #0)
+
+          It might also be helpful to make sure your NEX files are properly formatted by testing them with NeuroExplorer's own Matlab import functions:
+          http://www.neuroexplorer.com/downloads/HowToReadAndWriteNexAndNex5FilesInMatlab.zip
+
+          After unzipping the file somewhere on your Matlab path, run and show me the output of:
+
+          [nexFile] = readNexFile('/Users/suzannevdveldt/Documents/export/18141_FR1_S1_SPK_sorted.nex')
+          nexFile.events{:}
+      - +@isprivate: "0"
+        commentid: "18342"
+        comment_count: "7"
+        who:
+          +content: suzannevdveldt
+          +@name: Suzanne
+        bug_when: 2017-01-31 21:04:45 +0100
+        thetext: "(In reply to Teresa Madsen from comment #6)\n\nI came across this too, and this works fine for all these .nex files, including the read out of the events. \n\n[s18141_FR1_S2] = readNexFile('/Users/suzannevdveldt/Documents/export/18141_FR1_S2_SPK_sorted.\n\n\ns18141_FR1_S2 = \n\n    version: 104\n    comment: [1x0 char]\n       freq: 40000\n       tbeg: 0\n       tend: 3.6113e+03\n     events: {40x1 cell}\n    markers: {5x1 cell}\n    neurons: {7x1 cell}"
+      - +@isprivate: "0"
+        commentid: "18343"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-01-31 21:11:51 +0100
+        thetext: "(In reply to Suzanne from comment #7)\n\nThe original design of ft_read_header, data and event is that of continuously sampled channels with an equal sampling rate, all starting at the same moment in time and no holes in the recording. Implicitly this assumes that sample indices (starting at 1) can be used as timestamps. \n\nNot all electophys formats are compatible with this, and most have an explicit (high frequency) timestamps. Furthermore, spikes and waveform snippets don't fit this design (hence ft_read_spike). \n\nWork-arounds have accumulated over the years. With FT we try to keep the interface consistent over all data formats (otherwise it becomes a nightmare to support). Most important are the timestamps, if you can get those, you might get away with setting the sample numbers (event.sample) to nan."
+      - +@isprivate: "0"
+        commentid: "18344"
+        comment_count: "9"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 21:19:46 +0100
+        thetext: |-
+          (In reply to Suzanne from comment #5)
+
+          Yeah, your NEX file doesn't have timestamps in most events.  I added checks for that, so now it will warn you when it's skipping a variable, but then move on without errors.
+
+          https://github.com/fieldtrip/fieldtrip/pull/314
+      - +@isprivate: "0"
+        commentid: "18345"
+        comment_count: "10"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-01-31 21:25:10 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #8)
+
+          Robert, I already added a simple fix for that problem when I made the last round of changes to read_nex_event.  If there are no continuous variables, it gives that warning and then moves on just fine, using the sampling rate in the file header instead of the continuous variable header.  That change was documented:
+          % If there are no continuous variables in the file, the system sampling
+          % frequency is used throughout, so
+          %   event.sample = timestamp;
+
+          The warning at the beginning of Suzanne's error message was confusing, but the error was actually unrelated.  I edited the title of the bug to reflect that.
+      - +@isprivate: "0"
+        commentid: "18346"
+        comment_count: "11"
+        who:
+          +content: suzannevdveldt
+          +@name: Suzanne
+        bug_when: 2017-01-31 21:28:19 +0100
+        thetext: |-
+          (In reply to Teresa Madsen from comment #9)
+
+          Great, it works perfectly. Thank you Teresa!
+      - +@isprivate: "0"
+        commentid: "18347"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-01 09:49:18 +0100
+        thetext: |-
+          I have downloaded the linked file and made a local copy on our network drive. For reference: if you would want to use it in a matlab test script that we can (automatically) run here, please use
+
+          dccnpath('/home/common/matlab/fieldtrip/data/test/bug3239/18141_FR1_S2_SPK_sorted.nex')
+
+          That should locate the file on our network share, but should also locate the same file on your disk (assuming it is in the present working directory).
+      - +@isprivate: "0"
+        commentid: "18348"
+        comment_count: "13"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-01 09:54:34 +0100
+        thetext: "This is what we have as new files in our test (and tutorial) directories \n\nroboos@mentat001> pwd\n/home/common/matlab/fieldtrip/data\n\nroboos@mentat001> find . -name \\*.nex\n./ftp/tutorial/spike/p029_sort_final_01.nex\n./ftp/tutorial/spikefield/p029_sort_final_01.nex\n./test/original/lfp/plexon/p213parall.nex\n./test/bug3239/18141_FR1_S2_SPK_sorted.nex\n\nwhere one file is present twice (since used in two tutorials).\n\nI will add a test script like this\n\nfilename = {\n   ...\n }\n\nfor i=1:numel(filename)\n  hdr = ft_read_header(filename{i});\n  dat = ft_read_data(filename{i});\n  evt = ft_read_event(filename{i});\n  spike = ft_read_spike(filename{i}); % I guess this should never error\nend"
+      - +@isprivate: "0"
+        commentid: "18389"
+        comment_count: "14"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-02-08 22:54:57 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #13)
+
+          I merged https://github.com/fieldtrip/fieldtrip/pull/314
+
+          Before closing, I still want to implement a generic nex reader test script as mentioned in the previous commit.
+      - +@isprivate: "0"
+        commentid: "18401"
+        comment_count: "15"
+        who:
+          +content: braingirl
+          +@name: Teresa Madsen
+        bug_when: 2017-02-09 19:17:16 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #14)
+
+          I think test_bug2093.m should suffice for testing ft_read_event on other NEX files.  Do you want me to add a check for the validity of the event reading from Suzanne's file?

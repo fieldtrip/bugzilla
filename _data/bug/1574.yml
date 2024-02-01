@@ -1,0 +1,88 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1574"
+    creation_ts: 2012-07-01 17:11:00 +0200
+    short_desc: baseline/normalization with grand averaging
+    delta_ts: 2013-09-24 18:00:16 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6613"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-01 17:11:47 +0200
+        thetext: "This was a question that came up during Krakow toolkit:  If/how/when should some sort of baselining or normalization occur prior to grand averaging over subjects? (A related question was raised by Stephen on the NeuOsc list a month ago). I ask it here in the context of FT, when calling ft_timelockgrandaverage or ft_freqgrandaverage.  This is not needed prior to stats on a given subject but is used for display plotting purposes, thus generally not applied to the data structure in memory, only on the fly for plotting.\n\nBut I think it is generally a recommended (or at least common) thing to do some sort of normalization of subjects prior to the grand average, to avoid one subject with an outlier mean, affecting the average.  Thus, a 'relative' baseline could/should be applied to each subject (although one can debate if 'absolute' is better).  \n\nIn short, does one apply this to each subject first prior to calling ft*grandaverage in one's own code, or can ft*grandaverage do this for you?  I couldn't find anything obvious on the wiki for help on this, so perhaps (rather than any code changes) just more info on wiki on group/grand averages under 'faq' or 'example'?"
+      - +@isprivate: "0"
+        commentid: "6615"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-02 09:43:01 +0200
+        thetext: "normalization is quite different than baselining. Normalization means that you transform the data towards a certain (normal) distribution, whereas baselining means that you transform data relative to a baseline assessment of that data. \n\nNormalization involves a distribution, baselining a single reference measurement (e.g. pre-stimulus)\n\nft_freqbaseline and ft_timelockbaseline serve the purpose to baselinecorrect.\n\nYou write: \"But I think it is generally a recommended (or at least common) thing to do some\nsort of normalization of subjects prior to the grand average...\"\n\nIf you normalize, you already know that the group mean will be 0 (the mean of a normal distribution) and the stdev 1. So it does not make sense to do this prior to grandaverage.\n\nFurthermore, dividing the data by a noisy estimate of the baseline in general deteriorates the sensitivity and interpretability (i.e. A/B will get very noisy if B is noisy and small compared to A).\n\nI think your relevant question lies in  \"... some sort of normalization ...\", so what is the \"sort\" that is actually desired?"
+      - +@isprivate: "0"
+        commentid: "6618"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2012-07-02 11:26:48 +0200
+        thetext: "Robert, thank you for this clarification.  First, I apologize for incorrect use of the word 'normalization', I meant it synonymous with 'baselining' in this case (in a way that 'spatial normalization' refers to bringing to a common, group, MNI space, not necessarily a normal distribution). \nSecond, then it was my forgetting of the existence of the functions ft*baseline to serve this purpose.  And I fully agree that A/B is not ideal if B is small or noisy.  \n\nHowever, in the wiki, ft_*baseline is only mentioned in the TFR and ERF tutorials regarding the plotting, and so perhaps my primary 'bug request' here is just for an example script to be made showing the combo of ft_*baseline used in combination with ft_*grandaverage, for both datatypes of timelock (where 'absolute' is the only option in ft_timelockbasline) and freq (perhaps where 'relchange' can be used). (But hopefully avoiding a danger of suggesting that one type of baselining is always better in certain cases).\nI just found this useful 'project' http://fieldtrip.fcdonders.nl/development/zscores, which discusses all this in greater detail.\n\nAlso, is it possible to z-transform a given subject based on the pre-stim (baseline) period of that subject, and then their post-stim (active condition period) will not necessarily have zero-mean,std=1, but then this post-stim period is combined over subjects to contrast against the 0-mean,1-std distribution? I guess my question here is 1) is this reasonable/advisable, and 2) if so, how is this best done in FT? (i.e. should cfg.baselinetype='ztransform' be added to ft_*baseline?)"
+      - +@isprivate: "0"
+        commentid: "6622"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-07-02 11:53:02 +0200
+        thetext: |-
+          (In reply to comment #2)
+
+          I don't think that we should have seperate documentation for this. Chances are small that people will find that when they actually need it.
+
+          Regarding your 2nd point: should we add ft_freqbaseline to the "see also" part in ft_freqgrandaverage  and add a small section (few sentences) in the ft_freqbaseline help? Idem for timelockbaseline/grandavg?
+
+          Regarding your 3rd point: we can indeed add method=ztransform,. But would it require that the input has trials (and/or tapers) and that the mean and stdev over the mean baseline value in each trial is computed? Or would mean and stdev be computed over the length of the baseline window, and if the input has multiple trials it is done for each trial independently? Or a combination of both?
+      - +@isprivate: "0"
+        commentid: "11423"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2013-09-24 18:00:16 +0200
+        thetext: |-
+          I've followed up on your simple suggestion to add to the 'see also'.  (baseline is now in the see-also of grandaverage, and vice versa; for both timelock and freq).  svn 8529.
+
+          The last point of creating a method=ztransform still sounds good, although you do raise good/relevant concerns of practical implementation.  I'll leave that still 'to-do' for now.

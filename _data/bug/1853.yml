@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1853"
+    creation_ts: 2012-11-26 15:00:00 +0100
+    short_desc: coherence data cannot be topoplotted by default
+    delta_ts: 2014-03-12 12:21:33 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8410"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 15:00:11 +0100
+        thetext: "I want to plot a coherencespectrum as a topoplot\n\nThe coherence structure is obtained by the following:\ncfg           = [];\ncfg.method    = 'coh';\ncoh(s)        = ft_connectivityanalysis(cfg, freq);\n\nPlotting is done like this:\ncfg           = [];\ncfg.layout    = 'EEG1010.lay';\nft_topoplotER(cfg, coh(s));\n\nft_topoplot fails because the coh-structure does not have a .labelcmb field. I's a bit nested, the actual error is: \n\n??? Undefined function or variable \"sel1\".\n\nError in ==> ft_topoplotTFR at 652\n  sel1 = intersect(sel1, sellab);\n\nError in ==> ft_topoplotER at 164\ncfg = ft_topoplotTFR(cfg, varargin{:});\n\nBut sel1 is not defined because it does not enter the if-statement properly (because labelcmb is missing in the data).\n\nShould the labelcmb always be present?"
+      - +@isprivate: "0"
+        commentid: "8411"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 15:02:24 +0100
+        thetext: of course I also need to define cfg.refchannel, but it does not even come to the place where that is needed ;)
+      - +@isprivate: "0"
+        commentid: "8413"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-26 15:13:10 +0100
+        thetext: |-
+          if the dimord = 'chan_chan_freq' no labelcmb is needed, just a label
+
+          please specify
+
+          cfg.parameter='cohspctrm';
+          cfg.refchannel = 'gui'; (or a named channel)
+
+          I agree that perhaps catching the incomplete cfg should be in order here
+      - +@isprivate: "0"
+        commentid: "8414"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 15:22:15 +0100
+        thetext: |-
+          ah ye, cfg.parameter was missing. By default it tries to plot 'powspctrm' - would have liked to get an error about that though ;) I'm gonna add that, something like
+          if ~isfield(data, cfg.parameter)
+          error('Stupid user forgot to specify cfg.parameter');
+          end
+
+          k?
+      - +@isprivate: "0"
+        commentid: "8415"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-11-26 15:27:26 +0100
+        thetext: very much so.
+      - +@isprivate: "0"
+        commentid: "8416"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-11-26 15:34:01 +0100
+        thetext: |-
+          svn ci ft_topoplotTFR.m -m "bugfix-#1853-topolotTFR gives an error if cfg.parameter not present in data"
+          Sending        ft_topoplotTFR.m
+          Transmitting file data .
+          Committed revision 6991.

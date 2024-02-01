@@ -1,0 +1,220 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1390"
+    creation_ts: 2012-03-23 15:33:00 +0100
+    short_desc: data has variable trial lengths, you specified not to accept that
+    delta_ts: 2012-04-11 16:48:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: Macintosh
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: major
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: n.barascud
+      +@name: n.barascud@ucl.ac.uk
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5653"
+        comment_count: "0"
+        attachid: "240"
+        who:
+          +content: n.barascud
+          +@name: n.barascud@ucl.ac.uk
+        bug_when: 2012-03-23 15:33:47 +0100
+        thetext: |-
+          Created attachment 240
+          minperlength maxperlength
+
+          When I want to do a timelock analysis, I get the following error :
+
+          Error using ft_timelockanalysis (line 199)
+          data has variable trial lengths, you specified not to accept that !
+
+          Even though my trials have exactly the same length.
+
+          I included the 2 variables minperlength and maxperlength which are causing the problem at line 199.
+
+          It seems the difference is of 0.00000000000002 seconds, which is quite surprising since that is way below my time resolution.
+      - +@isprivate: "0"
+        commentid: "5660"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-25 20:24:01 +0200
+        thetext: could you upload a small data structure that will let us replicate the problem?
+      - +@isprivate: "0"
+        commentid: "5662"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-26 09:26:24 +0200
+        thetext: "Dear Nicolas \n\nThis will be due to an inaccuracy in the numerical representation of the floating point value. \nSee e.g. http://en.wikipedia.org/wiki/Precision_(computer_science)\n\nIt would help if you would send us the preprocessed raw data structure, if possible with as few trials as possible. We can then replicate it with\nft_timelockanalysis([], yourdata) \nand look at the best way to solve the imprecise time-axis representation.\n\nbest\nRobert"
+      - +@isprivate: "0"
+        commentid: "5663"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-03-26 09:30:40 +0200
+        thetext: and perhaps also the cfg that was used to read in the data
+      - +@isprivate: "0"
+        commentid: "5670"
+        comment_count: "4"
+        who:
+          +content: n.barascud
+          +@name: n.barascud@ucl.ac.uk
+        bug_when: 2012-03-26 16:33:33 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          I uploaded a .mat file at the following address :
+
+          http://www.sendspace.com/file/uk1nqw
+
+          The file is 36MB. I tried to use only a few trials.
+
+          Please let me know if I can be of any further help.
+      - +@isprivate: "0"
+        commentid: "5671"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-26 17:17:17 +0200
+        thetext: I got the test data and am able to reproduce the problem
+      - +@isprivate: "0"
+        commentid: "5672"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-26 18:14:31 +0200
+        thetext: |-
+          (In reply to comment #5)
+
+
+          The following code solves the problem by making the time axes identical again. However, this does not work in case the time axes are shifted relative to each other (i.e. variable trial duration and onset or offset).
+
+          begtime = zeros(1, length(data.time));
+          endtime = zeros(1, length(data.time));
+          numsample = zeros(1, length(data.time));
+          for i=1:length(data.time)
+            begtime(i) = data.time{i}(1);
+            endtime(i) = data.time{i}(end);
+            numsample(i) = length(data.time{i});
+          end
+
+          if ~isfield(data, 'fsample')
+            fsample = 1/mean(diff(data.time{1}));
+          else
+            fsample = data.fsample;
+          end
+
+
+          % compute the differences over trials and the tolerance
+          tolerance     = 0.1*(1/fsample);
+          begdifference = abs(begtime-begtime(1));
+          enddifference = abs(endtime-endtime(1));
+
+          % check whether they are identical, or close to identical
+          begidentical  = all(begdifference==0);
+          endidentical  = all(enddifference==0);
+          begsimilar    = all(begdifference < tolerance);
+          endsimilar    = all(enddifference < tolerance);
+
+          if false && ~begidentical && begsimilar
+            warning('correcting small numerical inaccuracy of %g seconds in the time axes', max(begdifference));
+            for i=1:length(data.time)
+              data.time{i} = begtime(1) + ((1:numsample(i)) - 1)/fsample;
+            end
+          elseif false && ~endidentical && endsimilar
+            warning('correcting small numerical inaccuracy of %g seconds in the time axes', max(enddifference));
+            for i=1:length(data.time)
+              data.time{i} = endtime(1) + ((1:numsample(i)) - numsample(i))/fsample;
+            end
+          end
+      - +@isprivate: "0"
+        commentid: "5677"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-27 11:29:30 +0200
+        thetext: "After rethinking the correction method, I came up with a more general solution that also works for variable trial-length data. \n\nft_timelockanalysis calls ft_checkdata, which calls ft_datatype_raw, where the fixtimeaxes subfunction deals with a skew in the time axes of up to 1%. \n\nThe updated version  will be released on the ftp server this evening.\n\nmanzana> svn commit utilities/ft_datatype_raw.m test/test_bug1390.m\nAdding         test/test_bug1390.m\nSending        utilities/ft_datatype_raw.m\nTransmitting file data ..\nCommitted revision 5536.\n\nPS (for reference): the problem of the time-axis skew resulted from multiple ft_redefinetrial calls, followed by ft_appenddata."
+      - +@isprivate: "0"
+        commentid: "5694"
+        comment_count: "8"
+        who:
+          +content: n.barascud
+          +@name: n.barascud@ucl.ac.uk
+        bug_when: 2012-03-27 21:12:37 +0200
+        thetext: |-
+          (In reply to comment #7)
+
+          I have updated to the latest version and I still have the problem, although minperlength and maxperlength seem equal this time... See the attached datafile :
+
+          http://www.sendspace.com/file/2ivq8l
+
+          Apologies for the large file size.
+      - +@isprivate: "0"
+        commentid: "5695"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-27 22:30:51 +0200
+        thetext: "confirmed, from trial 64 onwards the last timepoint is skewed, but the first is not. That is why the correction is not applied.\n\nI now merged my earlier idea (see comment #6) with the previous fix of the code. It works on your second dataset.\n\nroboos@mentat001> svn commit utilities/ft_datatype_raw.m test/test_bug1390.m    \nSending        test/test_bug1390.m\nSending        utilities/ft_datatype_raw.m\nTransmitting file data ..\nCommitted revision 5548.\n\nPlease see the last section of ft_datatype_raw to see how it works (and to check whether there are cases where it fails).\n\nTo be discussed in our FT meeting tomorrow: should we always reconstruct the time axes (regardless of whether a problem is detected)?"
+      - +@isprivate: "0"
+        commentid: "5841"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:30 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "240"
+      date: 2012-03-23 15:33:00 +0100
+      delta_ts: 2012-03-23 15:33:47 +0100
+      desc: minperlength maxperlength
+      filename: maxperlength.mat
+      type: application/x-matlab-workspace
+      size: "194"
+      attacher:
+        +content: n.barascud
+        +@name: n.barascud@ucl.ac.uk
+      data: REMOVED

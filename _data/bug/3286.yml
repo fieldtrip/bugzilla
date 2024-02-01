@@ -1,0 +1,120 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3286"
+    creation_ts: 2017-04-21 09:02:00 +0200
+    short_desc: bioimage suite electrodes are displaced
+    delta_ts: 2019-08-10 12:41:00 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: a.stolk8
+      +@name: Arjen Stolk
+    cc: sandongriffin
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "18565"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-21 09:02:19 +0200
+        thetext: "this was already discussed in https://github.com/fieldtrip/fieldtrip/pull/342, but has not been resolved yet.\n\nPlease have a look at the figure produced by test_pull342 (which I will attach). \n\nNeither the electrodes are where I expect them, nor the MRI.\n\nI think that the post-processing of bioimage suite data needs documentation on the fieldtrip wiki."
+      - +@isprivate: "0"
+        commentid: "18566"
+        comment_count: "1"
+        attachid: "835"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-21 09:02:56 +0200
+        thetext: |-
+          Created attachment 835
+          screen capture of figure based on test data
+      - +@isprivate: "0"
+        commentid: "18575"
+        comment_count: "2"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-24 04:00:26 +0200
+        thetext: I remember there was a trivial explanation for it, in the likes of plotting the wrong electrode-scan combination. But let me double check with Sandon.
+      - +@isprivate: "0"
+        commentid: "18599"
+        comment_count: "3"
+        who:
+          +content: sandongriffin
+          +@name: Sandon Griffin
+        bug_when: 2017-04-25 22:23:09 +0200
+        thetext: "Hi Robert, Arjen\n\nBioImage Suite electrode positions are stored in what they refer to in their manual as \"X, Y, Z coordinates,\" which use mm as units and one of the corners of the volume as the origin; which corner that is depends on the orientation of the scan (e.g., LPS), which is set by the user in a separate window in BIS and is also not stored anywhere in the .mgrid file.  The X,Y,Z coordinates are basically a voxel-size-corrected version of the voxel coordinates (i.e., if voxel size = 1x1x1mm, then voxel coordinates = X,Y,Z coordinates).  It's important to note that these \"X, Y, Z coordinates\" are always positive and that BIS indexes points in the scan solely based on their voxel coordinates, so defining a standard coordinate system for a scan before you load it into BIS does not change anything.  Therefore, scans that were used to place electrodes in BIS may not have a standard coordinate system, which would explain why the scan appears in some weird head space when you call ft_determine_coordsys.\n\nSince all the read_bioimagesuite_mgrid function does is spit out the X,Y,Z coordinates from the .mgrid file, it make sense that all of the electrodes in the image you attached are where they are.  They are not aligned with the scan because the scan is in some undefined head coordinate space (which BIS ignores), and the electrode positions are in this \"X,Y,Z\" coordinate space, where only positive values can exist.  \n\nIn order to get the electrodes in the same space as the scan, they need to first be defined in voxel coordinates, which can be done by adjusting for their positions based on voxel-size.  And then the same transformation matrix for the volume must be applied to these voxel positions.  These additional steps are performed in the bis2fieldtrip wrapper function.\n\nHopefully that explains why things are appearing so different from what you would expect.  If so, I can write something like this up on the fieldtrip wiki.\n\nBest,\nSandon"
+      - +@isprivate: "0"
+        commentid: "18603"
+        comment_count: "4"
+        who:
+          +content: a.stolk8
+          +@name: Arjen Stolk
+        bug_when: 2017-04-26 02:36:11 +0200
+        thetext: We will indeed add this documentation to the wiki linking to the ms once its out.
+      - +@isprivate: "0"
+        commentid: "18604"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-04-26 10:00:16 +0200
+        thetext: "(In reply to Sandon Griffin from comment #3)\n\nI propose to make\nhttp://www.fieldtriptoolbox.org/getting_started/bioimage_suite\nand to link to that page from \nhttp://www.fieldtriptoolbox.org/getting_started"
+      - +@isprivate: "0"
+        commentid: "20246"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:34:50 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+      - +@isprivate: "0"
+        commentid: "20445"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:41:00 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue on https://github.com/fieldtrip/fieldtrip/issues."
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "835"
+      date: 2017-04-21 09:02:00 +0200
+      delta_ts: 2017-04-21 09:02:56 +0200
+      desc: screen capture of figure based on test data
+      filename: Screen Shot 2017-04-21 at 09.01.13.png
+      type: image/png
+      size: "67680"
+      attacher:
+        +content: r.oostenveld
+        +@name: Robert Oostenveld
+      data: REMOVED

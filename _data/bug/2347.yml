@@ -1,0 +1,234 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2347"
+    creation_ts: 2013-10-30 16:14:00 +0100
+    short_desc: ft_headmodel_dipoli uses invalid FID
+    delta_ts: 2016-06-14 16:14:48 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: julian.keil
+      +@name: Julian Keil
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11774"
+        comment_count: "0"
+        attachid: "547"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2013-10-30 16:14:16 +0100
+        thetext: "Created attachment 547\nSegmented MRI to build headmodel on. Works fine on my Mac.\n\nWhen using the dipoli method to build a headmodel, ft_headmodel_dipoli does not find the ama-file in line 171 (fprintf(fid, '%s -i %s << EOF\\n', dipoli, amafile);\n\n-> Error Message: \nError using fread\nInvalid file identifier.  Use fopen to generate a valid file identifier.\nWarning: File '/tmp/tp103c76ba_3653_4e5e_bc84_241422b73b10.ama' not found. \n\nI segmented an individual MRI for brain, skull and scalp (see attachment) and tried to build a headmodel using the following code:\n\ncfg=[];\ncfg.method='dipoli'; % Works on Mac!\n%cfg.tissue='brain';\ncfg.conductivity=[0.3300 0.0041 0.3300];\n\nvol_s = ft_prepare_headmodel(cfg,mri_s);\n\nThe exact same thing worked perfectly fine on my Mac, so I assume it has something to do with setting the temporary files to work on on Ubuntu 12.04.\n\nThanks a lot for any help!\n\nJulian"
+      - +@isprivate: "0"
+        commentid: "11780"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-30 18:16:05 +0100
+        thetext: |-
+          Hi Julian,
+
+          I suspect the problem being with the dipoli executable. Can you see (based on the screen output) that it is running? It might be that it cannot find the executable on your path, or that the executable has linked-library requirements not met on your Ubuntu 12.04 machine.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "11786"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 10:37:30 +0100
+        thetext: |-
+          On 31 Oct 2013, at 9:32, Julian Keil wrote:
+
+          Hi Robert,
+
+          thanks for your quick reply.
+          When running ft_headmodel_dipoli in debug mode, I set the mex-file in line 134ff to the correct dipoli.glnx86.
+          Double checking by hand also gives the right path:
+
+          K>> which dipoli.glnx86
+          /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/dipoli.glnx86
+
+          However, in line 190, I get:
+          K>> dos(exefile);
+          /tmp/tpbdbb2888_e1fc_4b4a_ba1e_3e0af3a8689d.sh: 3: /tmp/tpbdbb2888_e1fc_4b4a_ba1e_3e0af3a8689d.sh: /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/dipoli.glnx86: not found
+
+          So, I assume executing the dipoli.glnx86 fails.
+          Is there a way around this?
+
+          Or otherwise, what program would you recommend to build a EEG BEM-Model? Currently, I'm the only one with a Mac in my group, the rest uses Ubuntu 12.04 or different versions of Windows.
+      - +@isprivate: "0"
+        commentid: "11787"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 10:39:03 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          note that it is not a mex file, but a command line executable. Could you do the following on the linux command line?
+
+          cd /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/
+          ./dipoli.glnx86  # i.e. try to run it
+          ldd dipoli.glnx86 # i.e. show the libs it depends on
+      - +@isprivate: "0"
+        commentid: "11788"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 10:39:55 +0100
+        thetext: "(In reply to comment #3)\n\nor perhaps it is even simpler: could you check the file permissions? Perhaps the execute flag is not set.\n\ni.e. do \n\nls -l /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/dipoli.glnx86"
+      - +@isprivate: "0"
+        commentid: "11789"
+        comment_count: "5"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2013-10-31 10:52:17 +0100
+        thetext: |-
+          (In reply to comment #4)
+          ls -l gives me:
+
+          keil@eeg8:~$ ls -l /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/dipoli.glnx86
+          -rwxr-xr-x 1 keil keil 123699 Feb 12  2011 /home/keil/data/programs/Matlab/fieldtrip-20131028/external/dipoli/dipoli.glnx86
+
+          When I try to run it, I get the message, that there is no file, even though it is listed:
+
+          keil@eeg8:~/data/programs/Matlab/fieldtrip-20131028/external/dipoli$ ls
+          ama2vol.m         dipoli.glnx86  dipoli.maci  private  write_tri.m
+          dipoli_example.m  dipoli.m       loadama.m    README
+
+          keil@eeg8:~/data/programs/Matlab/fieldtrip-20131028/external/dipoli$ ./dipoli.glnx86
+          -bash: ./dipoli.glnx86: No such file or directory
+
+          keil@eeg8:~/data/programs/Matlab/fieldtrip-20131028/external/dipoli$ ldd dipoli.glnx86
+          	not a dynamic executable
+      - +@isprivate: "0"
+        commentid: "11791"
+        comment_count: "6"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2013-10-31 11:08:03 +0100
+        thetext: |-
+          (In reply to comment #5)
+          AH!
+          I think I might have found the solution.
+          The .glnx86 was compiled on a 32-bit system. I have a 64-bit system.
+          Installing sudo apt-get install ia32-libs at least lets me run the executable.
+
+          I'll get back to you if I get it to run from matlab.
+      - +@isprivate: "0"
+        commentid: "11792"
+        comment_count: "7"
+        who:
+          +content: julian.keil
+          +@name: Julian Keil
+        bug_when: 2013-10-31 11:36:45 +0100
+        thetext: |-
+          (In reply to comment #6)
+          Installing the ia32-library in fact did the job.
+          Thanks a lot for the super fast help and pointing me to the problem.
+
+          Best,
+
+          Julian
+      - +@isprivate: "0"
+        commentid: "11798"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-10-31 15:17:53 +0100
+        thetext: |-
+          thanks for tracking it down.
+
+          Could you perhaps add a few lines of 32/64 bit documentation to this related faq?
+
+          http://fieldtrip.fcdonders.nl/faq/where_can_i_find_the_dipoli_command-line_executable
+      - +@isprivate: "0"
+        commentid: "12914"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-02-24 10:56:25 +0100
+        thetext: I closed several bugs at once that all have been resolved for some time. If you disagree, please reopen.
+      - +@isprivate: "0"
+        commentid: "15114"
+        comment_count: "10"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-01-29 19:52:29 +0100
+        thetext: "Hi Robert,\nI just ran into this problem myself now.  The problem was traced to that the .ama file was never created.  I see Julian's solution (thanks Julian!) of installing the ia32-library.   Sadly, this will take my IT support about 5-10 working days to get around to solving as I just filed the 'helpdesk' request now (as they don't grant us 'sudo' rights).  \n\nI wondered if FieldTrip could provide the version of 'dipoli' compiled on 64 bit Linux for everyone, as 64bit is more and more common these days?\n\nI reopened the bug but feel free to reclose.\n\nThank you,\nJohanna"
+      - +@isprivate: "0"
+        commentid: "16007"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-08-19 13:50:05 +0200
+        thetext: |-
+          Hi Johanna,
+
+          Sorry for only getting back to this so late.
+
+          I don't have the dipole source code so cannot recompile on new platforms.
+
+          Robert
+      - +@isprivate: "0"
+        commentid: "17478"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:48 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "547"
+      date: 2013-10-30 16:14:00 +0100
+      delta_ts: 2013-10-30 16:14:16 +0100
+      desc: Segmented MRI to build headmodel on. Works fine on my Mac.
+      filename: segmented_mri.mat
+      type: application/octet-stream
+      size: "673933"
+      attacher:
+        +content: julian.keil
+        +@name: Julian Keil
+      data: REMOVED

@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "969"
+    creation_ts: 2011-09-19 18:15:00 +0200
+    short_desc: ft_volumerealign interactive gui doesn't show "R" & "L" indicators
+    delta_ts: 2011-11-11 11:19:34 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ekanal
+      +@name: Eliezer Kanal
+    assigned_to:
+      +content: ekanal
+      +@name: Eliezer Kanal
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3252"
+        comment_count: "0"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-19 18:15:56 +0200
+        thetext: |-
+          Small issue... the realign screen should have the letters "R" and "L" on the coronal and axial views (as well as "A" and "P" on the sagittal view, but that's less important). Given the whole "left vs radiological left" confusion with MRIs, this could potentially be a problem.
+
+          Attached code with potential fix; please check to ensure that I got my own "R" and "L" labels placed correctly :)
+      - +@isprivate: "0"
+        commentid: "3253"
+        comment_count: "1"
+        attachid: "135"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-19 18:16:31 +0200
+        thetext: |-
+          Created attachment 135
+          add location indicators
+      - +@isprivate: "0"
+        commentid: "3254"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-19 20:11:06 +0200
+        thetext: |-
+          Hi Elli,
+
+          In my view, ft_volumerealign should be used to establish left and right, and is usually unresolved a priori.
+          It's the user's responsibility to indicate what is left and what is right. The function shouldn't do this.
+      - +@isprivate: "0"
+        commentid: "3255"
+        comment_count: "3"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-19 22:30:50 +0200
+        thetext: |-
+          For what it's worth, I don't know if I agree. Correct me if I'm wrong, but at least for DICOM files, isn't the patient orientation written into the file itself? Assuming patient lying face-up, then the orientation is written in the header (see [1]). Granted, in the DICOM files of my own data I don't see the "AP/LR/HF" strings, I have a vector of numbers, but those probably correspond to the orientation in a way I'm not familiar with.
+
+          That all being said, I'm not familiar enough with the file formats to fix this up myself, so if you want to close this as a WONTFIX that's fine with me.
+
+          [1]: http://www.dclunie.com/medical-image-faq/html/part2.html#DICOMOrientation
+      - +@isprivate: "0"
+        commentid: "3258"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-09-20 14:26:49 +0200
+        thetext: "Note the general problem is not only for MRI, but for all data with a geometrical \"quality\", such as gradiometers, electrode positions, source positions, volume conduction models. \n\nFor these geometrical data objects we have the field xxx.coordsys, which can be assigned a value like 'ctf', 'spm', 'neuromag', 'mni', 'tal' and potentially others. This pertains to the orientation of the axes relative to the anatomy, and to the location of the origin (which also varies). We also have the field xxx.units which can be 'cm', 'mm' or 'm'.\n\nSee FT_*_COORDSYS and FT_*_UNITS in fieldtrip/utilities\n\nAt this moment when the geometrical object is being constructed (or read from disk) the coordsys and units are not always assigned to the data structure (or better: most of the times they are not explicitely assigned). Consequently, once the data is in memory you don't know how the anatomy is in the data structure. The user can look at the MRI and determine the nose,  and figure out left and right, but the software cannot do it automatically.\n\nIt would be nice to already assign as many information (coordsys, units) to the geometry at the time of reading. It might be that the coordsys can be determined as RAS, which would already help in distinguishing left from right (the other directions are not ambiguous upon visual inspection). At the Donders however we do this http://fieldtrip.fcdonders.nl/faq/how_can_i_convert_an_anatomical_mri_from_dicom_into_ctf_format, which  means that we don't care.\n\nI summary: it would be nice to have better support for coordsys and units, where it probably makes most sense to start implementing it from the reading functions onward.\n\nI leave it to you whether you want to assign a specific action to this...\n\n(perhaps you might want to look into the ft_read_mri for the dicom and see whether that one can be improved)"
+      - +@isprivate: "0"
+        commentid: "3259"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-20 14:45:54 +0200
+        thetext: |-
+          (perhaps you might want to look into the ft_read_mri for the dicom and see
+          whether that one can be improved)
+
+          I tried this once, but at the time we decided that we shouldn't do it.
+      - +@isprivate: "0"
+        commentid: "3261"
+        comment_count: "6"
+        who:
+          +content: ekanal
+          +@name: Eliezer Kanal
+        bug_when: 2011-09-20 17:09:56 +0200
+        thetext: Thanks for the discussion. As I'm not comfortable enough with the details, I'm going to mark this bug as RESOLVED WONTFIX, and if I - or someone else - figures out a better way to determine orientation from the datafiles we can reexamine this issue and reopen the bug.
+      - +@isprivate: "0"
+        commentid: "3894"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-11 11:19:34 +0100
+        thetext: I closed all bugs that were recently resolved.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "1"
+      +@isprivate: "0"
+      attachid: "135"
+      date: 2011-09-19 18:16:00 +0200
+      delta_ts: 2011-09-19 18:16:31 +0200
+      desc: add location indicators
+      filename: volumerealign_letters.diff
+      type: text/plain
+      size: "993"
+      attacher:
+        +content: ekanal
+        +@name: Eliezer Kanal
+      data: REMOVED

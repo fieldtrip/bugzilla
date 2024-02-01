@@ -1,0 +1,97 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2769"
+    creation_ts: 2014-12-01 11:23:00 +0100
+    short_desc: make ft_sourceplot and ft_sourceinterpolate behave consistently
+    delta_ts: 2015-01-26 11:09:38 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: ASSIGNED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14895"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-01 11:23:50 +0100
+        thetext: "When plotting something, I realised that both source plot and sourceinterpolate are handling their internal\n\nif variant A\nelseif B\nelseif C\nend\n\nstructures rather inconsistent. Quite often the handling of data inside each variant is generic and can be moved to prior handling the variants. Since the data structures are now much more consistent, these functions can be implemented much cleaner. \n\nI will do a cleanup. Also, I suggest to implement\n\nft_sourceplot(cfg, functional, anatomical)\n\nwhich interpolates the functional data on the fly (using ft_sourceinterpolate). This allows for removing (or merging) the on-the-fly interpolation that is presently done for surface visualisation. \n\nany objections?"
+      - +@isprivate: "0"
+        commentid: "14896"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-12-01 11:34:51 +0100
+        thetext: "No objection. \n\nOne additional point to consider for the 3D-volumetric visualization is to *not do* an interpolation (up sampling) on the fly. In principle, it should be possible to overlay the data as long as the coordinate systems are consistent (which they need to be to begin with in order to do the correct interpolation). The reason I mention it is because I would foresee in the future recurring questions about the lack of support for interpolation of volumetric source data with a (time)/(freq) axis. This lack of support is currently inspired by potential memory constraints, to protect the user of itself.\nBut perhaps the direct benefit of this change is small compared to the amount of work it requires."
+      - +@isprivate: "0"
+        commentid: "14902"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-02 10:53:42 +0100
+        thetext: "I have cleaned up the code of ft_sourceinterpolate and made it optional in ft_sourceplot to interpolate on the fly. That interpolation is now implemented as a single call to ft_sourceintrepolate, i.e.\n  interp = ft_sourceinperpolate(cfg, functional, anatomical)\n  ft_sourceplot(cfg, interp)\nis now functionally equivalent to \n  ft_sourceplot(cfg, functional, anatomical)\n\nNote that I have not documented it yet in ft_sourceplot.\n\nThe next step is to go through ft_sourceplot and see what kind of interpolations are now done in there. I am aware of the interpolation of volume data onto the cortical sheet if method=surface. That is another form of on-the-fly interpolation, which should be made consistent. \n\nIn the end, I would like to see all interpolations in ft_sourceplot to be done just before the data is sent to the figure. That should allow for visualisation of time/frequency data without blowing up memory. But if people want to interpolate it fully and handle themselves with the data, that should also be possible."
+      - +@isprivate: "0"
+        commentid: "14903"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-02 10:54:15 +0100
+        thetext: |-
+          (In reply to Robert Oostenveld from comment #2)
+
+          oh, for reference: the SVN commits related to this were those around 9999-10005.
+      - +@isprivate: "0"
+        commentid: "14904"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-12-02 15:45:46 +0100
+        thetext: "my change with fixpos (pnt->pos) caused a lot of test scripts to fail. I just reverted it in the generic functions, it is still in place in ft_sourceinterpolate\n\nmac011> svn commit \nSending        utilities/ft_checkdata.m\nSending        utilities/ft_datatype.m\nTransmitting file data ..\nCommitted revision 10010."
+      - +@isprivate: "0"
+        commentid: "15087"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-01-26 11:09:38 +0100
+        thetext: |-
+          roboos@mentat001> svn commit
+          Sending        utilities/private/determine_segmentationstyle.m
+          Transmitting file data .
+          Committed revision 10121.
+
+          The test script was failing because in the simulated data the source.pow ranged from -5 to +5. This caused it to be identified as segmentation field, which failed further down due to the negative numbers. I fixed it, negative numbers now result in the field not being seen as segmentation.
+
+          Note that this specific commit does not contribute to the larger issue at hand.

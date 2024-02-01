@@ -1,0 +1,86 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2847"
+    creation_ts: 2015-02-18 18:22:00 +0100
+    short_desc: weird interaction of ft_sourceanalysis, ft_selectdata(new and old), and prepare_freq_matrices
+    delta_ts: 2016-11-29 09:02:51 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15393"
+        comment_count: "0"
+        attachid: "701"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-18 18:22:21 +0100
+        thetext: "Created attachment 701\n.time subfield\n\nHi all,\nI've got a fun one for you.   I've got the following freq structure. \n\nfreq = \n\n        label: {63x1 cell}\n       dimord: 'chan_freq_time'\n         freq: [4 6 8 10 12 14 16 18 20 22 24 26 28 30]\n         time: [1x126 double]\n    powspctrm: [63x14x126 double]\n     labelcmb: {1953x2 cell}\n    crsspctrm: [1953x14x126 double]\n          cfg: [1x1 struct]\n\nI called ft_sourceanalysis with this cfg:\ncfg = \n\n         grid: [1x1 struct]\n          vol: [1x1 struct]\n         elec: [1x1 struct]\n       method: 'dics'\n         dics: [1x1 struct]\n    frequency: [4 6.5000]\n      latency: [-0.6000 0.6000]\n\nThe problem is that the freq.time axis is not exactly evenly spaced; for some reason it seems to have 'eps' added/subtracted to some of the .time values.  \nThe output of ft_sourceanalysis line 289 [data = ft_selectdata(tmpcfg, data)] is: \ndata = \n\n         freq: 5\n         time: -3.6401e-18\n    crsspctrm: [63x63 double]\n          cfg: [1x1 struct]\n        label: {63x1 cell}\n       dimord: 'chan_chan_freq_time'\n\nThe reason for the values of the .freq and .time are that in ft_selectdata/makeselection, the mean of the actually used/selected .freq and .time values is taken.   That is not a problem per se.\n\nBut then just further on in ft_sourceanalysis (line 291) the rollback_provenance changes cfg.frequency from [4 6.5] to [4 6] but leaves cfg.latency unaltered.\n\nThen just further down, (line 297-300) the 'hack' takes the mean of the cfg.latency and cfg.freq, which is *not* the same as the mean of the actual selected values in the data for the time only, but happens to match for freq.\n\nThis causes a crash further on, when prepare_freq_matrices calls ft_selectdata(old) on line 197. (Btw, in this case, this call seems unnecessary as the time & freq has already been selected), with cfg.latency=0 but data.time=-3.6401e-18.\n\nError using nearest (line 58)\nThe limits you selected are outside the range available in the data\n\nError in ft_selectdata_old (line 541)\n    toitmp=nearest(data.time,[seltoi(1) seltoi(2)]);\n\nError in ft_selectdata (line 77)\n  [varargout{1:nargout}] = ft_selectdata_old(varargin{:});\n\nError in prepare_freq_matrices (line 197)\n    freq = ft_selectdata(freq, 'foilim', cfg.frequency, 'toilim', cfg.latency);\n\nError in ft_sourceanalysis (line 461)\n    [Cf, Cr, Pr, Ntrials, cfg] = prepare_freq_matrices(cfg, data);\n \nI've included the .time subfield as an attachment, as that is the relevant part.  One can see it is not exact by\ntime-[-1.2:.02:1.3]"
+      - +@isprivate: "0"
+        commentid: "15394"
+        comment_count: "1"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-19 11:00:02 +0100
+        thetext: "One might ask: how did I end up with a .time axis that wasn't equally spaced values to begin with?  I don't know, but just type this into Matlab and see what you get:\n\nmean(-.6:.02:.6)  \nmean(-10:.02:10)  \n\nshould be zero but it's not. (on Matlab2013a) I checked with a colleague here (also 2013a) and he had the same weirdness."
+      - +@isprivate: "0"
+        commentid: "15451"
+        comment_count: "2"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-24 16:01:47 +0100
+        thetext: It could be that bug 2851 fixes this one.  Watch this (that) space.
+      - +@isprivate: "0"
+        commentid: "17401"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-06-02 16:39:36 +0200
+        thetext: By now the code has changed quite substantially. I tried to replicate this, but don't manage. I suggest to close for now.
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "701"
+      date: 2015-02-18 18:22:00 +0100
+      delta_ts: 2015-02-18 18:22:21 +0100
+      desc: .time subfield
+      filename: data_bug.mat
+      type: text/plain
+      size: "577"
+      attacher:
+        +content: johanna.zumer
+        +@name: Johanna
+      data: REMOVED

@@ -1,0 +1,113 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1069"
+    creation_ts: 2011-10-24 12:42:00 +0200
+    short_desc: singleplotTFR cannot plot mask of 1xNxM
+    delta_ts: 2012-08-23 14:02:08 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    assigned_to:
+      +content: jorn
+      +@name: Jörn M. Horschig
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3692"
+        comment_count: "0"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-10-24 12:42:29 +0200
+        thetext: |-
+          The problem I encountered is that the singular dimension of the datamatrix will be removed in line 376, leading to an NxM matrix for plotting (that should be fine). The mask parameter *has* to be 1xNxM though, else the code will break around line 350, when it subselects the channel from the parameter. However, the mask-parameter will never be squeezed, resulting in a mismatch between data and mask matrix, ultimately crashing in ft_plot_matrix, line 208.
+
+          Possible solutions:
+          Either squeeze(mask) or subselect mask(channel, :, :) when calling ft_plot_matrix
+          (Note that singleplotTFR works on one channel only, always)
+
+          If one of the bug bosses confirms this, I'll change accordingly
+      - +@isprivate: "0"
+        commentid: "3696"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-10-24 14:50:20 +0200
+        thetext: "ft_singleplotTFR constructs the mask in 342-374, where for the different options the mask is 2-D or 3-D if I understand the code correctly:\n\nline 349, 359, 364, 369 are 2-D\nline 351, 353 are 3-D\n \nIt does not make sense that after the \"end\" on line 374 the mask can be either 2-D or 3-D, it should always have the same dimensions as datamatrix that is made on line 376. Probably squeezing line 351 and 353 is the best solution.\n\nI think that in ft_plot_matrix the following should hold\n\nif ~isempty(highlight) && ~isequal(size(highlight), size(cdat))\n  error('the dimensions of the highlight should be identical to the dimensions of the data');\nend\n\nCan you add that to the code? Could you also improve the documentation of ft_plot_matrix a bit? And I suggest to add the same check on dimensions to ft_plot_vector, which is probably sensitive to the same vulnerability of input args."
+      - +@isprivate: "0"
+        commentid: "4192"
+        comment_count: "2"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-23 10:57:24 +0100
+        thetext: |-
+          For ft_plot_vector, I am not sure what is masked there. Is it correct that the mask must have the same size as vdat? I included it like this, but this feature is not used in any ft_ function
+
+          I extended test_ft_plot_vector accordingly (but does Matlab plot at all when there it's w/o GUI? Do plotting test functions make sense?)
+
+
+
+          svn ci ft_singleplotTFR.m plotting/ft_plot_matrix.m plotting/ft_plot_vector.m plotting/test/test_ft_plot_vector.m -m "bugfix-#1069-singleplotTFR can handle masks correctly now. extended documentation of ft_plot_matrix and ft_plot_vector. Fixed highlighting in ft_plot_vector and extended testscript accordingly"
+          Sending        ft_singleplotTFR.m
+          Sending        plotting/ft_plot_matrix.m
+          Sending        plotting/ft_plot_vector.m
+          Sending        plotting/test/test_ft_plot_vector.m
+          Transmitting file data ....
+          Committed revision 4797.
+      - +@isprivate: "0"
+        commentid: "4222"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-23 13:09:18 +0100
+        thetext: "(In reply to comment #2)\n\n> For ft_plot_vector, I am not sure what is masked there. Is it correct that the\n> mask must have the same size as vdat? \n\nyes, it should indeed be of equal size. \n\nLooking at the code I now realize that \"mask\" equals \"highlight\" in ft_plot_vector. The significant part (i.e. stat.mask) in ft_muliplotER is (or should be) indicated with a grey box behind it. So there is some naming confusion. It would be good to mention that highlight serves the same purpose (i.e. make something more salient compared to something else)."
+      - +@isprivate: "0"
+        commentid: "4228"
+        comment_count: "4"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2011-11-23 14:42:04 +0100
+        thetext: |-
+          hm, I don't follow. mask is not the same as highlight, it should be the exact opposite, shouldn't it?
+
+          Further, is this documentation not sufficient:
+
+          %   highlight       = a logical vector of size Y, where 1 means that the
+          %                     corresponding values in Y are highlighted
+          %                     (according to the highlightstyle)
+      - +@isprivate: "0"
+        commentid: "7203"
+        comment_count: "5"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2012-08-23 14:02:08 +0200
+        thetext: bug closing time (http://www.youtube.com/watch?v=xGytDsqkQY8)

@@ -1,0 +1,104 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2820"
+    creation_ts: 2015-02-02 12:58:00 +0100
+    short_desc: ft_sourceinterpolate has missing dim variable declaration
+    delta_ts: 2015-07-15 13:31:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: ddewong
+      +@name: Daniel Wong
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15121"
+        comment_count: "0"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2015-02-02 12:58:39 +0100
+        thetext: |-
+          I am using the 'surface' option in ft_sourceplot, which calls ft_sourceinterpolate.  The error I get is: "Undefined function or variable 'dim'." on line 326.  I do not see dim being declared anywhere in the preceding code.  Does anyone know how this variable is supposed to come into existence?
+
+          Cheers,
+          Daniel
+      - +@isprivate: "0"
+        commentid: "15122"
+        comment_count: "1"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-02-02 13:28:48 +0100
+        thetext: |-
+          Hi Daniel,
+
+          I am not sure what approach you took in reconstructing the source-level activity, but most likely you need to set the .dim yourself. See e.g.
+          http://fieldtrip.fcdonders.nl/tutorial/beamformingextended#plotting_sources_of_oscillatory_gamma-band_activity
+      - +@isprivate: "0"
+        commentid: "15127"
+        comment_count: "2"
+        who:
+          +content: ddewong
+          +@name: Daniel Wong
+        bug_when: 2015-02-02 15:27:31 +0100
+        thetext: That might help if the dim field in my source data structure was copied into the local dim variable.  But like I said, the local dim variable is never initialized anywhere preceding the function call on line 326, where it is needed.
+      - +@isprivate: "0"
+        commentid: "15128"
+        comment_count: "3"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2015-02-02 15:57:11 +0100
+        thetext: could you share/paste the code (i.e. cfg settings) that you used to compute the source structure, and the code related to the call to ft_sourceplot?
+      - +@isprivate: "0"
+        commentid: "15334"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 08:46:28 +0100
+        thetext: "Hi Daniel,\n\nI recall having made some changes to the handling of dimord and probably also of dim (i.e. the dimensions of the data). The line that seems affected is now line 324\n\ntmpnew = interp_gridded(functional.transform, tmp, anatomical.pos, 'projmethod', 'project', 'projvec', cfg.projvec, 'projweight', cfg.projweight, 'projcomb', cfg.projcomb, 'projthresh', cfg.projthresh, 'dim', dim);\n\nand I fail to see where that dim variable is being assigned. I guess it should be functional.dim or anatomical.dim. \n\nLet me try to reproduce the problem by interpolating some data with a specific cfg that should also end up at those lines..."
+      - +@isprivate: "0"
+        commentid: "15339"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-12 09:28:33 +0100
+        thetext: "I made a test script that reproduces the problem and subsequently fixed it. The dim should be that of the functional data, since the anatomy is a cortical sheet.\n\nmac011> svn commit \nSending        ft_sourceinterpolate.m\nSending        ft_sourceplot.m\nSending        private/interp_gridded.m\nAdding         test/test_bug2820.m\nTransmitting file data ....\nCommitted revision 10221."
+      - +@isprivate: "0"
+        commentid: "15891"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-07-15 13:31:07 +0200
+        thetext: closed several bugs at once that were recently fixed

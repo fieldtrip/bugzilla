@@ -1,0 +1,137 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1205"
+    creation_ts: 2011-11-30 14:39:00 +0100
+    short_desc: implement cfg.seed input to ft_componentanalysis
+    delta_ts: 2012-01-11 14:28:02 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: enhancement
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: johanna.zumer
+      +@name: Johanna
+    assigned_to:
+      +content: johanna.zumer
+      +@name: Johanna
+    cc:
+      - b.reuderink
+      - r.oostenveld
+      - rene.scheeringa
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "4364"
+        comment_count: "0"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-11-30 14:39:42 +0100
+        thetext: |-
+          (may be a better name than 'seed' to indicate the matlab randomization seed).
+          Purpose: so that one may obtain the same component output in different calls to the function.
+
+          Does it need to be different per type of cfg.method, or is one general one sufficient?
+
+          Also, save out the rand seed to comp.cfg for future use.
+      - +@isprivate: "0"
+        commentid: "4372"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-30 17:50:45 +0100
+        thetext: "there is something like this already in \n\nmanzana> grep randomseed *.m\nstatistics_montecarlo.m:%   cfg.randomseed       = 'yes', 'no' or a number (default = 'yes')\nstatistics_montecarlo.m:if ~isfield(cfg, 'randomseed'),          cfg.randomseed = 'yes';         end\nstatistics_montecarlo.m:if strcmp(cfg.randomseed, 'no')\nstatistics_montecarlo.m:elseif strcmp(cfg.randomseed, 'yes')\nstatistics_montecarlo.m:  rand('state',cfg.randomseed);"
+      - +@isprivate: "0"
+        commentid: "4373"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-11-30 18:00:07 +0100
+        thetext: "have a look at 2011b (the latest)\nhttp://www.mathworks.nl/help/techdoc/math/bsn94u0-1.html\n\nand please note that \"rng\" does not exist in 2009b, but that in that version rand('seed',x) was also deprecated. There you are supposed to use RandStream.\n\nSo overall it is a mess, with the old rand('seed'), the intermediate RandStream and the new Rng. \n\nI guess nobody understood the RandStream (at least I don't get it as I am not a random numbers expert), and that therefore they added the Rng layer on top of it.\n\nPlease make sure that you properly test it on all matlab versions that we have at the donders (at from 7.1 upwards).\n\nI can imagine it to be easier to make a fieldtrip/private/randomseed function that contains the actual logic depending on the matlab version."
+      - +@isprivate: "0"
+        commentid: "4398"
+        comment_count: "3"
+        who:
+          +content: b.reuderink
+          +@name: Boris Reuderink
+        bug_when: 2011-12-01 22:12:11 +0100
+        thetext: Issued by developer, changed status to new. Johanna, I have assigned this bug to you --- I hope you don't mind.
+      - +@isprivate: "0"
+        commentid: "4545"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-14 14:00:27 +0100
+        thetext: recording the state in cfg.callinfo.state and setting the seed should be tightly linked to each other -> solution is to implement ft_preamble_randomseed
+      - +@isprivate: "0"
+        commentid: "4548"
+        comment_count: "5"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-12-14 18:26:15 +0100
+        thetext: "bash-3.2$ svn commit private/randomseed.m test/test_randomseed.m \nAdding         private/randomseed.m\nAdding         test/test_randomseed.m\nTransmitting file data ..\nCommitted revision 5044.\n\nand then added a copy:\n\nbash-3.2$ svn copy private/randomseed.m test/private/randomseed.m\nA         test/private/randomseed.m\nbash-3.2$ svn commit test/private/randomseed.m                   \nAdding         test/private/randomseed.m\nCommitted revision 5045.\n\nand it needed matlabversion\n\n\nbash-3.2$ svn copy private/matlabversion.m test/private/matlabversion.m\nA         test/private/matlabversion.m\nbash-3.2$ svn commit test/private/matlabversion.m \nAdding         test/private/matlabversion.m\nCommitted revision 5046.\n\nNext step to work on ft_preamble_randomseed."
+      - +@isprivate: "0"
+        commentid: "4549"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-12-14 19:11:41 +0100
+        thetext: "bash-3.2$ svn mv private/randomseed.m utilities/private/randomseed.m\nA         utilities/private/randomseed.m\nD         private/randomseed.m\nbash-3.2$ svn cp private/matlabversion.m utilities/private/matlabversion.m\nA         utilities/private/matlabversion.m\n\n\nbash-3.2$ svn commit utilities/private/matlabversion.m utilities/private/randomseed.m \nAdding         utilities/private/matlabversion.m\nAdding         utilities/private/randomseed.m\nCommitted revision 5048."
+      - +@isprivate: "0"
+        commentid: "4550"
+        comment_count: "7"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-12-14 19:34:33 +0100
+        thetext: |-
+          Hi Robert,
+
+          I've created ft_preamble_randseed (not yet committed) which contains these lines:
+
+          cfg.randomseed=ft_getopt(cfg, 'randomseed', []);
+          cfg.callinfo.state=randomseed(cfg.randomseed);
+
+          I've tested it so far on cfg.method='fastica' and it works (random output when [], and it reproduces results identically when cfg.randomseed set to state of previous call).
+
+          Is it ok to set cfg.callinfo.state early on in the high-level function in the preamble like this?   (I ask because the other 'amble' functions only save out to the cfg in the 'post' not 'pre').
+      - +@isprivate: "0"
+        commentid: "4553"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-12-15 12:20:01 +0100
+        thetext: "(In reply to comment #7)\n\nI think it is more consistent to have ft_postamble_callinfo add it to the output cfg and there do something like \n\nif exist('ftFuncRandomseed', 'var')\ncfg.callinfo.randomseed = ftFuncRandomseed;\nend\n\nand have ftFuncRandomseed be created in ft_preamble_randomseed"
+      - +@isprivate: "0"
+        commentid: "4555"
+        comment_count: "9"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2011-12-16 12:56:17 +0100
+        thetext: "bash-3.2$ svn commit utilities/private/ft_preamble_randomseed.m utilities/private/ft_postamble_randomseed.m ft_componentanalysis.m test/private/randomseed.m \nSending        ft_componentanalysis.m\nReplacing      test/private/randomseed.m\nAdding         utilities/private/ft_postamble_randomseed.m\nAdding         utilities/private/ft_preamble_randomseed.m\nTransmitting file data ...\nCommitted revision 5051."

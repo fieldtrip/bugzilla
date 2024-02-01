@@ -1,0 +1,133 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2554"
+    creation_ts: 2014-05-01 08:45:00 +0200
+    short_desc: ft_appenddata does not copy fsample to the output data structure
+    delta_ts: 2019-08-10 12:28:20 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: preproc
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: INVALID
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: e.maris
+      +@name: Eric Maris
+    assigned_to: fieldtriptoolbox
+    cc:
+      - eelke.spaak
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13441"
+        comment_count: "0"
+        who:
+          +content: e.maris
+          +@name: Eric Maris
+        bug_when: 2014-05-01 08:45:01 +0200
+        thetext: "The summary says it all.\n\nI think this is inconvenient behavior because one cannot run e.g. ft_freqanalysis on the appended data. \n\nIf the data can be appended then they must have the same fsample, and so the fsample should go to the output structure."
+      - +@isprivate: "0"
+        commentid: "13442"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-01 09:07:07 +0200
+        thetext: |-
+          (In reply to Eric Maris from comment #0)
+          Hi Eric,
+
+          I think ft_freqanalysis should work when the input data does not have an fsample field. The sampling rate is implicitly represented in the time axis. E.g., the following works fine for me:
+
+          data = [];
+          data.label = {'a'};
+          data.time = {0.001:0.001:1};
+          data.trial = {randn(1,1000)};
+
+          cfg = [];
+          cfg.method = 'mtmfft';
+          cfg.taper = 'hanning';
+          freq = ft_freqanalysis(cfg, data);
+
+          Does this example give an error on your end?
+      - +@isprivate: "0"
+        commentid: "13443"
+        comment_count: "2"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2014-05-01 09:30:24 +0200
+        thetext: |-
+          (In reply to Eric Maris from comment #0)
+          Having said that, I do agree that it would be good to copy over fsample. We have had a few discussions about this in the FT meeting, and the general opinion was that fsample should be deprecated/removed, as the same info is represented in the time axis. However, as the time axis occasionally is not exactly spaced with a rational number (because of floating point blabla), fsample in my opinion does give a convenient bit of extra information. Therefore I have tended to disagree with this general opinion :)
+
+          I suspect the change was made in r9336 (https://code.google.com/p/fieldtrip/source/diff?spec=svn9336&r=9336&format=side&path=/trunk/ft_appenddata.m) by Robert (adding as cc); at line 225 in that revision now the output argument is explicitly initialized as []. Previously I guess the fsample was implicitly carried over from  one of the input arguments. Robert, should we add 'fsample' to the 'copyfield' array (line 298)? I would find it convenient, but it would not be in line with deprecating fsample of course.
+      - +@isprivate: "0"
+        commentid: "13444"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-01 11:50:59 +0200
+        thetext: "From the documentation:\n\n% FT_DATATYPE_RAW describes the FieldTrip MATLAB structure for raw data\n%\n% The raw datatype represents sensor-level time-domain data typically\n% obtained after calling FT_DEFINETRIAL and FT_PREPROCESSING. It contains\n% one or multiple segments of data, each represented as Nchan X Ntime\n% arrays.\n%\n% An example of a raw data structure with 151 MEG channels is\n%\n%          label: {151x1 cell}      the channel labels (e.g. 'MRC13')\n%           time: {1x266 cell}      the timeaxis [1*Ntime double] per trial\n%          trial: {1x266 cell}      the numeric data [151*Ntime double] per trial\n%     sampleinfo: [266x2 double]    the begin and endsample of each trial relative to the recording on disk\n%      trialinfo: [266x1 double]    optional trigger or condition codes for each trial\n%            hdr: [1x1 struct]      the full header information of the original dataset on disk\n%           grad: [1x1 struct]      information about the sensor array (for EEG it is called elec)\n%            cfg: [1x1 struct]      the configuration used by the function that generated this data structure\n%\n% Required fields:\n%   - time, trial, label\n%\n% Optional fields:\n%   - sampleinfo, trialinfo, grad, elec, hdr, cfg\n%\n% Deprecated fields:\n%   - fsample\n% \n...\n\nfsample has been deprecated for quite some time, as it represents the same information as represented in the time axis. As a general rule: information should not be represented twice, as that allows different field trip functions to use that information in different manners, resulting in possible inconsistencies (in code and in outcome of analyses)."
+      - +@isprivate: "0"
+        commentid: "13445"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-01 11:57:00 +0200
+        thetext: |-
+          The following functions seem still to be using data.fsample
+
+          mac011> grep -l =.*\\.fsample *.m
+          fieldtrip2fiff.m
+          ft_appenddata.m
+          ft_artifact_ecg.m
+          ft_artifact_tms.m
+          ft_componentanalysis.m
+          ft_connectivityanalysis.m
+          ft_connectivitysimulation.m
+          ft_databrowser.m
+          ft_dipolesimulation.m
+          ft_freqanalysis.m
+          ft_freqanalysis_mvar.m
+          ft_freqsimulation.m
+          ft_interpolatenan.m
+          ft_megrealign.m
+          ft_mvaranalysis.m
+          ft_preprocessing.m
+          ft_redefinetrial.m
+          ft_rejectartifact.m
+          ft_rejectcomponent.m
+          ft_removetmsartifact.m
+          ft_resampledata.m
+          ft_timelockanalysis.m
+
+          All functions should pass the input data through ft_checkdata, which presently will still always ensure that data.fsample is present (see line 142 of ft_datatype_raw, which si called by ft_checkdata). I.e. FieldTrip is still quite lenient with the use of data.fsample. In the future (if someone has time to go over all the code), data.fsample will not be used anymore in the FT code and it will permanently be removed from the raw data structure.
+      - +@isprivate: "0"
+        commentid: "19961"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:28:20 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

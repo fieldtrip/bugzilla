@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1501"
+    creation_ts: 2012-06-02 10:14:00 +0200
+    short_desc: ft_spiketriggeredspectrum
+    delta_ts: 2019-08-10 12:03:07 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: spike
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: martinvinck
+      +@name: Martin Vinck
+    assigned_to:
+      +content: martinvinck
+      +@name: Martin Vinck
+    cc:
+      - martinvinck
+      - r.oostenveld
+      - roemer.van.der.meij
+      - thiwom
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6229"
+        comment_count: "0"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-02 10:14:45 +0200
+        thetext: |-
+          There are two complementary versions now.
+          These need to be merged.
+          I would do a similar style as in ft_freqanalysis, with two methods basically, one based on convolution of the whole trace with different time windows, and one based on the fft.
+
+          In addition both raw and raw + spike inputs can be allowed for both functions.
+      - +@isprivate: "0"
+        commentid: "6235"
+        comment_count: "1"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-03 18:53:12 +0200
+        thetext: |-
+          I've renamed both functions and one is now called spiketriggeredspectrum_fft (since it is based on the fft around every spike) and the other _convol (as it is based on convolution of the entire LFP trace).
+
+          the ft_spiketriggeredspectrum.m function now calls one or the other depending on cfg.method, all in analogy to ft_freqanalysis. Per default _fft is called such that users using the old ft_spiketriggeredspectrum.m function have no problem.
+
+          I removed the ft_spike_triggeredspectrum.m functions and updated it and renamed it ft_spiketriggeredspectrum_convol.m. Especially the treatment of the frequencies has been improved -> the ft_specest_mtmconvol that was previously called does not nicely handle the frequency axis (because it adjusts it to the length of the trial, while it should depend only on the sampling rate and the number of samples in the window with which we convolve). Here convolution is used directly such that the DFT is computed using the right frequencies. The subfunction phase_est is called per frequency separately, which is an advantage in terms of memory for long LFP traces.
+
+          Implementing both in a single function like was done in ft_freqanalysis is possible but I think the code is cleaner this way - besides I think the overlap is too minimal to make this useful.
+
+          I have updated the test function for both (/contrib/spike/test/test_spiketriggeredspectrum.m). Both give identical results (aside from some rounding error).
+
+          There are several features in the convol implementation which are lacking in the fft implementation, which should go in the fft option as well.
+          1) It takes both data and spike inputs. This has the advantage that we can correct for the sampling that introduces small phase shifts. This is apparent in the last figure in the test script.
+          2) First order polynomial fit is also removed from the LFP trace - useful for removing slow cable swings which are often present in animal physiology.
+          3) If the LFP saturates its voltage range, spike phases based on that LFP segment will get a NaN.
+          4) Spikes at the border of the window are still assigned a phase, by using the first phase that can be computed given a certain window length.
+      - +@isprivate: "0"
+        commentid: "6236"
+        comment_count: "2"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-03 18:53:53 +0200
+        thetext: 'Robert: ft_spiketriggeredspectrum_convol.m and ft_spiketriggeredspectrum_fft.m probably don''t belong to the /trunk. Where should they be?'
+      - +@isprivate: "0"
+        commentid: "6237"
+        comment_count: "3"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2012-06-03 18:54:55 +0200
+        thetext: included Roemer as the issues around estimating the instantaneous phase may interest him as well
+      - +@isprivate: "0"
+        commentid: "6238"
+        comment_count: "4"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2012-06-04 05:35:06 +0200
+        thetext: |-
+          Thanks for including me, I'm looking forward to looking at the code! (in China atm)
+          In the mean time, on organization, is it maybe an idea to make a toolbox/subdir for all spike functions?
+      - +@isprivate: "0"
+        commentid: "6239"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-06-04 09:32:41 +0200
+        thetext: |-
+          (In reply to comment #1 and #2)
+
+          The new organization of the functionality appears logical to me. Also the way of dealing with the changes for the end-user seems fine.
+
+          (In reply to comment #4)
+
+          > is it maybe an idea to make a toolbox/subdir
+          > for all spike functions?
+
+          Yes, that will happen. The functions will move to fieldtrip/contrib/spike
+      - +@isprivate: "0"
+        commentid: "9641"
+        comment_count: "6"
+        who:
+          +content: martinvinck
+          +@name: Martin Vinck
+        bug_when: 2013-03-04 22:30:44 +0100
+        thetext: bug closing time
+      - +@isprivate: "0"
+        commentid: "19886"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2019-08-10 12:03:07 +0200
+        thetext: "This closes a whole series of bugs that have been resolved (either FIXED/WONTFIX/INVALID) for quite some time. \n\nIf you disagree, please file a new issue describing the issue on https://github.com/fieldtrip/fieldtrip/issues."

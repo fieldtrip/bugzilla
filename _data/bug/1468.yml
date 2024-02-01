@@ -1,0 +1,139 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1468"
+    creation_ts: 2012-05-10 13:58:00 +0200
+    short_desc: read_brainvision_eeg.m memory problems
+    delta_ts: 2012-08-23 10:48:54 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: joaquin.moris
+      +@name: Joaquín Morís
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "6069"
+        comment_count: "0"
+        who:
+          +content: joaquin.moris
+          +@name: Joaquín Morís
+        bug_when: 2012-05-10 13:58:50 +0200
+        thetext: |-
+          Error detected in Windows Vista, Matlab R200b, Fieltrip 20120506.
+
+          In read_brainvision_eeg.m after Brainvision data files are read, in the first two file formats (binary, multiplexed, with Binary Format int_16 or int_32) the following code is used:
+
+          (Lines 38-39 and 48-49)
+          % compute real microvolts using the calibration factor (resolution)
+            res = sparse(diag(hdr.resolution));
+            dat = res * dat;
+
+          When long files are opened, this tends to produce an Out of memory error in the last instruction, as it tries to multiply in a single operation. Changing the code so that the multiplication takes place for each channel separately is not as fast, but it is more memory efficient.
+          A solution is proposed below, nonetheless, it is still way more inefficient when it comes to memory use that pop_loadvb from EEGLAB, at least for the file formats mentioned before.
+
+          Suggested code improvement:
+
+          % compute real microvolts using the calibration factor (resolution)
+          res = sparse(diag(hdr.resolution));
+          try
+            dat = res * dat;
+          catch ME
+            if strcmp (ME.identifier,'MATLAB:nomem')
+              for ChannelToMultiply = 1:size(dat,1)
+                dat (ChannelToMultiply,:) = dat (ChannelToMultiply,:) * hdr.resolution(ChannelToMultiply);
+              end;
+            end;
+          end;
+      - +@isprivate: "0"
+        commentid: "6118"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-05-16 07:42:51 +0200
+        thetext: "Hi Joaquin,\n\nWhat about looping over the columns?\n\ni.e. \n\nfor i = 1:size(dat,2)\ndat(:,j)=res*dat(:,j);\nend\n\nThis would be much more efficient in terms of cache, so the increased number of iterations could be outweighed by this (versus the looping over channels).\n\nJM"
+      - +@isprivate: "0"
+        commentid: "6142"
+        comment_count: "2"
+        who:
+          +content: joaquin.moris
+          +@name: Joaquín Morís
+        bug_when: 2012-05-16 18:10:48 +0200
+        thetext: |-
+          (In reply to comment #1)
+
+          Hi!
+
+          It can work too, it seems to be a nice solution. However, I don't understand why it is better to use diagonal matrix res instead of hdr.resolution, it should be more efficient (unless there is a specific reason I don't know about).
+
+          The code would then be:
+
+          for CurrentColumn = 1:size(dat,2)
+             dat(:,CurrentColumn)=hdr.resolution*dat(:,CurrentColumn);
+          end
+
+
+          Joaquín
+      - +@isprivate: "0"
+        commentid: "6806"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-17 09:36:56 +0200
+        thetext: |-
+          Hi Joaquin, sorry for not having addressed this one. It kind of escaped our attention. Would your analysis still benefit from a change in the code? If so, I'll change it, but could I then ask you to test it?
+
+          Thanks,
+
+          Jan-Mathijs
+      - +@isprivate: "0"
+        commentid: "6816"
+        comment_count: "4"
+        who:
+          +content: joaquin.moris
+          +@name: Joaquín Morís
+        bug_when: 2012-07-17 12:34:12 +0200
+        thetext: |-
+          (In reply to comment #3)
+
+          Hi Jan!
+
+          I've already changed it in my own copy of Fieldtrip, so I don't need it per se, but I think it would be an improvement of the code and useful for other users. I'd gladly test any code change and report back. Thanks!
+
+          Joaquín
+      - +@isprivate: "0"
+        commentid: "6867"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2012-07-26 13:46:01 +0200
+        thetext: changed in revision 6293. I think it works OK, but I would appreciate if you update your FT-version and test it, to see whether it works as expected.

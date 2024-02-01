@@ -1,0 +1,73 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3136"
+    creation_ts: 2016-06-06 21:46:00 +0200
+    short_desc: EDF Nsamples in hdr can be noninteger due to calculation using fsample and duration instead of nsamples in file header
+    delta_ts: 2016-06-07 19:14:09 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17406"
+        comment_count: "0"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-06 21:46:16 +0200
+        thetext: "Currently, nsamples is calculated as:\nhdr.nSamples     = EDF.NRec * EDF.Dur * EDF.SampleRate(chansel(1)); \n(line 275 read_edf.m)\n\nHowever, there can be slight inaccuracies in EDF.Dur (duration of each record), leading to a non-integer nsamples.\n\nI propose to use the EDF.SPR field, which holds the number of samples per 'record'. \nhdr.nSamples     = EDF.NRec * EDF.SPR(chansel(1));\n\nUnless something seriously goes wrong in file saving, EDF.SPR should always be an integer.\n\nPull request in a bit."
+      - +@isprivate: "0"
+        commentid: "17407"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2016-06-06 22:14:26 +0200
+        thetext: "I guess this can also be viewed as a philosophy change. \n\nRight now, we chose the Duration and the SamplingRate fields to be correct, and value their combination higher than the SPR (samples per record) field (we ignore it). \nIn my example of an error due to non-integer hdr.Nsample, it could be the case, of course, that not the Duration field is incorrect, but the SamplingRate is incorrect. \n\nIf we use the SPR field instead, we make no assumptions, and let the fields of the data specify how many samples can be read in (SPR field), and the Duration field is left as is. (as a matter of fact, is not used in a particular way at all).\n\n\nActually, the whole error of non-integer hdr.Nsample seems to be caused by the sampling rate first being calculated out of EDF.SPR / EDF.Dur (eeglab code) and us reversing the process. This seems to cause, in my particular case, a compounding of error:\nK>> EDF.SPR(1) / EDF.Dur\nans =\n        5000\nK>> EDF.NRec * EDF.Dur * (EDF.SPR(1) / EDF.Dur)\nans =\n     1.048572000000000e+06\n\n\nSince us reversing the calculation (which in some cases compounds error) is unnecessary, I propose the above changes (see pull request for all occurances). Another option is to add rounds everywhere, but what I propose fixes the problem and not the symptom."
+      - +@isprivate: "0"
+        commentid: "17413"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-07 09:54:25 +0200
+        thetext: SPR is included in the specification at http://www.edfplus.info/specs/edf.html and not a derived measure. So I am fine with using it.
+      - +@isprivate: "0"
+        commentid: "17414"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-07 09:55:15 +0200
+        thetext: |-
+          I have merged https://github.com/fieldtrip/fieldtrip/pull/171
+
+          thanks

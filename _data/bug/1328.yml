@@ -1,0 +1,179 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1328"
+    creation_ts: 2012-02-13 21:45:00 +0100
+    short_desc: add support for SLURM backend
+    delta_ts: 2012-04-11 16:48:30 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: qsub
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: minor
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - craig.richter
+      - kai.roennburg
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "5278"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 21:45:11 +0100
+        thetext: this feature request follows an extended email discussion. I won't post the whole discussion here, but want to use this bugzilla page to keep all people involved informed and as placeholder for items that still need to be done.
+      - +@isprivate: "0"
+        commentid: "5279"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 21:47:59 +0100
+        thetext: |-
+          merged code from Kai and Craig into trunk, tested that the usual stuff still works on mentat, committed to svn
+
+          roboos@mentat001> svn commit
+          Sending        qsub/qsubcellfun.m
+          Sending        qsub/qsubcompile.m
+          Sending        qsub/qsubfeval.m
+          Sending        qsub/qsublist.m
+          Transmitting file data ....
+          Committed revision 5281.
+      - +@isprivate: "0"
+        commentid: "5280"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 21:48:24 +0100
+        thetext: |-
+          On 13 Feb 2012, at 15:25, Roennburg, Kai wrote:
+
+          btw. Robert how about the requirement to have either [memreq and timereq] or
+          the queue name specified?
+      - +@isprivate: "0"
+        commentid: "5281"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 22:00:15 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          already with the previous commit the queue has been made an option in qsubfeval and qsubcellfun
+      - +@isprivate: "0"
+        commentid: "5282"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-13 22:04:16 +0100
+        thetext: "(In reply to comment #2)\n\nI changed the code to allow nan or inf. These will not cause an error from within matlab, furthermore the value will not to be passed to srun/qsub on the linux command line. Specifying [] is still invalid.\n\nSo the user can specify timreq and/or memreq as nan to allow the queue default to be used.\n\nroboos@mentat001> svn commit \nSending        qsub/qsubfeval.m\nTransmitting file data .\nCommitted revision 5282."
+      - +@isprivate: "0"
+        commentid: "5286"
+        comment_count: "5"
+        who:
+          +content: kai.roennburg
+          +@name: Kai Roennburg
+        bug_when: 2012-02-14 13:08:57 +0100
+        thetext: |-
+          Submitting jobs with qsubcellfun now produce the folowing output:
+
+          submitting job roennburgk_esi-svhpc8_p24532_b1_j144... qstat job id /bin/matlab2011a
+
+          which is a result of:
+          [status, result] = system(cmdline);
+          fprintf(' qstat job id %s\n', strtrim(result));
+
+          since srun is not giving back the job id after submission we need to code an if then around this to prevent the output.
+
+          Will incorporate this in our changes.
+
+          Kai
+      - +@isprivate: "0"
+        commentid: "5287"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-14 13:11:56 +0100
+        thetext: |-
+          (In reply to comment #5)
+
+          At this moment the job id cannot be known at the time that the system call returns. Instead of complicated solutions, please first try without the nohup.
+      - +@isprivate: "0"
+        commentid: "5288"
+        comment_count: "7"
+        who:
+          +content: kai.roennburg
+          +@name: Kai Roennburg
+        bug_when: 2012-02-14 13:27:48 +0100
+        thetext: "Slurms submit program \"srun\" normally runs silent, without giving any feedback, taking the nohup will not change the behavior.\n\nThe only way I see at the moment would be to change to verbose output and grep the interesting information from the result string given below:\n\nroennburgk@esi-svhpc8:/opt/fieldtrip/qsub$ srun -v uptime\nsrun-llnl: auth plugin for Munge (http://home.gna.org/munge/) loaded\nsrun-llnl: Consumable Resources (CR) Node Selection plugin loaded with argument 20\nsrun-llnl: jobid 17844: nodes(1):`ESI-svHPC6', cpu counts: 1(x1)\nsrun-llnl: switch NONE plugin loaded\nsrun-llnl: launching 17844.0 on host ESI-svHPC6, 1 tasks: 0\nsrun-llnl: Node ESI-svHPC6, 1 tasks started\n 13:21:05 up 36 days,  1:44,  2 users,  load average: 8.34, 8.13, 7.96\nsrun-llnl: Received task exit notification for 1 task (status=0x0000).\nsrun-llnl: ESI-svHPC6: task 0: Completed \n\nIn that case I'd prefer to skip this information instead of string handling for the output!?\n\nKai"
+      - +@isprivate: "0"
+        commentid: "5289"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-14 13:39:53 +0100
+        thetext: "(In reply to comment #7)\n> In that case I'd prefer to skip this information instead of string handling for\n> the output!?\n\nI don't have a preference whether the string handling is done in matlab or in the linux shell. I think having it in matlab makes it slightly easier to maintain. E.g. \n\n[status, result] = system(cmdline);\nswitch backend\ncase 'slurm'\n  result = ... % e.g. use the regexp function\notherwise\n  % for torque and sge it is enough to remove the white space\n  result = strtrim(result);\nend"
+      - +@isprivate: "0"
+        commentid: "5316"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-16 15:40:03 +0100
+        thetext: "On 15 Feb 2012, at 17:33, Roennburg, Kai wrote:\n\nHi Robert,\n \nI adopted the new sections to slurm and put in the handling for: queue, time and memory requirement. The queue handling works fine.\nmem and time needs more testing with real jobs to see how the restrictions really apply as wanted.\n \nI put the nohup into comments, since it only makes sense when the submit time comes close to the compute time (which was in my testing the case)\n \nAs discussed I changed the section for the qsublist(‘add’) to use the jobname instead of the jobid, since the job cancelation was already coded on the\njobname, this was straight forward.\n \nI’m now seeing the matlab engine prompted with everycall to qsubfeval, which originates from the “which matlabcmd” below.\n \n  if system(sprintf('which %s', matlabcmd))==1\n    % the linux command \"which\" returns 0 on succes and 1 on failure\n    warning('the executable for \"%s\" could not be found, trying \"matlab\" instead', matlabcmd);\n    % use whatever is available as default\n    matlabcmd = 'matlab';\n  end\n \nI must admit I don’t see a chance to avoid it, besides redirecting the output, but haven’t tested it by now:\nif system(sprintf('which %s > /dev/null ', matlabcmd))==1"
+      - +@isprivate: "0"
+        commentid: "5317"
+        comment_count: "10"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-02-16 15:45:20 +0100
+        thetext: "(In reply to comment #9)\n\nI don't see any harm in the output redirect for which, so I'll copy that. \n\nI have also made that section of code to determine the matlab command run only once, using a persistent variable.\n\n\nmanzana> svn commit \nSending        qsub/qsubfeval.m\nTransmitting file data .\nCommitted revision 5293."
+      - +@isprivate: "0"
+        commentid: "5503"
+        comment_count: "11"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-03-10 16:17:37 +0100
+        thetext: I believe that this bug has been full resolved and that in general SLURM works with fieldtrip/qsub. Small changes of course can be made in the future. If you don't agree, please reopen and explain...
+      - +@isprivate: "0"
+        commentid: "5842"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2012-04-11 16:48:30 +0200
+        thetext: |-
+          I cleaned up my bugzilla list by changing the status from resolved (either fixed or wontfix) into closed. If you don't agree, please reopen the bug.
+
+          Robert

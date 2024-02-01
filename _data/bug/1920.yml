@@ -1,0 +1,171 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1920"
+    creation_ts: 2013-01-08 10:04:00 +0100
+    short_desc: restore the complete svn revision history on the server
+    delta_ts: 2013-01-16 17:19:15 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "8884"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:04:05 +0100
+        thetext: |-
+          The svn repository has a bug somewhere around rev 1800 or so, which causes "svnsync" and "git svn clone"  to fail. The bug in the database is probably due to a server glitch, and does not affect normal svn operation.
+
+          Luckily, there is a complete svn sync on googlecode, which includes all revisions without the glitch.
+
+          I want to restore the database copy on svn.fcdonders.nl from the synched version on googlecode. SVN users should not be affected.
+      - +@isprivate: "0"
+        commentid: "8885"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:06:00 +0100
+        thetext: |-
+          I changed it on the svn server into
+
+          roboos@dccn-l009:/home/svnroot
+          1015 $ ll
+          total 28
+          lrwxrwxrwx 1 root   root       16 Jan  8 09:58 fieldtrip -> fieldtrip-dirty/
+          drwxrws--- 7 roboos roboos   4096 Jan  7 21:41 fieldtrip-clean
+          drwxrws--- 7 roboos roboos   4096 Feb 12  2011 fieldtrip-dirty
+
+          This blocks svn access from anyone except for me. This configuration works as if it is the old (dirty) setup. Furthermore
+
+          1016 $ svn info file:///home/svnroot/fieldtrip-dirty/
+          Path: fieldtrip-dirty
+          URL: file:///home/svnroot/fieldtrip-dirty
+          Repository Root: file:///home/svnroot/fieldtrip-dirty
+          Repository UUID: 0cf7c7f0-3615-4144-b4e6-68da3bce3cd0
+          Revision: 7277
+          Node Kind: directory
+          Last Changed Author: jansch
+          Last Changed Rev: 7277
+          Last Changed Date: 2013-01-07 20:38:06 +0100 (Mon, 07 Jan 2013)
+
+          1017 $ svn info file:///home/svnroot/fieldtrip-clean
+          Path: fieldtrip-clean
+          URL: file:///home/svnroot/fieldtrip-clean
+          Repository Root: file:///home/svnroot/fieldtrip-clean
+          Repository UUID: 7e2c8d1e-06e5-49ac-b1f7-fdcade44d4c5
+          Revision: 7277
+          Node Kind: directory
+          Last Changed Author: jansch
+          Last Changed Rev: 7277
+          Last Changed Date: 2013-01-07 20:38:06 +0100 (Mon, 07 Jan 2013)
+      - +@isprivate: "0"
+        commentid: "8886"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:08:36 +0100
+        thetext: |-
+          If I change the symlink from dirty to clean, I get
+
+          mac001> svn update
+          svn: Repository UUID '7e2c8d1e-06e5-49ac-b1f7-fdcade44d4c5' doesn't match expected UUID '0cf7c7f0-3615-4144-b4e6-68da3bce3cd0'
+
+          It should be possible to fix this with
+          http://svnbook.red-bean.com/en/1.5/svn.ref.svnadmin.c.setuuid.html
+
+          but on our server there seems to be an old version of svn that does not support this yet:
+
+          roboos@dccn-l009:/home/svnroot
+          1021 $ svnadmin setuuid
+          Unknown command: 'setuuid'
+          Type 'svnadmin help' for usage.
+
+          1022 $ svnadmin --version
+          svnadmin, version 1.4.2 (r22196)
+             compiled Jan 21 2009, 20:06:22
+      - +@isprivate: "0"
+        commentid: "8887"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:19:49 +0100
+        thetext: |-
+          (In reply to comment #2)
+
+          I updated subversion on the server:
+
+          1029 $ svnadmin --version
+          svnadmin, version 1.6.11 (r934486)
+             compiled May 14 2012, 05:36:18
+      - +@isprivate: "0"
+        commentid: "8888"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:21:57 +0100
+        thetext: |-
+          I reset the UUID for the clean version to that of the dirty version with
+
+          1034 $  svnadmin setuuid /home/svnroot/fieldtrip-clean 0cf7c7f0-3615-4144-b4e6-68da3bce3cd0
+
+          On the client I can now do
+
+          mac001> svn update
+          At revision 7277.
+      - +@isprivate: "0"
+        commentid: "8889"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:41:01 +0100
+        thetext: "I copied the content from conf and hooks from the old to the new repo directory. \nI updated the file and directory permissions."
+      - +@isprivate: "0"
+        commentid: "8890"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-08 10:50:03 +0100
+        thetext: "I changed the file permissions back, it should be open again.\n\nTo test it, I committed the following: \n\nroboos@mentat001> svn commit test/private/\nAdding         test/private/sortfields.m\nTransmitting file data .\nCommitted revision 7278.\n\nOn http://code.google.com/p/fieldtrip/source/detail?r=7278 it looks ok, although http://code.google.com/p/fieldtrip/source/detail?r=7279 is a bit surprising.\n\nOn twitter it looks fine https://twitter.com/search?q=fieldtriptoolbx&src=typd\n\nI will keep an eye on it for the next few days."
+      - +@isprivate: "0"
+        commentid: "8983"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-16 17:19:15 +0100
+        thetext: closed bugs that were resolved.

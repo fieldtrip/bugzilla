@@ -1,0 +1,153 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2850"
+    creation_ts: 2015-02-22 21:11:00 +0100
+    short_desc: ft_eloreta isfield(dipout,)
+    delta_ts: 2020-07-02 08:52:33 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: inverse
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: RESOLVED
+    resolution: WONTFIX
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: richards-john
+      +@name: John Richards
+    assigned_to:
+      +content: luca.ambrogioni
+      +@name: Luca Ambrogioni
+    cc:
+      - j.schoffelen
+      - luca.ambrogioni
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "15407"
+        comment_count: "0"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2015-02-22 21:11:31 +0100
+        thetext: |-
+          I don't know if this is a bug, but...
+
+          At the end of ft_eloreta the following code occurs
+          % wrap it all up, prepare the complete output
+          dipout.inside  = originside;
+          dipout.pos     = origpos;
+
+          % reassign the scan values over the inside and outside grid positions
+          if isfield(dipout, 'pow') % here pow is cell
+            dipout.pow( originside) = dip.pow;
+            dipout.pow(~originside) = nan;
+          end
+
+          When I run the ft_eloreta, only the inside and pos field are assigned.
+
+          However, dipout.pow (or the rest of the dipout fields) are not assigned earlier in the proc. On the other hand, the dip structure has the pow and the other fields.  Perhaps this should be
+          % reassign the scan values over the inside and outside grid positions
+          if isfield(dip, 'pow') % here pow is cell
+            dipout.pow( originside) = dip.pow;
+            dipout.pow(~originside) = nan;
+          end
+
+          If i replace the dipout with the dip then these fields appear in the output structure.
+      - +@isprivate: "0"
+        commentid: "15408"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 10:15:16 +0100
+        thetext: "you are right, I fixed it (also in subsequent lines which had the same confusion between dip and dipout.\n\nmac011> svn commit\nSending        inverse/ft_eloreta.m\nSending        inverse/private/mkfilt_eloreta_v2.m\nAdding         test/test_bug2850.m\nTransmitting file data ...\nCommitted revision 10242.\n\nLooking through the code and the results of the test script, I noticed that data handling is inconsistent with other inverse functions. E.g. source.avg.inside should not be at that level, just as leadfield. Furthermore, the v{i} that is created on line 146 with\n\n    [u,s,v{i}] = svd(dip.leadfield{i}, 'econ');\n    dip.leadfield{i} = dip.leadfield{i}*v{i}(:,1:rank_lf);\n\nshould be used later on to rotate the results back to carthesian coordinates. Right now the output dipole moment is 2*Ntime, whereas it should be 3*Ntime. \n\nI flagged some of these issues in the test script and will see whether they can be fixed as well."
+      - +@isprivate: "0"
+        commentid: "15436"
+        comment_count: "2"
+        who:
+          +content: richards-john
+          +@name: John Richards
+        bug_when: 2015-02-23 16:02:52 +0100
+        thetext: |-
+          Additionally;
+          I have a dataset with 40 slices.
+
+          When I run mimimumnormestimate, it returns the forty slices in the power, i.e., size(pow) = npos 40.  Also, the individual elements of mom are also 40.  miminumnormestimate actually calculates the mom first, then calculates pow from mom
+
+          When I run ft_eloreta, it only returns a single slice in the pow, i.e., size(pow) = npos 1; however, mom has size(mom{i}) are the same as men (e.g., 40 x ...).  I notice in ft_eloreta that pow and mom are computed separately.
+
+          And the output of power is a single slice (size(pow) = [npos 1];
+
+          Is this a design difference with eloreta and mne?  I can calculate power from moment outside of the proc, is this relevant?
+
+          ===minimumnormestimate calc power from mom
+
+          % for convenience also compute power (over the three orientations) at each location and for each time
+          dipout.pow = nan(size(dip.pos,1), size(dat,2));
+          for i=1:size(dip.pos,1)
+            dipout.pow(i,:) = sum(dipout.mom{i}.^2, 1);
+          end
+
+
+          ===ft_eloreta calc power and mom separately.
+          dip.pow = zeros(size(dip.pos,1),1);
+          dip.ori = cell(size(dip.pos,1),1);
+          for i=1:size(dip.pos,1)
+            csd     = dip.filter{i}*Cf*dip.filter{i}';
+            [u,s,v] = svd(real(csd));
+            dip.pow(i) = s(1);
+            dip.ori{i} = u(:,1);
+          end
+          disp(['size of power and ori ' num2str(size(dip.pow)) ' ' num2str(size(dip.ori))]);
+
+          % get the dipole moment
+          if keepmom && ~isempty(dat)
+            % remove the dipole moment from the input
+            if isfield(dip, 'mom')
+              dip = rmfield(dip, 'mom');
+            end
+            for i=1:size(dip.pos,1)
+              dip.mom{i} = dip.filter{i}*dat;
+            end
+          end
+      - +@isprivate: "0"
+        commentid: "15441"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-23 17:19:05 +0100
+        thetext: "Hi John,\n\nIt does not come as a surprise that the different distributed source estimate methods are inconsistent in their input and output. Coincidentally we have also been discussing this during our FT meeting today. \n\nLuca (CC) has been assigned to create a test script. I suggest he copies this into a test script (test_bug2850) that goes through the various source reconstruction methods to check on the consistency of the output arguments. \n\nI don't think it is desirable to have power computed from time-domain inverse methods by default in case an ERF/ERP is passed as input data. If it is subsequently desired by the user, it should be added to ft_sourcedescriptives itself (variance=power is a descriptive measure of source activity)."
+      - +@isprivate: "0"
+        commentid: "16857"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-02-19 11:54:31 +0100
+        thetext: luca, what's the status of this?
+      - +@isprivate: "0"
+        commentid: "20563"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2020-07-02 08:52:33 +0200
+        thetext: Currently, Robert + JM are working on an overhaul of the ft_inverse functions, trying to make them more consistent among each other. Closing this one, since nothing has happened here for a while.

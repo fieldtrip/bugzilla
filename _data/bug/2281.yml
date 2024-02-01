@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2281"
+    creation_ts: 2013-09-09 18:31:00 +0200
+    short_desc: headmodel localspheres gives an error
+    delta_ts: 2018-03-10 21:38:36 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    assigned_to:
+      +content: lilla.magyari
+      +@name: Lilla Magyari
+    cc:
+      - j.schoffelen
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "11283"
+        comment_count: "0"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-09-09 18:31:10 +0200
+        thetext: |-
+          Hi,
+
+          I run the test_ft_prepare_headmodel_new script from the test directory, and I got an error message when the localspeheres methods were applied:
+
+          cfg=[];
+          cfg.grad=grad;
+          cfg.method='localspheres';
+          vol67=ft_prepare_headmodel(cfg,seg2);
+
+          single sphere,    3000 surface points, center = [19.3  1.2 54.6], radius = 70.3
+          channel = MLC11,   662 surface points, center = [16.4 -1.9 29.0], radius = 88.4
+          channel = MLC12,   654 surface points, center = [17.5 -4.4 36.1], radius = 82.9
+          channel = MLC13,   608 surface points, center = [17.9 -5.8 45.5], radius = 77.0
+          channel = MLC14,   623 surface points, center = [15.6 -5.0 51.2], radius = 74.2
+          channel = MLC15,   635 surface points, center = [13.2 -4.2 54.6], radius = 72.6
+          channel = MLC21,   685 surface points, center = [15.4 -1.6 35.9], radius = 82.9
+          channel = MLC22,   655 surface points, center = [16.3 -1.4 44.1], radius = 76.0
+          channel = MLC23,   610 surface points, center = [15.0  2.8 52.3], radius = 68.4
+          channe ....
+
+          channel = MZP01,   457 surface points, center = [21.5  2.5 33.6], radius = 87.1
+          channel = MZP02,   411 surface points, center = [11.6  4.4 46.5], radius = 72.3
+          Undefined function or variable "hs".
+
+          Error in ft_plot_mesh (line 210)
+            set(hs, 'FaceColor', facecolor);
+
+          Error in ft_headmodel_localspheres (line 165)
+              ft_plot_mesh(geometry(shapesel,:), 'vertexcolor', 'g');
+
+          Error in ft_prepare_headmodel (line 339)
+                  vol = ft_headmodel_localspheres(geometry, cfg.grad, 'feedback',
+                  cfg.feedback, 'radius', cfg.radius, 'maxradius', cfg.maxradius,
+                  'baseline', cfg.baseline, 'singlesphere', cfg.singlesphere);
+
+
+          When the computation is running, a figure pops up and it starts to show the electrodes with  some green patches (I guess the localsphere which belongs to 1 electrode ;).
+
+          But it gives this error afterwards. The error is the same independently of the input (segmentation, headshape or mesh).
+
+          Lilla
+          Lilla
+      - +@isprivate: "0"
+        commentid: "11285"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-10 11:16:14 +0200
+        thetext: "hs does not exist, which suggests that the section at line 190 \n\nif haspnt && ~isempty(pnt)\n  if ~isempty(tri)\n    hs = patch('Vertices', pnt, 'Faces', tri);\n  elseif ~isempty(line)\n    hs = patch('Vertices', pnt, 'Faces', line);\n  else\n    hs = patch('Vertices', pnt, 'Faces', []);\n  end\n  %set(hs, 'FaceColor', facecolor);\n  set(hs, 'EdgeColor', edgecolor);\n  set(hs, 'tag', tag);\nend\n\n\nwas not executed. That indicates that pnt is empty, which may happen in this case when no surface points are selected.\n\nIs it not more appropriate to do\n\nif ~haspnt  || isempty(pnt)\n  hs = [];\n  return\nend\n\nsomewhere more to the beginning of the code? If there are no vertices, I don't think anything remains that can be plotted. All checks on pnt being present and non-empty further down in the code can then be removed."
+      - +@isprivate: "0"
+        commentid: "11295"
+        comment_count: "2"
+        who:
+          +content: lilla.magyari
+          +@name: Lilla Magyari
+        bug_when: 2013-09-10 17:09:42 +0200
+        thetext: i have fixed it and also added a test script for ft_plot_mesh

@@ -1,0 +1,126 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3042"
+    creation_ts: 2016-01-13 14:20:00 +0100
+    short_desc: implement support for reading/converting brainstorm cortical surface+labels
+    delta_ts: 2016-01-15 12:36:32 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: REOPENED
+    resolution:
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - francois.tadel
+      - j.schoffelen
+      - jorn
+      - Valerie.CHANOINE
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "16610"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-13 14:20:29 +0100
+        thetext: here at the workshop in Marseille we encountered an interesting use case of first brainstorm, followed by a FT analysis. For that it would be nice to continue in FT on the same (cortical) source model.
+      - +@isprivate: "0"
+        commentid: "16611"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-13 14:21:45 +0100
+        thetext: I got a "tess_cortex_pial_low.mat" file, which I plan to convert to a structure compatible with FT_DATATYPE_PARCELLATION (which is the FT version of the same stuff in the file).
+      - +@isprivate: "0"
+        commentid: "16612"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-13 14:23:48 +0100
+        thetext: "The idea is that \n\n>> filename = 'tess_cortex_pial_low.mat';\n\n\n>> tess = load(filename)\ntess = \n            Comment: 'cortex_15002V'\n           Vertices: [15002x3 double]\n              Faces: [29981x3 double]\n           VertConn: [15002x15002 logical]\n        VertNormals: [15002x3 double]\n          Curvature: [15002x1 single]\n           SulciMap: [15002x1 double]\n                Reg: [1x1 struct]\n            History: {7x3 cell}\n    tess2mri_interp: [16777216x15002 double]\n            mrimask: [256x256x256 logical]\n              Atlas: [1x6 struct]\n             iAtlas: 4\n\n\nto have \n\n>> ft_read_atlas(filename)\nError using ft_read_atlas (line 2182)\nthe mat-file tess_cortex_pial_low.mat does not contain a variable called 'atlas'\n \nreturn a structure compatible with FT_DATATYPE_PARCELLATION"
+      - +@isprivate: "0"
+        commentid: "16613"
+        comment_count: "3"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-13 14:51:01 +0100
+        thetext: |-
+          Note that many of the fields in the surfaces are not present immediately after importing the anatomy of the subject.
+
+          - VertConn, VertNormals, Curvature, SulciMap: Computed the first time the surface is loaded for display (see brainstorm3/toolbox/io/in_tess_bst.m)
+          - Reg: contains the registered spheres from FreeSurfer, or squares from BrainSUite.
+          - tess2mri_interp: Interpolation matrix between the surface and the MRI, computed only when needed.
+          - mrimask: Volume mask corresponding to this surface, computed only when needed.
+          - Atlas: ROIs, user-defined parcellations or FreeSurfer/BrainSuite atlases.
+
+          Do you need help with anything?
+      - +@isprivate: "0"
+        commentid: "16614"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2016-01-13 14:53:55 +0100
+        thetext: |-
+          I don't know about the brainstorm specifics, but do the brainstorm source models also come without an atlas? in that case we might want to consider also building in functionality in ft_read_headshape.
+
+          When reading in freesurfer files, or hcp .gii files things like
+          .curv and
+          .sulc are added to the mesh. These map directly onto Curvature and SulciMap respectively.
+      - +@isprivate: "0"
+        commentid: "16615"
+        comment_count: "5"
+        who:
+          +content: francois.tadel
+          +@name: François Tadel
+        bug_when: 2016-01-13 14:59:33 +0100
+        thetext: |-
+          The atlases are only saved in the surface files. The information is not copied to the source models: when reading a head model, you also need to read the surface file pointed by the .SurfaceFile field.
+
+          Curvature, SulciMap: Computed from Brainstorm.
+
+          The files read from the FreeSurfer segmentation folders are listed here:
+          http://neuroimage.usc.edu/brainstorm/Tutorials/LabelFreeSurfer#Importing_the_results_in_Brainstorm
+      - +@isprivate: "0"
+        commentid: "16627"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 12:35:02 +0100
+        thetext: "I have added support for the BrainStorm cortical sheets including the atlas details. \n\nmac011> svn commit `cat out`\nSending        fileio/ft_read_atlas.m\nSending        fileio/ft_read_headshape.m\nAdding         test/test_bug3042.m\nSending        utilities/copyfields.m\nAdding         utilities/renamefields.m\nTransmitting file data .....\nCommitted revision 11062.\n\nmac011> svn commit `cat out`\nSending        test/test_bug3042.m\nTransmitting file data .\nCommitted revision 11063.\n\nIt will be included in the FTP release of this evening. \n\nWith this support, it is now possible to do\n\ncfg = ...\ncfg.sourcemodel = ft_read_headshape(brainstorm file)\nsourceresult = ft_sourceanalysis(cfg, data)\n\nand subsequently for example\n\natlas = ft_read_atlas(brainstorm file)\n\ncfg = [];\ncfg.parcellation = 'destrieux';\nparcels = ft_sourceparcellate(cfg, sourceresult, atlas);\n\nwhich will average the estimated source parameters over the atlas parcels. Other options besides averaging are in cfg.method and include the option of computing the largest eigenvector."
+      - +@isprivate: "0"
+        commentid: "16628"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-01-15 12:36:32 +0100
+        thetext: Oh, I should not have closed. I think it would be good to follow up with a more complete example. The only one I have now is based on a single file from Valerie (CC).

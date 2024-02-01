@@ -1,0 +1,147 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3385"
+    creation_ts: 2017-12-06 17:22:00 +0100
+    short_desc: implement support for GSR/EDA data
+    delta_ts: 2021-10-29 12:38:42 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: All
+    op_sys: All
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3433
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P4
+    bug_severity: enhancement
+    target_milestone: '---'
+    dependson:
+      - "3394"
+      - "3395"
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: ingrid.nieuwenhuis
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "19129"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-12-06 17:22:01 +0100
+        thetext: See https://cogsci.stackexchange.com/questions/16017/open-source-software-for-analyzing-electrodermal-activity for a list of algorithms
+      - +@isprivate: "0"
+        commentid: "19147"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-12-20 10:18:51 +0100
+        thetext: |-
+          I have started with some iMotions files. These are ascii files with many columns (each column contains one variable), some numeric and some textual. Not all rows are equally spaced in time, and some variables have missing values coded as "", and others have missing values coded as -1.
+
+          I have made my own branch and added my work-in-progress implementation to it. After more testing, I will merge it with the master branch of fieldtrip/fieldtrip, i.e. the release version.
+
+          mac011> git commit -a
+          [bug3385-eda e00123d] implemented import functions for iMotions ascii filer format, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3385
+           2 files changed, 184 insertions(+)
+           create mode 100644 imotions2fieldtrip.m
+           create mode 100644 private/read_imotions_txt.m
+
+          mac011> git push
+          Counting objects: 9, done.
+          Delta compression using up to 4 threads.
+          Compressing objects: 100% (9/9), done.
+          Writing objects: 100% (9/9), 3.50 KiB | 0 bytes/s, done.
+          Total 9 (delta 5), reused 0 (delta 0)
+          remote: Resolving deltas: 100% (5/5), completed with 3 local objects.
+          To github.com:robertoostenveld/fieldtrip.git
+             29d5479..e00123d  bug3385-eda -> bug3385-eda
+      - +@isprivate: "0"
+        commentid: "19148"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2017-12-29 14:57:50 +0100
+        thetext: |-
+          I have merged the initial implementation, see https://github.com/fieldtrip/fieldtrip/pull/624
+
+          There are still improvements needed. Best would be to start with a test script that can serve as example/tutorial.
+      - +@isprivate: "0"
+        commentid: "19154"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-01-03 10:06:51 +0100
+        thetext: "my first proposal for a pipeline looks like this:\n\n--------------------------------------------------------\n[data, event] = imotions2ft(filename)\n\n% hier is de data continue\n \ncfg = [];\ncfg.event = event;\ncfg.trialfun = xxx\ncfg = ft_definetrial(cfg)\n \ndata_segmented = ft_redefinetrial(cfg, data)\n \n% hier in stukken, eentje per clip\n \ncfg = [];\ncfg.toilim = [2 inf];\ndata_trimmed = ft_redefinetrial(cfg, data_segmented);\n \n% hier is de eerste 5 sec weg\n% dit zou het moment zijn om verdere artefact detectie te doen\n \n \ncfg = [];\ncfg.method = ‘median'\ncfg.fsample = 1\ndata_1sec =ft_resampledata(cfg, data_trimmed)\n \n% en dan hier de data per clip/trial naar een csv file schrijven. Elke kolom is een kanaal, elke rij een seconde.\n \nen alternatief het signaal averagen (of median nemen) over tijd\n \ncfg = [];\ncfg.nanmean = ‘yes’ % voot eventuele artefacten of missing data\ncfg.avgovertime = ‘yes’\ncfg.channel = {‘HR*’, ‘FAC*’};\ndata_summary = ft_selectdata(cfg, data_trimmed)\n \ndan de resultaten verzamelen met iets als \n \nclip = data_summary.trialinfo\nfor i=1:numel(clip)\n  summary(i,:) =   data_summary.trial{i}(:,:)’; % only 1 sample left\nend\nsummary = [clip; summary];\n \n% geeft een tabel met Nclip*Nchannel\n \nsave summary.mat summary\n--------------------------------------------------------\n\n\nIngrid commented two items that I reported as bug #3394 and these three that relate to the pipeline.\n\n3) Event & define_trial: Het lijkt of je imotions2fieldtrip een event wil laten terug geven. Als je dat zou willen, kun je dat doen mbv de kolom “StimulusName”. Dit is de marker kolom als markers automatisch door iMotions inserted worden. Je kunt in iMotions ook “live markers” zoals ze dat noemen toevoegen (met de hand (in iMotions software) toegevoegde markers), die komen in een andere kolom. Ik weet niet genoeg over hoe event zich in FieldTrip gedraagd om te zeggen wat logischer is, wel of geen event terug geven, maar het is in ieder geval wel nodig dat de gebruiker (met define_trial lijkt me) vertelt waar de markers vandaan gehaald moeten worden.\n\n4) Voor of na segmenteren: Sommige handelingen moeten op de continue data plaatsvinden, bijvoorbeeld in EDA het model, of met heart rate, de peak detection en dan naar “beats per minute” is denk ik ook beter om op de continue data te doen met sliding window. Dus onderstaande pijp moet nog een stukje voor het segmenteren in trials waar bepaalde preprocessing kan plaatsvinden. Ik zit te twijfelen of artifact detectie voor of na segmenteren moet. Je doet het nu na. Ik kan me ook voorstellen dat dat op de continue data gebeurt… Bijvoorbeeld in gevallen waar de toename (diff) als criterium gebruikt wordt ouzo.\n\n5) Normalizatie ten opzichte van specifiek event of sessie als geheel: Een gebruikte methode is om proefpersoon specifieke data te normalizeren tenopzichte van een bepaald event (daar is die rare Zentemple event bijvoorbeeld voor, een 4 minuten dured filmpje van een zen temple dat in theorie gebruikt kan worden als “0”. Voor facial action coding gebruiken ze Emotient_Baseline event, daarin worden 3 gezichten getoond met neutral, kleine smile en grote smile, die proefpersoon moet nadoen om soort van proefpersoon specifieke kalibratie te kunnen doen. Ook wordt soms de sessie als geheel gebruikt om te normalizeren. Iets om over n ate denken hoe dat erin gebouwd kan worden. Misschien puur in script, maar wilde het even op tafel gooien, misschien is het van belang daar nu al over te denken."
+      - +@isprivate: "0"
+        commentid: "19155"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-01-04 10:18:09 +0100
+        thetext: |-
+          [bug3385-eda 395d433] ENH - improved detection of numeric columns, construct numeric channels for "events" and parse them into event structure, some other fixes and improvements
+           1 file changed, 102 insertions(+), 16 deletions(-)
+
+
+          I have merged this in master with https://github.com/fieldtrip/fieldtrip/pull/628
+      - +@isprivate: "0"
+        commentid: "19169"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-01-07 16:12:49 +0100
+        thetext: |-
+          file importing is at an acceptable level, event handling and segmenting as well.
+
+          what remains is across-subject normalization (of all signals), artifact handling, and EDA specific processing.
+      - +@isprivate: "0"
+        commentid: "19215"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2018-01-25 00:02:15 +0100
+        thetext: |-
+          the old behavior was to squash multiple identical timestamps. The default is now to interpolate, assuming that all samples are linear. The behavior can be specified with the fixture option.
+
+          I have also fixed the 0.5 sample shift in the time axis after resampling.
+      - +@isprivate: "0"
+        commentid: "20595"
+        comment_count: "7"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-10-29 12:14:25 +0200
+        thetext: I think this has been completed with ft_electrodermalactivity. I am currently not planning to do additional work on this, hence I will close this issue.
+      - +@isprivate: "0"
+        commentid: "20607"
+        comment_count: "8"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2021-10-29 12:38:42 +0200
+        thetext: Let me close these bugs, now that they have been resolved.

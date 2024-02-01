@@ -1,0 +1,204 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "1958"
+    creation_ts: 2013-01-25 16:26:00 +0100
+    short_desc: Non-uniform frequency spacing in ft_specest_mtmconvol
+    delta_ts: 2013-06-19 12:36:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: specest
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: roemer.van.der.meij
+      +@name: Roemer van der Meij
+    cc:
+      - jorn
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "9227"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-01-25 16:26:48 +0100
+        thetext: |-
+          Hi,
+
+          I noticed that ft_specest_mtmconvol outputs non-uniform frequency axis when given a uniform one as input. Here is the test line. I also added to test_spm_ft_integration :
+
+          [spectrum,ntaper,freqoi,timeoi] = ft_specest_mtmconvol(randn(1, 1651), linspace(-0.5000, 1, 1651), ...
+              'taper', 'sine', 'timeoi',  -0.3:0.05:0.75, 'freqoi', 1:48,...
+              'timwin', repmat(0.4, 1, 48), 'tapsmofrq', 2*ones(1, 48), 'verbose', 0);
+          assert(length(unique(diff(freqoi)))==1);
+
+
+          Some intervals are twice as big as others. This comes from rounding at line 97 of ft_specest_mtmconvol. This is important as we have tests for uniformity of the frequency axis elsewhere that currently fail. I can make the test slightly less sensitive but the present differences are pretty big.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "9257"
+        comment_count: "1"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-28 16:36:26 +0100
+        thetext: "Hey Vladimir,\nThanks for noticing. The frequencies that are given in the output are the fourier-frequencies closest to the requested frequencies. \nIn your specific example (with fsample = 1100Hz and nsample=1651), the large difference between the requested and given frequencies is because some of the requested frequencies fall roughly on the border between two possible fourier-frequencies. This leads to some being skipped and some not. I don't see any other way of doing this, without affecting the number of frequencies in the output (which is not desirable). \nIs there an important reason why you chose this specific test-case? If the requested frequencies are formed according to what can be extracted from the data everything should be fine of course (i.e. change the input)."
+      - +@isprivate: "0"
+        commentid: "9258"
+        comment_count: "2"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-01-28 18:01:41 +0100
+        thetext: "Hi Roemer,\n\n\nI spent half day today trying to track the source of a different problem and eventually it came down to the fact that that the time axis (timeoi) is also non-uniform when the input time axis is. Both things are a problem for SPM because when exporting to images we only represent the frequency axis by a voxel to world transform which cannot handle the non-uniform case. Also the time in SPM datasets is stored as onset + sampling rate rather than the full time axis so when the time is non-uniform there is a problem and events start shifting with respect to the data. \n\nWould there be a way to make the axes uniform at the expense of some interpolation and slight sub-optimality in the spectral estimates?\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "9259"
+        comment_count: "3"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-29 11:26:15 +0100
+        thetext: "Hmmmm, the easiest way would be to just pad the data out such that the Rayleigh would fit the requested frequency (why I didn't suggest that yesterday I don't know ;)). Then the spectral interpolation is done within the FFT. So if you set the keyval 'padding' to an integer higher than the total data length, if your requested frequencies are integers, the output should be too. In the example you use a time-window of 400ms anyway, so the actual frequency resolution (2.5Hz) is much lower than the frequency-steps requested as output. (so some extra interpolation by padding wouldn't make it more suboptimal)\n\nOn the non-uniform time-axis...hmmmm, I don't know how to solve this one easily. As far as I know, no function in fieldtrip handles non-uniform time-axes. If it is handled somewhere, it'll most likely be interpolated in a high-level function before given on to a low-level function like ft_specest_XXX. My suggestion would be to interpolate the data and time-axis so that it is uniform before handing it to specest_mtmconvol. Especially because it is non-trivial how to interpolate. \n\n(CC'ing Robert in case he has a different suggestion regarding the time-axis)"
+      - +@isprivate: "0"
+        commentid: "9260"
+        comment_count: "4"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-01-29 11:43:29 +0100
+        thetext: "(In reply to comment #3)\nHi Roemer,\n\nSo would it be possible to do the padding automatically in the function so that it will return values exactly corresponding to the specified frequencies.\n\nRe time axis, I think you misunderstood me. It's not that the input time axis is non-uniform. It's the output time axis that is. If you say FT cannot really handle that, it's one more reason why you should also be interested in fixing it. \n\nHere is some code that illustrates the problem. I create a pulse train and the check whether there is a shift between where the pulses are in the TF output relative to where they were in the time domain data. \n\nVladimir\n\n%-------------------------------------------\n\nN = 2^13;\ndt = 4e-3;\nfsample = 1/dt;\n\nosamples =  fsample:fsample:(N-fsample);\ndata = zeros(1, 100*fsample);\ndata(osamples) = 1;\ntime = [1:length(data)]./fsample;\n\notimes = time(osamples);\n%%\nfoi = 20:30;\ntimeres = 0.4;\ntimestep = 0.05;\nfreqres = 2;\n\ntimeoi =(time(1)+(timeres/2)):timestep:(time(end)-(timeres/2)-1/fsample);\n[spectrum,ntaper,freqoi,timeoi] = ft_specest_mtmconvol(data, time, 'taper', 'dpss', 'timeoi', timeoi, 'freqoi', foi,...\n    'timwin', repmat(timeres, 1, length(foi)), 'tapsmofrq', repmat(freqres, 1, length(foi)), 'verbose', 0);\n\npow = mean(squeeze(abs(spectrum)));\npow = pow./max(pow);\npow(pow<0.2) = 0;\n[~, pks] = findpeaks(pow);\n\n% Non - uniform time axis works\ntimeoi(pks) - otimes\n\n\n% But the uniform doesn't\ntimeoi = ([1:length(timeoi)]-1)*diff(timeoi(1:2)) +timeoi(1);\n\ntimeoi(pks) - otimes"
+      - +@isprivate: "0"
+        commentid: "9261"
+        comment_count: "5"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-29 12:12:16 +0100
+        thetext: "Hi Vladimir,\n\nI'm not in favor of automatic padding, since it has important consequences on what the output-data represents. Would be best for it to be explicitly determined by the user, so that these consequences have to be thought of. This is also the reason for picking the frequencies in the output the way we do (time points as well). \n\nAh, I misunderstood the time-axis thing. The time points that are selected are ones that are closest to the time-points that are represented in the data, and are selected in a very similar way as the frequencies in the output. If the time-points that are requested do not match any of the real data-points that are in the selection-pool, then the closest time-points are selected. If the relation between requested and actual time-points is a bit funny and time-points that are requested fall in the middle between two actual time-points but with a slight variation, then the resulting selection can be non-uniform. To correct for this automatically doesn't feel right either, as how to do any interpolation seems non-trivial. And it has to be interpolated, because what is requested does not exist in the data. Is there a specific reason why you would request time-points that are unrepresented instead of a subselection of time-points that were recorded?"
+      - +@isprivate: "0"
+        commentid: "9263"
+        comment_count: "6"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-01-29 12:21:50 +0100
+        thetext: "(In reply to comment #5)\nFor frequency axis what about optional padding in the function that is off by default in FT but on in SPM? \n\nFor time axis I'm not sure how I should specify the time axis to ensure this doesn't happen. I thought what I'm doing is the most sensible thing. Could you give me an example of how given a time window, time resolution and time step I define a uniform time axis?\n\nVladimir"
+      - +@isprivate: "0"
+        commentid: "9266"
+        comment_count: "7"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-29 12:50:32 +0100
+        thetext: "Hey Vladimir,\nI'd like to wait for an executive comment from Robert relating to FT/SPM integration ;). Much to say for both ways I think (adding vs not adding FT/SPM specific defaults). \n\n\nHmmm, on the time-axis thing. In the example in comment #4 the sampling rate of the data is 250Hz (1/0.004), but the requested timeoi is sampled at 20Hz (1/0.050). The disagreement with the output timeoi en input time is caused by the sampling rate of the timeoi not fitting an integer-amount in the sampling rate of the data. So, what if you would take as a sampling for the requested timeoi: 250./mod(250,20)?\n\nSo in your example that would be: \n\ndt = 4e-3;\nfsample = 1/dt;\ntimestepreq = 0.05; % requested approximate time-step\ntimestep = 1 ./ (fsample ./ mod(fsample,1/timestepreq ))\n\n(I'm sure this can be written down more neatly)\n\nIn this case the time-step would be 0.04, which leads to a \"integer\" subsampling of the time-points in the data. \n\nAn alternative way to do it would be to do (making it more explicit that it's a neat subsampling):\nsampleskip = mod(fsample,1/timestepreq);\ntimeoi = time(1:sampleskip:end);\n\nDoes this help a little bit?"
+      - +@isprivate: "0"
+        commentid: "9267"
+        comment_count: "8"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-01-29 12:57:48 +0100
+        thetext: |-
+          Yes ,thanks.
+
+          The padding option should not necessarily be marked as SPM or FT - specific. It's just that for some users it might be more important to get the best estimates and for others the exact frequencies they requested.
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "9268"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-01-29 15:41:36 +0100
+        thetext: |-
+          (In reply to comment #8)
+
+          @Roemer: shall we discuss this in the FT meeting tomorrow?
+      - +@isprivate: "0"
+        commentid: "9277"
+        comment_count: "10"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-01-30 17:12:36 +0100
+        thetext: "Hi Vladimir,\n\nDuring our developers-meeting today we talked about whether or not to built-in defaults to automatically change certain analysis settings to favor others. In our comments above this would be e.g. favoring the requested freqoi over unique spectral content by using padding. \nIn the end we decided not to correct for these problems. \nA important reason is that many situations will be uncorrectable. If, for instance, one requests a logarithmically spaced frequency axis, the required padding can be impractically long or even infinitely long to precisely fit the freqoi. Another example would be non-integer sampling-rate, like 1000.17, which some monkey recording systems use (for some reason). In this case, one has to use enormous padding to make the Fourier-output contain integer frequencies (if possible). \n\nAnother reason is that the default is not very predictable from our low-level functions. Separated user-groups request similar things of course, but in that case it would make more sense for any default to be set in a higher level function where the user interfaces. For FT this would be in ft_freqanalsyis, where we indeed already apply certain common defaults (although I don't think we often correct things like padding).  \n\nSo, in the end we decided we keep the philosophy in the lower-level function the same, and perform no corrections based on input. If the freqoi/timeoi doesn't match the output, it will try to find the closest best guess. We did decide on adding a (cmd-line) warning though when the requested and output freqoi/timeoi don't match up, but I assume that wouldn't help SPM-users?\n\nI do have some suggestions though on how it might be easiest to enforce/interrupt when the requested output cannot be directly calculated.\n\nOne-way the defaults could be enforced in SPM for timeoi and freqoi could be:\n\nFor timeoi: ensure that rem(fsample,1/timesteprequested) is never 0. If the remainder is non-zero, the requested time-sampling rate doesn't fit an integer amount in the data sampling rate.\n\nFor freqoi: ensure that every frequencies is an integer multiple of 1/T, where T is the total data-length in seconds (including padding). E.g. by ensuring rem(freqoi,1/T) is never 0.\n\nOr, in reverse:\nAnother way for freqoi would be to always pad out to ceil(T of longest trial in seconds). When all data is padded out to an integer number of seconds, it is ensured that 1/T (Rayleigh frequency) always fits an integer amount in 1. When this is true, a freqoi of integers will always be present in the Fourier-output.\n\nRoemer"
+      - +@isprivate: "0"
+        commentid: "9303"
+        comment_count: "11"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2013-02-03 14:19:47 +0100
+        thetext: |-
+          (In reply to comment #10)
+
+          Hi Roemer,
+
+          I'm trying to implement the SPM fix for the non-uniformity problem and there is something I find strange. It looks from the code of ft_specest_mtmconvol that the padding and frequency axis are related to total data length whereas they should be related to 'timwin' because that determines the length of data actually going through FFT and thus the frequency resolution. Am I misunderstanding something?
+
+          Vladimir
+      - +@isprivate: "0"
+        commentid: "9304"
+        comment_count: "12"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-02-04 10:37:49 +0100
+        thetext: "(In reply to comment #11)\n\nFor efficiency reasons the mtmconvol is implemented using multiplication in the frequency domain, rather than convoluting in the time domain. \n\nSo the fft of the whole (padded window) is computed, the fft of the tapered wavelet (padded to the full window) is computed and these are multiplied. The complex product of the two is inverse fft'ed to give the time-resolved power spectrum. Consequently, the frequency resolution is related to the length of the padded window. \n\nThis costs one FFT for the data, one for the tapered wavelet (or N for N tapers), and one for the inverse transform. Alternative implementations that use a real convolution or that use a sliding window fft (as in, slide a window a bit further, cut a subsection of data, do an fft) all take much more CPU cycles."
+      - +@isprivate: "0"
+        commentid: "10115"
+        comment_count: "13"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-17 12:16:20 +0200
+        thetext: I think this bug can be set to fixed now. I added several warnings to all specest functions for when the input mismatches with the output (see bug 1965).
+      - +@isprivate: "0"
+        commentid: "10123"
+        comment_count: "14"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-04-17 16:43:18 +0200
+        thetext: 'Also, just to mention it here, I created an extra FAQ for this on (also referenced to in the warning now): http://fieldtrip.fcdonders.nl/faq/what_does_padding_not_sufficient_for_requested_frequency_resolution_mean'
+      - +@isprivate: "0"
+        commentid: "10622"
+        comment_count: "15"
+        who:
+          +content: roemer.van.der.meij
+          +@name: Roemer van der Meij
+        bug_when: 2013-06-05 12:14:38 +0200
+        thetext: Closing time
+      - +@isprivate: "0"
+        commentid: "10795"
+        comment_count: "16"
+        who:
+          +content: jorn
+          +@name: Jörn M. Horschig
+        bug_when: 2013-06-19 12:36:53 +0200
+        thetext: 'note: the warning in the specest_ functions has been changed to warning_once, so that it is not thrown for each trial but rather once per function call, see bug 2147 and http://code.google.com/p/fieldtrip/source/detail?r=8254'

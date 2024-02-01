@@ -1,0 +1,138 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2746"
+    creation_ts: 2014-10-23 21:19:00 +0200
+    short_desc: loadcnt sometimes behaves weird by trying to jump to a non-integer valued file pointer
+    delta_ts: 2018-08-09 19:42:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: fileio
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3441
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - arno
+      - ines.bramao
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "14690"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-23 21:19:41 +0200
+        thetext: |-
+          this happens in line 364 where for one strange reason the startpos is non-integer, causing fseek to fail, and the function to return the incorrect data.
+
+          FieldTrip specifies r.sample1 and on lines 333 and 338/339 this integer value is divided and multiplied with h.rate, which somehow occasionally results in slightly non-integer values. The user that reported a problem with reading the data correctly in FieldTrip, which is most likely caused by this issue, also reported that segmenting the data with eeglab works fine. Therefore I thought that the problem should be fixed on FieldTrip's end, but I don't know an easy way. To me, the easiest fix would be an explicit round() on l.338/339. I don't think that this would hurt in general.
+          Arno, do you think this would be an OK change to the code? Does this need to be changed in eeglab, too?
+      - +@isprivate: "0"
+        commentid: "14691"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-24 09:18:26 +0200
+        thetext: 'created test script: test_bug2476'
+      - +@isprivate: "0"
+        commentid: "14692"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-24 09:18:48 +0200
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #1)
+          I mean test_bug2746
+      - +@isprivate: "0"
+        commentid: "14702"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-29 09:51:29 +0100
+        thetext: "@Arno: we have some local test data and the test-script resides in fieldtrip/test/ (it is part of the svn-repository, but not of the FieldTrip release package).\nThe user that reported the problem had some data uploaded on Dropbox.\n\nI post the original e-mail below (her data however is quite large, and the issue seems reproducible on our example data (and thus by extension: on any data) too:\n\n\n=================================================================================\n=================================================================================\nHi all,\n \nWhen I am using ft_preprocessing to segment the data from the continuous eeg .cnt file I get segments that are exactly the same. That is, pieces of the data that correspond to different trials and that are exactly the same! I don’t really know if I am doing something wrong or if there is a problem in the interaction of the ft_preprocessing and the loadcnt function!!!! I am not new using fieldtrip, but I am new with .cnt files.\n \nI have been checking and trying different things:\n1) My trl matrix seems to be properly defined;\n2) When I use curry or eeglab to segment the data I don’t get this weird repeated segments;\n3) Extracting the original data using ft_read_data and looking into the values that correspond to the samples of the repeated segments show that the original data of those segments is different!\n4) Importantly, while I am extracting the segments from the data using ft_preprocessing I get a warning message “events imported with a time shift might be innacurate”… (this do not happen with eeglab and the function for loading .cnt files is apparently the same);\n5) This is not a problem of only one participant and one of my colleagues is experiencing exactly the same problem.\n \nHere is the configuration that I am using to run ft_preprocessing\n \ncfg =\n      dataset: 'D:\\Subj01\\1-OriginalData\\Subj01.cnt'\n      dataformat: 'ns_cnt32'\n      headerformat: 'ns_cnt32'\n      eventformat: 'ns_cnt32'\n      demean: 'yes'\n      baselinewindow: [0 0.2000]\n      reref: 'yes'\n      refchannel: {'A1'  'A2'}\n      implicitref: {'A1'}\n      channel: {'all'  '-A1'  '-TP9'  '-TP10'  '-FT10'  '-FT9'  '-Trigger'}\n      trl: [312x5 double]\n\nUsing this code on the output of the preprocessing shows me that trials 12, 85, 86, 87 and 89 are exactly the same!!!!!\nrepeatedtrials =[];\nfor i = 1:length(PreProcArtifact_cue.trial)\n    for j = 1:length(PreProcArtifact_cue.trial)\n        if PreProcArtifact_cue.trial{i} == PreProcArtifact_cue.trial{j}\n            if i ~= j\n                repeatedtrials(1+end,:) = [i j];\n            end\n        end\n    end\nend\n\nI uploaded my original data file, my trl matrix and the output of the preprocessing here: https://www.dropbox.com/sh/k2nmg50le34v8a0/AAB6odjOx8wnRz10FdG4YlyXa?dl=0\n \nPlease can someone check if I am doing something wrong in order to get exactly the same segment in a different sample interval after using ft_preprocessing? It has been really frustrating to try to figure out what can be wrong and I am starting to believe that there is a problem in ft_preprocessing while segmenting .cnt files? Can this be the case????\n \nThank you very very much!\nInês Bramão"
+      - +@isprivate: "0"
+        commentid: "14706"
+        comment_count: "4"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-29 15:51:39 +0100
+        thetext: |-
+          The following code shows that the current issue seems to be a finite arithmetic issue:
+
+          sample = 1:20000;
+          rate   = 500;
+
+          newsample = sample./rate.*rate; % this is what is essentially done in loadcnt
+
+          figure;
+          plot(sample-newsample); % sometimes the difference is not equal to 0
+      - +@isprivate: "0"
+        commentid: "14707"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-10-29 16:35:50 +0100
+        thetext: |-
+          (In reply to Jan-Mathijs Schoffelen from comment #4)
+
+          if it is a numerical accuracy issue, then that should be addressed. Fseek indeed seems to be picky about this. I had expected it to have some eps-tolerance.
+
+
+
+          >> fid = fopen('matlab_crash_dump.5277-1')
+          fid =
+               3
+
+          >> fseek(fid, eps, 'bof')
+          ans =
+              -1
+
+          >> fseek(fid, 0, 'bof')
+          ans =
+               0
+      - +@isprivate: "0"
+        commentid: "14713"
+        comment_count: "6"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-10-30 13:10:36 +0100
+        thetext: "bash-4.1$ svn commit -m \"bugfix - 2746: deal with numerical inaccuracy of slightly non-integer samples requested for reading\" test/test_bug2746.m external/eeglab/loadcnt.m\nSending        external/eeglab/loadcnt.m\nSending        test/test_bug2746.m\nTransmitting file data ..\nCommitted revision 9932.\n\n        \n\nOK, I officially think it's a rounding issue. I updated our local version of loadcnt. If Arno and Ramon agree with the suggested patch, they may want to use this in the official EEGLAB version as well"
+      - +@isprivate: "0"
+        commentid: "15026"
+        comment_count: "7"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-01-09 09:21:19 +0100
+        thetext: .

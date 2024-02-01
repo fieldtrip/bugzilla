@@ -1,0 +1,62 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "3120"
+    creation_ts: 2016-05-04 13:17:00 +0200
+    short_desc: ft_apply_montage breaks on different trial-lengths
+    delta_ts: 2016-06-14 16:14:53 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: forward
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: stephen.whitmarsh
+      +@name: Stephen Whitmarsh
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc: r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "17270"
+        comment_count: "0"
+        who:
+          +content: stephen.whitmarsh
+          +@name: Stephen Whitmarsh
+        bug_when: 2016-05-04 13:17:29 +0200
+        thetext: "Hi there,\n\nThe last commit (https://github.com/fieldtrip/fieldtrip/commit/20e645fb7068b429a2c2f001a4787e3ac7c02016) added a check for NaNs. However, the use of a 'cat' supposes similar trial lengths, therefor breaking when this is not the case:\n\n******************\n\nError using cat\nDimensions of matrices being concatenated are not consistent.\n\nError in ft_apply_montage (line 245)\n  tmp = cat(1, data_unused.trial{:});\n\nError in ft_rejectcomponent (line 185)\ndata = ft_apply_montage(data, montage, 'keepunused', keepunused, 'feedback', cfg.feedback);\n\n******************\n\nI think a solution could be to replace line 245&246: \n\n  tmp = cat(1, data_unused.trial{:});\n  if any(isnan(tmp(:)))\n\nsimply with: \n  \n  any(isnan([data_unused.trial{:}]));\n\nThis works for me.\n\nCheers,\nStephen"
+      - +@isprivate: "0"
+        commentid: "17271"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-05-04 13:46:31 +0200
+        thetext: "The \"cat\" by eelke is along the wrong direction, it should be along dimension 2. That is also what you are doing it with the []. \n\nI am worried about the memory impact of either solution. A copy of the data is made and for large data that is inefficient.\n\nI have changed it into\n\n  % use an anonymous function to test for the presence of NaNs in the input data\n  hasnan = @(x) any(isnan(x(:)));\n  if any(cellfun(hasnan, data_unused.trial))\n    ...\n  end\n\nmac011> git commit fileio/private/ft_apply_montage.m\n[master b1d9fbc] FIX - see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=3120\n 1 file changed, 3 insertions(+), 2 deletions(-)"
+      - +@isprivate: "0"
+        commentid: "17504"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2016-06-14 16:14:53 +0200
+        thetext: Hereby I am closing multiple bugs that have been resolved for some time now. If you don't agree to the resolution, please reopen.

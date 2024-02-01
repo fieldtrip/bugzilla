@@ -1,0 +1,152 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2214"
+    creation_ts: 2013-07-01 10:23:00 +0200
+    short_desc: link github and svn, i.e. have them synchronize automatically
+    delta_ts: 2013-09-18 13:19:14 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: release
+    version: unspecified
+    rep_platform: All
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: FIXED
+    see_also: http://bugzilla.fcdonders.nl/show_bug.cgi?id=1841
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P3
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    assigned_to:
+      +content: r.oostenveld
+      +@name: Robert Oostenveld
+    cc:
+      - j.schoffelen
+      - jorn
+      - roemer.van.der.meij
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "10840"
+        comment_count: "0"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 10:23:40 +0200
+        thetext: "We have a number of svn hooks that run after every commit. These include \"svncync\", i.e. a script that updates the in-house version with the one on google code and on sourceforge. \n\nWe should also have an automatically updated version on github."
+      - +@isprivate: "0"
+        commentid: "10842"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 10:28:34 +0200
+        thetext: 'Note to self: most git related issues have so far been discussed in relation to bug 1841.'
+      - +@isprivate: "0"
+        commentid: "10843"
+        comment_count: "2"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 10:31:07 +0200
+        thetext: |-
+          I implemented the first post-commit-gitsync script last week. It worked for me, but today I see that there is a commit from Jan-Mathijs on svn which is not synched to github. I suspect there to be a permission problem.
+
+          http://code.google.com/p/fieldtrip/source/detail?r=8289
+      - +@isprivate: "0"
+        commentid: "10844"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 10:48:33 +0200
+        thetext: |-
+          I sudo'ed to jansch on the svn server and tried it:
+
+
+          jansch@dccn-l017:/home/svnroot/fieldtrip/hooks
+          420 $ ./post-commit-gitsync /home/svnroot/fieldtrip 8289
+          REPOS=/home/svnroot/fieldtrip
+          REV=8289
+          fatal: Unable to create '/home/svnroot/fieldtrip/hooks/gitsync/fieldtrip-github-svn/.git/index.lock': Permission denied
+
+          I fixed the permission on the .git directory and tried again.
+
+          421 $ ./post-commit-gitsync /home/svnroot/fieldtrip 8289
+          REPOS=/home/svnroot/fieldtrip
+          REV=8289
+          Switched to branch 'svn'
+                  M       fileio/ft_write_mri.m
+          r8289 = dad84fa62760b6943278a8b5bd63e8b6bfbd3429 (refs/remotes/trunk)
+          First, rewinding head to replay your work on top of it...
+          Fast-forwarded svn to refs/remotes/trunk.
+          Switched to branch 'master'
+          First, rewinding head to replay your work on top of it...
+          Fast-forwarded master to svn.
+          --- here it takes ~2 minutes ---
+          Connection closed by 204.232.175.90
+          fatal: The remote end hung up unexpectedly
+
+          It seems to run fine on the svn server, but there appears to be a connection error. I simply ran it once more
+
+          421 $ ./post-commit-gitsync /home/svnroot/fieldtrip 8289
+          REPOS=/home/svnroot/fieldtrip
+          REV=8289
+          Switched to branch 'svn'
+          Current branch svn is up to date.
+          Switched to branch 'master'
+          Current branch master is up to date.
+          The authenticity of host 'github.com (204.232.175.90)' can't be established.
+          RSA key fingerprint is 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48.
+          Are you sure you want to continue connecting (yes/no)? yes
+          --- here I have to give an answer, yuk ---
+          Warning: Permanently added 'github.com,204.232.175.90' (RSA) to the list of known hosts.
+          Counting objects: 7, done.
+          Compressing objects: 100% (4/4), done.
+          Writing objects: 100% (4/4), 709 bytes, done.
+          Total 4 (delta 3), reused 0 (delta 0)
+          To git@github.com:fieldtrip/fieldtrip.git
+             cd25f03..dad84fa  master -> master
+
+          and the latest commit by Jan-Mathijs appears on https://github.com/fieldtrip/fieldtrip/commits/master
+      - +@isprivate: "0"
+        commentid: "10845"
+        comment_count: "4"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-07-01 10:50:45 +0200
+        thetext: |-
+          the interactive question for "are you sure to connect" needs to be avoided, see http://superuser.com/questions/125324/how-can-i-avoid-sshs-host-verification-for-known-hosts
+
+          I have added -o "StrictHostKeyChecking no" to the gitssh2 script.
+      - +@isprivate: "0"
+        commentid: "11133"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-08-12 15:56:57 +0200
+        thetext: after setting sharedRepository in the git config file, it now is working robustly.
+      - +@isprivate: "0"
+        commentid: "11347"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2013-09-18 13:19:14 +0200
+        thetext: closed multiple bugs that have been resolved

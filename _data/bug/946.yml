@@ -1,0 +1,106 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "946"
+    creation_ts: 2011-09-10 08:35:00 +0200
+    short_desc: ft_appenddata reportedly fails to concatenate trialinfo and sampleinfo (even when that is possible)
+    delta_ts: 2011-10-19 15:21:25 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Mac OS
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    assigned_to:
+      +content: eelke.spaak
+      +@name: Eelke Spaak
+    cc:
+      - m.severens
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "3121"
+        comment_count: "0"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-09-10 08:35:22 +0200
+        thetext: |-
+          reported by Marianne Severens, and likely by Leo Zizlsperger:
+
+          Hi Leo, Jan-Mathijs
+
+          I also have the same problem. When appending data from 2 datasets the trialinfo and sampleinfo only contains info from the first dataset. And I need the information to know which trials belong to each condition. I fixed it for my data by concatenating the trialinfo and sampleinfo field myself. You just need to make sure that the funtions you use afterwards do not depend on the sampleinfo field, because this is not correct any more as Jan-Mathijs explained.
+          I'm not sure if this is the best thing to do, but it works for me!
+
+          Best, Marianne
+
+          ________________________________________
+          From: fieldtrip-bounces@donders.ru.nl [fieldtrip-bounces@donders.ru.nl] On Behalf Of jan-mathijs schoffelen [jan.schoffelen@donders.ru.nl]
+          Sent: Thursday, September 08, 2011 9:19 PM
+          To: Email discussion list for the FieldTrip project
+          Subject: Re: [FieldTrip] ft_appenddata
+
+          Hi Leo,
+
+          With 'trl', are you referring to data.cfg.previous. ... .trl? I assume that data.trial (which contains the actual data) has the correct dimensionality of 1x605?
+          In the past, fieldtrip also concatenated the trl-matrices, but we feel that this is not appropriate. The reason for this is, that the first 2 columns of these matrices represent the sample numbers that define the epochs of interest, with respect to the first sample in the recording. If the concatenated data are derived from two different datasets, these numbers become meaningless, because they cannot be interpreted unequivocally anymore. Yet, and I hope that this was motivating your question, the trl-matrix was also used (by some) to store trial-specific information, which of course still is meaningful even if the data comes from different recordings. If this indeed relates to your question, please have a look at: http://fieldtrip.fcdonders.nl/faq/i_used_to_work_with_trl-matrices_that_have_more_than_3_columns._why_is_this_not_supported_anymore
+
+          If your actual question is of a different nature, could you please explain a bit more what is the problem?
+
+          Thanks,
+
+          Jan-Mathijs
+
+
+          On Sep 8, 2011, at 6:09 PM, Leopold Zizlsperger wrote:
+
+          Hello
+          thanks in advance for your assistance.
+          I'd like to merge 2 datasets after preprocessing using ft_appendata.
+          Even though it works on first view, "trl" does not add up but keeps the structure of the last dataset (304 in the example):
+
+          XY_merge=ft_appenddata(cfg, x1, x2);
+          input dataset 1, 29 channels, 301 trials
+          input dataset 2, 29 channels, 304 trials
+          Warning: input data comes from different datafiles
+          In ft_appenddata at 182
+          concatenating the trials over all datasets
+          removing sampleinfo field from output
+          output dataset, 29 channels, 605 trials
+
+          Do I miss the point ?
+
+          Thanks
+          Best regards
+          Leopold
+
+          I suggest to write a simple test script to validate this and fix it if necessary.
+      - +@isprivate: "0"
+        commentid: "3317"
+        comment_count: "1"
+        who:
+          +content: eelke.spaak
+          +@name: Eelke Spaak
+        bug_when: 2011-09-26 16:37:34 +0200
+        thetext: "Marianne, I added you to the CC list of this bug. I created a test script (test/test_bug946.m; code follows below as well), which seems to succeed for me. Could you check whether your problem persists in the latest version of Fieldtrip? (And with my test script?) I made some small changes to ft_appenddata, which are apparently unrelated to this, but might make a difference.\n\n===\nTest script: \n\n% make some dummy data\ndata1 = [];\ndata1.trial = repmat({rand(10,100)},1,10);\ndata1.time = repmat({0.01:1},1,10);\ndata1.label = {'CH01','CH02','CH03','CH04','CH05','CH06','CH07','CH08','CH09','CH10'};\ndata1.fsample = 100;\ndata1.sampleinfo(:,1) = 1:100:901;\ndata1.sampleinfo(:,2) = 100:100:1000;\ndata1.trialinfo = (1:10)';\n\ndata2 = data1;\ndata2.sampleinfo = data2.sampleinfo + 1000;\ndata2.trialinfo = (11:20)';\n\n% perform concatenation\ncfg = [];\nconcat = ft_appenddata(cfg, data1, data2);\n\n% check whether trialinfo and sampleinfo are correct\ntestSampleInfo = concat.sampleinfo==cat(1,data1.sampleinfo,data2.sampleinfo);\ntestTrialInfo = concat.trialinfo==cat(1,data1.trialinfo,data2.trialinfo);\n\nwrong = [];\nif ~all(testSampleInfo(:))\n  wrong = [wrong 'sampleinfo,'];\nend\nif ~all(testTrialInfo(:))\n  wrong = [wrong 'trialinfo,'];\nend\nif ~isempty(wrong)\n  error([wrong(1:end-1) ' not concatenated properly']);\nend"

@@ -1,0 +1,247 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2585"
+    creation_ts: 2014-05-20 17:45:00 +0200
+    short_desc: ICA for same data differ even using fixed random seed
+    delta_ts: 2016-01-15 09:37:31 +0100
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Linux
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: major
+    target_milestone: '---'
+    blocked: "2891"
+    everconfirmed: "1"
+    reporter:
+      +content: a.wollbrink
+      +@name: Andreas Wollbrink
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc:
+      - arno
+      - holger.krause
+      - j.schoffelen
+      - johanna.zumer
+      - r.oostenveld
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "13723"
+        comment_count: "0"
+        attachid: "628"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2014-05-20 17:45:03 +0200
+        thetext: |-
+          Created attachment 628
+          matlab function performing two repetative component analyses to the same data
+
+          performing a component analysis (runica, PCA upstream) twice to one and the same data (see the attached script) results in different IC (different topographies and time series) even using the cfg.randomseed =  comp.cfg.callinfo.randomseed functionallity
+      - +@isprivate: "0"
+        commentid: "13724"
+        comment_count: "1"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-20 18:21:27 +0200
+        thetext: "I added a test script that confirms the problem\n\nmac011> svn commit test_bug2585.m \nAdding         test_bug2585.m\nTransmitting file data .\nCommitted revision 9554.\nmac011> svn commit test_bug2585.m \nSending        test_bug2585.m\nTransmitting file data .\nCommitted revision 9555.\n\nwhen I add the statement \n  rand(1)\njust before ft_componentanalysis calls runica, it is clear that the random state is set by FT as expected. However, runic results in (slightly) different results on repeated calls. Hence the issue is with eeglab/runic, not FT itself.\n\nThe problem is also visible with\n\nrng(1,'twister')\n[a1, w1] = runica(data.trial{1});\nrng(1,'twister')\n[a2, w2] = runica(data.trial{1});\n\nwhere rng is the random number generator in matlab2014a (see utilities/private/randomseed for the Mathworks mess)\n\nDid you search on the eeglab mailing list or documentation?"
+      - +@isprivate: "0"
+        commentid: "13733"
+        comment_count: "2"
+        who:
+          +content: a.wollbrink
+          +@name: Andreas Wollbrink
+        bug_when: 2014-05-21 11:38:37 +0200
+        thetext: "I just had a closer look in the external/eeglab/runica.m file. \n\nIn line 812 the random number generator state is set dependent on the system clock which is not very promisong for having the same state on repetative calls\n\nThis setting seems to be totally independent from the cfg.randomseed setting one provides to the ft_componentanalysis function  (In reply to Robert Oostenveld from comment #1)"
+      - +@isprivate: "0"
+        commentid: "13734"
+        comment_count: "3"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 12:56:37 +0200
+        thetext: "(In reply to Andreas Wollbrink from comment #2)\n\nThe comments in the function state:\n\n% Revision 1.20  2004/06/29 16:44:09  scott\n% randomize data shuffling by clock state\n\nIt seems to be in there for a long time already. Also in \nhttps://code.google.com/p/fieldtrip/source/list?path=/trunk/external/eeglab/runica.m&start=9549\nit seems that it has been part of the code forever.\n\nJohanna, do you perhaps know whether the randseed was ever expected to work with runica? I know that we use it for the HCP project in combination with fascia, and there it works fine."
+      - +@isprivate: "0"
+        commentid: "13735"
+        comment_count: "4"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2014-05-21 13:17:23 +0200
+        thetext: |-
+          Hi Robert and Andreas,
+
+          Oh dear, I'm sorry for not creating a more thorough test script.   In bug 1205 comment 7, I state that I had tested it on fastica and it worked.   It seems I never tested beyond that, as there is no test_bug1205 file.  Thus, I can't claim that it ever worked with runica.   I used fastica for my own work so I didn't notice the problem.
+      - +@isprivate: "0"
+        commentid: "13741"
+        comment_count: "5"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2014-05-21 16:57:27 +0200
+        thetext: |-
+          (In reply to Johanna from comment #4)
+
+          thanks for the answer. I also think that it is fair that FieldTrip sets the random seed, but that we cannot take responsibility for external toolboxes. E.g. I would rather not change runica.m in the fieldtrip release, because that is the same as the code in eeglab.
+
+          But... Andreas, you are of course free to change it in your copy of runica.m
+
+          Let me also CC Arno, he might want to share his opinion with us
+      - +@isprivate: "0"
+        commentid: "15144"
+        comment_count: "6"
+        who:
+          +content: johanna.zumer
+          +@name: Johanna
+        bug_when: 2015-02-04 17:42:42 +0100
+        thetext: At a minimum then, if the eeglab version won't change by eeglab developers, then the FT documentation should state that it doesn't work for 'runica'.
+      - +@isprivate: "0"
+        commentid: "15165"
+        comment_count: "7"
+        who:
+          +content: arno
+          +@name: Arnaud Delorme
+        bug_when: 2015-02-05 20:01:47 +0100
+        thetext: |-
+          The reason that EEGLAB does not reset the random seed in runica.m is that some researcher like to boostrap the ICA decomposition to assess the stability of components. What could be done is add a new optional input to the function that would set the random seed so the decomposition is always the same.
+
+          Arno
+      - +@isprivate: "0"
+        commentid: "15166"
+        comment_count: "8"
+        who:
+          +content: arno
+          +@name: Arnaud Delorme
+        bug_when: 2015-02-05 20:03:08 +0100
+        thetext: |-
+          If someone does such a thing, we will update the runica.m function in EEGLAB as well (assuming the new option is not used by default).
+
+          Thanks,
+
+          Arno
+      - +@isprivate: "0"
+        commentid: "15176"
+        comment_count: "9"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2015-02-06 15:58:03 +0100
+        thetext: |-
+          (In reply to Arnaud Delorme from comment #8)
+
+          We should ensure that we have the latest version of runica  (ffrom eeglab svn) in fieldtrip/external/eeglab, and then make the change. I believe that I can svn commit to eeglab.
+
+          -----
+
+          mac011> svn info
+          Path: .
+          Working Copy Root Path: /Users/roboos/matlab/eeglab
+          URL: https://sccn.ucsd.edu/svn/software/eeglab
+          Relative URL: ^/eeglab
+          Repository Root: https://sccn.ucsd.edu/svn/software
+          Repository UUID: 1e58238c-3a72-4c0f-aabe-36d030380f39
+          Revision: 10465
+          Node Kind: directory
+          Schedule: normal
+          Last Changed Author: arno
+          Last Changed Rev: 10465
+          Last Changed Date: 2014-12-02 23:36:56 +0100 (Tue, 02 Dec 2014)
+
+          -------
+
+          mac011> cp ./functions/sigprocfunc/runica.m ~/matlab/fieldtrip/external/eeglab/
+          mac011> cd ~/matlab/fieldtrip/external/eeglab/
+          mac011> svn status
+
+          <nothing shows>
+
+          -------
+
+          So the version we have is the latest. Johanna, could you make the change to the code? I am rather tied up with source.avg and inside :-(
+      - +@isprivate: "0"
+        commentid: "15713"
+        comment_count: "10"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-05-08 16:10:08 +0200
+        thetext: |-
+          [jansch@mentat002 eeglab]$ svn commit -m "enhancement - implemented optional resetting of the random number generator (default = true)" runica.m
+          Sending        runica.m
+          Transmitting file data .
+          Committed revision 10397.
+      - +@isprivate: "0"
+        commentid: "15955"
+        comment_count: "11"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-07-20 10:09:18 +0200
+        thetext: |-
+          Hi Arno,
+          If you have some time at some point, could you look into this for a second? I don't know whether this has been followed up from the eeglab side, but the FT-version of runica now allows for an optional fixed random seed.  It would be nice to keep the versions of runica in FT and Eeglab in sync.
+
+          Best,
+          JM
+      - +@isprivate: "0"
+        commentid: "16115"
+        comment_count: "12"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-17 11:10:25 +0200
+        thetext: |-
+          This is a gentle reminder for Arno, to look into it at the EEGlab side.
+          Closing on the FT-end for now.
+      - +@isprivate: "0"
+        commentid: "16116"
+        comment_count: "13"
+        who:
+          +content: arno
+          +@name: Arnaud Delorme
+        bug_when: 2015-09-18 01:47:23 +0200
+        thetext: |-
+          I have committed the changes to EEGLAB and also updated the documentation.
+
+          https://bitbucket.org/sccn_eeglab/eeglab/commits/b22169c2bc6ded74a3baafc948f4d520cae5d734#chg-functions/sigprocfunc/runica.m
+      - +@isprivate: "0"
+        commentid: "16117"
+        comment_count: "14"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2015-09-18 09:07:29 +0200
+        thetext: OK, thanks!
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "628"
+      date: 2014-05-20 17:45:00 +0200
+      delta_ts: 2014-05-20 17:45:03 +0200
+      desc: matlab function performing two repetative component analyses to the same data
+      filename: test_repetativeICA.m
+      type: text/x-objcsrc
+      size: "605"
+      attacher:
+        +content: a.wollbrink
+        +@name: Andreas Wollbrink
+      data: REMOVED

@@ -1,0 +1,140 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "782"
+    creation_ts: 2011-06-28 17:34:00 +0200
+    short_desc: Bug in ft_connectivityanalysis
+    delta_ts: 2011-07-13 14:46:39 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: core
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: WORKSFORME
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P1
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter:
+      +content: litvak.vladimir
+      +@name: Vladimir Litvak
+    assigned_to:
+      +content: j.schoffelen
+      +@name: Jan-Mathijs Schoffelen
+    cc: j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "2446"
+        comment_count: "0"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-06-28 17:34:20 +0200
+        thetext: |-
+          I tried connectivity with granger on a dataset with two channels. I get the following error:
+
+
+          stat = ft_connectivityanalysis(cfg, freq);
+          computing multivariate non-parametric spectral factorization on 2 channels
+          averaging crsspctrm over rpt
+          averaging transfer over rpt
+          removing dimension rpt from crsspctrm
+          removing dimension rpt from transfer
+          ??? Error using ==> reshape
+          To RESHAPE the number of elements must not change.
+
+          Error in ==> ft_connectivity_granger at 30
+                    zc     = reshape(Z(kk,jj,jj,:) - Z(kk,ii,jj,:).^2./Z(kk,ii,ii,:),[1 1 1 1 siz(5)]);
+
+          Error in ==> ft_connectivityanalysis at 596
+                [datout, varout, nrpt] = ft_connectivity_granger(data.transfer, data.noisecov, data.crsspctrm, fs, hasjack, powindx);
+
+          K>> size(Z)
+
+          ans =
+
+               1    64     2     2
+
+
+          Investigating I found that Z comes from data.noisecov and the leading singleton dimension is added around line 407 of ft_connectivityanalysis which might not be the right thing to do for this field.
+      - +@isprivate: "0"
+        commentid: "2449"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-28 20:03:43 +0200
+        thetext: It seems you have repetitions in the input data?
+      - +@isprivate: "0"
+        commentid: "2450"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-28 20:06:25 +0200
+        thetext: |-
+          could you upload a freq-structure (with not too many frequency bins) as attachment to this bug?
+          Thanks
+      - +@isprivate: "0"
+        commentid: "2451"
+        comment_count: "3"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-28 20:10:28 +0200
+        thetext: by the way, it typically makes more sense to compute a non-parametric spectral factorization on averaged data, rather than on single trials.
+      - +@isprivate: "0"
+        commentid: "2475"
+        comment_count: "4"
+        attachid: "82"
+        who:
+          +content: litvak.vladimir
+          +@name: Vladimir Litvak
+        bug_when: 2011-06-29 15:28:48 +0200
+        thetext: |-
+          Created attachment 82
+          example data and cfg
+      - +@isprivate: "0"
+        commentid: "2476"
+        comment_count: "5"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2011-06-29 15:51:40 +0200
+        thetext: ">> cd ../../Desktop/\n>> load granger_bug\n>> freq\n\nfreq = \n\n        label: {2x1 cell}\n       dimord: 'rpt_chan_freq'\n         freq: [1x101 double]\n    powspctrm: [64x2x101 double]\n     labelcmb: {'S2'  'S1'}\n    crsspctrm: [64x1x101 double]\n    cumsumcnt: [64x1 double]\n    cumtapcnt: [64x1 double]\n\n>> cfg\n\ncfg = \n\n       method: 'granger'\n    jackknife: 'yes'\n    bandwidth: 2.5000\n\n>> g=ft_connectivityanalysis(cfg, freq)\ncomputing multivariate non-parametric spectral factorization on 2 channels\ncomputing jackknife crsspctrm\ncomputing jackknife transfer\n\ng = \n\n               label: {2x1 cell}\n              dimord: 'chan_chan_freq'\n       grangerspctrm: [2x2x101 double]\n    grangerspctrmsem: [2x2x101 double]\n                freq: [1x101 double]\n                 cfg: [1x1 struct]\n\n\nI ran the code locally, and it seems my local copy is in sync with the repository. The values in the sem look strange to me, though, but it doesn't crash"
+      - +@isprivate: "0"
+        commentid: "2623"
+        comment_count: "6"
+        who:
+          +content: r.oostenveld
+          +@name: Robert Oostenveld
+        bug_when: 2011-07-13 14:46:39 +0200
+        thetext: changed the status for a whole bunch of resolved bugs to CLOSED
+    attachment:
+      +@isobsolete: "0"
+      +@ispatch: "0"
+      +@isprivate: "0"
+      attachid: "82"
+      date: 2011-06-29 15:28:00 +0200
+      delta_ts: 2011-06-29 15:28:48 +0200
+      desc: example data and cfg
+      filename: granger_bug.mat
+      type: application/octet-stream
+      size: "118571"
+      attacher:
+        +content: litvak.vladimir
+        +@name: Vladimir Litvak
+      data: REMOVED

@@ -1,0 +1,135 @@
++p_xml: 'version="1.0" encoding="UTF-8" standalone="yes" '
++directive: DOCTYPE bugzilla SYSTEM "http://bugzilla.fieldtriptoolbox.org/page.cgi?id=bugzilla.dtd"
+bugzilla:
+  +@version: 4.4.1
+  +@urlbase: http://bugzilla.fieldtriptoolbox.org/
+  +@maintainer: r.oostenveld@donders.ru.nl
+  bug:
+    bug_id: "2440"
+    creation_ts: 2014-01-17 14:36:00 +0100
+    short_desc: ft_singleplotTFR fails when plotting anything other than 'powspctrm'
+    delta_ts: 2015-07-15 13:30:49 +0200
+    reporter_accessible: "1"
+    cclist_accessible: "1"
+    classification_id: "1"
+    classification: Unclassified
+    product: FieldTrip
+    component: plotting
+    version: unspecified
+    rep_platform: PC
+    op_sys: Windows
+    bug_status: CLOSED
+    resolution: FIXED
+    bug_file_loc:
+    status_whiteboard:
+    keywords:
+    priority: P5
+    bug_severity: normal
+    target_milestone: '---'
+    everconfirmed: "1"
+    reporter: t.marshall
+    assigned_to:
+      +content: j.herring
+      +@name: Jim Herring
+    cc:
+      - j.herring
+      - j.schoffelen
+    comment_sort_order: oldest_to_newest
+    long_desc:
+      - +@isprivate: "0"
+        commentid: "12527"
+        comment_count: "0"
+        who:
+          +content: t.marshall
+          +@name: ""
+        bug_when: 2014-01-17 14:36:59 +0100
+        thetext: |-
+          Hey guys,
+
+          I have some data with dimord 'rpt_chan_freq_time' (result of freqanalysis with keeptrials='yes') and I'm trying to plot single trials from this structure.
+
+          I log-transformed the power spectrum for visualisation.
+          data.logspctrm=log10(data.powspctrm);
+
+          Now if I try to plot a single trial, plotting the power spectrum works.
+          cfg=[];
+          cfg.parameter='powspctrm'; (also works if nothing is specified here)
+          cfg.trials=1;
+          ft_singleplotTFR(cfg,data); <- this plots
+
+          however if I switch cfg.parameter to 'logspctrm' I get the following error:
+
+          ??? Reference to non-existent field 'time'.
+
+          Error in ==> dimlength at 201
+                n = length(data.time);
+
+          Error in ==> dimlength at 46
+                n{k}(i) = dimlength(data, dimtok{i}, fn{k});
+
+          Error in ==> seloverdim at 39
+          [reduceddim, fntmp] = dimlength(data);
+
+          Error in ==> ft_selectdata_old at 599
+              if selectrpt,  data = seloverdim(data, 'rpt',  selrpt,  fb); end
+
+          Error in ==> ft_selectdata at 45
+            [varargout{1:nargout}] = ft_selectdata_old(varargin{:});
+
+          Error in ==> ft_freqdescriptives at 121
+          if hasrpt, if ~strcmp(cfg.trials,  'all'), freq = ft_selectdata(freq, 'rpt',    cfg.trials); end;
+          end
+
+          Error in ==> ft_singleplotTFR at 181
+              tempdata           = ft_freqdescriptives(tmpcfg, tempdata);
+
+          data.logspctrm has the same dimensions as data.powspctrm so I don't know what's wrong. Help!
+
+          Best,
+          Tom
+      - +@isprivate: "0"
+        commentid: "12532"
+        comment_count: "1"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-18 12:51:49 +0100
+        thetext: |-
+          Seems an issue with ft_selectdata, rather than ft_singleplotTFR.
+
+          Since you are fooling around manually with the data anyway, it'll likely work if you average across trials by hand.
+
+          NOTE: taking the log10 per trial and averaging will be different than taking the average and then the log10. Depends on your application, but in general it is better to average first, and log10 later.
+          If you log10 first and average later you essentially create the log10 of the product of all single trial power estimates: log(a)+log(b)=log(a*b)
+
+          So, in sum I'd do data2 = ft_freqdescriptives([], data); % this averages across trials.
+
+          data2.logspctrm = log10(data2.powspctrm); % better even, use ft_math for this, but I suspect that the log transformed power will then end up in the field .powspctrm
+
+          then visualize
+      - +@isprivate: "0"
+        commentid: "12592"
+        comment_count: "2"
+        who:
+          +content: j.schoffelen
+          +@name: Jan-Mathijs Schoffelen
+        bug_when: 2014-01-25 09:33:42 +0100
+        thetext: |-
+          Hi Tom,
+          Any new from the front?
+      - +@isprivate: "0"
+        commentid: "12766"
+        comment_count: "3"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-30 09:39:02 +0100
+        thetext: "I've added a testscript. \n\nIt only seems to fail when cfg.trials is specified.\n\nI'll see if I can fix it."
+      - +@isprivate: "0"
+        commentid: "12767"
+        comment_count: "4"
+        who:
+          +content: j.herring
+          +@name: Jim Herring
+        bug_when: 2014-01-30 09:49:21 +0100
+        thetext: "The problem is in ft_singleplotTFR.\n\nWhen cfg.parameter is specified a temporary freq structure is created with the powspctrm field filled by what is specified in cfg.parameter. The 'time' field, if available, is not copied and therefor throws an error when plotting. \n\nif isfield(cfg, 'parameter') && ~strcmp(cfg.parameter,'powspctrm')\n    % freqdesctiptives will only work on the powspctrm field\n    % hence a temporary copy of the data is needed\n    tempdata.dimord    = data.dimord;\n    tempdata.freq      = data.freq;\n    tempdata.label     = data.label;\n    tempdata.time      = data.time;\n    tempdata.powspctrm = data.(cfg.parameter);\n    if isfield(data, 'cfg') tempdata.cfg = data.cfg; end\n    tempdata           = ft_freqdescriptives(tmpcfg, tempdata);\n    data.(cfg.parameter)  = tempdata.powspctrm;\n    clear tempdata\n  else\n\n\nI've fixed it by also copying the time field to the temp structure.\n\nSending        ft_singleplotTFR.m\nSending        test/test_bug2440.m\nTransmitting file data ..\nCommitted revision 9173."
