@@ -49,4 +49,4 @@ server, or on a webdav server.
 
 The following command makes the html files and serves them locally.
 
-  bundle exec jekyll serve --incremental --livereload
+    bundle exec jekyll serve --incremental --livereload
