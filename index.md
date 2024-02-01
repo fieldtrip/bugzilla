@@ -70,12 +70,14 @@ On the main website you can find more information about the [FieldTrip developme
 
 ## Hardware
 
+- [All](/rep_platform/all)
 - [PC](/rep_platform/pc)
 - [Macintosh](/rep_platform/macintosh)
 - [Other](/rep_platform/other)
 
 ## Operating system
 
+- [All](/op_sys/all)
 - [Windows](/op_sys/windows)
 - [Mac OS](/op_sys/mac)
 - [Linux](/op_sys/linux)
