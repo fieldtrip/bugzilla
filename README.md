@@ -1,14 +1,19 @@
 # FieldTrip Bugzilla
 
-This repository contains a Jekyll website with all exported bugs from the bugzilla
-issue tracker which we used for the FieldTrip project from 2009 to approximately 2016.
-Keeping the actual server running was not possible due to resource limitations and
-security concerns. This static copy of all bugs allows us to keep the information
-online and prevents linkrot.
+Starting from about 2009, we have used a locally hosted Bugzilla instance as
+our “issue tracker” to maintain and distribute to-do lists and supports the
+follow-up communication between developers and users. Since about 2016 we
+moved on to GitHub for project management and issue tracking. Although we
+have kept the bugzilla server online up to 2024, keeping it further online
+was not possible due to resource limitations and security concerns.
 
-The website is meant to be compiled into HTML using Jekyll, and served on an Apache
-http with redirections enabled. The `.htaccess` redircts from the URLS corresponding
-to the dynamically generated pages to the corresponding static page.
+The bugs from our original bugzilla server have been archived here in the
+form of a static Jekyll website.
+
+This website is meant to be compiled into HTML using Jekyll, and served on
+an Apache http server with redirections enabled. The `.htaccess` redirects
+from the URLs of the original bugzilla server to the corresponding static
+pages.
 
 # Making a static copy of bugzilla
 
