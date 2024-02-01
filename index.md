@@ -49,3 +49,35 @@ On the main website you can find more information about the [FieldTrip developme
 - [spike](/component/spike)
 - [test](/component/test)
 - [yokogawa](/component/yokogawa)
+
+## Severity
+
+- [blocker](/bug_severity/blocker.md)
+- [critical](/bug_severity/critical.md)
+- [major](/bug_severity/major.md)
+- [normal](/bug_severity/normal.md)
+- [minor](/bug_severity/minor.md)
+- [trivial](/bug_severity/trivial.md)
+- [enhancement](/bug_severity/enhancement.md)
+
+## Priority
+
+- [P1](/priority/p1)
+- [P2](/priority/p2)
+- [P3](/priority/p3)
+- [P4](/priority/p4)
+- [P5](/priority/p5)
+
+## Hardware
+
+- [PC](/rep_platform/pc)
+- [Macintosh](/rep_platform/macintosh)
+- [Other](/rep_platform/other)
+
+## Operating system
+
+- [Windows](/op_sys/windows)
+- [Mac OS](/op_sys/mac)
+- [Linux](/op_sys/linux)
+- [Other](/op_sys/other)
+
