@@ -14,12 +14,12 @@ to the dynamically generated pages to the corresponding static page.
 
 First I downloaded all bugs in xml format.
 
-  for i in {1..3476} ; do wget "http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?ctype=xml&id=$i" -O ~/Desktop/bugzilla/xml/$i.xml ; done
+    for i in {1..3476} ; do wget "http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?ctype=xml&id=$i" -O ~/Desktop/bugzilla/xml/$i.xml ; done
 
 As Jekyll cannot deal with data in xml files but can deal with ymland with json files,
 I converted the xml files into yml using <https://mikefarah.gitbook.io/yq>.
 
-  for i in {1..3476} ; do yq -o yaml ~/Desktop/bugzilla/xml/$i.xml > $i.yml ; done
+    for i in {1..3476} ; do yq -o yaml ~/Desktop/bugzilla/xml/$i.xml > $i.yml ; done
 
 Some of the bug reports contain file attachments in base64 encoding, which makes the
 yml files very large. As I don't want to have large files in my git repository, I
@@ -28,10 +28,10 @@ separate yml files, and to remove the attachment data field from each of the bug
 
 This results in files like this
 
-  xxx.xml               # for the original bug in xml format
-  xxx.yml               # for the original bug in yml format, no attachment data
-  xxx-attachment1.yml   # the yml for the 1st attachment
-  xxx-attachment2.yml   # the yml for the 2st attachment
+    xxx.xml               # for the original bug in xml format
+    xxx.yml               # for the original bug in yml format, no attachment data
+    xxx-attachment1.yml   # the yml for the 1st attachment
+    xxx-attachment2.yml   # the yml for the 2st attachment
 
 Only the files `xxx.yml` should be committed to the git repository. The attachments
 need to be decoded and stored somewhere else, for example directly on the Apache http
