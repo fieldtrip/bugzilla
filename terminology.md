@@ -2,9 +2,9 @@
 title: Terminology
 ---
 
-Back to [main page](/).
+Back to the [main page](/).
 
-This page describes the various fields that you see on a bug.
+This page describes the various fields that are used to annotate and categorize bugs.
 
 The documentation here corresponds to version 4.4.1 which was the last version we used. You can find the complete documentation on the [bugzilla website](https://www.bugzilla.org/docs/).
 

@@ -2,7 +2,7 @@
 title: Bugzilla
 ---
 
-Starting from about 2009, we have used a locally hosted [Bugzilla](http://www.bugzilla.org) instance as our “issue tracker” to maintain and distribute to-do lists and supports the follow-up communication between developers and users. Since about 2016 we moved on to [GitHub](https://github.com/fieldtrip) for project management and issue tracking. Although we have kept the bugzilla server online up to 2024, keeping it further online was not possible due to resource limitations and security concerns.
+Starting from about 2009, we have used a locally hosted [Bugzilla](http://www.bugzilla.org) instance as our “issue tracker” to maintain and distribute to-do lists and supports the follow-up communication between developers and users. Since about 2016 we moved on to [GitHub](https://github.com/fieldtrip) for project management and issue tracking. Although we have kept the bugzilla server online up to 2024, continued maintenance and keeping it further online was not possible due to resource limitations and security concerns.
 
 The bugs from our original bugzilla server have been archived and can be accessed here.
 
@@ -79,7 +79,6 @@ On the main website you can find more information about the [FieldTrip developme
 
 - [All](/op_sys/all)
 - [Windows](/op_sys/windows)
-- [Mac OS](/op_sys/mac)
+- [Mac OS](/op_sys/mac_os)
 - [Linux](/op_sys/linux)
 - [Other](/op_sys/other)
-

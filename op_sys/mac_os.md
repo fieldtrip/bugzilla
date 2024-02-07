@@ -1,5 +1,5 @@
 ---
-title: Mac
+title: Mac OS
 ---
 
 {% include op_sys %}
