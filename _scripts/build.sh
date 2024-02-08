@@ -4,19 +4,19 @@
 
 # Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
 export PATH="$PATH:$HOME/.rvm/bin"
-export PATH="$PATH:$HOME/.rvm/rubies/ruby-2.5.3/bin"
-export PATH="$PATH:$HOME/.rvm/gems/ruby-2.5.3/bin"
-export GEM_PATH="$HOME/.rvm/gems/ruby-2.5.3:$HOME/.rvm/gems/ruby-2.5.3@global"
-export GEM_HOME="$HOME/.rvm/gems/ruby-2.5.3"
+export PATH="$PATH:$HOME/.rvm/rubies/ruby-2.6.0/bin"
+export PATH="$PATH:$HOME/.rvm/gems/ruby-2.6.0/bin"
+export GEM_PATH="$HOME/.rvm/gems/ruby-2.6.0:$HOME/.rvm/gems/ruby-2.6.0@global"
+export GEM_HOME="$HOME/.rvm/gems/ruby-2.6.0"
 
 # Load RVM into a shell session *as a function*
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
 rvm use ruby-2.6.0
 
 # this runs from a cron-job, so paths are not set as in an interactive terminal
+BUNDLE=$HOME/.rvm/rubies/ruby-2.6.0/bin/bundle
 GIT=/usr/bin/git
 CP=/usr/bin/cp
-BUNDLE=$HOME/.rvm/gems/ruby-2.5.3/bin/bundle
 
 LOCKFILE=$HOME/bugzilla.lock
 LOGFILE=$HOME/bugzilla.log
@@ -52,7 +52,7 @@ if [ "$LATEST" != "$PREVIOUS" ] ; then
 echo building bugzilla version $LATEST
 echo $LATEST > $LOGFILE
 
-JEKYLL_ENV=production
+export JEKYLL_ENV=production
 $BUNDLE install           # > /dev/null 2>&1
 $BUNDLE exec jekyll build # > /dev/null 2>&1
 
