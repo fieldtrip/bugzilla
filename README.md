@@ -49,4 +49,6 @@ server, or on a webdav server.
 
 The following command makes the html files and serves them locally.
 
+    bundle config set path '.bundle'
+    bundle install
     bundle exec jekyll serve --incremental --livereload
