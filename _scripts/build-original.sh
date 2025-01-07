@@ -18,6 +18,8 @@ BUNDLE=$HOME/.rvm/rubies/ruby-2.6.0/bin/bundle
 GIT=/usr/bin/git
 CP=/usr/bin/cp
 
+cd $HOME/bugzilla
+
 LOCKFILE=$HOME/bugzilla.lock
 LOGFILE=$HOME/bugzilla.log
 
@@ -36,8 +38,6 @@ done
 # make sure that these exist
 [ -e $LOGFILE  ] || touch $LOGFILE
 [ -e $LOCKFILE ] || touch $LOCKFILE
-
-cd $HOME/bugzilla
 
 # ensure that we have the latest version of the repository
 # let's hope there are no conflicts with the reference documentation
