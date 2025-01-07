@@ -7,6 +7,9 @@ BUNDLE=$HOME/fieldtrip/apptainer/bundle
 GIT=/usr/bin/git
 CP=/usr/bin/cp
 
+# needed to prevent /tmp read-only error in the container
+export TMPDIR=$HOME/tmp && mkdir -p $TMPDIR
+
 cd $HOME/fieldtrip/bugzilla
 
 LOCKFILE=$HOME/fieldtrip/bugzilla.lock
