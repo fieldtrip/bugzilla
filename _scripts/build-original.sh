@@ -11,7 +11,7 @@ export GEM_HOME="$HOME/.rvm/gems/ruby-2.6.0"
 
 # Load RVM into a shell session *as a function*
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
-rvm use ruby-2.6.0
+rvm use 3.0
 
 # this runs from a cron-job, so paths are not set as in an interactive terminal
 BUNDLE=$HOME/.rvm/rubies/ruby-2.6.0/bin/bundle
